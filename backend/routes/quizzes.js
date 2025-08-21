@@ -48,7 +48,60 @@ const quizzes = [
     ]
   }
 ];
+// In-memory quiz data (with answers, not exposed to clients)
+const quizzes = [
+  {
+    id: 1,
+    title: 'Fractions Basics Quiz',
+    questions: [
+      {
+        id: 1,
+        prompt: 'What is 1/2 of 8?',
+        options: ['2', '4', '6', '8'],
+        answer: '4'
+      },
+      {
+        id: 2,
+        prompt: 'Which fraction equals 0.25?',
+        options: ['1/4', '1/2', '3/4', '4/5'],
+        answer: '1/4'
+      }
+    ]
+  }
+];
 
+// GET /api/quizzes
+// Returns a list of sample quizzes with questions and options (no answers)
+router.get('/', (req, res) => {
+  // Remove answers before sending to client
+  const quizzesForClient = quizzes.map(quiz => ({
+    id: quiz.id,
+    title: quiz.title,
+    questions: quiz.questions.map(q => ({
+      id: q.id,
+      prompt: q.prompt,
+      options: q.options
+    }))
+  }));
+  res.json(quizzesForClient);
+});
+
+// POST /api/quizzes/:id/submit
+// Accepts user answers and returns validation results
+router.post('/:id/submit', (req, res) => {
+  const quizId = parseInt(req.params.id, 10);
+  const userAnswers = req.body.answers; // { [questionId]: answer }
+  const quiz = quizzes.find(q => q.id === quizId);
+  if (!quiz) {
+    return res.status(404).json({ error: 'Quiz not found' });
+  }
+  const results = quiz.questions.map(q => ({
+    questionId: q.id,
+    correct: userAnswers && userAnswers[q.id] === q.answer,
+    correctAnswer: q.answer // Optionally include this, or omit if not desired
+  }));
+  res.json({ results });
+});
 // GET /api/quizzes
 // Returns a list of sample quizzes with questions and options (no answers)
 router.get('/', (req, res) => {
