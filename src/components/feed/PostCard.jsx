@@ -65,7 +65,7 @@ export default function PostCard({
       content: newComment,
     });
     
-    console.log("Skipping notification creation due1 to database connectivity issues");
+    console.log("Skipping notification creation due to database connectivity issues");
 
     setNewComment('');
     setIsCommenting(false);
