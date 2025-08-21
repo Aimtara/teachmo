@@ -1,6 +1,6 @@
 # Testing Configuration
 
-Since the base44 platform doesn't allow root-level configuration files, here are the configurations that would typically be needed to run these tests in a standard development environment:
+Since the platform doesn't allow root-level configuration files, here are the configurations that would typically be needed to run these tests in a standard development environment:
 
 ## package.json (dependencies and scripts)
 ```json

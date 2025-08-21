@@ -1,5 +1,5 @@
 // Supabase client configuration
-// Note: In production, these environment variables should be set in Base44 dashboard under Settings > Environment Variables
+// Note: In production, set these environment variables in your deployment environment or configuration settings
 
 let supabase = null;
 
@@ -48,7 +48,7 @@ const initializeSupabase = async () => {
         console.warn('Failed to initialize Supabase client:', error);
       }
     } else {
-      console.warn('Supabase environment variables not found. Please set SUPABASE_URL and SUPABASE_ANON_KEY in Base44 dashboard settings.');
+      console.warn('Supabase environment variables not found. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your environment settings.');
     }
   } catch (error) {
     console.warn('Error during Supabase initialization:', error);
