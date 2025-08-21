@@ -1,30 +1,41 @@
 // API routes for assignment resources
 import { Router } from 'express';
+import { query } from '../db.js';
 
 const router = Router();
 
 // GET /api/assignments
-// Returns a simple list of sample assignments
-router.get('/', (req, res) => {
-  res.json([
-    { id: 1, title: 'Sample Assignment', description: 'This is a sample assignment.' }
-  ]);
+// Fetch all assignments from the database
+router.get('/', async (req, res) => {
+  try {
+    const result = await query(
+      'SELECT id, title, description FROM assignments ORDER BY id'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching assignments', err);
+    res.status(500).json({ error: 'Failed to fetch assignments' });
+  }
 });
 
 // POST /api/assignments
-// Creates a new assignment (in-memory only for now)
-router.post('/', (req, res) => {
+// Create a new assignment and persist it to the database
+router.post('/', async (req, res) => {
   const { title, description } = req.body;
   if (!title) {
     return res.status(400).json({ error: 'Title is required' });
   }
-  const newAssignment = {
-    id: Date.now(),
-    title,
-    description: description || ''
-  };
-  // In a real application, you would persist to a database here
-  res.status(201).json(newAssignment);
+
+  try {
+    const result = await query(
+      'INSERT INTO assignments (title, description) VALUES ($1, $2) RETURNING id, title, description',
+      [title, description || '']
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error creating assignment', err);
+    res.status(500).json({ error: 'Failed to create assignment' });
+  }
 });
 
 export default router;

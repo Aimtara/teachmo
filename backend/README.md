@@ -21,7 +21,9 @@ This directory contains a simple Node.js/Express backend to serve as the startin
    cp .env.example .env
    ```
 
-   At a minimum, you can set the `PORT` for the API server and database connection credentials.
+   The example file includes the `PORT` for the API server and PostgreSQL connection
+   settings (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`). Update these
+   values to match your local environment.
 
 3. **Run the server**
 
@@ -51,7 +53,9 @@ This directory contains a simple Node.js/Express backend to serve as the startin
 The backend currently includes:
 
 * `index.js` – Main entry point that configures Express, loads middleware, and mounts routes.
-* `routes/assignments.js` – Sample routes for assignments. You can add more files under `routes/` to handle other resources (e.g. courses, users, events).
+* `routes/assignments.js` – Routes for working with assignments backed by a PostgreSQL
+  table. You can add more files under `routes/` to handle other resources (e.g.
+  courses, users, events).
 * `.env.example` – Example environment configuration. Copy to `.env` to customize.
 * `Dockerfile` – Configuration for building a containerized version of the API.
 * `docker-compose.yml` – Example `docker-compose` configuration to run the API alongside a PostgreSQL database locally.
