@@ -1,3 +1,4 @@
+/* eslint-env node */
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
 import express from 'express';
