@@ -19,7 +19,7 @@ app.get('/api', (req, res) => {
 });
 
 // Import and mount API routes
-import assignmentsRouter from './routes/assignments.js';
+import assignmentsRouter from './assignments.js';
 app.use('/api/assignments', assignmentsRouter);
 
 // Start the server
