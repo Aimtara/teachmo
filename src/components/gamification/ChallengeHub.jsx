@@ -215,7 +215,7 @@ export default function ChallengeHub({ user }) {
                   <Target className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-lg font-semibold text-gray-700 mb-2">No Active Challenges</h3>
                   <p className="text-gray-500 mb-4">Join a challenge to start earning rewards and tracking your progress!</p>
-                  <Button onClick={() => document.querySelector('[data-value="available"]').click()}>
+                  <Button onClick={() => setTab("available")}>
                     Browse Available Challenges
                   </Button>
                 </CardContent>
