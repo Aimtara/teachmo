@@ -90,7 +90,9 @@ export default function TodaysFocus({ user, activities = [], schoolAssignments =
     return [...todayActivitiesFiltered, ...todaysAssignments].sort((a, b) => {
       const dateA = new Date(a.due_date || a.completion_date); // fallback to completion_date if due_date is null
       const dateB = new Date(b.due_date || b.completion_date); // fallback to completion_date if due_date is null
-      return dateA.getTime() - dateB.getTime(); // Use getTime() for reliable date comparison
+      const timeA = isNaN(dateA.getTime()) ? Infinity : dateA.getTime();
+      const timeB = isNaN(dateB.getTime()) ? Infinity : dateB.getTime();
+      return timeA - timeB; // Use getTime() for reliable date comparison, fallback for invalid dates
     });
   }, [todayActivitiesFiltered, schoolAssignments]);
 
