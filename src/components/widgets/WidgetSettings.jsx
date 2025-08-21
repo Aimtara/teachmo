@@ -91,6 +91,11 @@ WidgetSettings.propTypes = {
   widget: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }).isRequired,
-  settings: PropTypes.object.isRequired,
+  settings: PropTypes.shape({
+    size: PropTypes.string,
+    soundEnabled: PropTypes.bool,
+    autoMinimize: PropTypes.bool,
+    theme: PropTypes.string,
+  }).isRequired,
   onSettingsChange: PropTypes.func.isRequired,
 };
