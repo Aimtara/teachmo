@@ -187,7 +187,11 @@ export default function PersonalizedInsights({ children, activities, user }) {
 
     } catch (error) {
       console.error('Error creating activity from insight:', error);
-      alert('Error adding to your activities. Please try again.');
+      toast({
+        title: "Error",
+        description: "Error adding to your activities. Please try again.",
+        variant: "destructive"
+      });
       setButtonFeedback(prev => {
         const newState = { ...prev };
         delete newState[index]; // Clear temporary feedback on error
