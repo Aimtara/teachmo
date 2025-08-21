@@ -22,7 +22,11 @@ app.get('/api', (req, res) => {
 import assignmentsRouter from './routes/assignments.js';
 app.use('/api/assignments', assignmentsRouter);
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Teachmo backend server running on port ${PORT}`);
-});
+// Start the server only if this file is executed directly
+if (import.meta.main) {
+  app.listen(PORT, () => {
+    console.log(`Teachmo backend server running on port ${PORT}`);
+  });
+}
+
+export default app;

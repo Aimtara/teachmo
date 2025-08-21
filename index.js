@@ -19,10 +19,14 @@ app.get('/api', (req, res) => {
 });
 
 // Import and mount API routes
-import assignmentsRouter from './routes/assignments.js';
+import assignmentsRouter from './assignments.js';
 app.use('/api/assignments', assignmentsRouter);
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Teachmo backend server running on port ${PORT}`);
-});
+// Start the server only if this file is executed directly
+if (import.meta.main) {
+  app.listen(PORT, () => {
+    console.log(`Teachmo backend server running on port ${PORT}`);
+  });
+}
+
+export default app;
