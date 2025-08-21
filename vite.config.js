@@ -26,7 +26,8 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['fsevents']
+      // Only include 'fsevents' as an external dependency on macOS, since it is macOS-specific.
+      external: process.platform === 'darwin' ? ['fsevents'] : []
     }
   }
 })
