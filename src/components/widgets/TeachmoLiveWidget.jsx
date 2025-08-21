@@ -1,20 +1,16 @@
-
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import PropTypes from 'prop-types';
+import { useState, useRef, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Wand2, 
-  Loader2, 
-  MessageSquareQuote, 
-  CheckSquare, 
-  Target, 
-  Lightbulb, 
-  Heart, 
+import {
+  Wand2,
+  Loader2,
+  MessageSquareQuote,
+  CheckSquare,
+  Heart,
   Send,
   Sparkles,
-  Clock,
   RotateCcw,
   Share2,
   BookmarkPlus,
@@ -23,16 +19,14 @@ import {
 } from 'lucide-react';
 import { InvokeLLM } from '@/api/integrations';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateWarmOpener, getAdaptiveResponse, FALLBACK_RESPONSES, DISTRESS_RESPONSES } from '../shared/TeachmoTone';
+import { generateWarmOpener, FALLBACK_RESPONSES } from '../shared/TeachmoTone';
 import { User } from '@/api/entities';
 import { Activity } from '@/api/entities';
 import WidgetContainer from './WidgetContainer';
 
-export default function TeachmoLiveWidget({ 
-  isVisible, 
-  onClose, 
-  position = { top: 20, right: 20 },
-  size = "compact" 
+export default function TeachmoLiveWidget({
+  isVisible,
+  size = "compact"
 }) {
   const [situation, setSituation] = useState('');
   const [teachableMoment, setTeachableMoment] = useState(null);
@@ -66,7 +60,15 @@ export default function TeachmoLiveWidget({
   }, [conversationHistory, teachableMoment]);
 
   const detectDistressKeywords = (text) => {
-    const distressWords = ['stressed', 'overwhelmed', 'exhausted', 'can\'t handle', 'breaking down', 'losing it', 'at my wit\'s end'];
+    const distressWords = [
+      'stressed',
+      'overwhelmed',
+      'exhausted',
+      "can't handle",
+      'breaking down',
+      'losing it',
+      "at my wit's end",
+    ];
     return distressWords.some(word => text.toLowerCase().includes(word));
   };
 
@@ -374,7 +376,7 @@ export default function TeachmoLiveWidget({
                 <div className="space-y-1">
                   <h4 className="font-semibold text-blue-900 text-xs">Taking care of you first 💙</h4>
                   <p className="text-blue-800 text-xs">
-                    Let's start with some support for you.
+                    {"Let's start with some support for you."}
                   </p>
                   <div className="flex gap-1">
                     <Button size="sm" onClick={handleDistressSupport} className="bg-blue-600 text-xs h-6">
@@ -493,3 +495,8 @@ export default function TeachmoLiveWidget({
     </WidgetContainer>
   );
 }
+
+TeachmoLiveWidget.propTypes = {
+  isVisible: PropTypes.bool,
+  size: PropTypes.oneOf(['compact', 'default', 'large']),
+};
