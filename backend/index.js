@@ -20,7 +20,13 @@ app.get('/api', (req, res) => {
 
 // Import and mount API routes
 import assignmentsRouter from './routes/assignments.js';
+import learningPathsRouter from './routes/learningPaths.js';
+import quizzesRouter from './routes/quizzes.js';
+import faqsRouter from './routes/faqs.js';
 app.use('/api/assignments', assignmentsRouter);
+app.use('/api/learning-paths', learningPathsRouter);
+app.use('/api/quizzes', quizzesRouter);
+app.use('/api/faqs', faqsRouter);
 
 // Start the server
 app.listen(PORT, () => {

@@ -52,6 +52,9 @@ The backend currently includes:
 
 * `index.js` – Main entry point that configures Express, loads middleware, and mounts routes.
 * `routes/assignments.js` – Sample routes for assignments. You can add more files under `routes/` to handle other resources (e.g. courses, users, events).
+* `routes/learningPaths.js` – Example multi‑stage learning journeys to group related activities into guided tracks.
+* `routes/quizzes.js` – Interactive quiz data that can be surfaced in the app for richer content.
+* `routes/faqs.js` – Basic FAQs supporting a self‑service help portal for common questions.
 * `.env.example` – Example environment configuration. Copy to `.env` to customize.
 * `Dockerfile` – Configuration for building a containerized version of the API.
 * `docker-compose.yml` – Example `docker-compose` configuration to run the API alongside a PostgreSQL database locally.
