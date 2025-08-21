@@ -15,5 +15,9 @@ npm run dev
 npm run build
 ```
 
+## Configuration
+
+Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables to enable Supabase features.
+
 For more information and support, please contact the project maintainers.
 
