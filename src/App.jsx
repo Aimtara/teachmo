@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
-import CommandPalette, { UserContext } from './components/CommandPalette.jsx';
+import CommandPalette from './components/CommandPalette.jsx';
+import { UserContext } from './context/UserContext.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 const Home = lazy(() => import('./pages/Home.jsx'));

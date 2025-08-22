@@ -1,8 +1,7 @@
 import { Command } from 'cmdk';
-import { useState, useEffect, useContext, createContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-export const UserContext = createContext({ role: 'student' });
+import { UserContext } from '../context/UserContext.js';
 
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
