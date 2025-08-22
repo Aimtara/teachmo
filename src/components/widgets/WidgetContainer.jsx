@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import PropTypes from 'prop-types';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minimize2, Maximize2, Settings } from 'lucide-react';
+import { Minimize2, Maximize2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function WidgetContainer({ 
@@ -14,8 +15,6 @@ export default function WidgetContainer({
   size = "default" // "compact", "default", "large"
 }) {
   const [isMinimized, setIsMinimized] = useState(defaultMinimized);
-  const [isDragging, setIsDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
 
   const sizeClasses = {
     compact: "w-72 max-h-80",
@@ -23,21 +22,10 @@ export default function WidgetContainer({
     large: "w-96 max-h-[500px]"
   };
 
-  const handleDragStart = (e) => {
-    setIsDragging(true);
-  };
-
-  const handleDragEnd = (e) => {
-    setIsDragging(false);
-  };
-
   return (
     <motion.div
       drag
       dragMomentum={false}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      style={{ x: position.x, y: position.y }}
       className={`fixed z-50 ${isMinimized ? 'w-48 h-10' : sizeClasses[size]} ${className}`}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -102,3 +90,14 @@ export default function WidgetContainer({
     </motion.div>
   );
 }
+
+WidgetContainer.propTypes = {
+  title: PropTypes.string,
+  icon: PropTypes.elementType,
+  children: PropTypes.node,
+  defaultMinimized: PropTypes.bool,
+  showSettings: PropTypes.bool,
+  onSettings: PropTypes.func,
+  className: PropTypes.string,
+  size: PropTypes.oneOf(['compact', 'default', 'large']),
+};

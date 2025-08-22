@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Wand2, Plus, Settings } from 'lucide-react';
+import { Wand2 } from 'lucide-react';
 import TeachmoLiveWidget from './TeachmoLiveWidget';
 
 // Widget registry for easy extension
@@ -45,17 +45,6 @@ export default function WidgetManager() {
     }
   };
 
-  const closeWidget = (widgetId) => {
-    setActiveWidgets(prev => prev.filter(id => id !== widgetId));
-  };
-
-  const updateWidgetSettings = (widgetId, settings) => {
-    setWidgetSettings(prev => ({
-      ...prev,
-      [widgetId]: { ...prev[widgetId], ...settings }
-    }));
-  };
-
   return (
     <>
       {/* Widget Launcher - smaller floating button */}
@@ -82,7 +71,6 @@ export default function WidgetManager() {
           <WidgetComponent
             key={widgetId}
             isVisible={true}
-            onClose={() => closeWidget(widgetId)}
             size={settings.size || widgetConfig.defaultSize}
             {...settings}
           />

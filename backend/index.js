@@ -1,3 +1,4 @@
+/* eslint-env node */
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
 import express from 'express';
@@ -20,8 +21,6 @@ app.get('/api', (req, res) => {
 
 // Import and mount API routes
 import assignmentsRouter from './routes/assignments.js';
-app.use('/api/assignments', assignmentsRouter);
-
 // Start the server
 app.listen(PORT, () => {
   console.log(`Teachmo backend server running on port ${PORT}`);

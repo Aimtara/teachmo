@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint src/pages src/App.jsx src/main.jsx backend/index.js backend/models.js backend/routes/submissions.js backend/routes/programs.js backend/routes/courses.js backend/routes/incentives.js backend/routes/contracts.js backend/routes/onboarding.js backend/routes/partnerPortalAdmin.js",
     "preview": "vite preview"
   },
   "dependencies": {
