@@ -23,7 +23,7 @@ import assignmentsRouter from './assignments.js';
 app.use('/api/assignments', assignmentsRouter);
 
 // Start the server only if this file is executed directly
-if (import.meta.main) {
+if (import.meta.url === new URL(process.argv[1], 'file://').href) {
   app.listen(PORT, () => {
     console.log(`Teachmo backend server running on port ${PORT}`);
   });
