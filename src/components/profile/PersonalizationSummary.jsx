@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { User, Child } from "@/api/entities";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,23 +19,12 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { SendEmail } from "@/api/integrations";
 import { motion } from "framer-motion";
+import { useChildrenList } from "@/domain/learners";
 
 export default function PersonalizationSummary({ user, onSendEmail }) {
-  const [children, setChildren] = useState([]);
+  const { children, isLoading: isLoadingChildren } = useChildrenList('-created_date');
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-
-  useEffect(() => {
-    const loadChildren = async () => {
-      try {
-        const childrenData = await Child.list('-created_date');
-        setChildren(childrenData);
-      } catch (e) {
-        console.error("Error loading children:", e);
-      }
-    };
-    loadChildren();
-  }, []);
 
   const handleSendSetupEmail = async () => {
     setIsEmailSending(true);
@@ -137,7 +125,9 @@ P.S. You can always update these settings in your profile anytime.`;
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {children.length > 0 ? (
+            {isLoadingChildren ? (
+              <p className="text-gray-500 text-center py-4">Loading child profiles...</p>
+            ) : children.length > 0 ? (
               <div className="space-y-3">
                 {children.map((child) => (
                   <div key={child.id} className="p-3 bg-gray-50 rounded-lg">

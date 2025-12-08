@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '@/api/entities';
-import { Child } from '@/api/entities';
-import { Activity } from '@/api/entities';
+import { useChildrenList } from '@/domain/learners';
 import { InvokeLLM } from '@/api/integrations';
 
 const PersonalizationContext = createContext();
 
 export const PersonalizationProvider = ({ children }) => {
+  const { children: learnerProfiles, isLoading: loadingChildren } = useChildrenList();
   const [personalizationProfile, setPersonalizationProfile] = useState({
     preferences: {},
     behaviorPatterns: {},
@@ -51,16 +51,20 @@ export const PersonalizationProvider = ({ children }) => {
 
   // Generate personalized recommendations
   const generateRecommendations = useCallback(async (type = 'general', limit = 5) => {
+    if (loadingChildren) {
+      return [];
+    }
+
     setIsLearning(true);
     try {
       const user = await User.me();
-      const children = await Child.list();
-      
+      const children = learnerProfiles || [];
+
       const prompt = `Based on this user's profile and behavior, generate ${limit} personalized ${type} recommendations:
 
 User Profile:
 - Parenting style: ${user.parenting_style || 'Unknown'}
-- Current mood: ${user.current_mood || 'Unknown'}  
+- Current mood: ${user.current_mood || 'Unknown'}
 - Children ages: ${children.map(c => c.age).join(', ')}
 - Behavior patterns: ${JSON.stringify(personalizationProfile.behaviorPatterns)}
 - Content preferences: ${JSON.stringify(personalizationProfile.contentAffinities)}
@@ -97,7 +101,7 @@ Generate recommendations that feel personally relevant and useful right now.`;
     } finally {
       setIsLearning(false);
     }
-  }, [personalizationProfile]);
+  }, [learnerProfiles, loadingChildren, personalizationProfile]);
 
   // Adapt content based on user preferences
   const adaptContent = useCallback((baseContent, adaptationType = 'tone') => {
