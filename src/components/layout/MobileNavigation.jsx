@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getMobileNavigation } from '@/config/navigation';
+import { getMobileNavigation, PUBLIC_PAGES } from '@/config/navigation';
 
 // Floating Action Button for quick actions
 function FloatingActionButton({ userRole, unreadCount = 0 }) {
@@ -272,11 +272,9 @@ export default function MobileNavigation({
   const activePath = currentPath || location.pathname;
 
   // Hide navigation on certain pages
-  const hideNavigation = [
-    '/Landing',
-    '/Welcome',
-    '/Login'
-  ].includes(location.pathname);
+  const publicRoutes = PUBLIC_PAGES.map((page) => createPageUrl(page).toLowerCase());
+  const normalizedPath = location.pathname.toLowerCase();
+  const hideNavigation = [...publicRoutes, '/welcome', '/login'].includes(normalizedPath);
 
   if (hideNavigation) return null;
 
