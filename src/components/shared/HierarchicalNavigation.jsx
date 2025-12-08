@@ -1,113 +1,41 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useStore } from '@/components/hooks/useStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Home, Search, Users, Calendar, MessageCircle, Settings, BookOpen, Target, Award, Bot,
-  School, GraduationCap, Shield, BarChart3, Bell, FileText, Building2, UserCheck,
-  ChevronDown, ChevronRight, Command
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, Command } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getNavigationForRole } from '@/config/navigation';
 
 /**
  * @typedef {Object} NavigationItem
  * @property {string} name
- * @property {string} [href]
+ * @property {string} [page]
  * @property {React.ElementType} icon
  * @property {string} [badge]
  * @property {NavigationItem[]} [children]
  * @property {string[]} [roles]
  */
 
-const navigationStructure = [
-  {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: Home,
-    roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin']
-  },
-  {
-    name: 'Learning',
-    icon: BookOpen,
-    roles: ['parent', 'teacher'],
-    children: [
-      { name: 'Discover', href: '/discover', icon: Search },
-      { name: 'Progress', href: '/progress', icon: Target },
-      { name: 'Achievements', href: '/achievements', icon: Award },
-      { name: 'Journal', href: '/journal', icon: FileText }
-    ]
-  },
-  {
-    name: 'Community',
-    icon: Users,
-    roles: ['parent', 'teacher'],
-    children: [
-      { name: 'Community Feed', href: '/community', icon: Users },
-      { name: 'Messages', href: '/messages', icon: MessageCircle, badge: '3' },
-      { name: 'Calendar', href: '/calendar', icon: Calendar }
-    ]
-  },
-  {
-    name: 'Teaching',
-    icon: GraduationCap,
-    roles: ['teacher'],
-    children: [
-      { name: 'My Classes', href: '/teacher/classes', icon: School },
-      { name: 'Assignments', href: '/teacher/assignments', icon: FileText },
-      { name: 'Teacher Messages', href: '/teacher/messages', icon: MessageCircle }
-    ]
-  },
-  {
-    name: 'Administration',
-    icon: Shield,
-    roles: ['school_admin', 'district_admin', 'system_admin'],
-    children: [
-      { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-      { name: 'User Management', href: '/admin/system-users', icon: UserCheck, roles: ['system_admin'] },
-      { name: 'School Users', href: '/admin/school-users', icon: UserCheck, roles: ['school_admin'] },
-      { name: 'District Users', href: '/admin/district-users', icon: UserCheck, roles: ['district_admin'] },
-      { name: 'Districts', href: '/admin/districts', icon: Building2, roles: ['system_admin'] },
-      { name: 'Schools', href: '/admin/schools', icon: School, roles: ['system_admin', 'district_admin'] },
-      { name: 'Licenses', href: '/admin/licenses', icon: FileText },
-      { name: 'Moderation', href: '/admin/moderation', icon: Shield },
-    ]
-  },
-  {
-    name: 'Tools',
-    icon: Bot,
-    roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
-    children: [
-      { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
-      { name: 'School Directory', href: '/school-directory', icon: School },
-      { name: 'Notifications', href: '/notifications', icon: Bell }
-    ]
-  },
-  {
-    name: 'Settings',
-    href: '/settings',
-    icon: Settings,
-    roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin']
-  }
-];
-
 const CommandPalette = ({ isOpen, onClose }) => {
   const [search, setSearch] = useState('');
   const { user } = useStore();
 
+  const userRole = user?.user_type || 'parent';
+
   const getAllNavigationItems = (items) => {
     let allItems = [];
-    
+
     items.forEach(item => {
-      if (item.roles && !item.roles.includes(user?.user_type || 'parent')) return;
-      
-      if (item.href) {
+      if (item.roles && !item.roles.includes(userRole)) return;
+
+      if (item.page) {
         allItems.push(item);
       }
-      
+
       if (item.children) {
         allItems = allItems.concat(getAllNavigationItems(item.children));
       }
@@ -116,7 +44,7 @@ const CommandPalette = ({ isOpen, onClose }) => {
     return allItems;
   };
 
-  const allItems = getAllNavigationItems(navigationStructure);
+  const allItems = getAllNavigationItems(getNavigationForRole(userRole));
   const filteredItems = allItems.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -158,7 +86,7 @@ const CommandPalette = ({ isOpen, onClose }) => {
             {filteredItems.map((item, index) => (
               <Link
                 key={`${item.name}-${index}`}
-                to={createPageUrl(item.href?.replace('/', '') || '')}
+                to={createPageUrl(item.page || '')}
                 onClick={onClose}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors"
               >
@@ -195,6 +123,9 @@ export default function HierarchicalNavigation({ className }) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const { user } = useStore();
   const location = useLocation();
+  const userRole = user?.user_type || 'parent';
+
+  const navigationStructure = useMemo(() => getNavigationForRole(userRole), [userRole]);
 
   const toggleSection = (sectionName) => {
     const newExpanded = new Set(expandedSections);
@@ -206,13 +137,14 @@ export default function HierarchicalNavigation({ className }) {
     setExpandedSections(newExpanded);
   };
 
-  const isCurrentPath = (href) => {
-    return location.pathname === href || location.pathname === createPageUrl(href.replace('/', ''));
+  const isCurrentPath = (page) => {
+    const targetPath = createPageUrl(page || '');
+    return location.pathname === targetPath;
   };
 
   const hasRoleAccess = (roles) => {
     if (!roles || roles.length === 0) return true;
-    return roles.includes(user?.user_type || 'parent');
+    return roles.includes(userRole);
   };
 
   React.useEffect(() => {
@@ -249,7 +181,7 @@ export default function HierarchicalNavigation({ className }) {
 
           const hasChildren = section.children && section.children.length > 0;
           const isExpanded = expandedSections.has(section.name);
-          const isCurrent = section.href ? isCurrentPath(section.href) : false;
+          const isCurrent = section.page ? isCurrentPath(section.page) : false;
 
           return (
             <div key={section.name}>
@@ -268,7 +200,7 @@ export default function HierarchicalNavigation({ className }) {
                   )}
                 </Button>
               ) : (
-                <Link to={createPageUrl(section.href?.replace('/', '') || '')}>
+                <Link to={createPageUrl(section.page || '')}>
                   <Button
                     variant="ghost"
                     className={`w-full justify-start ${isCurrent ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:text-gray-900'}`}
@@ -296,10 +228,10 @@ export default function HierarchicalNavigation({ className }) {
                     {section.children?.map((child) => {
                       if (!hasRoleAccess(child.roles)) return null;
                       
-                      const isChildCurrent = child.href ? isCurrentPath(child.href) : false;
-                      
+                      const isChildCurrent = child.page ? isCurrentPath(child.page) : false;
+
                       return (
-                        <Link key={child.name} to={createPageUrl(child.href?.replace('/', '') || '')}>
+                        <Link key={child.name} to={createPageUrl(child.page || '')}>
                           <Button
                             variant="ghost"
                             size="sm"
