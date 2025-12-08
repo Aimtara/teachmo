@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Child,
-  Student,
-  StudentParentLink,
-  Enrollment,
-  UserProfile
-} from '@/API/entities';
+import { base44Entities } from '@/api/base44';
+
+const { Child, Student, StudentParentLink, Enrollment, UserProfile } = base44Entities;
 
 export const learnersApi = {
   child: Child,

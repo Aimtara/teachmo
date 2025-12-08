@@ -40,9 +40,10 @@ export default function Sidebar({ role = 'parent', currentPageName }) {
                         <Link
                           key={child.name}
                           to={createPageUrl(child.page || '')}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600 ${
                             isChildCurrent ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
                           }`}
+                          aria-current={isChildCurrent ? 'page' : undefined}
                         >
                           <child.icon className="w-4 h-4" />
                           <span className="flex-1">{child.name}</span>
@@ -54,9 +55,10 @@ export default function Sidebar({ role = 'parent', currentPageName }) {
                 ) : (
                   <Link
                     to={createPageUrl(section.page || '')}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600 ${
                       isCurrent ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
                     }`}
+                    aria-current={isCurrent ? 'page' : undefined}
                   >
                     <section.icon className="w-4 h-4" />
                     <span className="flex-1">{section.name}</span>

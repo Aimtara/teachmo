@@ -32,8 +32,10 @@ export default function Header({ user, onLogout }) {
             <button
               type="button"
               aria-label="User menu"
+              aria-expanded={isMenuOpen}
+              aria-haspopup="true"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
             >
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 text-white flex items-center justify-center font-bold">
                 {(user?.full_name || 'U').slice(0, 1)}
@@ -46,21 +48,23 @@ export default function Header({ user, onLogout }) {
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-100 shadow-lg bg-white z-20">
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-100 shadow-lg bg-white z-20" role="menu" aria-label="User menu">
                 <div className="px-4 py-3 border-b border-gray-50">
                   <p className="text-sm font-semibold text-gray-900">{user?.full_name}</p>
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
                 <div className="py-2">
                   <a
-                    className="block px-4 py-2 text-sm hover:bg-gray-50"
+                    className="block px-4 py-2 text-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
                     href={createPageUrl('Profile')}
+                    role="menuitem"
                   >
                     Profile & settings
                   </a>
                   <button
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
                     onClick={handleLogout}
+                    role="menuitem"
                   >
                     Sign out
                   </button>

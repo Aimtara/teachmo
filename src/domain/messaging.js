@@ -1,4 +1,6 @@
-import {
+import { base44Entities, base44Functions } from '@/api/base44';
+
+const {
   Conversation,
   ConversationMember,
   Message,
@@ -6,8 +8,9 @@ import {
   Translation,
   UserConversation,
   UserMessage
-} from '@/API/entities';
-import { translateMessage } from '@/API/functions';
+} = base44Entities;
+
+const { translateMessage } = base44Functions;
 
 export const messagingApi = {
   conversation: Conversation,

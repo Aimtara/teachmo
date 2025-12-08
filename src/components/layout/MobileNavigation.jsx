@@ -28,7 +28,7 @@ function FloatingActionButton({ userRole, unreadCount = 0 }) {
   const actions = quickActions[userRole] || quickActions.parent;
 
   return (
-    <div className="fixed bottom-20 right-4 z-40">
+    <div className="fixed bottom-20 right-4 z-40" aria-live="polite">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -36,6 +36,8 @@ function FloatingActionButton({ userRole, unreadCount = 0 }) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             className="absolute bottom-16 right-0 space-y-2"
+            role="menu"
+            aria-label="Quick actions"
           >
             {actions.map((action, index) => (
               <motion.div
@@ -47,7 +49,8 @@ function FloatingActionButton({ userRole, unreadCount = 0 }) {
                 <Link
                   to={createPageUrl(action.path)}
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 bg-white rounded-full shadow-lg px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-3 bg-white rounded-full shadow-lg px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
+                  role="menuitem"
                 >
                   <action.icon className="w-5 h-5" />
                   <span className="text-sm font-medium whitespace-nowrap">{action.label}</span>
@@ -60,8 +63,9 @@ function FloatingActionButton({ userRole, unreadCount = 0 }) {
       
       <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full shadow-lg relative"
-        style={{ backgroundColor: 'var(--teachmo-sage)' }}
+        className="w-14 h-14 rounded-full shadow-lg relative bg-[var(--teachmo-sage)] text-white hover:bg-[var(--teachmo-sage)]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-700"
+        aria-label={isOpen ? 'Hide quick actions' : 'Show quick actions'}
+        aria-expanded={isOpen}
       >
         <motion.div
           animate={{ rotate: isOpen ? 45 : 0 }}
@@ -94,12 +98,12 @@ function BottomNavigation({ userRole, currentPath }) {
             <Link
               key={item.page}
               to={createPageUrl(item.page)}
-              className={`flex flex-col items-center justify-center gap-1 transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center gap-1 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600 ${
                 isActive
-                  ? 'text-white'
+                  ? 'text-white bg-[var(--teachmo-sage)]'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
-              style={isActive ? { backgroundColor: 'var(--teachmo-sage)' } : {}}
+              aria-current={isActive ? 'page' : undefined}
             >
               <motion.div
                 whileTap={{ scale: 0.95 }}
@@ -147,11 +151,12 @@ function SlideOutMenu({ userRole, isOpen, onClose }) {
                     key={item.page}
                     to={createPageUrl(item.page)}
                     onClick={onClose}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600 ${
                       isActive
-                        ? 'bg-blue-100 text-blue-800' 
+                        ? 'bg-blue-100 text-blue-800'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
+                    aria-current={isActive ? 'page' : undefined}
                   >
                     <item.icon className="w-5 h-5" />
                     <span className="font-medium">{item.label || item.name}</span>
@@ -163,7 +168,7 @@ function SlideOutMenu({ userRole, isOpen, onClose }) {
                 <Link
                   to={createPageUrl('Settings')}
                   onClick={onClose}
-                  className="flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
                 >
                   <Settings className="w-5 h-5" />
                   <span className="font-medium">Settings</span>
@@ -178,7 +183,7 @@ function SlideOutMenu({ userRole, isOpen, onClose }) {
 }
 
 // Mobile header with hamburger menu
-function MobileHeader({ userRole, onMenuOpen, currentPageTitle }) {
+function MobileHeader({ userRole, onMenuOpen, currentPageTitle, isMenuOpen = false }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
@@ -189,8 +194,9 @@ function MobileHeader({ userRole, onMenuOpen, currentPageTitle }) {
             variant="ghost"
             size="sm"
             onClick={onMenuOpen}
-            className="p-2"
-            aria-label="Open menu"
+            className="p-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
+            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isMenuOpen}
           >
             <Menu className="w-5 h-5" />
           </Button>
@@ -215,16 +221,18 @@ function MobileHeader({ userRole, onMenuOpen, currentPageTitle }) {
             variant="ghost"
             size="sm"
             onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="p-2"
+            className="p-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
             aria-label="Search"
+            aria-pressed={isSearchOpen}
+            aria-expanded={isSearchOpen}
           >
             <Search className="w-5 h-5" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
-            className="p-2 relative"
+            className="p-2 relative focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5" />
@@ -283,7 +291,8 @@ export default function MobileNavigation({
       <MobileHeader
         userRole={userRole}
         currentPageTitle={currentPageTitle}
-        onMenuOpen={() => setIsMenuOpen(true)}
+        onMenuOpen={() => setIsMenuOpen((open) => !open)}
+        isMenuOpen={isMenuOpen}
       />
       
       <BottomNavigation

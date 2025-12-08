@@ -1,4 +1,6 @@
-import {
+import { base44Entities, base44Functions } from '@/api/base44';
+
+const {
   School,
   District,
   SchoolDirectory,
@@ -8,13 +10,14 @@ import {
   PartnerEvent,
   PartnerResource,
   PartnerOffer
-} from '@/API/entities';
-import {
+} = base44Entities;
+
+const {
   searchSchools,
   getSchoolIntegrationStatus,
   populateSchoolDirectory,
   manageSchoolRequests
-} from '@/API/functions';
+} = base44Functions;
 
 export const orgsApi = {
   school: School,
