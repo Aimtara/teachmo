@@ -17,6 +17,11 @@ This document defines the minimum controls Teachmo must implement to protect lea
 - **Isolation controls:** Enforce tenant- or family-level scoping in every query and API response. Deny by default and require explicit authorization checks per route/service.
 - **Auditability:** Log access decisions (subject, resource, action, decision, reason) and retain them per compliance policy to support investigations and consent tracking.
 
+### Reference implementation (API enforcement)
+- `/api/families/:familyId` – parent-only route guarded by `enforceFamilyAccess`; rejects cross-family reads.
+- `/api/classes/:classId/students` – requires teacher role with matching class assignment; parents are restricted to the classes tied to their children.
+- `/api/partners/outcomes` – partner endpoint returns aggregated, anonymized outcomes by default and only includes per-family details when `x-partner-consent: true` is provided and logged consent exists.
+
 ## Data Subject Rights (FERPA, COPPA, GDPR)
 - **Data export:** Provide user-facing tools to export a complete, machine-readable copy of a user's personal data (student, parent, teacher, partner) along with metadata on processing purposes and data recipients.
 - **Data deletion:** Offer authenticated deletion/erasure flows that remove personal data across primary databases, caches, and backups within documented retention periods. Provide status tracking and confirmations.
