@@ -6,6 +6,7 @@ import cors from 'cors';
 
 import assignmentsRouter from './routes/assignments.js';
 import accessControlsRouter from './routes/accessControls.js';
+import dataRightsRouter from './routes/dataRights.js';
 import { injectUserContext } from './middleware/authz.js';
 
 // Load environment variables
@@ -27,6 +28,7 @@ app.get('/api', (req, res) => {
 // Import and mount API routes
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api', accessControlsRouter);
+app.use('/api/data-rights', dataRightsRouter);
 
 // Start the server
 app.listen(PORT, () => {

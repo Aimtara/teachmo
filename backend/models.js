@@ -10,6 +10,7 @@ export const incentiveApplications = [];
 export const partnerContracts = [];
 export const partnerSubmissionAudits = [];
 export const partnerSubmissions = [];
+export const dataSubjectRequests = [];
 
 export const families = [
   {
@@ -58,6 +59,7 @@ let counters = {
   contract: 1,
   audit: 1,
   submission: 1,
+  dataRequest: 1,
 };
 
 export const nextId = (key) => counters[key]++;

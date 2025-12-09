@@ -21,6 +21,8 @@ This document defines the minimum controls Teachmo must implement to protect lea
 - `/api/families/:familyId` – parent-only route guarded by `enforceFamilyAccess`; rejects cross-family reads.
 - `/api/classes/:classId/students` – requires teacher role with matching class assignment; parents are restricted to the classes tied to their children.
 - `/api/partners/outcomes` – partner endpoint returns aggregated, anonymized outcomes by default and only includes per-family details when `x-partner-consent: true` is provided and logged consent exists.
+- `/api/data-rights/export` – parent-only export of all family-held data in machine-readable JSON, with guidance for secure sharing.
+- `/api/data-rights/delete` – parent-submitted erasure request recorder that queues FERPA/COPPA/GDPR deletion workflows and exposes status at `/api/data-rights/requests`.
 
 ## Data Subject Rights (FERPA, COPPA, GDPR)
 - **Data export:** Provide user-facing tools to export a complete, machine-readable copy of a user's personal data (student, parent, teacher, partner) along with metadata on processing purposes and data recipients.
