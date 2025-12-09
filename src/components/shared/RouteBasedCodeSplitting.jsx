@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/shared/LoadingStates';
 import GlobalErrorBoundary from '@/components/shared/GlobalErrorBoundary';
+import { ROUTE_MAP } from '@/config/navigation';
 
 // Lazy load pages with code splitting
 const Dashboard = React.lazy(() => import('@/pages/Dashboard'));
@@ -49,42 +50,49 @@ const LazyRouteWrapper = ({ children }) => (
   </GlobalErrorBoundary>
 );
 
+const ROUTE_COMPONENTS = [
+  { page: 'Dashboard', Component: Dashboard },
+  { page: 'UnifiedDiscover', Component: UnifiedDiscover },
+  { page: 'UnifiedCommunity', Component: UnifiedCommunity },
+  { page: 'Calendar', Component: Calendar },
+  { page: 'Messages', Component: Messages },
+  { page: 'AIAssistant', Component: AIAssistant },
+  { page: 'Settings', Component: Settings },
+  { page: 'Progress', Component: Progress },
+  { page: 'Achievements', Component: Achievements },
+  { page: 'Journal', Component: Journal },
+  { page: 'Notifications', Component: Notifications },
+  { page: 'AdminAnalytics', Component: AdminAnalytics },
+  { page: 'AdminSystemUsers', Component: SystemUsers },
+  { page: 'AdminSchoolUsers', Component: SchoolUsers },
+  { page: 'AdminDistrictUsers', Component: DistrictUsers },
+  { page: 'AdminDistricts', Component: SystemDistricts },
+  { page: 'AdminSchools', Component: SystemSchools },
+  { page: 'AdminLicenses', Component: LicenseManagement },
+  { page: 'AdminModeration', Component: ModerationDashboard },
+  { page: 'SchoolDirectory', Component: SchoolDirectory },
+  { page: 'TeacherDashboard', Component: TeacherDashboard },
+  { page: 'TeacherClasses', Component: TeacherClasses },
+  { page: 'TeacherMessages', Component: TeacherMessages },
+  { page: 'TeacherAssignments', Component: TeacherAssignments },
+  { page: 'Landing', Component: Landing },
+  { page: 'Onboarding', Component: Onboarding }
+];
+
 export default function RouteBasedCodeSplitting() {
   return (
     <Routes>
-      {/* Core User Routes */}
-      <Route path="/dashboard" element={<LazyRouteWrapper><Dashboard /></LazyRouteWrapper>} />
-      <Route path="/discover" element={<LazyRouteWrapper><UnifiedDiscover /></LazyRouteWrapper>} />
-      <Route path="/community" element={<LazyRouteWrapper><UnifiedCommunity /></LazyRouteWrapper>} />
-      <Route path="/calendar" element={<LazyRouteWrapper><Calendar /></LazyRouteWrapper>} />
-      <Route path="/messages" element={<LazyRouteWrapper><Messages /></LazyRouteWrapper>} />
-      <Route path="/ai-assistant" element={<LazyRouteWrapper><AIAssistant /></LazyRouteWrapper>} />
-      <Route path="/settings" element={<LazyRouteWrapper><Settings /></LazyRouteWrapper>} />
-      <Route path="/progress" element={<LazyRouteWrapper><Progress /></LazyRouteWrapper>} />
-      <Route path="/achievements" element={<LazyRouteWrapper><Achievements /></LazyRouteWrapper>} />
-      <Route path="/journal" element={<LazyRouteWrapper><Journal /></LazyRouteWrapper>} />
-      <Route path="/notifications" element={<LazyRouteWrapper><Notifications /></LazyRouteWrapper>} />
-
-      {/* Admin Routes */}
-      <Route path="/admin/analytics" element={<LazyRouteWrapper><AdminAnalytics /></LazyRouteWrapper>} />
-      <Route path="/admin/system-users" element={<LazyRouteWrapper><SystemUsers /></LazyRouteWrapper>} />
-      <Route path="/admin/school-users" element={<LazyRouteWrapper><SchoolUsers /></LazyRouteWrapper>} />
-      <Route path="/admin/district-users" element={<LazyRouteWrapper><DistrictUsers /></LazyRouteWrapper>} />
-      <Route path="/admin/districts" element={<LazyRouteWrapper><SystemDistricts /></LazyRouteWrapper>} />
-      <Route path="/admin/schools" element={<LazyRouteWrapper><SystemSchools /></LazyRouteWrapper>} />
-      <Route path="/admin/licenses" element={<LazyRouteWrapper><LicenseManagement /></LazyRouteWrapper>} />
-      <Route path="/admin/moderation" element={<LazyRouteWrapper><ModerationDashboard /></LazyRouteWrapper>} />
-      <Route path="/school-directory" element={<LazyRouteWrapper><SchoolDirectory /></LazyRouteWrapper>} />
-
-      {/* Teacher Routes */}
-      <Route path="/teacher/dashboard" element={<LazyRouteWrapper><TeacherDashboard /></LazyRouteWrapper>} />
-      <Route path="/teacher/classes" element={<LazyRouteWrapper><TeacherClasses /></LazyRouteWrapper>} />
-      <Route path="/teacher/messages" element={<LazyRouteWrapper><TeacherMessages /></LazyRouteWrapper>} />
-      <Route path="/teacher/assignments" element={<LazyRouteWrapper><TeacherAssignments /></LazyRouteWrapper>} />
-
-      {/* Public Routes */}
-      <Route path="/" element={<LazyRouteWrapper><Landing /></LazyRouteWrapper>} />
-      <Route path="/onboarding" element={<LazyRouteWrapper><Onboarding /></LazyRouteWrapper>} />
+      {ROUTE_COMPONENTS.map(({ page, Component }) => (
+        <Route
+          key={page}
+          path={ROUTE_MAP[page] || '/'}
+          element={(
+            <LazyRouteWrapper>
+              <Component />
+            </LazyRouteWrapper>
+          )}
+        />
+      ))}
     </Routes>
   );
 }
