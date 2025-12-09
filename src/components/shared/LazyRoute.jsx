@@ -4,7 +4,7 @@ import LazyPageWrapper from './LazyPageWrapper';
 // Helper to create lazy-loaded routes with error boundaries
 export const createLazyRoute = (importFn, fallback = null) => {
   const LazyComponent = React.lazy(importFn);
-  
+
   return (props) => (
     <LazyPageWrapper fallback={fallback}>
       <LazyComponent {...props} />
@@ -16,8 +16,8 @@ export const createLazyRoute = (importFn, fallback = null) => {
 export const preloadRoute = (importFn) => {
   const LazyComponent = React.lazy(importFn);
   // Trigger the import but don't wait for it
-  importFn().catch(() => {
-    // Silently handle preload failures
+  importFn().catch((error) => {
+    console.error('Failed to preload route:', error);
   });
   return LazyComponent;
 };
