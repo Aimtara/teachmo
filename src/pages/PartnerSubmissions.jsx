@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API_BASE_URL } from '@/config/api';
 
 const types = ['event', 'resource', 'offer'];
 
@@ -8,7 +9,7 @@ export default function PartnerSubmissions() {
   const [form, setForm] = useState({ title: '', description: '' });
 
   const load = async () => {
-    const data = await fetch('/api/submissions').then((r) => r.json());
+    const data = await fetch(`${API_BASE_URL}/submissions`).then((r) => r.json());
     setSubmissions(data);
   };
 
@@ -16,7 +17,7 @@ export default function PartnerSubmissions() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/submissions', {
+    const res = await fetch(`${API_BASE_URL}/submissions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, type: current }),
@@ -30,7 +31,7 @@ export default function PartnerSubmissions() {
   const handleEdit = async (id) => {
     const newTitle = prompt('New title');
     if (!newTitle) return;
-    await fetch(`/api/submissions/${id}`, {
+    await fetch(`${API_BASE_URL}/submissions/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newTitle }),
