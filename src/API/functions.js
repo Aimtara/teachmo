@@ -1,97 +1,148 @@
-import { base44 } from './base44Client';
+const getFunctionsBaseUrl = () => {
+  if (typeof import.meta !== 'undefined') {
+    const url = import.meta.env?.VITE_NHOST_FUNCTIONS_URL;
+    if (url) return url;
+  }
 
+  if (typeof process !== 'undefined') {
+    const url = process.env?.VITE_NHOST_FUNCTIONS_URL;
+    if (url) return url;
+  }
 
-export const googleClassroomSync = base44.functions.googleClassroomSync;
+  return '/v1/functions';
+};
 
-export const googleAuth = base44.functions.googleAuth;
+const functionsBaseUrl = getFunctionsBaseUrl();
 
-export const syncSISData = base44.functions.syncSISData;
+const invokeNhostFunction = async (functionName, payload = {}, initOverrides = {}) => {
+  const { method = 'POST', headers = {}, ...rest } = initOverrides;
 
-export const bulkUserManagement = base44.functions.bulkUserManagement;
+  const requestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers
+    },
+    ...rest
+  };
 
-export const assignDefaultPermissions = base44.functions.assignDefaultPermissions;
+  if (payload && Object.keys(payload).length > 0) {
+    requestInit.body = JSON.stringify(payload);
+  }
 
-export const getGoogleAuthUrl = base44.functions.getGoogleAuthUrl;
+  const response = await fetch(`${functionsBaseUrl}/${functionName}`, requestInit);
 
-export const calendarSync = base44.functions.calendarSync;
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Nhost function ${functionName} failed (${response.status}): ${errorText}`);
+  }
 
-export const notificationSettings = base44.functions.notificationSettings;
+  if (response.status === 204) {
+    return null;
+  }
 
-export const aiActivitySuggestions = base44.functions.aiActivitySuggestions;
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
 
-export const getAdminAnalytics = base44.functions.getAdminAnalytics;
+  return response.text();
+};
 
-export const priorityNotifications = base44.functions.priorityNotifications;
+const createFunctionInvoker = (functionName, defaults) => (payload, initOverrides = {}) =>
+  invokeNhostFunction(functionName, payload, { ...defaults, ...initOverrides });
 
-export const eventSubscriptions = base44.functions.eventSubscriptions;
+export const googleClassroomSync = createFunctionInvoker('googleClassroomSync');
 
-export const realEventSearch = base44.functions.realEventSearch;
+export const googleAuth = createFunctionInvoker('googleAuth');
 
-export const getSchoolIntegrationStatus = base44.functions.getSchoolIntegrationStatus;
+export const syncSISData = createFunctionInvoker('syncSISData');
 
-export const submitSchoolParticipationRequest = base44.functions.submitSchoolParticipationRequest;
+export const bulkUserManagement = createFunctionInvoker('bulkUserManagement');
 
-export const manageSchoolRequests = base44.functions.manageSchoolRequests;
+export const assignDefaultPermissions = createFunctionInvoker('assignDefaultPermissions');
 
-export const populateSchoolDirectory = base44.functions.populateSchoolDirectory;
+export const getGoogleAuthUrl = createFunctionInvoker('getGoogleAuthUrl');
 
-export const createStripeCheckout = base44.functions.createStripeCheckout;
+export const calendarSync = createFunctionInvoker('calendarSync');
 
-export const stripeWebhook = base44.functions.stripeWebhook;
+export const notificationSettings = createFunctionInvoker('notificationSettings');
 
-export const intelligentNotifications = base44.functions.intelligentNotifications;
+export const aiActivitySuggestions = createFunctionInvoker('aiActivitySuggestions');
 
-export const schoolDirectoryETL = base44.functions.schoolDirectoryETL;
+export const getAdminAnalytics = createFunctionInvoker('getAdminAnalytics');
 
-export const searchSchools = base44.functions.searchSchools;
+export const priorityNotifications = createFunctionInvoker('priorityNotifications');
 
-export const schoolDirectoryMonitoring = base44.functions.schoolDirectoryMonitoring;
+export const eventSubscriptions = createFunctionInvoker('eventSubscriptions');
 
-export const handleGoogleDisconnect = base44.functions.handleGoogleDisconnect;
+export const realEventSearch = createFunctionInvoker('realEventSearch');
 
-export const moderateContent = base44.functions.moderateContent;
+export const getSchoolIntegrationStatus = createFunctionInvoker('getSchoolIntegrationStatus');
 
-export const submitReport = base44.functions.submitReport;
+export const submitSchoolParticipationRequest = createFunctionInvoker('submitSchoolParticipationRequest');
 
-export const invokeAdvancedAI = base44.functions.invokeAdvancedAI;
+export const manageSchoolRequests = createFunctionInvoker('manageSchoolRequests');
 
-export const translateMessage = base44.functions.translateMessage;
+export const populateSchoolDirectory = createFunctionInvoker('populateSchoolDirectory');
 
-export const awardPodChallengePoints = base44.functions.awardPodChallengePoints;
+export const createStripeCheckout = createFunctionInvoker('createStripeCheckout');
 
-export const applyReferralCode = base44.functions.applyReferralCode;
+export const stripeWebhook = createFunctionInvoker('stripeWebhook');
 
-export const manageSponsorships = base44.functions.manageSponsorships;
+export const intelligentNotifications = createFunctionInvoker('intelligentNotifications');
 
-export const submitPrivacyRequest = base44.functions.submitPrivacyRequest;
+export const schoolDirectoryETL = createFunctionInvoker('schoolDirectoryETL');
 
-export const shortsGeneration = base44.functions.shortsGeneration;
+export const searchSchools = createFunctionInvoker('searchSchools');
 
-export const shortsAdmin = base44.functions.shortsAdmin;
+export const schoolDirectoryMonitoring = createFunctionInvoker('schoolDirectoryMonitoring');
 
-export const shortsTelemetry = base44.functions.shortsTelemetry;
+export const handleGoogleDisconnect = createFunctionInvoker('handleGoogleDisconnect');
 
-export const shortsRecommendations = base44.functions.shortsRecommendations;
+export const moderateContent = createFunctionInvoker('moderateContent');
 
-export const takeModerationAction = base44.functions.takeModerationAction;
+export const submitReport = createFunctionInvoker('submitReport');
 
-export const advancedAIHomeworkHelper = base44.functions.advancedAIHomeworkHelper;
+export const invokeAdvancedAI = createFunctionInvoker('invokeAdvancedAI');
 
-export const generateCurriculumAlignedActivities = base44.functions.generateCurriculumAlignedActivities;
+export const translateMessage = createFunctionInvoker('translateMessage');
 
-export const manageUserContentReview = base44.functions.manageUserContentReview;
+export const awardPodChallengePoints = createFunctionInvoker('awardPodChallengePoints');
 
-export const getUXAnalytics = base44.functions.getUXAnalytics;
+export const applyReferralCode = createFunctionInvoker('applyReferralCode');
 
-export const gamificationEngine = base44.functions.gamificationEngine;
+export const manageSponsorships = createFunctionInvoker('manageSponsorships');
 
-export const enterpriseAuditLogger = base44.functions.enterpriseAuditLogger;
+export const submitPrivacyRequest = createFunctionInvoker('submitPrivacyRequest');
 
-export const enterpriseDataExport = base44.functions.enterpriseDataExport;
+export const shortsGeneration = createFunctionInvoker('shortsGeneration');
 
-export const systemHealthMonitor = base44.functions.systemHealthMonitor;
+export const shortsAdmin = createFunctionInvoker('shortsAdmin');
 
-export const logAuditEvent = base44.functions.logAuditEvent;
+export const shortsTelemetry = createFunctionInvoker('shortsTelemetry');
 
-export const performanceMonitoring = base44.functions.performanceMonitoring;
+export const shortsRecommendations = createFunctionInvoker('shortsRecommendations');
+
+export const takeModerationAction = createFunctionInvoker('takeModerationAction');
+
+export const advancedAIHomeworkHelper = createFunctionInvoker('advancedAIHomeworkHelper');
+
+export const generateCurriculumAlignedActivities = createFunctionInvoker('generateCurriculumAlignedActivities');
+
+export const manageUserContentReview = createFunctionInvoker('manageUserContentReview');
+
+export const getUXAnalytics = createFunctionInvoker('getUXAnalytics');
+
+export const gamificationEngine = createFunctionInvoker('gamificationEngine');
+
+export const enterpriseAuditLogger = createFunctionInvoker('enterpriseAuditLogger');
+
+export const enterpriseDataExport = createFunctionInvoker('enterpriseDataExport');
+
+export const systemHealthMonitor = createFunctionInvoker('systemHealthMonitor');
+
+export const logAuditEvent = createFunctionInvoker('logAuditEvent');
+
+export const performanceMonitoring = createFunctionInvoker('performanceMonitoring');
 
