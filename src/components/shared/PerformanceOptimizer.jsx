@@ -1,5 +1,7 @@
 import React, { Suspense, useEffect, useMemo, useCallback } from 'react';
 import { PerformanceMonitor } from '../testing/performance/PerformanceMonitor';
+import GlobalErrorBoundary from '@/components/shared/GlobalErrorBoundary';
+import { LazyLoadError } from '@/components/shared/LazyPageWrapper';
 
 // Bundle size analyzer
 export const analyzeBundleSize = () => {
@@ -165,11 +167,13 @@ export const PerformanceAware = ({
 // Code splitting utilities
 export const createLazyComponent = (importFn, fallback = <div>Loading...</div>) => {
   const LazyComponent = React.lazy(importFn);
-  
+
   return React.forwardRef((props, ref) => (
-    <Suspense fallback={fallback}>
-      <LazyComponent {...props} ref={ref} />
-    </Suspense>
+    <GlobalErrorBoundary fallback={<LazyLoadError onRetry={() => window.location.reload()} />}>
+      <Suspense fallback={fallback}>
+        <LazyComponent {...props} ref={ref} />
+      </Suspense>
+    </GlobalErrorBoundary>
   ));
 };
 

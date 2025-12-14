@@ -61,7 +61,8 @@ export default function ReportConcernModal({ open, onOpenChange, contentType, co
             Report a Safety Concern
           </DialogTitle>
           <DialogDescription>
-            Your report is confidential and helps us maintain a safe environment. If this is an emergency, please contact local authorities immediately.
+            Your report is confidential and helps us maintain a safe environment. If this is an emergency, please contact
+            local authorities immediately.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
