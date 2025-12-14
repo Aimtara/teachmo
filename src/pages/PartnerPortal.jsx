@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '@/config/api';
 
 export default function PartnerPortal() {
   const [stats, setStats] = useState({ submissions: 0, enrollments: 0, applications: 0, contracts: 0 });
@@ -9,11 +10,11 @@ export default function PartnerPortal() {
   useEffect(() => {
     async function load() {
       const [subs, enrolls, apps, contracts, audits] = await Promise.all([
-        fetch('/api/submissions').then((r) => r.json()),
-        fetch(`/api/courses/enrollments/${partnerId}`).then((r) => r.json()),
-        fetch(`/api/incentives/applications/${partnerId}`).then((r) => r.json()),
-        fetch(`/api/contracts?partnerId=${partnerId}`).then((r) => r.json()),
-        fetch('/api/admin/audits').then((r) => r.json()),
+        fetch(`${API_BASE_URL}/submissions`).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/courses/enrollments/${partnerId}`).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/incentives/applications/${partnerId}`).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/contracts?partnerId=${partnerId}`).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/admin/audits`).then((r) => r.json()),
       ]);
       setStats({
         submissions: subs.length,

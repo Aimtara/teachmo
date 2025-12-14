@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API_BASE_URL } from '@/config/api';
 
 export default function PartnerTraining() {
   const [courses, setCourses] = useState([]);
@@ -7,8 +8,8 @@ export default function PartnerTraining() {
 
   const load = async () => {
     const [cs, ens] = await Promise.all([
-      fetch('/api/courses').then((r) => r.json()),
-      fetch(`/api/courses/enrollments/${partnerId}`).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/courses`).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/courses/enrollments/${partnerId}`).then((r) => r.json()),
     ]);
     setCourses(cs);
     setEnrollments(ens);
@@ -17,7 +18,7 @@ export default function PartnerTraining() {
   useEffect(() => { load(); }, []);
 
   const enroll = async (courseId) => {
-    await fetch(`/api/courses/${courseId}/enroll`, {
+    await fetch(`${API_BASE_URL}/courses/${courseId}/enroll`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ partnerId }),
@@ -26,7 +27,7 @@ export default function PartnerTraining() {
   };
 
   const complete = async (courseId, moduleId) => {
-    await fetch(`/api/courses/${courseId}/modules/${moduleId}/complete`, {
+    await fetch(`${API_BASE_URL}/courses/${courseId}/modules/${moduleId}/complete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ partnerId }),

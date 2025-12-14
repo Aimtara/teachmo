@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API_BASE_URL } from '@/config/api';
 
 export default function PartnerIncentives() {
   const [list, setList] = useState([]);
@@ -7,8 +8,8 @@ export default function PartnerIncentives() {
 
   const load = async () => {
     const [incentives, applications] = await Promise.all([
-      fetch('/api/incentives').then((r) => r.json()),
-      fetch(`/api/incentives/applications/${partnerId}`).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/incentives`).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/incentives/applications/${partnerId}`).then((r) => r.json()),
     ]);
     setList(incentives);
     setApps(applications);
@@ -17,7 +18,7 @@ export default function PartnerIncentives() {
   useEffect(() => { load(); }, []);
 
   const apply = async (id) => {
-    await fetch(`/api/incentives/${id}/apply`, {
+    await fetch(`${API_BASE_URL}/incentives/${id}/apply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ partnerId }),
