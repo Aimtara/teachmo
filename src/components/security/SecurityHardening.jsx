@@ -18,9 +18,11 @@ const deserialize = value => {
   }
 };
 
+const getStorage = (session = false) => session ? sessionStorage : localStorage;
+
 export const secureStorage = {
   setItem: (key, value, { session = false } = {}) => {
-    const storage = session ? sessionStorage : localStorage;
+    const storage = getStorage(session);
     const serialized = serialize(value);
 
     if (serialized === undefined) return;
@@ -28,18 +30,18 @@ export const secureStorage = {
     storage.setItem(key, serialized);
   },
   getItem: (key, { session = false } = {}) => {
-    const storage = session ? sessionStorage : localStorage;
+    const storage = getStorage(session);
     const storedValue = storage.getItem(key);
 
     return deserialize(storedValue);
   },
   removeItem: (key, { session = false } = {}) => {
-    const storage = session ? sessionStorage : localStorage;
+    const storage = getStorage(session);
 
     storage.removeItem(key);
   },
   clear: ({ session = false } = {}) => {
-    const storage = session ? sessionStorage : localStorage;
+    const storage = getStorage(session);
 
     storage.clear();
   },
