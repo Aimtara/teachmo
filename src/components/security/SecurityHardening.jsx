@@ -30,7 +30,11 @@ export const secureStorage = {
 
     if (serialized === undefined) return;
 
-    storage.setItem(key, serialized);
+    try {
+      storage.setItem(key, serialized);
+    } catch (error) {
+      console.error('secureStorage.setItem: failed to store value', error);
+    }
   },
   getItem: (key, { session = false } = {}) => {
     if (typeof key !== 'string' || key.trim() === '') {
@@ -39,9 +43,14 @@ export const secureStorage = {
     }
 
     const storage = session ? sessionStorage : localStorage;
-    const storedValue = storage.getItem(key);
 
-    return deserialize(storedValue);
+    try {
+      const storedValue = storage.getItem(key);
+      return deserialize(storedValue);
+    } catch (error) {
+      console.error('secureStorage.getItem: failed to retrieve value', error);
+      return null;
+    }
   },
   removeItem: (key, { session = false } = {}) => {
     if (typeof key !== 'string' || key.trim() === '') {
@@ -51,7 +60,11 @@ export const secureStorage = {
 
     const storage = session ? sessionStorage : localStorage;
 
-    storage.removeItem(key);
+    try {
+      storage.removeItem(key);
+    } catch (error) {
+      console.error('secureStorage.removeItem: failed to remove value', error);
+    }
   },
   clear: ({ session = false } = {}) => {
     const storage = session ? sessionStorage : localStorage;
