@@ -5,7 +5,7 @@ import { Button } from './button';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
-export function DatePicker({ date, onChange, placeholder = 'Pick a date' }) {
+export function DatePicker({ date, onSelect, placeholder = 'Pick a date' }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -15,7 +15,7 @@ export function DatePicker({ date, onChange, placeholder = 'Pick a date' }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
-        <Calendar mode="single" selected={date} onSelect={onChange} />
+        <Calendar mode="single" selected={date} onSelect={onSelect} />
       </PopoverContent>
     </Popover>
   );
