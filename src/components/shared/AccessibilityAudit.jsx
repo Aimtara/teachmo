@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,10 +27,18 @@ export default function AccessibilityAudit() {
   });
   const [isRunning, setIsRunning] = useState(false);
   const [lastRun, setLastRun] = useState(null);
+  const rootRef = useRef(null);
 
-  const runAccessibilityAudit = async () => {
+  useEffect(() => {
+    rootRef.current =
+      document.querySelector('[data-app-root]') ||
+      document.querySelector('main') ||
+      document.body;
+  }, []);
+
+  const runAccessibilityAudit = useCallback(async () => {
     setIsRunning(true);
-    
+
     const results = {
       colorContrast: await checkColorContrast(),
       keyboardNavigation: await checkKeyboardNavigation(),
@@ -39,15 +47,16 @@ export default function AccessibilityAudit() {
       headingStructure: await checkHeadingStructure(),
       focusManagement: await checkFocusManagement()
     };
-    
+
     setAuditResults(results);
     setLastRun(new Date());
     setIsRunning(false);
-  };
+  }, [checkAltText, checkAriaLabels, checkColorContrast, checkFocusManagement, checkHeadingStructure, checkKeyboardNavigation]);
 
-  const checkColorContrast = async () => {
+  const checkColorContrast = useCallback(async () => {
     const issues = [];
-    const elements = document.querySelectorAll('*');
+    const root = rootRef.current || document;
+    const elements = Array.from(root.querySelectorAll('*')).slice(0, 500);
     
     elements.forEach((el, index) => {
       if (el.textContent.trim() && window.getComputedStyle(el).color) {
@@ -71,11 +80,12 @@ export default function AccessibilityAudit() {
     });
     
     return issues.slice(0, 10); // Limit results
-  };
+  }, []);
 
-  const checkKeyboardNavigation = async () => {
+  const checkKeyboardNavigation = useCallback(async () => {
     const issues = [];
-    const interactiveElements = document.querySelectorAll('button, a, input, select, textarea, [tabindex]');
+    const root = rootRef.current || document;
+    const interactiveElements = root.querySelectorAll('button, a, input, select, textarea, [tabindex]');
     
     interactiveElements.forEach((el) => {
       const tabIndex = el.getAttribute('tabindex');
@@ -100,11 +110,12 @@ export default function AccessibilityAudit() {
     });
     
     return issues;
-  };
+  }, []);
 
-  const checkAltText = async () => {
+  const checkAltText = useCallback(async () => {
     const issues = [];
-    const images = document.querySelectorAll('img');
+    const root = rootRef.current || document;
+    const images = root.querySelectorAll('img');
     
     images.forEach((img) => {
       const alt = img.getAttribute('alt');
@@ -128,18 +139,19 @@ export default function AccessibilityAudit() {
     });
     
     return issues;
-  };
+  }, []);
 
-  const checkAriaLabels = async () => {
+  const checkAriaLabels = useCallback(async () => {
     const issues = [];
-    const elementsNeedingLabels = document.querySelectorAll('button, a, input, select, textarea');
+    const root = rootRef.current || document;
+    const elementsNeedingLabels = root.querySelectorAll('button, a, input, select, textarea');
     
     elementsNeedingLabels.forEach((el) => {
       const hasAriaLabel = el.getAttribute('aria-label');
       const hasAriaLabelledby = el.getAttribute('aria-labelledby');
       const hasTitle = el.getAttribute('title');
       const hasVisibleText = el.textContent.trim();
-      const hasAssociatedLabel = el.id && document.querySelector(`label[for="${el.id}"]`);
+      const hasAssociatedLabel = el.id && (rootRef.current || document).querySelector(`label[for="${el.id}"]`);
       
       if (!hasAriaLabel && !hasAriaLabelledby && !hasTitle && !hasVisibleText && !hasAssociatedLabel) {
         issues.push({
@@ -151,11 +163,12 @@ export default function AccessibilityAudit() {
     });
     
     return issues;
-  };
+  }, []);
 
-  const checkHeadingStructure = async () => {
+  const checkHeadingStructure = useCallback(async () => {
     const issues = [];
-    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    const root = rootRef.current || document;
+    const headings = root.querySelectorAll('h1, h2, h3, h4, h5, h6');
     let previousLevel = 0;
     
     headings.forEach((heading) => {
@@ -174,11 +187,12 @@ export default function AccessibilityAudit() {
     });
     
     return issues;
-  };
+  }, []);
 
-  const checkFocusManagement = async () => {
+  const checkFocusManagement = useCallback(async () => {
     const issues = [];
-    const focusableElements = document.querySelectorAll(
+    const root = rootRef.current || document;
+    const focusableElements = root.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
     
@@ -194,7 +208,7 @@ export default function AccessibilityAudit() {
     });
     
     return issues;
-  };
+  }, []);
 
   const calculateContrast = (color1, color2) => {
     // Simplified contrast calculation - would need full WCAG algorithm in production
@@ -254,9 +268,20 @@ export default function AccessibilityAudit() {
   ];
 
   useEffect(() => {
-    // Run initial audit
-    runAccessibilityAudit();
-  }, []);
+    if (typeof window === 'undefined') return undefined;
+
+    const scheduleRun = () => {
+      if (typeof requestIdleCallback !== 'undefined') {
+        const idleHandle = requestIdleCallback(() => runAccessibilityAudit());
+        return () => cancelIdleCallback(idleHandle);
+      }
+
+      const timeout = setTimeout(() => runAccessibilityAudit(), 100);
+      return () => clearTimeout(timeout);
+    };
+
+    return scheduleRun();
+  }, [runAccessibilityAudit]);
 
   return (
     <div className="space-y-6">

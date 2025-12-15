@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { WifiOff, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGlobalState, useGlobalDispatch } from './GlobalStateManager';
+import { useCacheManager, CacheStrategies } from './CacheManager';
 import { useToast } from '@/components/ui/use-toast';
 
 export const OfflineBanner = () => {
@@ -49,40 +50,21 @@ export const OfflineBanner = () => {
   );
 };
 
-export const OfflineStorage = {
-  set: (key, data) => {
-    try {
-      localStorage.setItem(`teachmo_offline_${key}`, JSON.stringify({
-        data,
-        timestamp: Date.now()
-      }));
-    } catch (error) {
-      console.warn('Failed to store offline data:', error);
+const useOfflineCache = () => {
+  const { getCached, setCached, invalidate, getCacheKeys } = useCacheManager();
+  const namespaceKey = (key) => `offline_${key}`;
+  const OFFLINE_TTL = 24 * 60 * 60 * 1000;
+
+  return {
+    set: (key, data, ttl = OFFLINE_TTL) => setCached(namespaceKey(key), data, ttl, { persist: true }),
+    get: (key) => getCached(namespaceKey(key), CacheStrategies.CACHE_ONLY),
+    remove: (key) => invalidate(namespaceKey(key)),
+    clear: () => {
+      getCacheKeys()
+        .filter((key) => key.startsWith('offline_'))
+        .forEach((key) => invalidate(key));
     }
-  },
-  get: (key, maxAge = 24 * 60 * 60 * 1000) => {
-    try {
-      const stored = localStorage.getItem(`teachmo_offline_${key}`);
-      if (!stored) return null;
-      const { data, timestamp } = JSON.parse(stored);
-      if (Date.now() - timestamp > maxAge) {
-        localStorage.removeItem(`teachmo_offline_${key}`);
-        return null;
-      }
-      return data;
-    } catch (error) {
-      console.warn('Failed to retrieve offline data:', error);
-      return null;
-    }
-  },
-  remove: (key) => {
-    localStorage.removeItem(`teachmo_offline_${key}`);
-  },
-  clear: () => {
-    Object.keys(localStorage)
-      .filter(key => key.startsWith('teachmo_offline_'))
-      .forEach(key => localStorage.removeItem(key));
-  }
+  };
 };
 
 export const OfflineManager = () => {
