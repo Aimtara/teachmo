@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { format as dateFnsFormat } from 'date-fns';
 import { es, zhCN, enUS } from 'date-fns/locale';
 
@@ -8,70 +8,14 @@ const locales = {
   zh: zhCN
 };
 
-// Basic translations - in a real app, these would be loaded from translation files
-const translations = {
-  en: {
-    'dashboard': 'Dashboard',
-    'discover': 'Discover',
-    'community': 'Community',
-    'calendar': 'Calendar',
-    'messages': 'Messages',
-    'settings': 'Settings',
-    'good_morning': 'Good morning',
-    'good_afternoon': 'Good afternoon',
-    'good_evening': 'Good evening',
-    'loading': 'Loading...',
-    'error_occurred': 'An error occurred',
-    'try_again': 'Try again',
-    'welcome_back': 'Welcome back',
-    'activities_completed': 'Activities completed',
-    'weekly_streak': '{{count}} day streak',
-    'save': 'Save',
-    'cancel': 'Cancel',
-    'delete': 'Delete',
-    'edit': 'Edit'
-  },
-  es: {
-    'dashboard': 'Panel de Control',
-    'discover': 'Descubrir',
-    'community': 'Comunidad',
-    'calendar': 'Calendario',
-    'messages': 'Mensajes',
-    'settings': 'Configuración',
-    'good_morning': 'Buenos días',
-    'good_afternoon': 'Buenas tardes',
-    'good_evening': 'Buenas noches',
-    'loading': 'Cargando...',
-    'error_occurred': 'Ocurrió un error',
-    'try_again': 'Intentar de nuevo',
-    'welcome_back': 'Bienvenido de vuelta',
-    'activities_completed': 'Actividades completadas',
-    'weekly_streak': '{{count}} días seguidos',
-    'save': 'Guardar',
-    'cancel': 'Cancelar',
-    'delete': 'Eliminar',
-    'edit': 'Editar'
-  },
-  zh: {
-    'dashboard': '仪表板',
-    'discover': '发现',
-    'community': '社区',
-    'calendar': '日历',
-    'messages': '消息',
-    'settings': '设置',
-    'good_morning': '早上好',
-    'good_afternoon': '下午好',
-    'good_evening': '晚上好',
-    'loading': '加载中...',
-    'error_occurred': '发生错误',
-    'try_again': '重试',
-    'welcome_back': '欢迎回来',
-    'activities_completed': '已完成的活动',
-    'weekly_streak': '连续{{count}}天',
-    'save': '保存',
-    'cancel': '取消',
-    'delete': '删除',
-    'edit': '编辑'
+const preloadLocale = async (locale) => {
+  try {
+    const module = await import(`./translations/${locale}.json`);
+    return module.default;
+  } catch (error) {
+    console.warn(`Falling back to English translations; failed to load ${locale}`, error);
+    const fallback = await import('./translations/en.json');
+    return fallback.default;
   }
 };
 
@@ -88,25 +32,35 @@ export const useTranslation = () => {
 const rtlLanguages = new Set(['ar', 'he', 'fa', 'ur']);
 
 export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
+  const [translations, setTranslations] = useState({});
+  const loadedLocales = useRef(new Set());
   const [locale, setLocaleState] = useState(() => {
-    // Try to get locale from localStorage or browser
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('teachmo-locale');
-      if (stored && Object.keys(translations).includes(stored)) {
+      if (stored) {
         return stored;
       }
-      
-      // Try to detect from browser language
+
       const browserLang = navigator.language.split('-')[0];
-      if (Object.keys(translations).includes(browserLang)) {
-        return browserLang;
-      }
+      return browserLang || defaultLocale;
     }
     return defaultLocale;
   });
 
+  const loadLocale = useCallback(async (targetLocale) => {
+    if (loadedLocales.current.has(targetLocale)) return;
+
+    const localeData = await preloadLocale(targetLocale);
+    loadedLocales.current.add(targetLocale);
+    setTranslations((prev) => ({
+      ...prev,
+      [targetLocale]: localeData,
+    }));
+  }, []);
+
   const setLocale = (newLocale) => {
     setLocaleState(newLocale);
+    loadLocale(newLocale);
     if (typeof window !== 'undefined') {
       localStorage.setItem('teachmo-locale', newLocale);
       document.documentElement.lang = newLocale;
@@ -114,8 +68,19 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
     }
   };
 
+  useEffect(() => {
+    loadLocale(defaultLocale);
+  }, [defaultLocale, loadLocale]);
+
+  useEffect(() => {
+    loadLocale(locale);
+  }, [locale, loadLocale]);
+
   const t = (key, params) => {
-    let translation = translations[locale]?.[key] || translations.en[key] || key;
+    const localeStrings = translations[locale] || translations[defaultLocale] || {};
+    const defaultStrings = translations[defaultLocale] || {};
+
+    let translation = localeStrings[key] || defaultStrings[key] || key;
     
     // Simple parameter replacement
     if (params) {
@@ -129,7 +94,7 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
 
   const formatDate = (date, formatStr = 'PPP') => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateFnsFormat(dateObj, formatStr, { locale: locales[locale] });
+    return dateFnsFormat(dateObj, formatStr, { locale: locales[locale] || locales.en });
   };
 
   const formatNumber = (num, options) => {

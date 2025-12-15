@@ -1,0 +1,21 @@
+{
+  "dashboard": "Panel de Control",
+  "discover": "Descubrir",
+  "community": "Comunidad",
+  "calendar": "Calendario",
+  "messages": "Mensajes",
+  "settings": "Configuración",
+  "good_morning": "Buenos días",
+  "good_afternoon": "Buenas tardes",
+  "good_evening": "Buenas noches",
+  "loading": "Cargando...",
+  "error_occurred": "Ocurrió un error",
+  "try_again": "Intentar de nuevo",
+  "welcome_back": "Bienvenido de vuelta",
+  "activities_completed": "Actividades completadas",
+  "weekly_streak": "{{count}} días seguidos",
+  "save": "Guardar",
+  "cancel": "Cancelar",
+  "delete": "Eliminar",
+  "edit": "Editar"
+}

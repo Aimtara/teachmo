@@ -4,6 +4,7 @@ import { useGlobalState, useGlobalActions } from './GlobalStateManager';
 // Cache configuration
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 const MAX_CACHE_SIZE = 100; // Maximum number of cache entries
+const STORAGE_KEY = 'teachmo_cache';
 
 // Cache strategies
 export const CacheStrategies = {
@@ -18,6 +19,38 @@ export const useCacheManager = () => {
   const state = useGlobalState();
   const actions = useGlobalActions();
   const pendingRequests = useRef(new Map());
+  const hasHydrated = useRef(false);
+
+  const persistCacheToStorage = useCallback((cacheSnapshot) => {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cacheSnapshot));
+    } catch (error) {
+      console.warn('Failed to persist cache snapshot', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasHydrated.current || typeof localStorage === 'undefined') return;
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        Object.entries(parsed).forEach(([key, value]) => {
+          actions.cacheSet(key, value.data, value.ttl || DEFAULT_TTL);
+        });
+      }
+      hasHydrated.current = true;
+    } catch (error) {
+      console.warn('Failed to hydrate cache from storage', error);
+    }
+  }, [actions]);
+
+  useEffect(() => {
+    if (!hasHydrated.current) return;
+    persistCacheToStorage(state.cache);
+  }, [state.cache, persistCacheToStorage]);
 
   // Get cached data with strategy
   const getCached = useCallback((key, strategy = CacheStrategies.CACHE_FIRST) => {
@@ -31,24 +64,24 @@ export const useCacheManager = () => {
     switch (strategy) {
       case CacheStrategies.CACHE_FIRST:
         return isExpired ? null : cached.data;
-      
+
       case CacheStrategies.STALE_WHILE_REVALIDATE:
         return cached.data; // Return even if stale
-      
+
       case CacheStrategies.CACHE_ONLY:
-        return cached.data;
-      
+        return isExpired ? null : cached.data;
+
       case CacheStrategies.NETWORK_FIRST:
       case CacheStrategies.NETWORK_ONLY:
         return null; // Always fetch from network
-      
+
       default:
         return isExpired ? null : cached.data;
     }
   }, [state.cache]);
 
   // Set cached data with size management
-  const setCached = useCallback((key, data, ttl = DEFAULT_TTL) => {
+  const setCached = useCallback((key, data, ttl = DEFAULT_TTL, { persist = false } = {}) => {
     // Implement LRU eviction if cache is full
     const cacheKeys = Object.keys(state.cache);
     if (cacheKeys.length >= MAX_CACHE_SIZE) {
@@ -63,7 +96,17 @@ export const useCacheManager = () => {
     }
     
     actions.cacheSet(key, data, ttl);
-  }, [state.cache, actions]);
+    if (persist) {
+      persistCacheToStorage({
+        ...state.cache,
+        [key]: {
+          data,
+          timestamp: Date.now(),
+          ttl
+        }
+      });
+    }
+  }, [state.cache, actions, persistCacheToStorage]);
 
   // Cached fetch with deduplication
   const cachedFetch = useCallback(async (
@@ -73,6 +116,7 @@ export const useCacheManager = () => {
       strategy = CacheStrategies.CACHE_FIRST,
       ttl = DEFAULT_TTL,
       revalidateInBackground = false,
+      persist = false,
     } = {}
   ) => {
     // Check for pending request to avoid duplicate calls
@@ -94,7 +138,7 @@ export const useCacheManager = () => {
     // Create fetch promise
     const fetchPromise = fetchFn()
       .then(data => {
-        setCached(key, data, ttl);
+        setCached(key, data, ttl, { persist });
         pendingRequests.current.delete(key);
         return data;
       })
@@ -150,13 +194,15 @@ export const useCacheManager = () => {
 
   // Preload cache entries
   const preload = useCallback(async (entries) => {
-    const promises = entries.map(({ key, fetchFn, ttl }) => 
+    const promises = entries.map(({ key, fetchFn, ttl }) =>
       cachedFetch(key, fetchFn, { ttl, strategy: CacheStrategies.NETWORK_FIRST })
         .catch(error => console.warn(`Preload failed for ${key}:`, error))
     );
 
     return Promise.allSettled(promises);
   }, [cachedFetch]);
+
+  const getCacheKeys = useCallback(() => Object.keys(state.cache), [state.cache]);
 
   return {
     getCached,
@@ -165,6 +211,7 @@ export const useCacheManager = () => {
     invalidate: actions.cacheInvalidate,
     batchInvalidate,
     getCacheStats,
+    getCacheKeys,
     preload,
   };
 };

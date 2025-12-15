@@ -1,0 +1,21 @@
+{
+  "dashboard": "仪表板",
+  "discover": "发现",
+  "community": "社区",
+  "calendar": "日历",
+  "messages": "消息",
+  "settings": "设置",
+  "good_morning": "早上好",
+  "good_afternoon": "下午好",
+  "good_evening": "晚上好",
+  "loading": "加载中...",
+  "error_occurred": "发生错误",
+  "try_again": "重试",
+  "welcome_back": "欢迎回来",
+  "activities_completed": "已完成的活动",
+  "weekly_streak": "连续{{count}}天",
+  "save": "保存",
+  "cancel": "取消",
+  "delete": "删除",
+  "edit": "编辑"
+}
