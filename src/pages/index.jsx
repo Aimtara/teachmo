@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { useAuthenticationStatus } from '@nhost/react';
 import Dashboard from './Dashboard.jsx';
 import TeacherDashboard from './TeacherDashboard.jsx';
@@ -10,6 +11,8 @@ import PartnerIncentives from './PartnerIncentives.jsx';
 import Landing from './Landing.jsx';
 import AuthCallback from './AuthCallback.jsx';
 import { getDefaultPathForRole, useUserRole } from '@/hooks/useUserRole';
+import ParentOnboardingPage from './onboarding/parent';
+import TeacherOnboardingPage from './onboarding/teacher';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -21,6 +24,11 @@ function ProtectedRoute({ children, allowedRoles }) {
 
   return children;
 }
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  allowedRoles: PropTypes.arrayOf(PropTypes.string)
+};
 
 function RoleRedirect() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -46,6 +54,22 @@ export default function Pages() {
           )}
         />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route
+          path="/onboarding/parent"
+          element={(
+            <ProtectedRoute>
+              <ParentOnboardingPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/onboarding/teacher"
+          element={(
+            <ProtectedRoute>
+              <TeacherOnboardingPage />
+            </ProtectedRoute>
+          )}
+        />
         <Route
           path="/teacher/dashboard"
           element={(
