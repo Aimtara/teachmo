@@ -1,6 +1,5 @@
 // Backend function testing suite
-import { applyReferralCode } from '../../.@/api/functions/applyReferralCode';
-import { manageSponsorships } from '../../.@/api/functions/manageSponsorships';
+import { applyReferralCode, manageSponsorships } from '@/api/functions';
 
 // Mock dependencies
 global.Deno = {
