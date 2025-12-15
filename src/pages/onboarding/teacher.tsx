@@ -23,7 +23,7 @@ const teacherOnboardingSchema = z.object({
   schoolId: z.string().min(2, 'School ID is required'),
   subjects: z.string().min(2, 'Please tell us what you teach'),
   grades: z.string().min(1, 'List at least one grade level'),
-  bio: z.string().optional()
+  teachingFocus: z.string().optional()
 });
 
 const CREATE_TEACHER_PROFILE = `
