@@ -23,7 +23,7 @@ const parentOnboardingSchema = z.object({
   city: z.string().min(2, 'City is required'),
   schoolId: z.string().min(2, 'School ID is required'),
   childrenCount: z
-    .preprocess(value => Number(value), z.number().int().min(1, 'At least one child is required')),
+    .coerce.number().int().min(1, 'At least one child is required'),
   notes: z.string().optional()
 });
 
