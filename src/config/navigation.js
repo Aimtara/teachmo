@@ -20,6 +20,9 @@ import {
   Compass,
   MessageSquare
 } from 'lucide-react';
+import { PUBLIC_PAGES, ROUTE_MAP, isRouteEnabled } from './routes';
+
+export { PUBLIC_PAGES, ROUTE_MAP } from './routes';
 
 export const ROLE_DEFINITIONS = {
   parent: {
@@ -42,47 +45,6 @@ export const ROLE_DEFINITIONS = {
     label: 'System Admin',
     defaultPage: 'Dashboard'
   }
-};
-
-export const PUBLIC_PAGES = ['Landing', 'Onboarding'];
-
-export const ROUTE_MAP = {
-  Landing: '/',
-  Onboarding: '/onboarding',
-  Dashboard: '/dashboard',
-  TeacherDashboard: '/teacher/dashboard',
-  UnifiedDiscover: '/discover',
-  UnifiedCommunity: '/community',
-  Calendar: '/calendar',
-  Messages: '/messages',
-  AIAssistant: '/ai-assistant',
-  Settings: '/settings',
-  Progress: '/progress',
-  Achievements: '/achievements',
-  Journal: '/journal',
-  Notifications: '/notifications',
-  TeacherClasses: '/teacher/classes',
-  TeacherMessages: '/teacher/messages',
-  TeacherAssignments: '/teacher/assignments',
-  SchoolDirectory: '/school-directory',
-  Announcements: '/announcements',
-  Activities: '/activities',
-  Library: '/library',
-  Children: '/children',
-  Upgrade: '/upgrade',
-  ResourceDetail: '/resources',
-  PrivacyRights: '/privacy-rights',
-  DoNotSell: '/do-not-sell',
-  ChildSetup: '/child-setup',
-  AdminUserEdit: '/admin/users',
-  AdminAnalytics: '/admin/analytics',
-  AdminLicenses: '/admin/licenses',
-  AdminModeration: '/admin/moderation',
-  AdminDistricts: '/admin/districts',
-  AdminSchools: '/admin/schools',
-  AdminSystemUsers: '/admin/system-users',
-  AdminSchoolUsers: '/admin/school-users',
-  AdminDistrictUsers: '/admin/district-users'
 };
 
 export const NAV_STRUCTURE = [
@@ -180,9 +142,15 @@ export function getNavigationForRole(userRole = 'parent') {
       if (!section.children) return baseSection;
       const allowedChildren = section.children
         .filter(child => hasRoleAccess(child.roles || section.roles, userRole))
-        .map(child => ({ ...child, page: child.pageByRole?.[userRole] || child.page }));
+        .map(child => ({ ...child, page: child.pageByRole?.[userRole] || child.page }))
+        .filter(child => !child.page || isRouteEnabled(child.page));
       return { ...baseSection, children: allowedChildren };
     })
+    .map(section => ({
+      ...section,
+      page: section.page || section.pageByRole?.[userRole]
+    }))
+    .filter(section => !section.page || isRouteEnabled(section.page))
     .filter(section => !section.children || section.children.length > 0);
 }
 
