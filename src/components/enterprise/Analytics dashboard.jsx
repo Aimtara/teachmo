@@ -110,13 +110,13 @@ export default function AnalyticsDashboard({ schoolId, districtId, isSystemLevel
         <h2 className="text-3xl font-bold">Analytics Dashboard</h2>
         <div className="flex items-center gap-4">
           <DatePicker
-            value={dateRange.start}
-            onChange={(date) => setDateRange(prev => ({ ...prev, start: date }))}
+            date={dateRange.start}
+            onSelect={(date) => setDateRange(prev => ({ ...prev, start: date }))}
             placeholder="Start date"
           />
           <DatePicker
-            value={dateRange.end}
-            onChange={(date) => setDateRange(prev => ({ ...prev, end: date }))}
+            date={dateRange.end}
+            onSelect={(date) => setDateRange(prev => ({ ...prev, end: date }))}
             placeholder="End date"
           />
           <Button onClick={() => exportReport('csv')} variant="outline">
