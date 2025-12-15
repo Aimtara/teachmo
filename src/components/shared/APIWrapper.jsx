@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { logAuditEvent } from '@/api/functions';
+import { createLogger } from '@/utils/logger';
+
+const apiLogger = createLogger('APIWrapper');
 
 /**
  * @typedef {Object} APIError
@@ -62,7 +65,7 @@ export const APIWrapperProvider = ({ children }) => {
               severity: 'low'
             });
           } catch (auditError) {
-            console.warn('Failed to log audit event:', auditError);
+            apiLogger.warn('Failed to log audit event:', auditError);
           }
         }
 
@@ -92,7 +95,7 @@ export const APIWrapperProvider = ({ children }) => {
               severity: 'medium'
             });
           } catch (auditError) {
-            console.warn('Failed to log audit event:', auditError);
+            apiLogger.warn('Failed to log audit event:', auditError);
           }
         }
 
@@ -106,7 +109,7 @@ export const APIWrapperProvider = ({ children }) => {
         );
 
         if (shouldRetry) {
-          console.warn(`API call failed (attempt ${attempt}/${retries}), retrying in ${retryDelay}ms...`, apiError);
+          apiLogger.warn(`API call failed (attempt ${attempt}/${retries}), retrying in ${retryDelay}ms...`, apiError);
           await delay(retryDelay * attempt); // Exponential backoff
           return executeOperation();
         }

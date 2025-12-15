@@ -1,6 +1,9 @@
 
 // API utilities with enhanced error handling and rate limiting
 import { User } from '@/api/entities';
+import { createLogger } from '@/utils/logger';
+
+const apiUtilsLogger = createLogger('apiUtils');
 
 // Rate limiting utilities
 class RateLimiter {
@@ -72,7 +75,7 @@ export const fetchWithRetry = async (fetchFn, options = {}) => {
       // Handle rate limiting specifically
       if (error.message?.includes('429') || error.response?.status === 429) {
         const retryAfter = error.response?.headers?.['retry-after'] || 60;
-        console.warn(`Rate limited. Waiting ${retryAfter} seconds before retry.`);
+        apiUtilsLogger.warn(`Rate limited. Waiting ${retryAfter} seconds before retry.`);
         
         if (attempt < maxRetries) {
           await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
@@ -84,7 +87,7 @@ export const fetchWithRetry = async (fetchFn, options = {}) => {
       const isRetryable = retryOn.includes(error.response?.status);
       if (isRetryable && attempt < maxRetries) {
         const delay = Math.min(baseDelay * Math.pow(backoffFactor, attempt), maxDelay);
-        console.warn(`Attempt ${attempt + 1} failed. Retrying in ${delay}ms...`);
+        apiUtilsLogger.warn(`Attempt ${attempt + 1} failed. Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       } else {
         throw lastError; // Non-retryable error or max retries reached
@@ -149,7 +152,7 @@ export const withGracefulDegradation = (fn, fallbackValue = null) => {
     try {
       return await fn(...args);
     } catch (error) {
-      console.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback.`, error);
+      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback.`, error);
       return fallbackValue;
     }
   };
