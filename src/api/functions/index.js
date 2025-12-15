@@ -18,6 +18,8 @@ export const {
   priorityNotifications,
   eventSubscriptions,
   realEventSearch,
+  shortsTelemetry,
+  shortsRecommendations,
 } = legacyFunctions;
 
 // --- Additional helpers used across the app ---
@@ -52,14 +54,6 @@ export async function submitReport(report) {
 export async function moderateContent(payload) {
   // Basic moderation stub that allows all content by default.
   return { data: { action: 'allow', reason: 'stub' }, payload };
-}
-
-export async function shortsRecommendations(context) {
-  return { items: [], context };
-}
-
-export async function shortsTelemetry(event) {
-  return { accepted: true, event };
 }
 
 export async function logAuditEvent(event) {
