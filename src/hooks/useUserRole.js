@@ -3,9 +3,11 @@ import { useUserData } from '@nhost/react';
 
 const ROLE_MAP = {
   teacher: '/teacher/dashboard',
-  admin: '/admin/analytics',
-  school_admin: '/admin/analytics',
-  district_admin: '/admin/analytics'
+  partner: '/partners/dashboard',
+  system_admin: '/admin',
+  admin: '/admin',
+  school_admin: '/admin',
+  district_admin: '/admin'
 };
 
 export function useUserRole() {
@@ -14,6 +16,7 @@ export function useUserRole() {
   return useMemo(() => {
     const claimedRole = user?.metadata?.role || user?.defaultRole;
     if (claimedRole === 'teacher') return 'teacher';
+    if (claimedRole === 'partner') return 'partner';
     if (claimedRole === 'system_admin' || claimedRole === 'admin') return 'system_admin';
     if (claimedRole === 'school_admin') return 'school_admin';
     if (claimedRole === 'district_admin') return 'district_admin';
