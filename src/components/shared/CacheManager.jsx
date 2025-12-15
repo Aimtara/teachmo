@@ -1,5 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGlobalState, useGlobalActions } from './GlobalStateManager';
+import { createLogger } from '@/utils/logger';
+
+const cacheLogger = createLogger('CacheManager');
 
 // Cache configuration
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
@@ -26,7 +29,7 @@ export const useCacheManager = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cacheSnapshot));
     } catch (error) {
-      console.warn('Failed to persist cache snapshot', error);
+      cacheLogger.warn('Failed to persist cache snapshot', error);
     }
   }, []);
 
@@ -43,7 +46,7 @@ export const useCacheManager = () => {
       }
       hasHydrated.current = true;
     } catch (error) {
-      console.warn('Failed to hydrate cache from storage', error);
+      cacheLogger.warn('Failed to hydrate cache from storage', error);
     }
   }, [actions]);
 
@@ -196,7 +199,7 @@ export const useCacheManager = () => {
   const preload = useCallback(async (entries) => {
     const promises = entries.map(({ key, fetchFn, ttl }) =>
       cachedFetch(key, fetchFn, { ttl, strategy: CacheStrategies.NETWORK_FIRST })
-        .catch(error => console.warn(`Preload failed for ${key}:`, error))
+        .catch(error => cacheLogger.warn(`Preload failed for ${key}:`, error))
     );
 
     return Promise.allSettled(promises);

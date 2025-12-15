@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGlobalState, useGlobalDispatch } from './GlobalStateManager';
 import { useCacheManager, CacheStrategies } from './CacheManager';
 import { useToast } from '@/components/ui/use-toast';
+import { createLogger } from '@/utils/logger';
+
+const offlineLogger = createLogger('OfflineManager');
 
 export const OfflineBanner = () => {
   const { isOnline } = useGlobalState();
@@ -97,7 +100,7 @@ export const OfflineManager = () => {
 
   useEffect(() => {
     if (isOnline && syncQueue.length > 0) {
-      console.log(`Processing ${syncQueue.length} items from sync queue.`);
+      offlineLogger.info(`Processing ${syncQueue.length} items from sync queue.`);
       toast({
         title: 'Syncing Offline Changes',
         description: `Successfully synced ${syncQueue.length} items.`,

@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useCallback, useRef } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { User } from '@/api/entities';
+import { createLogger } from '@/utils/logger';
+
+const apiProviderLogger = createLogger('ApiProvider');
 
 // Global API context for app-wide state and configuration
 const ApiContext = createContext({});
@@ -13,7 +16,7 @@ export function ApiProvider({ children }) {
 
   // Global error handler for critical errors
   const handleCriticalError = useCallback((error, context) => {
-    console.error(`Critical API Error [${context}]:`, error);
+    apiProviderLogger.error(`Critical API Error [${context}]:`, error);
     
     // Log to external service in production
     // Note: Using window.location.hostname to detect environment instead of process.env
