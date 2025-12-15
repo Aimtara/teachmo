@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import EventModal from "../calendar/EventModal";
 import { User } from "@/api/entities";
 import { Activity } from "@/api/entities";
-import { InvokeLLM } from "@/api/integrations";
+import { invokeLLM } from "@/api/integrations";
 
 const categoryColors = {
   creative: "bg-purple-100 text-purple-800",
@@ -76,7 +76,7 @@ const CustomizationModal = ({ activity, child, onSave, onClose }) => {
     
     setIsCustomizing(true);
     try {
-      const response = await InvokeLLM({
+      const response = await invokeLLM({
         prompt: `As Teachmo, an expert child development coach, please customize this activity based on the parent's request.
 
 Original Activity:

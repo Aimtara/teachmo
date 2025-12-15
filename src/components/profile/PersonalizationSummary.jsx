@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { SendEmail } from "@/api/integrations";
+import { sendEmail } from "@/api/integrations";
 import { motion } from "framer-motion";
 import { useChildrenList } from "@/domain/learners";
 
@@ -30,7 +30,7 @@ export default function PersonalizationSummary({ user, onSendEmail }) {
     setIsEmailSending(true);
     try {
       const setupSummary = generateSetupSummary();
-      await SendEmail({
+      await sendEmail({
         to: user.email,
         subject: "Your Teachmo Setup Summary 🌟",
         body: setupSummary

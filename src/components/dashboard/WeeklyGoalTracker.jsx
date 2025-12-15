@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Target, CheckCircle2, Plus, TrendingUp, Coffee } from "lucide-react";
 import { motion } from "framer-motion";
-import { InvokeLLM } from "@/api/integrations";
+import { invokeLLM } from "@/api/integrations";
 import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { generateWarmOpener, FALLBACK_RESPONSES } from "../shared/TeachmoTone";
 
@@ -75,7 +75,7 @@ export default function WeeklyGoalTracker({ child, activities }) {
 
       const warmOpener = generateWarmOpener('general');
 
-      const response = await InvokeLLM({
+      const response = await invokeLLM({
         prompt: `${warmOpener} You're Teachmo, creating encouraging weekly goals that celebrate progress and build confidence.
 
         TONE GUIDELINES:

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Lightbulb, X, Calendar, MapPin, Clock, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { InvokeLLM } from '@/api/integrations';
+import { invokeLLM } from '@/api/integrations';
 import { useToast } from '@/components/ui/use-toast';
 
 // Proactive AI "Teachmo Moments" - contextual suggestions based on user behavior
@@ -52,7 +52,7 @@ Generate actionable, timely suggestions that feel helpful rather than pushy. Foc
 
 Return as JSON array of suggestions with: type, title, description, action, urgency, timing`;
 
-      const response = await InvokeLLM({
+      const response = await invokeLLM({
         prompt,
         response_json_schema: {
           type: "object",
@@ -214,7 +214,7 @@ export const ContextualAssistance = ({ currentAction, strugglingIndicators }) =>
 
   const generateContextualHelp = async () => {
     try {
-      const response = await InvokeLLM({
+      const response = await invokeLLM({
         prompt: `Generate helpful guidance for a user who seems to be struggling with: ${currentAction}. 
         Provide a brief, encouraging tip that helps them accomplish their goal.`,
         response_json_schema: {

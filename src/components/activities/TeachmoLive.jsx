@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Wand2, Loader2, MessageSquareQuote, CheckSquare, Target, Lightbulb, Heart } from 'lucide-react';
-import { InvokeLLM } from '@/api/integrations';
+import { invokeLLM } from '@/api/integrations';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateWarmOpener, getAdaptiveResponse, FALLBACK_RESPONSES, DISTRESS_RESPONSES } from '../shared/TeachmoTone';
 import { User } from '@/api/entities';
@@ -49,7 +49,7 @@ export default function TeachmoLive() {
     try {
       const warmOpener = generateWarmOpener('general', user?.current_mood);
       
-      const response = await InvokeLLM({
+      const response = await invokeLLM({
         prompt: `${warmOpener} You're Teachmo, a warm, professional, and empowering AI parenting coach. A parent needs immediate, actionable advice for their current situation.
 
         TEACHMO'S TONE GUIDELINES:

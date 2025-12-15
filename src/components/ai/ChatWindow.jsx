@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Send, Bot, User as UserIcon, Sparkles, Loader2, ArrowLeft, Lightbulb } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { InvokeLLM } from '@/api/integrations';
+import { invokeLLM } from '@/api/integrations';
 
 const CONVERSATION_STARTERS = [
     {
@@ -124,7 +124,7 @@ export default function ChatWindow({ conversation, childContext, onBack, isMobil
               `I have ${childContext.length} child${childContext.length > 1 ? 'ren' : ''}: ${childContext.map(c => `${c.name} (age ${c.age})`).join(', ')}.` : 
               "I don't have any child profiles set up yet.";
 
-            const response = await InvokeLLM({
+            const response = await invokeLLM({
                 prompt: `You are Teachmo, a warm, supportive, and emotionally intelligent AI parenting coach. A parent is messaging you for help.
 
                 **Parent's context:** ${context}

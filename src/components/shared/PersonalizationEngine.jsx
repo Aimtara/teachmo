@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '@/api/entities';
 import { useChildrenList } from '@/domain/learners';
-import { InvokeLLM } from '@/api/integrations';
+import { invokeLLM } from '@/api/integrations';
 
 const PersonalizationContext = createContext();
 
@@ -71,7 +71,7 @@ User Profile:
 
 Generate recommendations that feel personally relevant and useful right now.`;
 
-      const response = await InvokeLLM({
+      const response = await invokeLLM({
         prompt,
         response_json_schema: {
           type: "object",
