@@ -53,117 +53,132 @@ export default function Pages() {
     <LazyPageWrapper fallback={fallback}>{children}</LazyPageWrapper>
   );
 
+  const routeConfig = [
+    {
+      key: 'index',
+      index: true,
+      element: <RoleRedirect />
+    },
+    {
+      path: '/onboarding',
+      Component: Onboarding
+    },
+    {
+      path: '/auth/callback',
+      Component: AuthCallback
+    },
+    {
+      path: '/dashboard',
+      Component: Dashboard,
+      allowedRoles: ['parent', 'teacher', 'system_admin', 'school_admin', 'district_admin'],
+      fallback: <p className="p-6 text-gray-600">Loading dashboard...</p>
+    },
+    {
+      path: '/parent/dashboard',
+      Component: ParentDashboard,
+      allowedRoles: ['parent'],
+      fallback: <p className="p-6 text-gray-600">Loading parent dashboard...</p>
+    },
+    {
+      path: '/onboarding/parent',
+      Component: ParentOnboardingPage,
+      requiresAuth: true,
+      fallback: <p className="p-6 text-gray-600">Loading parent onboarding...</p>
+    },
+    {
+      path: '/onboarding/teacher',
+      Component: TeacherOnboardingPage,
+      requiresAuth: true,
+      fallback: <p className="p-6 text-gray-600">Loading teacher onboarding...</p>
+    },
+    {
+      path: '/teacher/dashboard',
+      Component: TeacherDashboard,
+      allowedRoles: ['teacher'],
+      fallback: <p className="p-6 text-gray-600">Loading teacher dashboard...</p>
+    },
+    {
+      path: '/partners/dashboard',
+      Component: PartnerDashboard,
+      allowedRoles: ['partner'],
+      fallback: <p className="p-6 text-gray-600">Loading partner dashboard...</p>
+    },
+    {
+      path: '/partners',
+      Component: PartnerPortal,
+      requiresAuth: true,
+      fallback: <p className="p-6 text-gray-600">Loading partner portal...</p>
+    },
+    {
+      path: '/partners/submissions',
+      Component: PartnerSubmissions,
+      requiresAuth: true,
+      fallback: <p className="p-6 text-gray-600">Loading partner submissions...</p>
+    },
+    {
+      path: '/partners/training',
+      Component: PartnerTraining,
+      requiresAuth: true,
+      fallback: <p className="p-6 text-gray-600">Loading partner training...</p>
+    },
+    {
+      path: '/partners/incentives',
+      Component: PartnerIncentives,
+      requiresAuth: true,
+      fallback: <p className="p-6 text-gray-600">Loading partner incentives...</p>
+    },
+    {
+      path: '/admin',
+      Component: AdminDashboard,
+      allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+      fallback: <p className="p-6 text-gray-600">Loading admin dashboard...</p>
+    },
+    {
+      path: '/admin/analytics',
+      Component: AdminAnalytics,
+      allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+      fallback: <p className="p-6 text-gray-600">Loading admin analytics...</p>
+    },
+    {
+      key: 'not-found',
+      path: '*',
+      element: <Navigate to="/" replace />,
+      wrap: false
+    }
+  ];
+
   return (
     <BrowserRouter>
       <Suspense fallback={defaultFallback}>
         <Routes>
-          <Route index element={withLazyWrapper(<RoleRedirect />)} />
-          <Route path="/onboarding" element={withLazyWrapper(<Onboarding />)} />
-          <Route path="/auth/callback" element={withLazyWrapper(<AuthCallback />)} />
+          {routeConfig.map(({
+            key,
+            index,
+            path,
+            Component,
+            element,
+            allowedRoles,
+            requiresAuth,
+            fallback,
+            wrap = true
+          }) => {
+            const content = Component ? <Component /> : element;
+            const wrappedContent = wrap ? withLazyWrapper(content, fallback) : content;
+            const shouldProtect = requiresAuth || allowedRoles;
+            const protectedContent = shouldProtect ? (
+              <ProtectedRoute allowedRoles={allowedRoles}>{wrappedContent}</ProtectedRoute>
+            ) : (
+              wrappedContent
+            );
 
-          <Route
-            path="/dashboard"
-            element={(
-              <ProtectedRoute allowedRoles={['parent', 'teacher', 'system_admin', 'school_admin', 'district_admin']}>
-                {withLazyWrapper(<Dashboard />, <p className="p-6 text-gray-600">Loading dashboard...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-
-          <Route
-            path="/parent/dashboard"
-            element={(
-              <ProtectedRoute allowedRoles={['parent']}>
-                {withLazyWrapper(<ParentDashboard />, <p className="p-6 text-gray-600">Loading parent dashboard...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-
-          <Route
-            path="/onboarding/parent"
-            element={(
-              <ProtectedRoute>
-                {withLazyWrapper(<ParentOnboardingPage />, <p className="p-6 text-gray-600">Loading parent onboarding...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-          <Route
-            path="/onboarding/teacher"
-            element={(
-              <ProtectedRoute>
-                {withLazyWrapper(<TeacherOnboardingPage />, <p className="p-6 text-gray-600">Loading teacher onboarding...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-          <Route
-            path="/teacher/dashboard"
-            element={(
-              <ProtectedRoute allowedRoles={['teacher']}>
-                {withLazyWrapper(<TeacherDashboard />, <p className="p-6 text-gray-600">Loading teacher dashboard...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-
-          <Route
-            path="/partners/dashboard"
-            element={(
-              <ProtectedRoute allowedRoles={['partner']}>
-                {withLazyWrapper(<PartnerDashboard />, <p className="p-6 text-gray-600">Loading partner dashboard...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-
-          <Route
-            path="/partners"
-            element={(
-              <ProtectedRoute>
-                {withLazyWrapper(<PartnerPortal />, <p className="p-6 text-gray-600">Loading partner portal...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-          <Route
-            path="/partners/submissions"
-            element={(
-              <ProtectedRoute>
-                {withLazyWrapper(<PartnerSubmissions />, <p className="p-6 text-gray-600">Loading partner submissions...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-          <Route
-            path="/partners/training"
-            element={(
-              <ProtectedRoute>
-                {withLazyWrapper(<PartnerTraining />, <p className="p-6 text-gray-600">Loading partner training...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-          <Route
-            path="/partners/incentives"
-            element={(
-              <ProtectedRoute>
-                {withLazyWrapper(<PartnerIncentives />, <p className="p-6 text-gray-600">Loading partner incentives...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-
-          <Route
-            path="/admin"
-            element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
-                {withLazyWrapper(<AdminDashboard />, <p className="p-6 text-gray-600">Loading admin dashboard...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-          <Route
-            path="/admin/analytics"
-            element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
-                {withLazyWrapper(<AdminAnalytics />, <p className="p-6 text-gray-600">Loading admin analytics...</p>)}
-              </ProtectedRoute>
-            )}
-          />
-
-          <Route path="*" element={<Navigate to="/" replace />} />
+            return (
+              <Route
+                key={key || path}
+                {...(index ? { index: true } : { path })}
+                element={protectedContent}
+              />
+            );
+          })}
         </Routes>
       </Suspense>
     </BrowserRouter>
