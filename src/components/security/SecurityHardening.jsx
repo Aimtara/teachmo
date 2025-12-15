@@ -25,7 +25,11 @@ export const secureStorage = {
 
     if (serialized === undefined) return;
 
-    storage.setItem(key, serialized);
+    try {
+      storage.setItem(key, serialized);
+    } catch (error) {
+      console.error('secureStorage: failed to set item', error);
+    }
   },
   getItem: (key, { session = false } = {}) => {
     const storage = session ? sessionStorage : localStorage;
