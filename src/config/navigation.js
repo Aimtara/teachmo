@@ -44,8 +44,6 @@ export const ROLE_DEFINITIONS = {
   }
 };
 
-export const PUBLIC_PAGES = ['Landing', 'Onboarding'];
-
 export const ROUTE_MAP = {
   Landing: '/',
   Onboarding: '/onboarding',
