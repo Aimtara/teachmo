@@ -3,7 +3,7 @@ const serialize = value => {
   try {
     return JSON.stringify(value);
   } catch (error) {
-    console.error('secureStorage: failed to serialize value', error);
+    console.error('storageHelper: failed to serialize value', error);
     return undefined;
   }
 };
@@ -13,12 +13,12 @@ const deserialize = value => {
   try {
     return JSON.parse(value);
   } catch (error) {
-    console.error('secureStorage: failed to deserialize value', error);
+    console.error('storageHelper: failed to deserialize value', error);
     return null;
   }
 };
 
-export const secureStorage = {
+export const storageHelper = {
   setItem: (key, value, { session = false } = {}) => {
     const storage = session ? sessionStorage : localStorage;
     const serialized = serialize(value);
@@ -45,4 +45,4 @@ export const secureStorage = {
   },
 };
 
-export default secureStorage;
+export default storageHelper;
