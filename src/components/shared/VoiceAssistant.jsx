@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 import { Activity, Child, CalendarEvent, JournalEntry } from '@/api/entities';
-import { InvokeLLM } from '@/api/integrations';
+import { invokeLLM } from '@/api/integrations';
 
 const VOICE_COMMANDS = {
   navigation: {
@@ -315,7 +315,7 @@ export default function VoiceAssistant({ user, children }) {
 
   const handleNaturalLanguageCommand = async (command) => {
     try {
-      const response = await InvokeLLM({
+      const response = await invokeLLM({
         prompt: `You are Teachmo's voice assistant. A parent said: "${command}". 
 
         Available actions:
@@ -351,7 +351,7 @@ export default function VoiceAssistant({ user, children }) {
         ? `for a parent with children aged ${children.map(c => c.age).join(', ')}`
         : 'for parents';
         
-      const tip = await InvokeLLM({
+      const tip = await invokeLLM({
         prompt: `Generate a brief, practical parenting tip ${childContext}. Keep it under 30 words and actionable.`
       });
       

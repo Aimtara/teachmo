@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BrainCircuit, TrendingUp, Target, Clock, ArrowRight, Sparkles, Heart, Coffee, CheckCircle2, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { InvokeLLM } from "@/api/integrations";
+import { invokeLLM } from "@/api/integrations";
 import { format, subDays } from "date-fns";
 import { Activity } from "@/api/entities";
 import { generateWarmOpener, getAdaptiveResponse, FALLBACK_RESPONSES } from "../shared/TeachmoTone";
@@ -72,7 +72,7 @@ export default function PersonalizedInsights({ children, activities, user }) {
       const warmOpener = generateWarmOpener('general', user?.current_mood);
       const adaptiveResponse = getAdaptiveResponse(user?.current_mood || 'confident');
 
-      const response = await InvokeLLM({
+      const response = await invokeLLM({
         prompt: `${warmOpener} You're Teachmo, providing personalized parenting insights with warmth and professionalism.
 
         TONE GUIDELINES:

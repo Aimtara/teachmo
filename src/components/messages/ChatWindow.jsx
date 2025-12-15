@@ -16,7 +16,7 @@ import {
   MoreVertical,
   Trash2
 } from 'lucide-react';
-import { UploadFile } from '@/api/integrations';
+import { uploadFile } from '@/api/integrations';
 import { format, isToday, isYesterday } from 'date-fns';
 
 export default function ChatWindow({ conversationId, recipientUser, currentUser }) {
@@ -117,7 +117,7 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
 
     setUploadingFile(true);
     try {
-      const { file_url } = await UploadFile({ file });
+      const { file_url } = await uploadFile({ file });
       
       await Message.create({
         conversation_id: conversationId,

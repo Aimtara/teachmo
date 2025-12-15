@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Loader2 } from 'lucide-react';
-import { UploadFile } from '@/api/integrations';
+import { uploadFile } from '@/api/integrations';
 
 export default function AvatarUploader({ user, onUpdate }) {
   const [isUploading, setIsUploading] = useState(false);
@@ -13,7 +13,7 @@ export default function AvatarUploader({ user, onUpdate }) {
 
     setIsUploading(true);
     try {
-      const { file_url } = await UploadFile({ file });
+      const { file_url } = await uploadFile({ file });
       onUpdate(file_url);
     } catch (error) {
       console.error("Error uploading avatar:", error);

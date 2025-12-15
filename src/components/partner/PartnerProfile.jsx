@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Partner } from '@/api/entities';
-import { UploadFile } from '@/api/integrations';
+import { uploadFile } from '@/api/integrations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +33,7 @@ export default function PartnerProfile({ partner, onUpdate }) {
 
     setIsUploading(true);
     try {
-      const { file_url } = await UploadFile({ file });
+      const { file_url } = await uploadFile({ file });
       setFormData(prev => ({ ...prev, logo_url: file_url }));
       toast({
         title: 'Logo Uploaded',
