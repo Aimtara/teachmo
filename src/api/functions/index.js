@@ -18,6 +18,7 @@ export const {
   priorityNotifications,
   eventSubscriptions,
   realEventSearch,
+  searchSchools,
 } = legacyFunctions;
 
 // --- Additional helpers used across the app ---
@@ -39,10 +40,6 @@ export async function manageSponsorships(data) {
 
 export async function submitSchoolParticipationRequest(request) {
   return { status: 'received', request };
-}
-
-export async function searchSchools(query) {
-  return { results: [], query };
 }
 
 export async function submitReport(report) {
