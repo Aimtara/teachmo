@@ -1,14 +1,12 @@
-# Base44 App
+# Teachmo
 
-
-This app was created automatically by Base44.
-It's a Vite+React app that communicates with the Base44 API.
+Full-stack starter wired for Nhost with onboarding, role dashboards, and GraphQL helpers.
 
 ## Running the app
 
-1. Copy `.env.example` to `.env` and provide your values. At minimum set:
-   - `VITE_NHOST_BACKEND_URL` with your Nhost project backend URL
-   - `VITE_API_BASE_URL` to your API hostname (defaults to `/api` for local proxying)
+1. Copy `.env.example` to `.env` and set at minimum:
+   - `VITE_NHOST_BACKEND_URL` for your Nhost project
+   - `VITE_API_BASE_URL` if you still target REST fallbacks
 2. Install dependencies and start the dev server:
 
 ```bash
@@ -16,20 +14,28 @@ npm install
 npm run dev
 ```
 
-## Nhost serverless functions
+## Backend (Nhost + Hasura)
+- Core schema migration: `nhost/migrations/001_teachmo_core/up.sql`
+- Serverless functions: `nhost/functions/health.js`, `nhost/functions/track-event.js`
+- Setup docs: `nhost/docs/hasura_setup.md`, `nhost/docs/permissions.md`
 
-Custom backend operations (OAuth callbacks, learning data sync, activity fetching, etc.) are now invoked through Nhost serverless functions. By default the frontend posts to `/v1/functions/<functionName>`, but you can override the base URL with the `VITE_NHOST_FUNCTIONS_URL` environment variable when running the app locally.
+Start Nhost locally with `nhost up` and apply migrations; use the docs to track tables and permissions.
 
-## Building the app
+## Frontend features
+- Auth flow with email/password plus prepared social callback handler (`src/pages/AuthCallback.jsx`).
+- Onboarding that writes `profiles`, `organizations`, and `schools` (`/onboarding`).
+- Role-based routing for parents, teachers, partners, and admins (`src/pages/index.jsx`).
+- Dashboards:
+  - Parent (`/parent/dashboard`) with events, activities, and messaging previews.
+  - Teacher (`/teacher/dashboard`) for classroom and training tracking.
+  - Partner (`/partners/dashboard`) for submissions.
+  - Admin (`/admin`) for org/school provisioning and role assignment.
+- Messaging, events, activities, children, and partner submission operations organized in `src/domains/**` using the shared GraphQL helper at `src/lib/graphql.js`.
+
+## Building and deploying
 
 ```bash
 npm run build
 ```
 
-## Deploying to Vercel
-
-The repo includes a `vercel.json` configured for a Vite SPA build with client-side routing rewrites. Set the `VITE_NHOST_BACKEND_URL` and `VITE_API_BASE_URL` environment variables in your Vercel project and push the repo; Vercel will run `npm run build` and serve `dist/` automatically.
-
-For backend testing, run `npm run dev` inside `backend/` with the same environment variables (see `.env.example`).
-
-For more information and support, please contact Base44 support at app@base44.com.
+For Vercel, keep `VITE_NHOST_BACKEND_URL` set in project settings; the included `vercel.json` handles SPA rewrites.

@@ -3,11 +3,15 @@ import { useAuthenticationStatus } from '@nhost/react';
 import Dashboard from './Dashboard.jsx';
 import TeacherDashboard from './TeacherDashboard.jsx';
 import AdminAnalytics from './AdminAnalytics.jsx';
+import AdminDashboard from './AdminDashboard.jsx';
 import PartnerPortal from './PartnerPortal.jsx';
 import PartnerSubmissions from './PartnerSubmissions.jsx';
 import PartnerTraining from './PartnerTraining.jsx';
 import PartnerIncentives from './PartnerIncentives.jsx';
+import PartnerDashboard from './PartnerDashboard.jsx';
+import ParentDashboard from './ParentDashboard.jsx';
 import Landing from './Landing.jsx';
+import Onboarding from './Onboarding.jsx';
 import AuthCallback from './AuthCallback.jsx';
 import { getDefaultPathForRole, useUserRole } from '@/hooks/useUserRole';
 
@@ -37,6 +41,9 @@ export default function Pages() {
     <BrowserRouter>
       <Routes>
         <Route index element={<RoleRedirect />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+
         <Route
           path="/dashboard"
           element={(
@@ -45,7 +52,16 @@ export default function Pages() {
             </ProtectedRoute>
           )}
         />
-        <Route path="/auth/callback" element={<AuthCallback />} />
+
+        <Route
+          path="/parent/dashboard"
+          element={(
+            <ProtectedRoute allowedRoles={['parent']}>
+              <ParentDashboard />
+            </ProtectedRoute>
+          )}
+        />
+
         <Route
           path="/teacher/dashboard"
           element={(
@@ -54,11 +70,12 @@ export default function Pages() {
             </ProtectedRoute>
           )}
         />
+
         <Route
-          path="/admin/analytics"
+          path="/partners/dashboard"
           element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
-              <AdminAnalytics />
+            <ProtectedRoute allowedRoles={['partner']}>
+              <PartnerDashboard />
             </ProtectedRoute>
           )}
         />
@@ -92,6 +109,23 @@ export default function Pages() {
           element={(
             <ProtectedRoute>
               <PartnerIncentives />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin"
+          element={(
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/admin/analytics"
+          element={(
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+              <AdminAnalytics />
             </ProtectedRoute>
           )}
         />
