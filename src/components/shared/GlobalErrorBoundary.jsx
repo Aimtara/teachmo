@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import { logAuditEvent } from '@/api/functions';
+import { logAuditEvent } from '@/api/functions.js';
 
 /**
  * @typedef {Object} Props
