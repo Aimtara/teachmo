@@ -11,3 +11,11 @@ export async function listThreads(params: Record<string, any> = {}): Promise<Pag
 export async function listMessages(threadId: string, params: Record<string, any> = {}): Promise<Paginated<Message>> {
   return USE_GRAPHQL ? graphqlImpl.listMessages(threadId, params) : base44Impl.listMessages(threadId, params);
 }
+
+export async function sendMessage(input: {
+  threadId: string;
+  senderId: string;
+  body: string;
+}): Promise<any> {
+  return USE_GRAPHQL ? graphqlImpl.sendMessage(input) : base44Impl.sendMessage(input);
+}
