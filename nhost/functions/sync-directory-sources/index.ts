@@ -90,7 +90,31 @@ export default async (req: any, res: any) => {
       results.push({ sourceId: source.id, status: result.status, runId: result.runId, jobId: result.jobId });
     } catch (error: any) {
       summary.failed += 1;
-      results.push({ sourceId: source.id, status: 'failed', message: error?.message ?? 'failed' });
+      const errorMessage = error?.message ?? 'failed';
+      let runId: string | null = null;
+
+      // Record the failed run if not already recorded
+      try {
+        const failedRun = await hasura(
+          `mutation RecordFailedRun($object: directory_source_runs_insert_input!) {
+            insert_directory_source_runs_one(object: $object) { id }
+          }`,
+          {
+            object: {
+              source_id: source.id,
+              status: 'failed',
+              finished_at: new Date().toISOString(),
+              errors: [{ reason: 'exception', message: errorMessage }],
+            },
+          }
+        );
+        runId = failedRun?.data?.insert_directory_source_runs_one?.id ?? null;
+      } catch (recordError) {
+        // If recording fails, continue without blocking
+        console.error('Failed to record failed run:', recordError);
+      }
+
+      results.push({ sourceId: source.id, status: 'failed', runId, message: errorMessage });
     }
   }
 

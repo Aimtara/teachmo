@@ -1,7 +1,23 @@
 import { graphql } from '@/lib/graphql';
 import { nhost } from '@/lib/nhostClient';
 
+/**
+ * Nhost functions may return responses in two formats:
+ * 1. Wrapped: { data: T } - when the function explicitly wraps its response
+ * 2. Unwrapped: T - when the function returns the data directly
+ * 
+ * This type helps handle both cases. The unwrapResponse helper extracts the 
+ * data regardless of format.
+ */
 type FunctionEnvelope<T> = { data?: T } | T;
+
+/**
+ * Extracts data from a function response, handling both wrapped and unwrapped formats.
+ * If response has a 'data' property, returns that; otherwise returns the response itself.
+ */
+function unwrapResponse<T>(response: FunctionEnvelope<T>): T {
+  return (response as { data?: T })?.data ?? (response as T);
+}
 
 const SOURCE_FIELDS = `
   id
@@ -53,8 +69,7 @@ export async function syncSource(sourceId: string, options: { deactivateMissing?
   const { res, error } = await nhost.functions.call('sync-directory-source', { sourceId, ...options });
   if (error) throw error;
 
-  const payload = (res as FunctionEnvelope<any>)?.data ?? (res as any);
-  return payload;
+  return unwrapResponse(res as FunctionEnvelope<any>);
 }
 
 export async function listRuns(sourceId: string) {

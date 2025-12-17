@@ -148,25 +148,6 @@ export default function Pages() {
                 );
               }
 
-              if (path === '/admin/directory-sources') {
-                return (
-                  <Route
-                    key={key || path}
-                    path={path}
-                    element={(
-                      <ProtectedRoute
-                        allowedRoles={allowedRoles || ['school_admin', 'district_admin', 'system_admin', 'admin']}
-                        requiredScopes={requiredScopes}
-                      >
-                        <RequirePermission action="directory:manage">
-                          {wrappedContent}
-                        </RequirePermission>
-                      </ProtectedRoute>
-                    )}
-                  />
-                );
-              }
-
               const hasRoleRequirement = Array.isArray(allowedRoles) && allowedRoles.length > 0;
               const hasScopeRequirement = Array.isArray(requiredScopes) && requiredScopes.length > 0;
               const shouldProtect = requiresAuth || hasRoleRequirement || hasScopeRequirement;
