@@ -54,7 +54,33 @@ insert_permissions:
     permission:
       columns:
         - thread_id
+        - user_id
       check:
-        user_id: {_eq: "X-Hasura-User-Id"}
-      set:
-        user_id: "X-Hasura-User-Id"
+        _or:
+          - user_id: {_eq: "X-Hasura-User-Id"}
+          - thread:
+              created_by: {_eq: "X-Hasura-User-Id"}
+  - role: school_admin
+    permission:
+      columns:
+        - thread_id
+        - user_id
+      check:
+        thread:
+          created_by: {_eq: "X-Hasura-User-Id"}
+  - role: district_admin
+    permission:
+      columns:
+        - thread_id
+        - user_id
+      check:
+        thread:
+          created_by: {_eq: "X-Hasura-User-Id"}
+  - role: admin
+    permission:
+      columns:
+        - thread_id
+        - user_id
+      check:
+        thread:
+          created_by: {_eq: "X-Hasura-User-Id"}

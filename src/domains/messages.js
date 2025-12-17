@@ -79,6 +79,48 @@ export async function sendMessage({ threadId, senderId, body }) {
   return data?.insert_messages_one ?? null;
 }
 
+/**
+ * Creates a thread and adds participants. Optionally inserts an initial message.
+ * Requires Hasura relationships:
+ * - message_threads -> participants (array rel)
+ * - message_threads -> messages (array rel) if initialMessage is used
+ */
+export async function createThreadWithParticipants({ title, participantIds, initialMessage }) {
+  const mutation = `
+    mutation CreateThread($object: message_threads_insert_input!) {
+      insert_message_threads_one(object: $object) {
+        id
+        title
+        created_by
+        created_at
+      }
+    }
+  `;
+
+  const participants = (participantIds ?? []).map((userId) => ({ user_id: userId }));
+
+  const object = {
+    title,
+    participants: { data: participants },
+    ...(initialMessage
+      ? {
+          messages: {
+            data: [
+              {
+                body: initialMessage,
+                // sender_id should be set via Hasura insert permission "set" on messages
+                // or passed from client if your permissions allow it.
+              },
+            ],
+          },
+        }
+      : {}),
+  };
+
+  const data = await graphql(mutation, { object });
+  return data?.insert_message_threads_one ?? null;
+}
+
 export async function moderateMessageHide({ messageId, moderatorId, reason }) {
   const mutation = `
     mutation HideMessage($id: uuid!, $moderatorId: uuid!, $reason: String) {
