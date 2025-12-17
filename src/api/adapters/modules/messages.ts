@@ -19,3 +19,15 @@ export async function sendMessage(input: {
 }): Promise<any> {
   return USE_GRAPHQL ? graphqlImpl.sendMessage(input) : base44Impl.sendMessage(input);
 }
+
+export async function hideMessage(input: { messageId: string; moderatorId: string; reason?: string }) {
+  return USE_GRAPHQL ? graphqlImpl.hideMessage(input) : base44Impl.hideMessage(input);
+}
+
+export async function redactMessage(input: { messageId: string; moderatorId: string; reason?: string }) {
+  return USE_GRAPHQL ? graphqlImpl.redactMessage(input) : base44Impl.redactMessage(input);
+}
+
+export async function deleteMessage(input: { messageId: string; moderatorId: string; reason?: string }) {
+  return USE_GRAPHQL ? graphqlImpl.deleteMessage(input) : base44Impl.deleteMessage(input);
+}

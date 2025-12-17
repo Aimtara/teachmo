@@ -78,3 +78,68 @@ export async function sendMessage({ threadId, senderId, body }) {
   const data = await graphql(mutation, { object });
   return data?.insert_messages_one ?? null;
 }
+
+export async function moderateMessageHide({ messageId, moderatorId, reason }) {
+  const mutation = `
+    mutation HideMessage($id: uuid!, $moderatorId: uuid!, $reason: String) {
+      update_messages_by_pk(
+        pk_columns: { id: $id },
+        _set: {
+          is_hidden: true,
+          hidden_by: $moderatorId,
+          hidden_reason: $reason
+        }
+      ) {
+        id
+        thread_id
+        is_hidden
+      }
+    }
+  `;
+  const data = await graphql(mutation, { id: messageId, moderatorId, reason: reason ?? null });
+  return data?.update_messages_by_pk ?? null;
+}
+
+export async function moderateMessageRedact({ messageId, moderatorId, reason }) {
+  const mutation = `
+    mutation RedactMessage($id: uuid!, $moderatorId: uuid!, $reason: String) {
+      update_messages_by_pk(
+        pk_columns: { id: $id },
+        _set: {
+          is_redacted: true,
+          body: "[redacted]",
+          redacted_by: $moderatorId,
+          redacted_reason: $reason
+        }
+      ) {
+        id
+        thread_id
+        is_redacted
+      }
+    }
+  `;
+  const data = await graphql(mutation, { id: messageId, moderatorId, reason: reason ?? null });
+  return data?.update_messages_by_pk ?? null;
+}
+
+export async function moderateMessageDelete({ messageId, moderatorId, reason }) {
+  const mutation = `
+    mutation DeleteMessage($id: uuid!, $moderatorId: uuid!, $reason: String) {
+      update_messages_by_pk(
+        pk_columns: { id: $id },
+        _set: {
+          is_deleted: true,
+          body: "[deleted]",
+          deleted_by: $moderatorId,
+          deleted_reason: $reason
+        }
+      ) {
+        id
+        thread_id
+        is_deleted
+      }
+    }
+  `;
+  const data = await graphql(mutation, { id: messageId, moderatorId, reason: reason ?? null });
+  return data?.update_messages_by_pk ?? null;
+}

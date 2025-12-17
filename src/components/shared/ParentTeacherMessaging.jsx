@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User, UserMessage, UserConversation, Student, Course, TeacherClassAssignment, StudentParentLink } from "@/api/entities";
+import * as MessagesAPI from "@/api/adapters/modules/messages";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { MessageSquare, Send, Plus, Search, Users, Clock, CheckCircle2 } from "lucide-react";
+import { MessageSquare, Send, Plus, Search, Users, Clock, CheckCircle2, EyeOff, Eraser, Trash2, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, isToday, isYesterday } from "date-fns";
+import { useUserRole } from "@/hooks/useUserRole";
+import { can } from "@/security/permissions";
+import { useUserData } from "@nhost/react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { queryClient } from "@/components/providers/ReactQueryProvider";
 
 export default function ParentTeacherMessaging({ user }) {
   const [conversations, setConversations] = useState([]);
@@ -24,6 +30,11 @@ export default function ParentTeacherMessaging({ user }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [moderationTarget, setModerationTarget] = useState("");
+  const nhostUser = useUserData();
+  const role = useUserRole();
+  const moderatorId = nhostUser?.id || user?.id || null;
+  const canModerate = can(role, 'messages:moderate');
 
   useEffect(() => {
     if (user) {
@@ -227,6 +238,90 @@ export default function ParentTeacherMessaging({ user }) {
     }
   };
 
+  const getModerationFlags = (message) => ({
+    isHidden: message?.is_hidden ?? message?.isHidden ?? false,
+    isRedacted: message?.is_redacted ?? message?.isRedacted ?? false,
+    isDeleted: message?.is_deleted ?? message?.isDeleted ?? false,
+  });
+
+  const getDisplayedContent = (message) => {
+    const { isHidden, isRedacted, isDeleted } = getModerationFlags(message);
+    if (isDeleted) return "[deleted]";
+    if (isRedacted) return "[redacted]";
+    if (isHidden) return "[hidden]";
+    return message?.content ?? message?.body ?? "";
+  };
+
+  const applyModerationLocally = (messageId, action) => {
+    const baseReason = "policy";
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== messageId) return msg;
+        if (action === "hide") {
+          return {
+            ...msg,
+            is_hidden: true,
+            hidden_by: moderatorId,
+            hidden_reason: baseReason,
+            isHidden: true,
+            hiddenBy: moderatorId,
+            hiddenReason: baseReason,
+          };
+        }
+        if (action === "redact") {
+          return {
+            ...msg,
+            is_redacted: true,
+            redacted_by: moderatorId,
+            redacted_reason: baseReason,
+            isRedacted: true,
+            redactedBy: moderatorId,
+            redactedReason: baseReason,
+            content: "[redacted]",
+            body: "[redacted]",
+          };
+        }
+        return {
+          ...msg,
+          is_deleted: true,
+          deleted_by: moderatorId,
+          deleted_reason: baseReason,
+          isDeleted: true,
+          deletedBy: moderatorId,
+          deletedReason: baseReason,
+          content: "[deleted]",
+          body: "[deleted]",
+        };
+      })
+    );
+  };
+
+  const handleModerationAction = async (messageId, action) => {
+    if (!canModerate || !moderatorId) return;
+    setModerationTarget(`${action}:${messageId}`);
+    const reason = "policy";
+    const actionMap = {
+      hide: MessagesAPI.hideMessage,
+      redact: MessagesAPI.redactMessage,
+      delete: MessagesAPI.deleteMessage,
+    };
+
+    try {
+      const handler = actionMap[action];
+      if (handler) {
+        await handler({ messageId, moderatorId, reason });
+        applyModerationLocally(messageId, action);
+        if (queryClient?.invalidateQueries) {
+          await queryClient.invalidateQueries({ queryKey: ["messages", selectedConversation?.thread_id] });
+        }
+      }
+    } catch (error) {
+      console.error("Error moderating message:", error);
+    } finally {
+      setModerationTarget("");
+    }
+  };
+
   const getConversationTitle = (conversation) => {
     // Find the other participant
     const otherParticipantId = conversation.participant_ids.find(id => id !== user.id);
@@ -418,33 +513,103 @@ export default function ParentTeacherMessaging({ user }) {
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
                 <AnimatePresence>
-                  {messages.map((message, index) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                          message.sender_id === user.id
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
+                  {messages.map((message, index) => {
+                    const flags = getModerationFlags(message);
+                    const displayedContent = getDisplayedContent(message);
+                    const isFromCurrentUser = message.sender_id === user.id;
+                    const isModerating = moderationTarget.endsWith(message.id);
+                    const moderationStatus = flags.isDeleted
+                      ? "Deleted"
+                      : flags.isRedacted
+                        ? "Redacted"
+                        : flags.isHidden
+                          ? "Hidden"
+                          : "";
+
+                    return (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className="text-sm">{message.content}</p>
-                        <div className={`flex items-center gap-1 mt-1 text-xs ${
-                          message.sender_id === user.id ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                          <span>{formatMessageTime(message.created_date)}</span>
-                          {message.sender_id === user.id && message.is_read && (
-                            <CheckCircle2 className="w-3 h-3" />
+                        <div className="space-y-1">
+                          <div
+                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                              isFromCurrentUser
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-900'
+                            }`}
+                          >
+                            <p className="text-sm">{displayedContent}</p>
+                            {moderationStatus && (
+                              <p className={`text-[11px] mt-1 ${isFromCurrentUser ? 'text-blue-100' : 'text-gray-600'}`}>
+                                {moderationStatus} by moderator
+                              </p>
+                            )}
+                            <div className={`flex items-center gap-1 mt-1 text-xs ${
+                              isFromCurrentUser ? 'text-blue-100' : 'text-gray-500'
+                            }`}>
+                              <span>{formatMessageTime(message.created_date)}</span>
+                              {isFromCurrentUser && message.is_read && (
+                                <CheckCircle2 className="w-3 h-3" />
+                              )}
+                            </div>
+                          </div>
+
+                          {canModerate && (
+                            <div className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'} px-1`}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    disabled={!moderatorId || isModerating}
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align={isFromCurrentUser ? "end" : "start"}>
+                                  <DropdownMenuItem
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      handleModerationAction(message.id, "hide");
+                                    }}
+                                    disabled={isModerating}
+                                  >
+                                    <EyeOff className="w-4 h-4 mr-2" />
+                                    Hide
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      handleModerationAction(message.id, "redact");
+                                    }}
+                                    disabled={isModerating}
+                                  >
+                                    <Eraser className="w-4 h-4 mr-2" />
+                                    Redact
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      handleModerationAction(message.id, "delete");
+                                    }}
+                                    disabled={isModerating}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </AnimatePresence>
               </div>
             </ScrollArea>
