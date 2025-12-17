@@ -86,30 +86,37 @@ export async function upsertDirectoryRows(params: {
   let deactivated = 0;
 
   if (!dryRun && normalized.validRows.length > 0) {
-    const upsertResp = await hasura(
-      `mutation Upsert($objects: [school_contact_directory_insert_input!]!) {
-        insert_school_contact_directory(
-          objects: $objects,
-          on_conflict: {
-            constraint: school_contact_directory_school_id_email_key,
-            update_columns: [contact_type, is_active, updated_at, deactivated_at]
-          }
-        ) { affected_rows }
-      }`,
-      {
-        objects: normalized.validRows.map((row) => ({
-          school_id: schoolId,
-          email: row.email,
-          contact_type: row.contact_type,
-          is_active: true,
-          deactivated_at: null,
-          updated_at: nowIso,
-          created_by: actorId,
-        })),
-      }
-    );
+    // Batch upserts in chunks to avoid memory issues with large datasets
+    const BATCH_SIZE = 500;
+    const totalRows = normalized.validRows.length;
+    
+    for (let i = 0; i < totalRows; i += BATCH_SIZE) {
+      const batch = normalized.validRows.slice(i, i + BATCH_SIZE);
+      const upsertResp = await hasura(
+        `mutation Upsert($objects: [school_contact_directory_insert_input!]!) {
+          insert_school_contact_directory(
+            objects: $objects,
+            on_conflict: {
+              constraint: school_contact_directory_school_id_email_key,
+              update_columns: [contact_type, is_active, updated_at, deactivated_at]
+            }
+          ) { affected_rows }
+        }`,
+        {
+          objects: batch.map((row) => ({
+            school_id: schoolId,
+            email: row.email,
+            contact_type: row.contact_type,
+            is_active: true,
+            deactivated_at: null,
+            updated_at: nowIso,
+            created_by: actorId,
+          })),
+        }
+      );
 
-    upserted = upsertResp?.data?.insert_school_contact_directory?.affected_rows ?? 0;
+      upserted += upsertResp?.data?.insert_school_contact_directory?.affected_rows ?? 0;
+    }
 
     if (deactivateMissing) {
       const deactivateResp = await hasura(
