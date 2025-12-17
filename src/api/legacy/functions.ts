@@ -1,6 +1,10 @@
-const getFunctionsBaseUrl = () => {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type FetchRequestInit = globalThis.RequestInit;
+type FetchHeadersInit = globalThis.HeadersInit;
+
+const getFunctionsBaseUrl = (): string => {
   if (typeof import.meta !== 'undefined') {
-    const url = import.meta.env?.VITE_NHOST_FUNCTIONS_URL;
+    const url = (import.meta as { env?: Record<string, string> })?.env?.VITE_NHOST_FUNCTIONS_URL;
     if (url) return url;
   }
 
@@ -14,19 +18,34 @@ const getFunctionsBaseUrl = () => {
 
 const functionsBaseUrl = getFunctionsBaseUrl();
 
-const invokeNhostFunction = async (functionName, payload = {}, initOverrides = {}) => {
+type FunctionPayload = Record<string, any> | FormData | undefined;
+
+type InvokeOverrides = FetchRequestInit & { headers?: FetchHeadersInit };
+
+type InvocationResponse<T> = Promise<T | string | null>;
+
+const invokeNhostFunction = async <T = unknown>(
+  functionName: string,
+  payload: FunctionPayload = {},
+  initOverrides: InvokeOverrides = {}
+): InvocationResponse<T> => {
   const { method = 'POST', headers = {}, ...rest } = initOverrides;
 
-  const requestInit = {
+  const normalizedHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(headers as Record<string, string>)
+  };
+
+  const requestInit: FetchRequestInit = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers
-    },
+    headers: normalizedHeaders,
     ...rest
   };
 
-  if (payload && Object.keys(payload).length > 0) {
+  if (payload instanceof FormData) {
+    requestInit.body = payload;
+    delete normalizedHeaders['Content-Type'];
+  } else if (payload && Object.keys(payload).length > 0) {
     requestInit.body = JSON.stringify(payload);
   }
 
@@ -43,14 +62,15 @@ const invokeNhostFunction = async (functionName, payload = {}, initOverrides = {
 
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   return response.text();
 };
 
-const createFunctionInvoker = (functionName, defaults) => (payload, initOverrides = {}) =>
-  invokeNhostFunction(functionName, payload, { ...defaults, ...initOverrides });
+const createFunctionInvoker = <T = unknown>(functionName: string, defaults: InvokeOverrides = {}) =>
+  (payload?: FunctionPayload, initOverrides: InvokeOverrides = {}) =>
+    invokeNhostFunction<T>(functionName, payload, { ...defaults, ...initOverrides });
 
 export const googleClassroomSync = createFunctionInvoker('googleClassroomSync');
 
@@ -145,4 +165,3 @@ export const systemHealthMonitor = createFunctionInvoker('systemHealthMonitor');
 export const logAuditEvent = createFunctionInvoker('logAuditEvent');
 
 export const performanceMonitoring = createFunctionInvoker('performanceMonitoring');
-

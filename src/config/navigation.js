@@ -17,17 +17,17 @@ import {
   FileText,
   Building2,
   UserCheck,
-  Compass,
-  MessageSquare
+  Compass
 } from 'lucide-react';
-import { PUBLIC_PAGES, ROUTE_MAP, isRouteEnabled } from './routes';
+import { isRouteEnabled } from './routes';
+import { canAccess, getDefaultPathForRole, normalizeRole } from './rbac';
 
 export { PUBLIC_PAGES, ROUTE_MAP } from './routes';
 
 export const ROLE_DEFINITIONS = {
   parent: {
     label: 'Parent',
-    defaultPage: 'Dashboard'
+    defaultPage: 'ParentDashboard'
   },
   teacher: {
     label: 'Teacher',
@@ -35,15 +35,19 @@ export const ROLE_DEFINITIONS = {
   },
   school_admin: {
     label: 'School Admin',
-    defaultPage: 'Dashboard'
+    defaultPage: 'AdminDashboard'
   },
   district_admin: {
     label: 'District Admin',
-    defaultPage: 'Dashboard'
+    defaultPage: 'AdminDashboard'
   },
   system_admin: {
     label: 'System Admin',
-    defaultPage: 'Dashboard'
+    defaultPage: 'AdminDashboard'
+  },
+  partner: {
+    label: 'Partner',
+    defaultPage: 'PartnerDashboard'
   }
 };
 
@@ -56,12 +60,14 @@ export const NAV_STRUCTURE = [
     },
     icon: Home,
     roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
+    requiredScopes: ['core:dashboard'],
     mobilePrimary: true
   },
   {
     name: 'Learning',
     icon: BookOpen,
     roles: ['parent', 'teacher'],
+    requiredScopes: ['content:read'],
     children: [
       { name: 'Discover', page: 'UnifiedDiscover', icon: Search, mobilePrimary: true },
       { name: 'Progress', page: 'Progress', icon: Target, mobileSecondary: true },
@@ -75,6 +81,7 @@ export const NAV_STRUCTURE = [
     name: 'Community',
     icon: Users,
     roles: ['parent', 'teacher'],
+    requiredScopes: ['content:read'],
     children: [
       { name: 'Community Feed', page: 'UnifiedCommunity', icon: Users, mobileSecondary: true },
       { name: 'Messages', page: 'Messages', icon: MessageCircle, badge: '3', mobilePrimary: true },
@@ -85,6 +92,7 @@ export const NAV_STRUCTURE = [
     name: 'Teaching',
     icon: GraduationCap,
     roles: ['teacher'],
+    requiredScopes: ['classrooms:manage'],
     children: [
       { name: 'My Classes', page: 'TeacherClasses', icon: School, mobilePrimary: true },
       { name: 'Assignments', page: 'TeacherAssignments', icon: FileText, mobileSecondary: true },
@@ -95,21 +103,23 @@ export const NAV_STRUCTURE = [
     name: 'Administration',
     icon: Shield,
     roles: ['school_admin', 'district_admin', 'system_admin'],
+    requiredScopes: ['org:manage'],
     children: [
-      { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3 },
-      { name: 'User Management', page: 'AdminSystemUsers', icon: UserCheck, roles: ['system_admin'] },
-      { name: 'School Users', page: 'AdminSchoolUsers', icon: UserCheck, roles: ['school_admin'] },
-      { name: 'District Users', page: 'AdminDistrictUsers', icon: UserCheck, roles: ['district_admin'] },
-      { name: 'Districts', page: 'AdminDistricts', icon: Building2, roles: ['system_admin'] },
-      { name: 'Schools', page: 'AdminSchools', icon: School, roles: ['system_admin', 'district_admin'] },
-      { name: 'Licenses', page: 'AdminLicenses', icon: FileText },
-      { name: 'Moderation', page: 'AdminModeration', icon: Shield }
+      { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
+      { name: 'User Management', page: 'AdminSystemUsers', icon: UserCheck, roles: ['system_admin'], requiredScopes: ['users:manage'] },
+      { name: 'School Users', page: 'AdminSchoolUsers', icon: UserCheck, roles: ['school_admin'], requiredScopes: ['org:manage'] },
+      { name: 'District Users', page: 'AdminDistrictUsers', icon: UserCheck, roles: ['district_admin'], requiredScopes: ['district:manage'] },
+      { name: 'Districts', page: 'AdminDistricts', icon: Building2, roles: ['system_admin'], requiredScopes: ['district:manage'] },
+      { name: 'Schools', page: 'AdminSchools', icon: School, roles: ['system_admin', 'district_admin'], requiredScopes: ['org:manage'] },
+      { name: 'Licenses', page: 'AdminLicenses', icon: FileText, requiredScopes: ['users:manage'] },
+      { name: 'Moderation', page: 'AdminModeration', icon: Shield, requiredScopes: ['safety:review'] }
     ]
   },
   {
     name: 'Tools',
     icon: Bot,
     roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
+    requiredScopes: ['core:dashboard'],
     children: [
       { name: 'AI Coach', page: 'AIAssistant', icon: Bot, mobilePrimary: true },
       { name: 'School Directory', page: 'SchoolDirectory', icon: School },
@@ -121,42 +131,57 @@ export const NAV_STRUCTURE = [
     page: 'Settings',
     icon: Settings,
     roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
+    requiredScopes: ['core:dashboard'],
     mobileSecondary: true
   }
 ];
 
-const hasRoleAccess = (roles, userRole) => {
-  if (!roles || roles.length === 0) return true;
-  return roles.includes(userRole);
-};
+const hasAccess = (item, userRole) =>
+  canAccess({ role: userRole, allowedRoles: item.roles, requiredScopes: item.requiredScopes });
 
 export function getNavigationForRole(userRole = 'parent') {
+  const normalizedRole = normalizeRole(userRole);
+
   return NAV_STRUCTURE
-    .filter(section => hasRoleAccess(section.roles, userRole))
-    .map(section => {
+    .filter((section) => hasAccess(section, normalizedRole))
+    .map((section) => {
       const baseSection = {
         ...section,
-        page: section.pageByRole?.[userRole] || section.page
+        page: section.pageByRole?.[normalizedRole] || section.page
       };
 
       if (!section.children) return baseSection;
+
       const allowedChildren = section.children
-        .filter(child => hasRoleAccess(child.roles || section.roles, userRole))
-        .map(child => ({ ...child, page: child.pageByRole?.[userRole] || child.page }))
-        .filter(child => !child.page || isRouteEnabled(child.page));
+        .filter((child) =>
+          hasAccess(
+            {
+              ...child,
+              roles: child.roles || section.roles,
+              requiredScopes: child.requiredScopes || section.requiredScopes
+            },
+            normalizedRole
+          )
+        )
+        .map((child) => ({ ...child, page: child.pageByRole?.[normalizedRole] || child.page }))
+        .filter((child) => !child.page || isRouteEnabled(child.page));
       return { ...baseSection, children: allowedChildren };
     })
-    .map(section => ({
+    .map((section) => ({
       ...section,
-      page: section.page || section.pageByRole?.[userRole]
+      page: section.page || section.pageByRole?.[normalizedRole]
     }))
-    .filter(section => !section.page || isRouteEnabled(section.page))
-    .filter(section => !section.children || section.children.length > 0);
+    .filter((section) => !section.page || isRouteEnabled(section.page))
+    .filter((section) => !section.children || section.children.length > 0);
 }
 
 export function getMobileNavigation(userRole = 'parent') {
-  const nav = getNavigationForRole(userRole);
-  const homePage = ROLE_DEFINITIONS[userRole]?.defaultPage || ROLE_DEFINITIONS.parent.defaultPage;
+  const normalizedRole = normalizeRole(userRole);
+  const nav = getNavigationForRole(normalizedRole);
+  const homePage =
+    ROLE_DEFINITIONS[normalizedRole]?.defaultPage ||
+    ROLE_DEFINITIONS.parent.defaultPage ||
+    getDefaultPathForRole(normalizedRole);
 
   const flattened = [];
   nav.forEach((section) => {
