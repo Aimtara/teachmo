@@ -1,0 +1,68 @@
+table:
+  name: audit_log
+  schema: public
+select_permissions:
+  - role: admin
+    permission:
+      columns:
+        - id
+        - created_at
+        - actor_id
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+      filter: {}
+  - role: district_admin
+    permission:
+      columns:
+        - id
+        - created_at
+        - actor_id
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+      filter: {}
+  - role: school_admin
+    permission:
+      columns:
+        - id
+        - created_at
+        - actor_id
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+      filter: {}
+insert_permissions:
+  - role: admin
+    permission:
+      check: {}
+      set:
+        actor_id: "X-Hasura-User-Id"
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+  - role: district_admin
+    permission:
+      check: {}
+      set:
+        actor_id: "X-Hasura-User-Id"
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+  - role: school_admin
+    permission:
+      check: {}
+      set:
+        actor_id: "X-Hasura-User-Id"
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
