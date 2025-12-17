@@ -1,11 +1,20 @@
 export type DirectorySourceSecrets = Record<string, Record<string, string>>;
 
 let cachedSecrets: DirectorySourceSecrets | null = null;
+let cachedEnvValue: string | undefined = undefined;
 
 export function getDirectorySourceSecrets(): DirectorySourceSecrets {
+  const currentEnvValue = process.env.DIRECTORY_SOURCE_SECRETS_JSON;
+
+  // Clear cache if environment variable has changed
+  if (cachedSecrets && currentEnvValue !== cachedEnvValue) {
+    cachedSecrets = null;
+  }
+
   if (cachedSecrets) return cachedSecrets;
 
-  const raw = process.env.DIRECTORY_SOURCE_SECRETS_JSON;
+  cachedEnvValue = currentEnvValue;
+  const raw = currentEnvValue;
   if (!raw) {
     cachedSecrets = {};
     return cachedSecrets;
@@ -20,6 +29,15 @@ export function getDirectorySourceSecrets(): DirectorySourceSecrets {
   }
 
   return cachedSecrets;
+}
+
+/**
+ * Clears the cached secrets, forcing a reload on the next call to getDirectorySourceSecrets.
+ * Useful for testing or when secrets need to be refreshed programmatically.
+ */
+export function clearSecretsCache(): void {
+  cachedSecrets = null;
+  cachedEnvValue = undefined;
 }
 
 export function applySecrets(template: string, secrets: Record<string, string>) {

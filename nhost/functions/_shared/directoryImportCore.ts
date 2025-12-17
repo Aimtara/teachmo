@@ -85,46 +85,49 @@ export async function upsertDirectoryRows(params: {
   let upserted = 0;
   let deactivated = 0;
 
-  if (!dryRun && normalized.validRows.length > 0) {
-    const upsertResp = await hasura(
-      `mutation Upsert($objects: [school_contact_directory_insert_input!]!) {
-        insert_school_contact_directory(
-          objects: $objects,
-          on_conflict: {
-            constraint: school_contact_directory_school_id_email_key,
-            update_columns: [contact_type, is_active, updated_at, deactivated_at]
-          }
-        ) { affected_rows }
-      }`,
-      {
-        objects: normalized.validRows.map((row) => ({
-          school_id: schoolId,
-          email: row.email,
-          contact_type: row.contact_type,
-          is_active: true,
-          deactivated_at: null,
-          updated_at: nowIso,
-          created_by: actorId,
-        })),
-      }
-    );
-
-    upserted = upsertResp?.data?.insert_school_contact_directory?.affected_rows ?? 0;
-
-    if (deactivateMissing) {
-      const deactivateResp = await hasura(
-        `mutation Deactivate($schoolId: uuid!, $emails: [citext!]!, $timestamp: timestamptz!) {
-          update_school_contact_directory(
-            where: { school_id: { _eq: $schoolId }, email: { _nin: $emails }, is_active: { _eq: true } },
-            _set: { is_active: false, deactivated_at: $timestamp, updated_at: $timestamp }
+  if (!dryRun) {
+    if (normalized.validRows.length > 0) {
+      const upsertResp = await hasura(
+        `mutation Upsert($objects: [school_contact_directory_insert_input!]!) {
+          insert_school_contact_directory(
+            objects: $objects,
+            on_conflict: {
+              constraint: school_contact_directory_school_id_email_key,
+              update_columns: [contact_type, is_active, updated_at, deactivated_at]
+            }
           ) { affected_rows }
         }`,
-        { schoolId, emails: Array.from(normalized.seen), timestamp: nowIso }
+        {
+          objects: normalized.validRows.map((row) => ({
+            school_id: schoolId,
+            email: row.email,
+            contact_type: row.contact_type,
+            is_active: true,
+            deactivated_at: null,
+            updated_at: nowIso,
+            created_by: actorId,
+          })),
+        }
       );
 
-      deactivated = deactivateResp?.data?.update_school_contact_directory?.affected_rows ?? 0;
+      upserted = upsertResp?.data?.insert_school_contact_directory?.affected_rows ?? 0;
+
+      if (deactivateMissing) {
+        const deactivateResp = await hasura(
+          `mutation Deactivate($schoolId: uuid!, $emails: [citext!]!, $timestamp: timestamptz!) {
+            update_school_contact_directory(
+              where: { school_id: { _eq: $schoolId }, email: { _nin: $emails }, is_active: { _eq: true } },
+              _set: { is_active: false, deactivated_at: $timestamp, updated_at: $timestamp }
+            ) { affected_rows }
+          }`,
+          { schoolId, emails: Array.from(normalized.seen), timestamp: nowIso }
+        );
+
+        deactivated = deactivateResp?.data?.update_school_contact_directory?.affected_rows ?? 0;
+      }
     }
 
+    // Always create audit log, even when there are no valid rows
     await hasura(
       `mutation Audit($object: audit_log_insert_input!) {
         insert_audit_log_one(object: $object) { id }
