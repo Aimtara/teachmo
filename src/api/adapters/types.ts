@@ -16,3 +16,13 @@ export interface Event {
   school_id?: string;
   [key: string]: unknown;
 }
+
+export interface QueryParams {
+  where?: Record<string, unknown>;
+  limit?: number;
+  offset?: number;
+  // Support both camelCase and snake_case conventions for school ID
+  schoolId?: string;
+  school_id?: string;
+  [key: string]: unknown;
+}
