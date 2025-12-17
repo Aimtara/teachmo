@@ -14,10 +14,18 @@ export async function fetchSftpSource(params: {
   secrets: DirectorySourceSecrets;
 }) {
   const { host, port = 22, username, remotePath } = params.config || {};
-  if (!host || !username || !remotePath) throw new Error('missing_sftp_config');
+  const missingConfigFields: string[] = [];
+  if (!host) missingConfigFields.push('host');
+  if (!username) missingConfigFields.push('username');
+  if (!remotePath) missingConfigFields.push('remotePath');
+  if (missingConfigFields.length > 0) {
+    throw new Error(`missing_sftp_config: missing ${missingConfigFields.join(', ')}`);
+  }
 
   const password = params.secrets?.[params.sourceId]?.sftpPassword;
-  if (!password) throw new Error('missing_sftp_password');
+  if (!password) {
+    throw new Error(`missing_sftp_password: missing sftpPassword secret for sourceId=${params.sourceId}`);
+  }
 
   const client = new SftpClient();
 
