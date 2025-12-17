@@ -55,11 +55,25 @@ export default async (req: any, res: any) => {
   if (!source?.id) return res.status(404).json({ ok: false });
 
   const scope = !isCronRequest && actorId ? await getActorScope(hasura, actorId) : null;
-  if (!isCronRequest && role === 'school_admin' && scope?.schoolId && scope.schoolId !== source.school_id) {
-    return res.status(403).json({ ok: false });
+
+  if (!isCronRequest && role === 'school_admin') {
+    // Require a valid schoolId in scope and ensure it matches the source's school_id
+    if (!scope || scope.schoolId == null) {
+      return res.status(403).json({ ok: false });
+    }
+    if (source.school_id != null && scope.schoolId !== source.school_id) {
+      return res.status(403).json({ ok: false });
+    }
   }
-  if (!isCronRequest && role === 'district_admin' && scope?.districtId && scope.districtId !== source.district_id) {
-    return res.status(403).json({ ok: false });
+
+  if (!isCronRequest && role === 'district_admin') {
+    // Require a valid districtId in scope and ensure it matches the source's district_id
+    if (!scope || scope.districtId == null) {
+      return res.status(403).json({ ok: false });
+    }
+    if (source.district_id != null && scope.districtId !== source.district_id) {
+      return res.status(403).json({ ok: false });
+    }
   }
 
   try {
