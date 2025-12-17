@@ -7,8 +7,6 @@ export interface Event {
   id: string;
   title?: string;
   description?: string;
-  start_time?: string;
-  end_time?: string;
   starts_at?: string;
   ends_at?: string;
   location?: string;
