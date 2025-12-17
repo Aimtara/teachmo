@@ -19,6 +19,10 @@ jobs:
             exit 1
           fi
 
+          if [ -z "$DIRECTORY_SYNC_TOKEN" ]; then
+            echo "DIRECTORY_SYNC_TOKEN secret (DIRECTORY_SYNC_TOKEN) is required"
+            exit 1
+          fi
           curl -sS -X POST "$FUNCTIONS_URL/v1/functions/sync-directory-sources" \
             -H "Authorization: Bearer $DIRECTORY_SYNC_TOKEN" \
             -H "Content-Type: application/json" \
