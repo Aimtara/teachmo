@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useUserData } from '@nhost/react';
 import { ThreadsAPI } from '@/api/adapters';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ export default function Messages() {
   const [title, setTitle] = useState('New Conversation');
   const [emailsInput, setEmailsInput] = useState('');
   const [initialMessage, setInitialMessage] = useState('');
+  const [inviteResults, setInviteResults] = useState([]);
   const [status, setStatus] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
@@ -25,6 +26,7 @@ export default function Messages() {
 
     setIsCreating(true);
     setStatus('');
+    setInviteResults([]);
 
     const emails = emailsInput
       .split(',')
@@ -32,7 +34,7 @@ export default function Messages() {
       .filter(Boolean);
 
     try {
-      const thread = await ThreadsAPI.createThreadByEmails({
+      const { thread, invites } = await ThreadsAPI.createThreadByEmails({
         title: title || 'New Conversation',
         creatorId: user.id,
         participantEmails: emails,
@@ -44,14 +46,14 @@ export default function Messages() {
       } else {
         setStatus('Thread created, but details are unavailable.');
       }
+      setInviteResults(invites ?? []);
 
       setTitle('');
       setEmailsInput('');
       setInitialMessage('');
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Thread creation failed', error);
-      setStatus('Unable to create thread.');
+      setStatus('Unable to create thread or send invites.');
     } finally {
       setIsCreating(false);
     }
@@ -97,7 +99,8 @@ export default function Messages() {
               required
             />
             <p className="text-xs text-muted-foreground">
-              Enter comma-separated emails. We will only add accounts that already exist.
+              Enter comma-separated emails. We will add existing users immediately and email invites to
+              new participants.
             </p>
           </div>
 
@@ -117,6 +120,21 @@ export default function Messages() {
               {isCreating ? 'Creating…' : 'Start New Thread'}
             </Button>
             {status && <p className="text-sm text-muted-foreground">{status}</p>}
+            {inviteResults.length > 0 && (
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p className="font-semibold">Invite results</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {inviteResults.map((result) => (
+                    <li key={`${result.email}-${result.status}`}>
+                      <span className="font-medium">{result.email}</span> —{' '}
+                      {result.status === 'added_existing_user'
+                        ? 'added to the thread'
+                        : 'invited with a secure link'}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </form>
       )}

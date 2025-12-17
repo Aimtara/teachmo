@@ -1,7 +1,7 @@
 import * as base44Impl from './threads.base44';
 import * as graphqlImpl from './threads.graphql';
+import * as InvitesAPI from './invites';
 import { logEvent } from './audit';
-import { resolveUserIdByEmail } from './userLookup';
 
 const USE_GRAPHQL = Boolean(import.meta.env.VITE_USE_GRAPHQL_MESSAGES);
 
@@ -24,31 +24,32 @@ export async function createThreadByEmails(input: {
     .map((e) => String(e).trim().toLowerCase())
     .filter(Boolean);
 
-  await logEvent({
-    actorId: input.creatorId,
-    action: 'users:lookup_email',
-    entityType: 'user',
-    entityId: null,
-    metadata: { count: emails.length },
-  });
-
-  const ids = await Promise.all(emails.map(resolveUserIdByEmail));
-  const participantIds = ids.filter((id): id is string => Boolean(id));
-
   const thread = await createThread({
     title: input.title,
     creatorId: input.creatorId,
-    participantIds,
+    participantIds: [],
     initialMessage: input.initialMessage,
   });
+
+  const inviteResults =
+    thread?.id && emails.length > 0
+      ? ((await InvitesAPI.createThreadInvites({ threadId: thread.id, emails }))?.results ?? [])
+      : [];
+  const addedExistingCount = inviteResults.filter((result) => result.status === 'added_existing_user').length;
+  const invitedNewCount = inviteResults.filter((result) => result.status === 'invited_new_user').length;
 
   await logEvent({
     actorId: input.creatorId,
     action: 'threads:invite',
     entityType: 'message_thread',
     entityId: thread?.id ?? null,
-    metadata: { invitedCount: participantIds.length },
+    metadata: {
+      invitedCount: inviteResults.length,
+      addedExistingCount,
+      invitedNewCount,
+      requestedCount: emails.length,
+    },
   });
 
-  return thread;
+  return { thread, invites: inviteResults };
 }
