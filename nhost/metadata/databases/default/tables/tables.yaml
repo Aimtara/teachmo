@@ -1,5 +1,6 @@
 - "!include auth_users.yaml"
 - "!include public_messages.yaml"
 - "!include public_audit_log.yaml"
+- "!include public_message_thread_invites.yaml"
 - "!include public_message_thread_participants.yaml"
 - "!include public_message_threads.yaml"

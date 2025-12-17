@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuthenticationStatus } from '@nhost/react';
@@ -8,6 +8,8 @@ import { ROUTE_CONFIG } from '@/config/routes';
 import FeatureGate from '@/components/shared/FeatureGate';
 import RequirePermission from '@/components/security/RequirePermission';
 import Landing from './Landing.jsx';
+
+const AcceptInvite = lazy(() => import('./AcceptInvite.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -47,6 +49,11 @@ export default function Pages() {
       key: 'index',
       index: true,
       element: <RoleRedirect />
+    },
+    {
+      key: 'accept-invite',
+      path: '/accept-invite',
+      Component: AcceptInvite
     },
     ...ROUTE_CONFIG,
     {
