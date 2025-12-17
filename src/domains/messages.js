@@ -56,3 +56,25 @@ export async function listMessages(threadId, params = {}) {
   const data = await graphql(query, variables);
   return data?.messages ?? [];
 }
+
+export async function sendMessage({ threadId, senderId, body }) {
+  const mutation = `
+    mutation SendMessage($object: messages_insert_input!) {
+      insert_messages_one(object: $object) {
+        id
+        thread_id
+        sender_id
+        created_at
+      }
+    }
+  `;
+
+  const object = {
+    thread_id: threadId,
+    sender_id: senderId,
+    body,
+  };
+
+  const data = await graphql(mutation, { object });
+  return data?.insert_messages_one ?? null;
+}

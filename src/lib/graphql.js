@@ -9,6 +9,10 @@ export async function graphqlRequest({ query, variables, headers = {} }) {
   return data;
 }
 
+export async function graphql(query, variables, headers = {}) {
+  return graphqlRequest({ query, variables, headers });
+}
+
 export function buildMutation(operationName, fields) {
   return `mutation ${operationName}($input: ${operationName}_input!) { ${operationName}(object: $input) { ${fields} } }`;
 }
