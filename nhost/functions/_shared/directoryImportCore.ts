@@ -1,4 +1,5 @@
-import crypto from 'crypto';
+import * as crypto from 'crypto';
+import * as Papa from 'papaparse';
 
 export type HasuraClient = (query: string, variables?: Record<string, any>) => Promise<any>;
 
@@ -21,20 +22,38 @@ export function sha256(input: string): string {
 }
 
 export function parseDirectoryCsv(csvText: string) {
-  const lines = csvText.split(/\r?\n/).filter(Boolean);
-  if (lines.length === 0) throw new Error("CSV must include 'email' header");
+  // Use papaparse to properly handle CSV with quoted fields, commas, and edge cases
+  const parseResult = Papa.parse(csvText, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (h: string) => h.trim(),
+  });
 
-  const header = lines.shift()!.split(',').map((h) => h.trim());
-  const idxEmail = header.findIndex((h) => h.toLowerCase() === 'email');
-  const idxType = header.findIndex((h) => h.toLowerCase() === 'contact_type');
-  if (idxEmail < 0) throw new Error("CSV must include 'email' header");
+  if (parseResult.errors.length > 0) {
+    const error = parseResult.errors[0];
+    throw new Error(`CSV parsing error: ${error.message}`);
+  }
 
-  const rows = lines.map((line, idx) => {
-    const cols = line.split(',');
+  const data = parseResult.data as Record<string, string>[];
+  if (data.length === 0) throw new Error("CSV must include 'email' header");
+
+  // Check if email column exists
+  const firstRow = data[0];
+  const headers = Object.keys(firstRow).map((h) => h.toLowerCase());
+  if (!headers.includes('email')) {
+    throw new Error("CSV must include 'email' header");
+  }
+
+  // Map parsed data to our expected format
+  const rows = data.map((row, idx) => {
+    // Find email value case-insensitively
+    const emailKey = Object.keys(row).find((k) => k.toLowerCase() === 'email');
+    const typeKey = Object.keys(row).find((k) => k.toLowerCase() === 'contact_type');
+
     return {
-      email: cols[idxEmail] ?? '',
-      contact_type: idxType >= 0 ? cols[idxType] : 'parent_guardian',
-      rowNumber: idx + 2,
+      email: emailKey ? (row[emailKey] ?? '').trim() : '',
+      contact_type: typeKey ? (row[typeKey] ?? '').trim() || 'parent_guardian' : 'parent_guardian',
+      rowNumber: idx + 2, // +2 because row 1 is header, and we're 0-indexed
     };
   });
 
