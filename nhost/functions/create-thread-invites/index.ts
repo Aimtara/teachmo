@@ -1,10 +1,13 @@
 import crypto from 'crypto';
 import { sendEmail } from '../_shared/email';
 import { enforceInviteRateLimits } from '../_shared/rateLimit';
+import { emailAllowedForSchool, getActorScope } from '../_shared/tenantScope';
+
+type InviteStatus = 'added_existing_user' | 'invited_new_user' | 'not_allowed';
 
 type InviteResult = {
   email: string;
-  status: 'added_existing_user' | 'invited_new_user';
+  status: InviteStatus;
   inviteId?: string;
 };
 
@@ -76,35 +79,85 @@ export default async (req: any, res: any) => {
     }
   }
 
-  async function fetchThread(): Promise<string | null> {
+  async function fetchThread(): Promise<ThreadRecord | null> {
     const threadCheck = await hasura(
-      `query T($id: uuid!) { message_threads_by_pk(id: $id) { id created_by } }`,
+      `query T($id: uuid!) { message_threads_by_pk(id: $id) { id created_by school_id district_id } }`,
       { id: threadId }
     );
 
-    const createdBy = threadCheck?.data?.message_threads_by_pk?.created_by ?? null;
-    if (!createdBy || String(createdBy) !== actorId) {
-      return null;
-    }
-    return String(threadCheck?.data?.message_threads_by_pk?.id ?? '');
+    const row = threadCheck?.data?.message_threads_by_pk;
+    if (!row?.id) return null;
+    return {
+      id: String(row.id),
+      created_by: row.created_by ? String(row.created_by) : null,
+      school_id: row.school_id ? String(row.school_id) : null,
+      district_id: row.district_id ? String(row.district_id) : null,
+    };
   }
 
   try {
+    const scope = await getActorScope(hasura, actorId);
+    if (!scope.schoolId) return res.status(403).json({ ok: false });
+
     const thread = await fetchThread();
-    if (!thread) return res.status(403).json({ ok: false });
+    if (!thread || !thread.id || thread.created_by !== actorId) {
+      return res.status(403).json({ ok: false });
+    }
+
+    if (thread.school_id && thread.school_id !== scope.schoolId) {
+      return res.status(403).json({ ok: false });
+    }
+
+    const targetSchoolId = thread.school_id ?? scope.schoolId;
+    const targetDistrictId = thread.district_id ?? scope.districtId ?? null;
+
+    if (!targetSchoolId) return res.status(403).json({ ok: false });
+
+    if (!thread.school_id || thread.district_id !== targetDistrictId) {
+      try {
+        await hasura(
+          `mutation SetThreadTenant($id: uuid!, $schoolId: uuid, $districtId: uuid) {
+            update_message_threads_by_pk(pk_columns: { id: $id }, _set: { school_id: $schoolId, district_id: $districtId }) { id }
+          }`,
+          { id: thread.id, schoolId: targetSchoolId, districtId: targetDistrictId }
+        );
+      } catch (error) {
+        console.warn('create-thread-invites tenant pin failed', error);
+      }
+    }
 
     const pendingInvites: string[] = [];
     const existingUsers: { email: string; id: string }[] = [];
+    const results: InviteResult[] = [];
+    let deniedCount = 0;
 
     for (const email of list) {
+      const isAllowed = await emailAllowedForSchool(hasura, email, targetSchoolId);
+      if (!isAllowed) {
+        results.push({ email, status: 'not_allowed' });
+        deniedCount += 1;
+        continue;
+      }
+
       const lookup = await hasura(
-        `query U($email: citext!) { auth_users(where: { email: { _eq: $email } }, limit: 1) { id } }`,
+        `query U($email: citext!) {
+          auth_users(where: { email: { _eq: $email } }, limit: 1) {
+            id
+            profile { school_id }
+          }
+        }`,
         { email }
       );
 
       const user = lookup?.data?.auth_users?.[0] ?? null;
-      if (user?.id) {
+      const profileSchoolId = user?.profile?.school_id ? String(user.profile.school_id) : null;
+      const matchesScope = !profileSchoolId || profileSchoolId === targetSchoolId;
+
+      if (user?.id && matchesScope) {
         existingUsers.push({ email, id: String(user.id) });
+      } else if (user?.id && !matchesScope) {
+        results.push({ email, status: 'not_allowed' });
+        deniedCount += 1;
       } else {
         pendingInvites.push(email);
       }
@@ -120,7 +173,6 @@ export default async (req: any, res: any) => {
       });
     }
 
-    const results: InviteResult[] = [];
     let addedExistingCount = 0;
     let invitedNewCount = 0;
     const sentInviteIds: string[] = [];
@@ -189,18 +241,21 @@ export default async (req: any, res: any) => {
       invitedNewCount += 1;
     }
 
+    const allowedCount = addedExistingCount + invitedNewCount;
+
     await writeAudit('invites:create', {
-      count: list.length,
-      addedExistingCount,
-      invitedNewCount,
-      threadId,
+      allowedCount,
+      deniedCount,
+      invitedCount: invitedNewCount,
+      addedCount: addedExistingCount,
     });
 
     if (sentInviteIds.length > 0) {
       await writeAudit('invites:send', {
-        count: sentInviteIds.length,
-        inviteIds: sentInviteIds,
-        threadId,
+        allowedCount,
+        deniedCount,
+        invitedCount: invitedNewCount,
+        addedCount: addedExistingCount,
       });
     }
 
