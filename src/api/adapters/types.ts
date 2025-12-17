@@ -48,6 +48,24 @@ export interface CalendarEvent {
   [key: string]: unknown;
 }
 
+export interface MessageThread {
+  id: string;
+  title?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+  last_message_preview?: string | null;
+  [key: string]: unknown;
+}
+
+export interface Message {
+  id: string;
+  thread_id?: string | null;
+  sender_id?: string | null;
+  body?: string | null;
+  created_at?: string | null;
+  [key: string]: unknown;
+}
+
 export interface Paginated<T> {
   items: T[];
   nextCursor: string | null;
