@@ -20,6 +20,7 @@ import {
   Compass
 } from 'lucide-react';
 import { isRouteEnabled } from './routes';
+import { isFeatureEnabled } from './features';
 import { canAccess, getDefaultPathForRole, normalizeRole } from './rbac';
 
 export { PUBLIC_PAGES, ROUTE_MAP } from './routes';
@@ -69,7 +70,7 @@ export const NAV_STRUCTURE = [
     roles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
     children: [
-      { name: 'Discover', page: 'UnifiedDiscover', icon: Search, mobilePrimary: true },
+      { name: 'Discover', page: 'UnifiedDiscover', icon: Search, mobilePrimary: true, feature: 'DISCOVER' },
       { name: 'Progress', page: 'Progress', icon: Target, mobileSecondary: true },
       { name: 'Achievements', page: 'Achievements', icon: Award, mobileSecondary: true },
       { name: 'Journal', page: 'Journal', icon: FileText, mobileSecondary: true },
@@ -82,10 +83,11 @@ export const NAV_STRUCTURE = [
     icon: Users,
     roles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
+    feature: 'COMMUNITY',
     children: [
       { name: 'Community Feed', page: 'UnifiedCommunity', icon: Users, mobileSecondary: true },
-      { name: 'Messages', page: 'Messages', icon: MessageCircle, badge: '3', mobilePrimary: true },
-      { name: 'Calendar', page: 'Calendar', icon: Calendar, mobilePrimary: true }
+      { name: 'Messages', page: 'Messages', icon: MessageCircle, badge: '3', mobilePrimary: true, feature: 'MESSAGING' },
+      { name: 'Calendar', page: 'Calendar', icon: Calendar, mobilePrimary: true, feature: 'CALENDAR' }
     ]
   },
   {
@@ -94,9 +96,9 @@ export const NAV_STRUCTURE = [
     roles: ['teacher'],
     requiredScopes: ['classrooms:manage'],
     children: [
-      { name: 'My Classes', page: 'TeacherClasses', icon: School, mobilePrimary: true },
-      { name: 'Assignments', page: 'TeacherAssignments', icon: FileText, mobileSecondary: true },
-      { name: 'Teacher Messages', page: 'TeacherMessages', icon: MessageCircle, mobilePrimary: true }
+      { name: 'My Classes', page: 'TeacherClasses', icon: School, mobilePrimary: true, feature: 'TEACHER_CLASSES' },
+      { name: 'Assignments', page: 'TeacherAssignments', icon: FileText, mobileSecondary: true, feature: 'TEACHER_ASSIGNMENTS' },
+      { name: 'Teacher Messages', page: 'TeacherMessages', icon: MessageCircle, mobilePrimary: true, feature: 'TEACHER_MESSAGES' }
     ]
   },
   {
@@ -121,8 +123,8 @@ export const NAV_STRUCTURE = [
     roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
     requiredScopes: ['core:dashboard'],
     children: [
-      { name: 'AI Coach', page: 'AIAssistant', icon: Bot, mobilePrimary: true },
-      { name: 'School Directory', page: 'SchoolDirectory', icon: School },
+      { name: 'AI Coach', page: 'AIAssistant', icon: Bot, mobilePrimary: true, feature: 'AI_ASSISTANT' },
+      { name: 'School Directory', page: 'SchoolDirectory', icon: School, feature: 'SCHOOL_DIRECTORY' },
       { name: 'Notifications', page: 'Notifications', icon: Bell }
     ]
   },
@@ -138,12 +140,13 @@ export const NAV_STRUCTURE = [
 
 const hasAccess = (item, userRole) =>
   canAccess({ role: userRole, allowedRoles: item.roles, requiredScopes: item.requiredScopes });
+const isFeatureVisible = (item) => !item.feature || isFeatureEnabled(item.feature);
 
 export function getNavigationForRole(userRole = 'parent') {
   const normalizedRole = normalizeRole(userRole);
 
   return NAV_STRUCTURE
-    .filter((section) => hasAccess(section, normalizedRole))
+    .filter((section) => hasAccess(section, normalizedRole) && isFeatureVisible(section))
     .map((section) => {
       const baseSection = {
         ...section,
@@ -153,6 +156,7 @@ export function getNavigationForRole(userRole = 'parent') {
       if (!section.children) return baseSection;
 
       const allowedChildren = section.children
+        .filter((child) => isFeatureVisible(child))
         .filter((child) =>
           hasAccess(
             {
