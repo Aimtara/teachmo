@@ -6,6 +6,7 @@ import LazyPageWrapper from '@/components/shared/LazyPageWrapper';
 import { useAuthorization } from '@/hooks/useUserRole';
 import { ROUTE_CONFIG } from '@/config/routes';
 import FeatureGate from '@/components/shared/FeatureGate';
+import RequirePermission from '@/components/security/RequirePermission';
 import Landing from './Landing.jsx';
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
@@ -60,47 +61,71 @@ export default function Pages() {
     <BrowserRouter>
       <Suspense fallback={defaultFallback}>
         <Routes>
-          {routeConfig.map(({
-            key,
-            index,
-            path,
-            Component,
-            element,
-            allowedRoles,
-            requiresAuth,
-            requiredScopes,
-            feature,
-            fallback,
-            wrap = true
-          }) => {
-            const content = Component ? <Component /> : element;
-            const wrappedContent = wrap ? withLazyWrapper(content, fallback) : content;
-            const gatedContent = feature ? (
-              <FeatureGate feature={feature}>
-                {wrappedContent}
-              </FeatureGate>
-            ) : (
-              wrappedContent
-            );
-            const hasRoleRequirement = Array.isArray(allowedRoles) && allowedRoles.length > 0;
-            const hasScopeRequirement = Array.isArray(requiredScopes) && requiredScopes.length > 0;
-            const shouldProtect = requiresAuth || hasRoleRequirement || hasScopeRequirement;
-            const protectedContent = shouldProtect ? (
-              <ProtectedRoute allowedRoles={allowedRoles} requiredScopes={requiredScopes}>
-                {gatedContent}
-              </ProtectedRoute>
-            ) : (
-              gatedContent
-            );
+          {routeConfig.map(
+            ({
+              key,
+              index,
+              path,
+              Component,
+              element,
+              allowedRoles,
+              requiresAuth,
+              requiredScopes,
+              feature,
+              fallback,
+              wrap = true
+            }) => {
+              const content = Component ? <Component /> : element;
+              const wrappedContent = wrap ? withLazyWrapper(content, fallback) : content;
+              const gatedContent = feature ? (
+                <FeatureGate feature={feature}>
+                  {wrappedContent}
+                </FeatureGate>
+              ) : (
+                wrappedContent
+              );
 
-            return (
-              <Route
-                key={key || path}
-                {...(index ? { index: true } : { path })}
-                element={protectedContent}
-              />
-            );
-          })}
+              if (path === '/messages') {
+                return (
+                  <Route
+                    key={key || path}
+                    path={path}
+                    element={(
+                      <ProtectedRoute
+                        allowedRoles={['parent', 'teacher', 'school_admin', 'district_admin', 'admin']}
+                        requiredScopes={requiredScopes}
+                      >
+                        <RequirePermission action="messages:read">
+                          <FeatureGate feature="MESSAGING">
+                            {wrappedContent}
+                          </FeatureGate>
+                        </RequirePermission>
+                      </ProtectedRoute>
+                    )}
+                  />
+                );
+              }
+
+              const hasRoleRequirement = Array.isArray(allowedRoles) && allowedRoles.length > 0;
+              const hasScopeRequirement = Array.isArray(requiredScopes) && requiredScopes.length > 0;
+              const shouldProtect = requiresAuth || hasRoleRequirement || hasScopeRequirement;
+              const protectedContent = shouldProtect ? (
+                <ProtectedRoute allowedRoles={allowedRoles} requiredScopes={requiredScopes}>
+                  {gatedContent}
+                </ProtectedRoute>
+              ) : (
+                gatedContent
+              );
+
+              return (
+                <Route
+                  key={key || path}
+                  {...(index ? { index: true } : { path })}
+                  element={protectedContent}
+                />
+              );
+            }
+          )}
         </Routes>
       </Suspense>
     </BrowserRouter>
