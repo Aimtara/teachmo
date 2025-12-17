@@ -16,3 +16,12 @@ export interface Event {
   school_id?: string;
   [key: string]: unknown;
 }
+
+export interface QueryParams {
+  where?: Record<string, unknown>;
+  limit?: number;
+  offset?: number;
+  schoolId?: string;
+  school_id?: string;
+  [key: string]: unknown;
+}
