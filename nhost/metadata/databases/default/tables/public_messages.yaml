@@ -1,0 +1,124 @@
+table:
+  name: messages
+  schema: public
+select_permissions:
+  - role: parent
+    permission:
+      columns:
+        - id
+        - thread_id
+        - sender_id
+        - content
+        - sent_at
+        - created_at
+        - updated_at
+        - is_hidden
+        - is_redacted
+        - is_deleted
+      filter:
+        _and:
+          - is_hidden: {_eq: false}
+          - is_deleted: {_eq: false}
+  - role: teacher
+    permission:
+      columns:
+        - id
+        - thread_id
+        - sender_id
+        - content
+        - sent_at
+        - created_at
+        - updated_at
+        - is_hidden
+        - is_redacted
+        - is_deleted
+      filter:
+        _and:
+          - is_hidden: {_eq: false}
+          - is_deleted: {_eq: false}
+insert_permissions:
+  - role: parent
+    permission:
+      check:
+        sender_id: {_eq: "X-Hasura-User-Id"}
+      set:
+        sender_id: "X-Hasura-User-Id"
+      columns:
+        - thread_id
+        - content
+  - role: teacher
+    permission:
+      check:
+        sender_id: {_eq: "X-Hasura-User-Id"}
+      set:
+        sender_id: "X-Hasura-User-Id"
+      columns:
+        - thread_id
+        - content
+update_permissions:
+  - role: school_admin
+    permission:
+      columns:
+        - is_hidden
+        - hidden_by
+        - hidden_reason
+        - hidden_at
+        - is_redacted
+        - redacted_by
+        - redacted_reason
+        - redacted_at
+        - is_deleted
+        - deleted_by
+        - deleted_reason
+        - deleted_at
+        - content
+      filter: {}
+      check: {}
+      set:
+        hidden_by: "X-Hasura-User-Id"
+        redacted_by: "X-Hasura-User-Id"
+        deleted_by: "X-Hasura-User-Id"
+  - role: district_admin
+    permission:
+      columns:
+        - is_hidden
+        - hidden_by
+        - hidden_reason
+        - hidden_at
+        - is_redacted
+        - redacted_by
+        - redacted_reason
+        - redacted_at
+        - is_deleted
+        - deleted_by
+        - deleted_reason
+        - deleted_at
+        - content
+      filter: {}
+      check: {}
+      set:
+        hidden_by: "X-Hasura-User-Id"
+        redacted_by: "X-Hasura-User-Id"
+        deleted_by: "X-Hasura-User-Id"
+  - role: admin
+    permission:
+      columns:
+        - is_hidden
+        - hidden_by
+        - hidden_reason
+        - hidden_at
+        - is_redacted
+        - redacted_by
+        - redacted_reason
+        - redacted_at
+        - is_deleted
+        - deleted_by
+        - deleted_reason
+        - deleted_at
+        - content
+      filter: {}
+      check: {}
+      set:
+        hidden_by: "X-Hasura-User-Id"
+        redacted_by: "X-Hasura-User-Id"
+        deleted_by: "X-Hasura-User-Id"
