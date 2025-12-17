@@ -1,5 +1,12 @@
 import type { Message, MessageThread, Paginated } from '../types';
-import { listMessageThreads as fetchMessageThreads, listMessages as fetchMessages, sendMessage as sendMessageDomain } from '@/domains/messages';
+import {
+  listMessageThreads as fetchMessageThreads,
+  listMessages as fetchMessages,
+  sendMessage as sendMessageDomain,
+  moderateMessageHide,
+  moderateMessageRedact,
+  moderateMessageDelete,
+} from '@/domains/messages';
 import { logEvent } from './audit';
 
 export async function listThreads(params: Record<string, any> = {}): Promise<Paginated<MessageThread>> {
@@ -28,5 +35,53 @@ export async function sendMessage(input: {
     metadata: { threadId: input.threadId, bodyLength: input.body?.length ?? 0 },
   });
 
+  return result;
+}
+
+export async function hideMessage(input: {
+  messageId: string;
+  moderatorId: string;
+  reason?: string;
+}) {
+  const result = await moderateMessageHide(input);
+  await logEvent({
+    actorId: input.moderatorId,
+    action: 'messages:moderate',
+    entityType: 'message',
+    entityId: input.messageId,
+    metadata: { kind: 'hide', reason: input.reason ?? null },
+  });
+  return result;
+}
+
+export async function redactMessage(input: {
+  messageId: string;
+  moderatorId: string;
+  reason?: string;
+}) {
+  const result = await moderateMessageRedact(input);
+  await logEvent({
+    actorId: input.moderatorId,
+    action: 'messages:moderate',
+    entityType: 'message',
+    entityId: input.messageId,
+    metadata: { kind: 'redact', reason: input.reason ?? null },
+  });
+  return result;
+}
+
+export async function deleteMessage(input: {
+  messageId: string;
+  moderatorId: string;
+  reason?: string;
+}) {
+  const result = await moderateMessageDelete(input);
+  await logEvent({
+    actorId: input.moderatorId,
+    action: 'messages:moderate',
+    entityType: 'message',
+    entityId: input.messageId,
+    metadata: { kind: 'delete', reason: input.reason ?? null },
+  });
   return result;
 }
