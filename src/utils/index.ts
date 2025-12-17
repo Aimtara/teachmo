@@ -1,10 +1,5 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 import { ROUTE_MAP, findRouteConfig, resolveRouteName } from "@/config/routes";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 export function createPageUrl(pageName: string, params: Record<string, string | number> = {}) {
   const resolvedName = resolveRouteName(pageName);
@@ -19,4 +14,4 @@ export function createPageUrl(pageName: string, params: Record<string, string | 
   return queryString ? `${basePath}?${queryString}` : basePath;
 }
 
-export { ROUTE_MAP };
+export { ROUTE_MAP, cn };

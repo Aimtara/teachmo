@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint src/pages src/App.jsx src/main.jsx backend/index.js backend/models.js backend/routes/submissions.js backend/routes/programs.js backend/routes/courses.js backend/routes/incentives.js backend/routes/contracts.js backend/routes/onboarding.js backend/routes/partnerPortalAdmin.js",
+    "lint": "eslint src/api src/hooks src/utils src/config src/pages/index.jsx src/lib/utils.ts src/App.jsx src/main.jsx backend/index.js backend/models.js backend/routes/submissions.js backend/routes/programs.js backend/routes/courses.js backend/routes/incentives.js backend/routes/contracts.js backend/routes/onboarding.js backend/routes/partnerPortalAdmin.js backend/routes/quizzes.js --ext .js,.jsx,.ts,.tsx",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -88,6 +88,8 @@
     "@types/node": "^22.13.5",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
+    "@typescript-eslint/parser": "^8.50.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.19.0",
@@ -100,6 +102,7 @@
     "postcss": "^8.5.3",
     "supertest": "^7.0.0",
     "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.3",
     "vite": "^6.1.0"
   }
 }

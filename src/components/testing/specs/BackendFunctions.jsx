@@ -7,8 +7,8 @@ global.Deno = {
   env: {
     get: jest.fn((key) => {
       const mockEnv = {
-        'BASE44_APP_ID': 'test-app-id',
-        'OPENAI_API_KEY': 'test-openai-key'
+        VITE_BASE44_APP_ID: 'test-app-id',
+        OPENAI_API_KEY: 'test-openai-key'
       };
       return mockEnv[key];
     })
