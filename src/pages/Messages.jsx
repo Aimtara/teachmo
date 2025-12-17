@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useUserData } from '@nhost/react';
-import { ThreadsAPI } from '@/api/adapters';
+import { InviteAdminAPI, ThreadsAPI } from '@/api/adapters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,8 +17,14 @@ export default function Messages() {
   const [inviteResults, setInviteResults] = useState([]);
   const [status, setStatus] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [manageThreadId, setManageThreadId] = useState('');
+  const [managedInvites, setManagedInvites] = useState([]);
+  const [manageStatus, setManageStatus] = useState('');
+  const [isLoadingInvites, setIsLoadingInvites] = useState(false);
+  const [activeInviteAction, setActiveInviteAction] = useState('');
 
   const canInvite = can(role, 'messages:invite');
+  const canManageInvites = can(role, 'threads:invite_manage');
 
   const handleNewThread = async (event) => {
     event.preventDefault();
@@ -56,6 +62,77 @@ export default function Messages() {
       setStatus('Unable to create thread or send invites.');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const formatDate = (value) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString();
+  };
+
+  const loadInvites = async (threadIdValue) => {
+    if (!threadIdValue || !canManageInvites) return;
+    setIsLoadingInvites(true);
+    setManageStatus('');
+    setManagedInvites([]);
+
+    try {
+      const invites = await InviteAdminAPI.listThreadInvites(threadIdValue);
+      setManagedInvites(invites ?? []);
+      if (!invites?.length) {
+        setManageStatus('No invites found for this thread.');
+      }
+    } catch (error) {
+      console.error('list-thread-invites failed', error);
+      setManageStatus('Unable to load invites for this thread.');
+    } finally {
+      setIsLoadingInvites(false);
+    }
+  };
+
+  const handleLoadInvites = async (event) => {
+    event.preventDefault();
+    const trimmed = manageThreadId.trim();
+    if (!trimmed) return;
+    setManageThreadId(trimmed);
+    await loadInvites(trimmed);
+  };
+
+  const handleResendInvite = async (inviteId) => {
+    if (!inviteId || !canManageInvites) return;
+    setActiveInviteAction(`resend-${inviteId}`);
+    setManageStatus('');
+    try {
+      await InviteAdminAPI.resendThreadInvite(inviteId);
+      setManageStatus('Invite resent.');
+      await loadInvites(manageThreadId.trim());
+    } catch (error) {
+      console.error('resend-thread-invite failed', error);
+      setManageStatus('Unable to resend invite.');
+    } finally {
+      setActiveInviteAction('');
+    }
+  };
+
+  const handleRevokeInvite = async (inviteId) => {
+    if (!inviteId || !canManageInvites) return;
+    const reason =
+      typeof window !== 'undefined'
+        ? window.prompt('Why are you revoking this invite? (optional)') ?? undefined
+        : undefined;
+    setActiveInviteAction(`revoke-${inviteId}`);
+    setManageStatus('');
+    try {
+      await InviteAdminAPI.revokeThreadInvite(inviteId, reason || undefined);
+      setManageStatus('Invite revoked.');
+      await loadInvites(manageThreadId.trim());
+    } catch (error) {
+      console.error('revoke-thread-invite failed', error);
+      setManageStatus('Unable to revoke invite.');
+    } finally {
+      setActiveInviteAction('');
     }
   };
 
@@ -137,6 +214,98 @@ export default function Messages() {
             )}
           </div>
         </form>
+      )}
+
+      {user?.id && canManageInvites && (
+        <div className="space-y-3 border rounded-md p-4 max-w-4xl">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">Manage invites</h2>
+            <p className="text-sm text-muted-foreground">
+              Review pending invites for threads you created. Emails are masked to avoid exposing full addresses.
+            </p>
+          </div>
+
+          <form onSubmit={handleLoadInvites} className="space-y-2">
+            <Label htmlFor="manage-thread-id">Thread ID</Label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Input
+                id="manage-thread-id"
+                value={manageThreadId}
+                onChange={(event) => setManageThreadId(event.target.value)}
+                placeholder="Thread ID you own"
+                className="sm:max-w-xs"
+              />
+              <Button type="submit" disabled={isLoadingInvites || !manageThreadId.trim()}>
+                {isLoadingInvites ? 'Loading…' : 'Load invites'}
+              </Button>
+            </div>
+            {manageStatus && <p className="text-sm text-muted-foreground">{manageStatus}</p>}
+          </form>
+
+          {managedInvites.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm border rounded-md">
+                <thead>
+                  <tr className="bg-muted text-left">
+                    <th className="p-2 font-medium">Email</th>
+                    <th className="p-2 font-medium">Status</th>
+                    <th className="p-2 font-medium">Expires</th>
+                    <th className="p-2 font-medium">Last sent</th>
+                    <th className="p-2 font-medium">Send count</th>
+                    <th className="p-2 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {managedInvites.map((invite) => {
+                    const isAccepted = Boolean(invite.acceptedAt);
+                    const isRevoked = Boolean(invite.revokedAt);
+                    const isExpired = invite.expiresAt
+                      ? new Date(invite.expiresAt).getTime() <= Date.now()
+                      : false;
+                    const statusLabel = isAccepted
+                      ? 'Accepted'
+                      : isRevoked
+                        ? 'Revoked'
+                        : isExpired
+                          ? 'Expired'
+                          : 'Pending';
+                    const isResending = activeInviteAction === `resend-${invite.id}`;
+                    const isRevoking = activeInviteAction === `revoke-${invite.id}`;
+                    return (
+                      <tr key={invite.id} className="border-t">
+                        <td className="p-2">{invite.emailMasked}</td>
+                        <td className="p-2">{statusLabel}</td>
+                        <td className="p-2">{formatDate(invite.expiresAt)}</td>
+                        <td className="p-2">{formatDate(invite.lastSentAt)}</td>
+                        <td className="p-2">{invite.sendCount ?? 0}</td>
+                        <td className="p-2 space-x-2 whitespace-nowrap">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={isAccepted || isRevoked || isExpired || isResending}
+                            onClick={() => handleResendInvite(invite.id)}
+                          >
+                            {isResending ? 'Resending…' : 'Resend'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isAccepted || isRevoked || isRevoking}
+                            onClick={() => handleRevokeInvite(invite.id)}
+                          >
+                            {isRevoking ? 'Revoking…' : 'Revoke'}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

@@ -6,6 +6,11 @@ export type AuditAction =
   | 'messages:moderate'
   | 'threads:create'
   | 'threads:invite'
+  | 'invites:create'
+  | 'invites:send'
+  | 'invites:resend'
+  | 'invites:revoke'
+  | 'invites:accept'
   | 'users:lookup_email';
 
 export async function logEvent(input: {

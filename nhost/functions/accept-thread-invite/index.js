@@ -32,7 +32,7 @@ export default async (req, res) => {
     return response.json();
   }
 
-  async function writeAudit(threadId) {
+  async function writeAudit(threadId, inviteId) {
     try {
       await hasura(
         `mutation Audit($object: audit_log_insert_input!) {
@@ -44,7 +44,7 @@ export default async (req, res) => {
             action: 'invites:accept',
             entity_type: 'message_thread',
             entity_id: threadId,
-            metadata: { threadId },
+            metadata: { threadId, inviteId },
           },
         }
       );
@@ -63,6 +63,7 @@ export default async (req, res) => {
           where: {
             token_hash: { _eq: $h },
             accepted_at: { _is_null: true },
+            revoked_at: { _is_null: true },
             expires_at: { _gt: $now }
           },
           limit: 1
@@ -110,7 +111,7 @@ export default async (req, res) => {
       { id: invite.id, uid: userId, acceptedAt: now }
     );
 
-    await writeAudit(invite.thread_id);
+    await writeAudit(invite.thread_id, invite.id);
 
     return res.status(200).json({ ok: true, threadId: invite.thread_id });
   } catch (error) {
