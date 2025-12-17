@@ -1,10 +1,11 @@
 import crypto from 'crypto';
+import { emailAllowedForSchool, getActorScope } from '../_shared/tenantScope';
 
-function sha256(input) {
+function sha256(input: string) {
   return crypto.createHash('sha256').update(input).digest('hex');
 }
 
-export default async (req, res) => {
+export default async (req: any, res: any) => {
   if (req.method !== 'POST') return res.status(405).json({ ok: false });
 
   const userId = String(req.headers['x-hasura-user-id'] ?? '');
@@ -19,7 +20,7 @@ export default async (req, res) => {
 
   if (!HASURA_URL || !ADMIN_SECRET) return res.status(500).json({ ok: false });
 
-  async function hasura(query, variables) {
+  async function hasura(query: string, variables?: Record<string, any>) {
     const response = await fetch(HASURA_URL, {
       method: 'POST',
       headers: {
@@ -32,7 +33,7 @@ export default async (req, res) => {
     return response.json();
   }
 
-  async function writeAudit(threadId, inviteId) {
+  async function writeAudit(threadId: string, inviteId: string) {
     try {
       await hasura(
         `mutation Audit($object: audit_log_insert_input!) {
@@ -72,6 +73,7 @@ export default async (req, res) => {
           thread_id
           email
           invited_by
+          thread { school_id district_id }
         }
       }`,
       { h: tokenHash, now }
@@ -89,6 +91,20 @@ export default async (req, res) => {
 
     if (!userEmail || userEmail !== String(invite.email).toLowerCase()) {
       return res.status(403).json({ ok: false });
+    }
+
+    const scope = await getActorScope(hasura, userId);
+    const threadSchoolId = invite.thread?.school_id ? String(invite.thread.school_id) : null;
+    const effectiveSchoolId = threadSchoolId ?? scope.schoolId;
+
+    if (effectiveSchoolId) {
+      const profileMatches = scope.schoolId && scope.schoolId === effectiveSchoolId;
+      const directoryAllowed =
+        profileMatches || (await emailAllowedForSchool(hasura, userEmail, effectiveSchoolId));
+
+      if (!directoryAllowed) {
+        return res.status(403).json({ ok: false });
+      }
     }
 
     await hasura(

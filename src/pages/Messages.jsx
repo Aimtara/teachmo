@@ -206,7 +206,9 @@ export default function Messages() {
                       <span className="font-medium">{result.email}</span> —{' '}
                       {result.status === 'added_existing_user'
                         ? 'added to the thread'
-                        : 'invited with a secure link'}
+                        : result.status === 'invited_new_user'
+                          ? 'invited with a secure link'
+                          : "Can't invite: not found in your school directory."}
                     </li>
                   ))}
                 </ul>

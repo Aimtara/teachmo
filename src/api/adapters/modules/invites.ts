@@ -2,7 +2,7 @@ import { nhost } from '@/lib/nhostClient';
 
 export type InviteResult = {
   email: string;
-  status: 'added_existing_user' | 'invited_new_user';
+  status: 'added_existing_user' | 'invited_new_user' | 'not_allowed';
   inviteUrl?: string;
 };
 

@@ -1,12 +1,14 @@
 import { base44Entities } from '@/api/base44';
 import { logEvent } from './audit';
+import type { InviteResult } from './invites';
 
 export async function createThread(input: {
   title: string;
   creatorId: string;
   participantIds: string[];
+  participantEmails?: string[];
   initialMessage?: string;
-}) {
+}): Promise<{ thread: any; inviteResults: InviteResult[] }> {
   const uniq = Array.from(new Set([input.creatorId, ...(input.participantIds ?? [])]));
 
   const thread = await base44Entities.MessageThread?.create?.({
@@ -22,7 +24,7 @@ export async function createThread(input: {
       metadata: { participantCount: uniq.length, hasInitialMessage: Boolean(input.initialMessage), status: 'thread-missing' },
     });
 
-    return thread ?? null;
+    return { thread: thread ?? null, inviteResults: [] };
   }
 
   // Participants: adjust entity name to match Base44 schema if it exists
@@ -55,5 +57,5 @@ export async function createThread(input: {
     metadata: { participantCount: uniq.length, hasInitialMessage: Boolean(input.initialMessage) },
   });
 
-  return thread;
+  return { thread, inviteResults: [] };
 }

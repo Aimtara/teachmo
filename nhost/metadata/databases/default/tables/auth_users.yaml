@@ -1,3 +1,12 @@
 table:
   name: users
   schema: auth
+object_relationships:
+  - name: profile
+    using:
+      manual_configuration:
+        column_mapping:
+          id: user_id
+        remote_table:
+          name: user_profiles
+          schema: public

@@ -5,3 +5,5 @@
 - "!include public_message_thread_invites.yaml"
 - "!include public_message_thread_participants.yaml"
 - "!include public_message_threads.yaml"
+- "!include public_user_profiles.yaml"
+- "!include public_school_contact_directory.yaml"
