@@ -254,6 +254,7 @@ export default function AdminDirectorySources() {
               type="button"
               onClick={() => selectSource(null)}
               className="text-sm text-blue-600 hover:underline"
+              aria-label="Create new directory source"
             >
               New
             </button>
