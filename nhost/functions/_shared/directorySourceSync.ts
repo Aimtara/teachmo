@@ -147,23 +147,29 @@ export async function runDirectorySourceSync(params: {
 
     return { status: 'completed', runId, jobId, stats: upsertResult.stats };
   } catch (error: any) {
+    const originalError = error;
     const finishedAt = new Date().toISOString();
     const errors = [{ reason: 'exception', message: String(error?.message ?? error) }];
 
-    if (jobId) {
-      await failJob(hasura, { id: jobId, errors, finishedAt });
+    try {
+      if (jobId) {
+        await failJob(hasura, { id: jobId, errors, finishedAt });
+      }
+
+      await hasura(
+        `mutation FailRun($id: uuid!, $errors: jsonb!, $finishedAt: timestamptz!) {
+          update_directory_source_runs_by_pk(
+            pk_columns: { id: $id },
+            _set: { status: "failed", errors: $errors, finished_at: $finishedAt }
+          ) { id }
+        }`,
+        { id: runId, errors, finishedAt }
+      );
+    } catch (recordingError) {
+      // Swallow errors from failure recording to avoid masking the original error.
+      // Optionally log recordingError here if logging is available.
     }
 
-    await hasura(
-      `mutation FailRun($id: uuid!, $errors: jsonb!, $finishedAt: timestamptz!) {
-        update_directory_source_runs_by_pk(
-          pk_columns: { id: $id },
-          _set: { status: "failed", errors: $errors, finished_at: $finishedAt }
-        ) { id }
-      }`,
-      { id: runId, errors, finishedAt }
-    );
-
-    throw error;
+    throw originalError;
   }
 }
