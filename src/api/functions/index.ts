@@ -1,9 +1,9 @@
 // Client-side helpers for calling backend functions.
-// These wrappers either proxy to the legacy `src/api/legacy/functions.ts` module
+// These wrappers either proxy to the Base44 function module
 // or provide lightweight fallbacks used throughout the UI.
-import * as legacyFunctions from '../legacy/functions';
+import * as base44Functions from '../base44/functions';
 
-// Re-export existing functions from the legacy module to preserve behaviour.
+// Re-export existing functions from the Base44 module to preserve behaviour.
 export const {
   googleClassroomSync,
   googleAuth,
@@ -18,7 +18,7 @@ export const {
   priorityNotifications,
   eventSubscriptions,
   realEventSearch,
-} = legacyFunctions;
+} = base44Functions;
 
 // --- Additional helpers used across the app ---
 
@@ -26,7 +26,7 @@ export type GenericPayload = Record<string, unknown>;
 
 export async function invokeAdvancedAI(payload: GenericPayload = {}): Promise<unknown> {
   // Reuse the existing AI suggestion pipeline when available.
-  return legacyFunctions.aiActivitySuggestions(payload);
+  return base44Functions.aiActivitySuggestions(payload);
 }
 
 export async function applyReferralCode(code: string): Promise<{ success: boolean; code: string }> {

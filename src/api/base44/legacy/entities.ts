@@ -1,4 +1,4 @@
-import { base44 as base44Client } from '../base44/client';
+import { base44 as base44Client } from '../client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const base44 = base44Client as any;
 
