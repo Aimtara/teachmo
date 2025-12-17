@@ -1,0 +1,29 @@
+name: Directory source sync
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync-directory-sources:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger directory sync
+        env:
+          FUNCTIONS_URL: ${{ secrets.DIRECTORY_SYNC_FUNCTIONS_URL }}
+          DIRECTORY_SYNC_TOKEN: ${{ secrets.DIRECTORY_SYNC_TOKEN }}
+        run: |
+          if [ -z "$FUNCTIONS_URL" ]; then
+            echo "FUNCTIONS_URL secret (DIRECTORY_SYNC_FUNCTIONS_URL) is required"
+            exit 1
+          fi
+
+          if [ -z "$DIRECTORY_SYNC_TOKEN" ]; then
+            echo "DIRECTORY_SYNC_TOKEN secret (DIRECTORY_SYNC_TOKEN) is required"
+            exit 1
+          fi
+          curl -sS -X POST "$FUNCTIONS_URL/v1/functions/sync-directory-sources" \
+            -H "Authorization: Bearer $DIRECTORY_SYNC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"limit":25}'

@@ -11,6 +11,7 @@ import Landing from './Landing.jsx';
 
 const AcceptInvite = lazy(() => import('./AcceptInvite.jsx'));
 const AdminDirectoryImport = lazy(() => import('./AdminDirectoryImport.jsx'));
+const AdminDirectorySources = lazy(() => import('./AdminDirectorySources.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -61,6 +62,13 @@ export default function Pages() {
       path: '/admin/directory-import',
       Component: AdminDirectoryImport,
       allowedRoles: ['school_admin', 'district_admin', 'system_admin'],
+      requiresAuth: true
+    },
+    {
+      key: 'admin-directory-sources',
+      path: '/admin/directory-sources',
+      Component: AdminDirectorySources,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
       requiresAuth: true
     },
     ...ROUTE_CONFIG,
@@ -129,6 +137,25 @@ export default function Pages() {
                     element={(
                       <ProtectedRoute
                         allowedRoles={allowedRoles || ['school_admin', 'district_admin', 'system_admin']}
+                        requiredScopes={requiredScopes}
+                      >
+                        <RequirePermission action="directory:manage">
+                          {wrappedContent}
+                        </RequirePermission>
+                      </ProtectedRoute>
+                    )}
+                  />
+                );
+              }
+
+              if (path === '/admin/directory-sources') {
+                return (
+                  <Route
+                    key={key || path}
+                    path={path}
+                    element={(
+                      <ProtectedRoute
+                        allowedRoles={allowedRoles || ['school_admin', 'district_admin', 'system_admin', 'admin']}
                         requiredScopes={requiredScopes}
                       >
                         <RequirePermission action="directory:manage">
