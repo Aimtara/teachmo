@@ -9,6 +9,13 @@ array_relationships:
         table:
           name: message_thread_participants
           schema: public
+  - name: messages
+    using:
+      foreign_key_constraint_on:
+        column: thread_id
+        table:
+          name: messages
+          schema: public
 select_permissions:
   - role: parent
     permission:
@@ -46,3 +53,36 @@ select_permissions:
     permission:
       columns: "*"
       filter: {}
+insert_permissions:
+  - role: teacher
+    permission:
+      columns:
+        - title
+      set:
+        created_by: "X-Hasura-User-Id"
+      check:
+        created_by: {_eq: "X-Hasura-User-Id"}
+  - role: school_admin
+    permission:
+      columns:
+        - title
+      set:
+        created_by: "X-Hasura-User-Id"
+      check:
+        created_by: {_eq: "X-Hasura-User-Id"}
+  - role: district_admin
+    permission:
+      columns:
+        - title
+      set:
+        created_by: "X-Hasura-User-Id"
+      check:
+        created_by: {_eq: "X-Hasura-User-Id"}
+  - role: admin
+    permission:
+      columns:
+        - title
+      set:
+        created_by: "X-Hasura-User-Id"
+      check:
+        created_by: {_eq: "X-Hasura-User-Id"}
