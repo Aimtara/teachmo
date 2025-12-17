@@ -502,6 +502,14 @@ export default function AdminDirectorySources() {
                 className="text-sm text-blue-600 hover:underline disabled:opacity-50"
                 onClick={() => loadRuns(selectedId)}
                 disabled={!selectedId || loadingRuns}
+                aria-disabled={!selectedId || loadingRuns}
+                aria-label={
+                  !selectedId
+                    ? 'Refresh run history (select a source to enable)'
+                    : loadingRuns
+                      ? 'Refreshing run history'
+                      : 'Refresh run history'
+                }
               >
                 {loadingRuns ? 'Refreshing…' : 'Refresh'}
               </button>
