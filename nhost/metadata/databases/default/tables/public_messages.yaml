@@ -1,6 +1,10 @@
 table:
   name: messages
   schema: public
+object_relationships:
+  - name: thread
+    using:
+      foreign_key_constraint_on: thread_id
 select_permissions:
   - role: parent
     permission:
@@ -8,15 +12,16 @@ select_permissions:
         - id
         - thread_id
         - sender_id
-        - content
-        - sent_at
         - created_at
-        - updated_at
+        - body
         - is_hidden
         - is_redacted
         - is_deleted
       filter:
         _and:
+          - thread:
+              participants:
+                user_id: {_eq: "X-Hasura-User-Id"}
           - is_hidden: {_eq: false}
           - is_deleted: {_eq: false}
   - role: teacher
@@ -25,36 +30,57 @@ select_permissions:
         - id
         - thread_id
         - sender_id
-        - content
-        - sent_at
         - created_at
-        - updated_at
+        - body
         - is_hidden
         - is_redacted
         - is_deleted
       filter:
         _and:
+          - thread:
+              participants:
+                user_id: {_eq: "X-Hasura-User-Id"}
           - is_hidden: {_eq: false}
           - is_deleted: {_eq: false}
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
 insert_permissions:
   - role: parent
     permission:
-      check:
-        sender_id: {_eq: "X-Hasura-User-Id"}
-      set:
-        sender_id: "X-Hasura-User-Id"
       columns:
         - thread_id
-        - content
+        - body
+      check:
+        _and:
+          - sender_id: {_eq: "X-Hasura-User-Id"}
+          - thread:
+              participants:
+                user_id: {_eq: "X-Hasura-User-Id"}
+      set:
+        sender_id: "X-Hasura-User-Id"
   - role: teacher
     permission:
-      check:
-        sender_id: {_eq: "X-Hasura-User-Id"}
-      set:
-        sender_id: "X-Hasura-User-Id"
       columns:
         - thread_id
-        - content
+        - body
+      check:
+        _and:
+          - sender_id: {_eq: "X-Hasura-User-Id"}
+          - thread:
+              participants:
+                user_id: {_eq: "X-Hasura-User-Id"}
+      set:
+        sender_id: "X-Hasura-User-Id"
 update_permissions:
   - role: school_admin
     permission:
@@ -71,7 +97,7 @@ update_permissions:
         - deleted_by
         - deleted_reason
         - deleted_at
-        - content
+        - body
       filter: {}
       check: {}
       set:
@@ -93,7 +119,7 @@ update_permissions:
         - deleted_by
         - deleted_reason
         - deleted_at
-        - content
+        - body
       filter: {}
       check: {}
       set:
@@ -115,7 +141,7 @@ update_permissions:
         - deleted_by
         - deleted_reason
         - deleted_at
-        - content
+        - body
       filter: {}
       check: {}
       set:

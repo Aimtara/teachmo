@@ -1,0 +1,48 @@
+table:
+  name: message_threads
+  schema: public
+array_relationships:
+  - name: participants
+    using:
+      foreign_key_constraint_on:
+        column: thread_id
+        table:
+          name: message_thread_participants
+          schema: public
+select_permissions:
+  - role: parent
+    permission:
+      columns:
+        - id
+        - title
+        - created_at
+        - updated_at
+        - created_by
+        - last_message_preview
+      filter:
+        participants:
+          user_id: {_eq: "X-Hasura-User-Id"}
+  - role: teacher
+    permission:
+      columns:
+        - id
+        - title
+        - created_at
+        - updated_at
+        - created_by
+        - last_message_preview
+      filter:
+        participants:
+          user_id: {_eq: "X-Hasura-User-Id"}
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
