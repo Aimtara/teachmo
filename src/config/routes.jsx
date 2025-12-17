@@ -22,6 +22,65 @@ export const ROUTE_DEFINITIONS = [
     isPublic: true
   },
   {
+    name: 'UnifiedDiscover',
+    path: '/discover',
+    Component: lazy(() => import('@/pages/UnifiedDiscover.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher'],
+    requiredScopes: ['content:read'],
+    feature: 'DISCOVER',
+    fallback: <p className="p-6 text-gray-600">Loading discover...</p>
+  },
+  {
+    name: 'UnifiedCommunity',
+    path: '/community',
+    Component: lazy(() => import('@/pages/UnifiedCommunity.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher'],
+    requiredScopes: ['content:read'],
+    feature: 'COMMUNITY',
+    fallback: <p className="p-6 text-gray-600">Loading community...</p>
+  },
+  {
+    name: 'Calendar',
+    path: '/calendar',
+    Component: lazy(() => import('@/pages/Calendar.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher'],
+    requiredScopes: ['content:read'],
+    feature: 'CALENDAR',
+    fallback: <p className="p-6 text-gray-600">Loading calendar...</p>
+  },
+  {
+    name: 'Messages',
+    path: '/messages',
+    Component: lazy(() => import('@/pages/Messages.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher'],
+    requiredScopes: ['content:read'],
+    feature: 'MESSAGING',
+    fallback: <p className="p-6 text-gray-600">Loading messages...</p>
+  },
+  {
+    name: 'AIAssistant',
+    path: '/ai-assistant',
+    Component: lazy(() => import('@/pages/AIAssistant.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
+    requiredScopes: ['core:dashboard'],
+    feature: 'AI_ASSISTANT',
+    fallback: <p className="p-6 text-gray-600">Loading AI assistant...</p>
+  },
+  {
+    name: 'Settings',
+    path: '/settings',
+    Component: lazy(() => import('@/pages/Settings.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
+    requiredScopes: ['core:dashboard'],
+    fallback: <p className="p-6 text-gray-600">Loading settings...</p>
+  },
+  {
     name: 'Dashboard',
     path: '/dashboard',
     Component: lazy(() => import('@/pages/Dashboard.jsx')),
@@ -60,6 +119,36 @@ export const ROUTE_DEFINITIONS = [
     allowedRoles: ['teacher'],
     requiredScopes: ['classrooms:manage'],
     fallback: <p className="p-6 text-gray-600">Loading teacher dashboard...</p>
+  },
+  {
+    name: 'TeacherClasses',
+    path: '/teacher-classes',
+    Component: lazy(() => import('@/pages/TeacherClasses.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['teacher'],
+    requiredScopes: ['classrooms:manage'],
+    feature: 'TEACHER_CLASSES',
+    fallback: <p className="p-6 text-gray-600">Loading classes...</p>
+  },
+  {
+    name: 'TeacherAssignments',
+    path: '/teacher-assignments',
+    Component: lazy(() => import('@/pages/TeacherAssignments.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['teacher'],
+    requiredScopes: ['classrooms:manage'],
+    feature: 'TEACHER_ASSIGNMENTS',
+    fallback: <p className="p-6 text-gray-600">Loading assignments...</p>
+  },
+  {
+    name: 'TeacherMessages',
+    path: '/teacher-messages',
+    Component: lazy(() => import('@/pages/TeacherMessages.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['teacher'],
+    requiredScopes: ['classrooms:manage'],
+    feature: 'TEACHER_MESSAGES',
+    fallback: <p className="p-6 text-gray-600">Loading teacher messages...</p>
   },
   {
     name: 'PartnerDashboard',
@@ -125,6 +214,16 @@ export const ROUTE_DEFINITIONS = [
     requiredScopes: ['reporting:view'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading admin analytics...</p>
+  },
+  {
+    name: 'SchoolDirectory',
+    path: '/school-directory',
+    Component: lazy(() => import('@/pages/SchoolDirectory.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
+    requiredScopes: ['core:dashboard'],
+    feature: 'SCHOOL_DIRECTORY',
+    fallback: <p className="p-6 text-gray-600">Loading school directory...</p>
   }
 ];
 

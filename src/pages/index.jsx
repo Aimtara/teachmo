@@ -5,6 +5,7 @@ import { useAuthenticationStatus } from '@nhost/react';
 import LazyPageWrapper from '@/components/shared/LazyPageWrapper';
 import { useAuthorization } from '@/hooks/useUserRole';
 import { ROUTE_CONFIG } from '@/config/routes';
+import FeatureGate from '@/components/shared/FeatureGate';
 import Landing from './Landing.jsx';
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
@@ -68,20 +69,28 @@ export default function Pages() {
             allowedRoles,
             requiresAuth,
             requiredScopes,
+            feature,
             fallback,
             wrap = true
           }) => {
             const content = Component ? <Component /> : element;
             const wrappedContent = wrap ? withLazyWrapper(content, fallback) : content;
+            const gatedContent = feature ? (
+              <FeatureGate feature={feature}>
+                {wrappedContent}
+              </FeatureGate>
+            ) : (
+              wrappedContent
+            );
             const hasRoleRequirement = Array.isArray(allowedRoles) && allowedRoles.length > 0;
             const hasScopeRequirement = Array.isArray(requiredScopes) && requiredScopes.length > 0;
             const shouldProtect = requiresAuth || hasRoleRequirement || hasScopeRequirement;
             const protectedContent = shouldProtect ? (
               <ProtectedRoute allowedRoles={allowedRoles} requiredScopes={requiredScopes}>
-                {wrappedContent}
+                {gatedContent}
               </ProtectedRoute>
             ) : (
-              wrappedContent
+              gatedContent
             );
 
             return (
