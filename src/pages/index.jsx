@@ -10,6 +10,7 @@ import RequirePermission from '@/components/security/RequirePermission';
 import Landing from './Landing.jsx';
 
 const AcceptInvite = lazy(() => import('./AcceptInvite.jsx'));
+const AdminDirectoryImport = lazy(() => import('./AdminDirectoryImport.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -54,6 +55,13 @@ export default function Pages() {
       key: 'accept-invite',
       path: '/accept-invite',
       Component: AcceptInvite
+    },
+    {
+      key: 'admin-directory-import',
+      path: '/admin/directory-import',
+      Component: AdminDirectoryImport,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin'],
+      requiresAuth: true
     },
     ...ROUTE_CONFIG,
     {
@@ -106,6 +114,25 @@ export default function Pages() {
                           <FeatureGate feature="MESSAGING">
                             {wrappedContent}
                           </FeatureGate>
+                        </RequirePermission>
+                      </ProtectedRoute>
+                    )}
+                  />
+                );
+              }
+
+              if (path === '/admin/directory-import') {
+                return (
+                  <Route
+                    key={key || path}
+                    path={path}
+                    element={(
+                      <ProtectedRoute
+                        allowedRoles={allowedRoles || ['school_admin', 'district_admin', 'system_admin']}
+                        requiredScopes={requiredScopes}
+                      >
+                        <RequirePermission action="directory:manage">
+                          {wrappedContent}
                         </RequirePermission>
                       </ProtectedRoute>
                     )}

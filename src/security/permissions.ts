@@ -12,27 +12,30 @@ export type Action =
   | 'messages:write'
   | 'messages:moderate'
   | 'messages:invite'
-  | 'threads:invite_manage';
+  | 'threads:invite_manage'
+  | 'directory:manage';
 
 const ROLE_PERMS: Record<Role, Set<Action>> = {
   parent: new Set(['messages:read', 'messages:write']),
   teacher: new Set(['messages:read', 'messages:write', 'messages:invite', 'threads:invite_manage']),
-  school_admin: new Set(['messages:read', 'messages:write', 'messages:moderate', 'messages:invite', 'threads:invite_manage']),
+  school_admin: new Set(['messages:read', 'messages:write', 'messages:moderate', 'messages:invite', 'threads:invite_manage', 'directory:manage']),
   district_admin: new Set([
     'messages:read',
     'messages:write',
     'messages:moderate',
     'messages:invite',
     'threads:invite_manage',
+    'directory:manage',
   ]),
   partner: new Set([]),
-  admin: new Set(['messages:read', 'messages:write', 'messages:moderate', 'messages:invite', 'threads:invite_manage']),
+  admin: new Set(['messages:read', 'messages:write', 'messages:moderate', 'messages:invite', 'threads:invite_manage', 'directory:manage']),
   system_admin: new Set([
     'messages:read',
     'messages:write',
     'messages:moderate',
     'messages:invite',
     'threads:invite_manage',
+    'directory:manage',
   ]),
 };
 
