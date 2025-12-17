@@ -41,7 +41,7 @@ const initializeSupabase = async () => {
     if (supabaseUrl && supabaseAnonKey) {
       try {
         // Dynamically import Supabase to avoid issues if not installed
-        const { createClient } = await import('npm:@supabase/supabase-js@2.39.0');
+        const { createClient } = await import('@supabase/supabase-js');
         supabase = createClient(supabaseUrl, supabaseAnonKey);
         console.log('Supabase client initialized successfully');
       } catch (error) {
