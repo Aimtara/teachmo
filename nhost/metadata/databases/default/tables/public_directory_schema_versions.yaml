@@ -1,0 +1,8 @@
+table:
+  name: directory_schema_versions
+  schema: public
+select_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}

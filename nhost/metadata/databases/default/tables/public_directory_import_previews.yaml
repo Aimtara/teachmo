@@ -1,0 +1,31 @@
+table:
+  name: directory_import_previews
+  schema: public
+array_relationships:
+  - name: quarantine_rows
+    using:
+      foreign_key_constraint_on:
+        column: preview_id
+        table:
+          name: directory_import_quarantine
+          schema: public
+  - name: rows
+    using:
+      foreign_key_constraint_on:
+        column: preview_id
+        table:
+          name: directory_import_preview_rows
+          schema: public
+select_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter: {}

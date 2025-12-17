@@ -12,6 +12,7 @@ import Landing from './Landing.jsx';
 const AcceptInvite = lazy(() => import('./AcceptInvite.jsx'));
 const AdminDirectoryImport = lazy(() => import('./AdminDirectoryImport.jsx'));
 const AdminDirectorySources = lazy(() => import('./AdminDirectorySources.jsx'));
+const AdminDirectoryImportPreview = lazy(() => import('./AdminDirectoryImportPreview.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -61,6 +62,13 @@ export default function Pages() {
       key: 'admin-directory-import',
       path: '/admin/directory-import',
       Component: AdminDirectoryImport,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin'],
+      requiresAuth: true
+    },
+    {
+      key: 'admin-directory-import-preview',
+      path: '/admin/directory-import/preview/:previewId',
+      Component: AdminDirectoryImportPreview,
       allowedRoles: ['school_admin', 'district_admin', 'system_admin'],
       requiresAuth: true
     },
@@ -129,7 +137,7 @@ export default function Pages() {
                 );
               }
 
-              if (path === '/admin/directory-import') {
+              if (path === '/admin/directory-import' || path === '/admin/directory-import/preview/:previewId') {
                 return (
                   <Route
                     key={key || path}

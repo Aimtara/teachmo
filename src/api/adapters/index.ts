@@ -4,3 +4,4 @@ export * as InvitesAPI from './modules/invites';
 export * as InviteAdminAPI from './modules/inviteAdmin';
 export * as DirectoryAdminAPI from './modules/directoryAdmin';
 export * as DirectorySourcesAdminAPI from './modules/directorySourcesAdmin';
+export * as DirectoryPreviewAdminAPI from './modules/directoryPreviewAdmin';
