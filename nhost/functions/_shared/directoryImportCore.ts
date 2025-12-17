@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 import * as Papa from 'papaparse';
 
 export type HasuraClient = (query: string, variables?: Record<string, any>) => Promise<any>;
@@ -34,7 +34,7 @@ export function parseDirectoryCsv(csvText: string) {
     throw new Error(`CSV parsing error: ${error.message}`);
   }
 
-  const data = parseResult.data as Record<string, string>[];
+  const data = parseResult.data as Record<string, any>[];
   if (data.length === 0) throw new Error("CSV must include 'email' header");
 
   // Check if email column exists
@@ -51,8 +51,8 @@ export function parseDirectoryCsv(csvText: string) {
     const typeKey = Object.keys(row).find((k) => k.toLowerCase() === 'contact_type');
 
     return {
-      email: emailKey ? (row[emailKey] ?? '').trim() : '',
-      contact_type: typeKey ? (row[typeKey] ?? '').trim() || 'parent_guardian' : 'parent_guardian',
+      email: emailKey ? String(row[emailKey] ?? '').trim() : '',
+      contact_type: typeKey ? String(row[typeKey] ?? '').trim() || 'parent_guardian' : 'parent_guardian',
       rowNumber: idx + 2, // +2 because row 1 is header, and we're 0-indexed
     };
   });
