@@ -1,4 +1,4 @@
-import { completeJob, createImportJob, failJob, HasuraClient, parseDirectoryCsv, sha256, upsertDirectoryRows } from './directoryImportCore';
+import { applyDirectoryImportPreview, createDirectoryImportPreview, HasuraClient } from './directoryImportCore';
 import { fetchHttpsUrlSource } from './sourceFetchers/httpsUrl';
 import { fetchSftpSource } from './sourceFetchers/sftp';
 import { DirectorySourceSecrets } from './sourceFetchers/secrets';
@@ -61,6 +61,7 @@ export async function runDirectorySourceSync(params: {
   if (!runId) throw new Error('run_not_created');
 
   let jobId: string | null = null;
+  let previewId: string | null = null;
 
   try {
     const config = source.config && typeof source.config === 'object' ? source.config : {};
@@ -73,44 +74,92 @@ export async function runDirectorySourceSync(params: {
 
     if (!fetchResult) throw new Error('unsupported_source');
 
-    const sourceHash = sha256(`${source.id}::${fetchResult.csvText}`);
-    const job = await createImportJob(hasura, {
+    const preview = await createDirectoryImportPreview({
+      hasura,
       actorId: effectiveActorId,
       schoolId: source.school_id,
       districtId: source.district_id ?? null,
-      sourceType: source.source_type,
-      sourceRef: fetchResult.sourceRef ?? source.name,
-      sourceHash,
-    });
-
-    jobId = job;
-    if (!jobId) throw new Error('job_not_created');
-
-    const parsed = parseDirectoryCsv(fetchResult.csvText);
-
-    const upsertResult = await upsertDirectoryRows({
-      hasura,
-      schoolId: source.school_id,
-      actorId: effectiveActorId,
-      rows: parsed.rows,
+      csvText: fetchResult.csvText,
+      schemaVersion: 'v1',
       deactivateMissing,
-      dryRun,
+      sourceId: source.id,
       sourceRef: fetchResult.sourceRef ?? source.name,
-      sourceHash,
     });
+
+    previewId = preview.previewId;
+
+    const deactivateCount = preview.diffSummary?.counts?.toDeactivate ?? 0;
+    const currentActive = preview.diffSummary?.counts?.currentActive ?? 0;
+    const pctLimit = Number(process.env.DIRECTORY_MAX_DEACTIVATE_PCT ?? 0.1);
+    const absLimit = Number(process.env.DIRECTORY_MAX_DEACTIVATE_ABS ?? 100);
+    const exceedsPct = currentActive > 0 && Number.isFinite(pctLimit) && pctLimit > 0 && deactivateCount > currentActive * pctLimit;
+    const exceedsAbs = Number.isFinite(absLimit) && deactivateCount > absLimit;
 
     const finishedAt = new Date().toISOString();
+    const runStats = {
+      previewId,
+      diffCounts: preview.diffSummary?.counts ?? {},
+      stats: preview.stats,
+      deactivateMissing: Boolean(deactivateMissing),
+      dryRun: Boolean(dryRun),
+      limits: { pctLimit, absLimit },
+    };
 
-    await completeJob(hasura, { id: jobId, stats: upsertResult.stats, errors: upsertResult.errors, finishedAt });
+    if (dryRun || (deactivateMissing && (exceedsPct || exceedsAbs))) {
+      const errors = dryRun
+        ? []
+        : [
+            {
+              reason: 'deactivation_threshold_exceeded',
+              deactivateCount,
+              currentActive,
+              pctLimit,
+              absLimit,
+            },
+          ];
+
+      await hasura(
+        `mutation FinishRun($id: uuid!, $status: String!, $stats: jsonb!, $errors: jsonb!, $finishedAt: timestamptz!) {
+          update_directory_source_runs_by_pk(
+            pk_columns: { id: $id },
+            _set: { status: $status, stats: $stats, errors: $errors, finished_at: $finishedAt }
+          ) { id }
+        }`,
+        {
+          id: runId,
+          status: dryRun ? 'completed' : 'failed',
+          stats: runStats,
+          errors,
+          finishedAt,
+        }
+      );
+
+      return {
+        status: dryRun ? 'completed' : 'failed',
+        runId,
+        previewId,
+        stats: preview.stats,
+        errors,
+      };
+    }
+
+    const applyResult = await applyDirectoryImportPreview({
+      hasura,
+      previewId,
+      actorId: effectiveActorId,
+      auditMetadata: { sourceId: source.id, sourceName: source.name, runId },
+    });
+
+    jobId = applyResult.jobId ?? null;
 
     await hasura(
-      `mutation FinishRun($id: uuid!, $jobId: uuid!, $stats: jsonb!, $errors: jsonb!, $finishedAt: timestamptz!) {
+      `mutation FinishRun($id: uuid!, $jobId: uuid, $stats: jsonb!, $errors: jsonb!, $finishedAt: timestamptz!) {
         update_directory_source_runs_by_pk(
           pk_columns: { id: $id },
           _set: { status: "completed", job_id: $jobId, stats: $stats, errors: $errors, finished_at: $finishedAt }
         ) { id }
       }`,
-      { id: runId, jobId, stats: upsertResult.stats, errors: upsertResult.errors, finishedAt }
+      { id: runId, jobId, stats: { ...runStats, apply: applyResult.stats }, errors: [], finishedAt }
     );
 
     await hasura(
@@ -136,8 +185,10 @@ export async function runDirectorySourceSync(params: {
           metadata: {
             sourceId: source.id,
             sourceType: source.source_type,
-            totalValid: upsertResult.stats.totalValid,
-            invalid: upsertResult.stats.invalid,
+            previewId,
+            jobId,
+            totalValid: applyResult.stats.totalValid,
+            invalid: applyResult.stats.invalid,
             deactivateMissing: Boolean(deactivateMissing),
             dryRun: Boolean(dryRun),
           },
@@ -145,17 +196,13 @@ export async function runDirectorySourceSync(params: {
       }
     );
 
-    return { status: 'completed', runId, jobId, stats: upsertResult.stats };
+    return { status: 'completed', runId, jobId, stats: applyResult.stats, previewId };
   } catch (error: any) {
     const originalError = error;
     const finishedAt = new Date().toISOString();
     const errors = [{ reason: 'exception', message: String(error?.message ?? error) }];
 
     try {
-      if (jobId) {
-        await failJob(hasura, { id: jobId, errors, finishedAt });
-      }
-
       await hasura(
         `mutation FailRun($id: uuid!, $errors: jsonb!, $finishedAt: timestamptz!) {
           update_directory_source_runs_by_pk(

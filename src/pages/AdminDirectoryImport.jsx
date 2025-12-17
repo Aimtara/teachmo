@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUserData } from '@nhost/react';
-import { DirectoryAdminAPI } from '@/api/adapters';
+import { useNavigate } from 'react-router-dom';
+import { DirectoryAdminAPI, DirectoryPreviewAdminAPI } from '@/api/adapters';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -32,10 +33,10 @@ export default function AdminDirectoryImport() {
     [user]
   );
 
+  const navigate = useNavigate();
   const [schoolId, setSchoolId] = useState(defaultSchoolId);
   const [csvText, setCsvText] = useState('email,contact_type\n');
   const [sourceRef, setSourceRef] = useState('');
-  const [dryRun, setDryRun] = useState(false);
   const [deactivateMissing, setDeactivateMissing] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(false);
@@ -93,14 +94,16 @@ export default function AdminDirectoryImport() {
 
     try {
       setSubmitting(true);
-      const resp = await DirectoryAdminAPI.importDirectoryCsv({
+      const resp = await DirectoryPreviewAdminAPI.previewImport({
         csvText,
         schoolId,
         deactivateMissing,
-        dryRun,
         sourceRef: sourceRef || undefined,
       });
       setResult(resp);
+      if (resp?.previewId) {
+        navigate(`/admin/directory-import/preview/${resp.previewId}`);
+      }
       await loadJobs(schoolId);
     } catch (err) {
       console.error(err);
@@ -142,28 +145,17 @@ export default function AdminDirectoryImport() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={dryRun}
-                onChange={(e) => setDryRun(e.target.checked)}
-                className="h-4 w-4"
-              />
-              <span className="text-sm text-gray-700">Dry run (no writes)</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={deactivateMissing}
-                onChange={(e) => setDeactivateMissing(e.target.checked)}
-                className="h-4 w-4"
-              />
-              <span className="text-sm text-gray-700">Deactivate missing</span>
-            </label>
-          </div>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={deactivateMissing}
+              onChange={(e) => setDeactivateMissing(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <span className="text-sm text-gray-700">Deactivate missing</span>
+          </label>
           <p className="text-xs text-gray-500">
-            Dry runs validate and compute stats without updating records. Deactivate missing will set contacts not present in the CSV to inactive.
+            Preview the import to see adds/updates/deactivations before applying. Deactivate missing will set contacts not present in the CSV to inactive when applied.
           </p>
         </div>
 
@@ -188,17 +180,16 @@ export default function AdminDirectoryImport() {
             className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
             disabled={submitting}
           >
-            {submitting ? 'Importing…' : dryRun ? 'Validate CSV' : 'Import CSV'}
+            {submitting ? 'Creating preview…' : 'Preview import'}
           </button>
-          {result?.jobId && (
-            <span className="text-sm text-gray-700">
-              Job <span className="font-mono">{result.jobId}</span>
-            </span>
-          )}
-          {result?.stats && (
-            <span className="text-sm text-green-700">
-              Stats — Rows: {result.stats.totalRows ?? 0}, Valid: {result.stats.totalValid ?? 0}
-            </span>
+          {result?.previewId && (
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/directory-import/preview/${result.previewId}`)}
+              className="text-sm text-blue-700 hover:underline"
+            >
+              View preview
+            </button>
           )}
         </div>
 
