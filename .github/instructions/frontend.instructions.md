@@ -13,6 +13,7 @@ applies_to:
 
 ### Component Structure
 ```javascript
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 
 function ComponentName({ prop1, prop2, onAction }) {

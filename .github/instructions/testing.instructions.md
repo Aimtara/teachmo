@@ -52,11 +52,6 @@ describe('Endpoint Name API', () => {
     jest.clearAllMocks();
   });
   
-  // Clean up after tests
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-  
   describe('GET /api/endpoint', () => {
     test('returns data successfully', async () => {
       // Arrange - set up mock data
