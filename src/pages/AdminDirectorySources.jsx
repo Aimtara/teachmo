@@ -140,21 +140,23 @@ export default function AdminDirectorySources() {
     try {
       const list = await DirectorySourcesAdminAPI.listSources();
       setSources(list);
-      if (list.length > 0 && !selectedId) {
-        selectSource(list[0]);
-      }
     } catch (err) {
       console.error(err);
       setError(err?.message ?? 'Failed to load directory sources');
     } finally {
       setLoading(false);
     }
-  }, [selectSource, selectedId]);
+  }, []);
 
   useEffect(() => {
     loadSources();
   }, [loadSources]);
 
+  useEffect(() => {
+    if (sources && sources.length > 0 && !selectedId) {
+      selectSource(sources[0]);
+    }
+  }, [sources, selectedId, selectSource]);
   const buildConfig = () => {
     if (form.source_type === 'https_url') {
       let headers = {};
