@@ -4,6 +4,7 @@ export interface Paginated<T> {
 }
 
 export interface ListEventsParams {
+  /** Filter by school ID (accepts either camelCase or snake_case) */
   schoolId?: string;
   school_id?: string;
   limit?: number;
