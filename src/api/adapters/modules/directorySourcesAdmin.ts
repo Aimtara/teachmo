@@ -27,7 +27,7 @@ export async function listSources() {
   return data?.directory_sources ?? [];
 }
 
-export async function createSource(input: Record<string, any>) {
+export async function createSource(input: Record<string, unknown>) {
   const data = await graphql(
     `mutation CreateDirectorySource($object: directory_sources_insert_input!) {
       insert_directory_sources_one(object: $object) { ${SOURCE_FIELDS} }
@@ -38,7 +38,7 @@ export async function createSource(input: Record<string, any>) {
   return data?.insert_directory_sources_one ?? null;
 }
 
-export async function updateSource(id: string, changes: Record<string, any>) {
+export async function updateSource(id: string, changes: Record<string, unknown>) {
   const data = await graphql(
     `mutation UpdateDirectorySource($id: uuid!, $changes: directory_sources_set_input!) {
       update_directory_sources_by_pk(pk_columns: { id: $id }, _set: $changes) { ${SOURCE_FIELDS} }
@@ -53,7 +53,7 @@ export async function syncSource(sourceId: string, options: { deactivateMissing?
   const { res, error } = await nhost.functions.call('sync-directory-source', { sourceId, ...options });
   if (error) throw error;
 
-  const payload = (res as FunctionEnvelope<any>)?.data ?? (res as any);
+  const payload = (res as FunctionEnvelope<unknown>)?.data ?? res;
   return payload;
 }
 

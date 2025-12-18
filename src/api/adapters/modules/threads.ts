@@ -3,6 +3,7 @@ import * as graphqlImpl from './threads.graphql';
 import * as InvitesAPI from './invites';
 import { logEvent } from './audit';
 import type { InviteResult } from './invites';
+import type { MessageThread } from '../types';
 
 const USE_GRAPHQL = Boolean(import.meta.env.VITE_USE_GRAPHQL_MESSAGES);
 
@@ -12,7 +13,7 @@ export async function createThread(input: {
   participantIds: string[];
   participantEmails?: string[];
   initialMessage?: string;
-}): Promise<{ thread: any; inviteResults: InviteResult[] }> {
+}): Promise<{ thread: MessageThread | { id: string; title?: string } | null | undefined; inviteResults: InviteResult[] }> {
   return USE_GRAPHQL ? graphqlImpl.createThread(input) : base44Impl.createThread(input);
 }
 

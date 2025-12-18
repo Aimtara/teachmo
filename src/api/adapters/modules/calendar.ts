@@ -4,7 +4,7 @@ import * as graphqlImpl from './calendar.graphql';
 
 const USE_GRAPHQL = Boolean(import.meta.env.VITE_USE_GRAPHQL_CALENDAR);
 
-export async function list(params: Record<string, any> = {}): Promise<Paginated<CalendarEvent>> {
+export async function list(params: Record<string, unknown> = {}): Promise<Paginated<CalendarEvent>> {
   return USE_GRAPHQL ? graphqlImpl.list(params) : base44Impl.list(params);
 }
 

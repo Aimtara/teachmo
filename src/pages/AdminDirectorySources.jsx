@@ -6,9 +6,9 @@ const SOURCE_TYPES = [
   { value: 'https_url', label: 'HTTPS URL' },
   { value: 'sftp', label: 'SFTP' },
   { value: 'google_drive', label: 'Google Drive / Sheets' },
-  { value: 'oneroster', label: 'OneRoster (coming soon)', comingSoon: true },
-  { value: 'clever', label: 'Clever (coming soon)', comingSoon: true },
-  { value: 'classlink', label: 'ClassLink (coming soon)', comingSoon: true },
+  { value: 'oneroster_rest', label: 'OneRoster REST' },
+  { value: 'clever_secure_sync', label: 'Clever Secure Sync' },
+  { value: 'classlink_roster_server', label: 'ClassLink Roster Server (OneRoster)' },
 ];
 
 function formatDate(value) {
@@ -74,6 +74,14 @@ export default function AdminDirectorySources() {
     configFileId: '',
     configSupportsAllDrives: true,
     configForceExportCsv: false,
+    configBaseUrl: '',
+    configApiRoot: '/ims/oneroster/v1p1',
+    configTokenUrl: '',
+    configContactRoles: 'contact,guardian,parent,teacher,staff',
+    configEmailFields: 'email,emailAddress,username',
+    configRoleFieldPaths: 'role,roles',
+    configApiVersion: 'v3.0',
+    configRoleFilter: 'contact',
     is_enabled: true,
     schedule_cron: '',
     schedule_tz: 'America/New_York',
@@ -118,6 +126,14 @@ export default function AdminDirectorySources() {
         configFileId: '',
         configSupportsAllDrives: true,
         configForceExportCsv: false,
+        configBaseUrl: '',
+        configApiRoot: '/ims/oneroster/v1p1',
+        configTokenUrl: '',
+        configContactRoles: 'contact,guardian,parent,teacher,staff',
+        configEmailFields: 'email,emailAddress,username',
+        configRoleFieldPaths: 'role,roles',
+        configApiVersion: 'v3.0',
+        configRoleFilter: 'contact',
         is_enabled: true,
         schedule_cron: '',
         schedule_tz: 'America/New_York',
@@ -140,6 +156,20 @@ export default function AdminDirectorySources() {
       configFileId: config.fileId ?? '',
       configSupportsAllDrives: config.supportsAllDrives ?? true,
       configForceExportCsv: Boolean(config.forceExportCsv),
+      configBaseUrl: config.baseUrl ?? '',
+      configApiRoot: config.apiRoot ?? '/ims/oneroster/v1p1',
+      configTokenUrl: config.auth?.tokenUrl ?? '',
+      configContactRoles: Array.isArray(config.extract?.contactRoles)
+        ? config.extract.contactRoles.join(',')
+        : 'contact,guardian,parent,teacher,staff',
+      configEmailFields: Array.isArray(config.extract?.emailFields)
+        ? config.extract.emailFields.join(',')
+        : 'email,emailAddress,username',
+      configRoleFieldPaths: Array.isArray(config.extract?.roleFieldPaths)
+        ? config.extract.roleFieldPaths.join(',')
+        : 'role,roles',
+      configApiVersion: config.apiVersion ?? 'v3.0',
+      configRoleFilter: config.contacts?.roleFilter ?? 'contact',
       is_enabled: Boolean(source.is_enabled),
       schedule_cron: source.schedule_cron ?? '',
       schedule_tz: source.schedule_tz ?? 'America/New_York',
@@ -171,10 +201,6 @@ export default function AdminDirectorySources() {
     }
   }, [sources, selectedId, selectSource]);
   const buildConfig = () => {
-    if (['oneroster', 'clever', 'classlink'].includes(form.source_type)) {
-      throw new Error('Integration is coming soon for this source type.');
-    }
-
     if (form.source_type === 'https_url') {
       let headers = {};
       if (form.configHeaders) {
@@ -197,6 +223,51 @@ export default function AdminDirectorySources() {
         fileId,
         supportsAllDrives: Boolean(form.configSupportsAllDrives),
         forceExportCsv: Boolean(form.configForceExportCsv),
+      };
+    }
+
+    if (['oneroster_rest', 'classlink_roster_server'].includes(form.source_type)) {
+      const baseUrl = String(form.configBaseUrl || '').trim();
+      if (!baseUrl) throw new Error('Base URL is required.');
+      if (!form.configTokenUrl && form.source_type !== 'classlink_roster_server') {
+        throw new Error('Token URL is required for OneRoster OAuth.');
+      }
+
+      const contactRoles = String(form.configContactRoles || '')
+        .split(',')
+        .map((val) => val.trim())
+        .filter(Boolean);
+      const emailFields = String(form.configEmailFields || '')
+        .split(',')
+        .map((val) => val.trim())
+        .filter(Boolean);
+      const roleFieldPaths = String(form.configRoleFieldPaths || '')
+        .split(',')
+        .map((val) => val.trim())
+        .filter(Boolean);
+
+      return {
+        baseUrl,
+        apiRoot: form.configApiRoot || '/ims/oneroster/v1p1',
+        auth: { mode: 'oauth_client_credentials', tokenUrl: form.configTokenUrl || undefined },
+        extract: {
+          contactRoles: contactRoles.length ? contactRoles : ['contact', 'guardian', 'parent', 'teacher', 'staff'],
+          emailFields: emailFields.length ? emailFields : ['email', 'emailAddress', 'username'],
+          roleFieldPaths: roleFieldPaths.length ? roleFieldPaths : ['role', 'roles'],
+        },
+      };
+    }
+
+    if (form.source_type === 'clever_secure_sync') {
+      const baseUrl = String(form.configBaseUrl || 'https://api.clever.com');
+      const apiVersion = String(form.configApiVersion || 'v3.0');
+      const roleFilter = String(form.configRoleFilter || 'contact');
+
+      return {
+        baseUrl,
+        apiVersion,
+        mode: 'district',
+        contacts: { roleFilter },
       };
     }
 
@@ -439,6 +510,109 @@ export default function AdminDirectorySources() {
                     className="h-4 w-4"
                   />
                   <span className="text-sm text-gray-700">Force CSV export</span>
+                </label>
+              </div>
+            )}
+
+            {['oneroster_rest', 'classlink_roster_server'].includes(form.source_type) && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="block space-y-1 md:col-span-2">
+                    <span className="text-sm font-medium text-gray-700">Base URL</span>
+                    <input
+                      required
+                      value={form.configBaseUrl}
+                      onChange={(e) => setForm((prev) => ({ ...prev, configBaseUrl: e.target.value }))}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="https://district.example.com"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-sm font-medium text-gray-700">API Root</span>
+                    <input
+                      value={form.configApiRoot}
+                      onChange={(e) => setForm((prev) => ({ ...prev, configApiRoot: e.target.value }))}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="/ims/oneroster/v1p1"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-sm font-medium text-gray-700">Token URL</span>
+                    <input
+                      value={form.configTokenUrl}
+                      onChange={(e) => setForm((prev) => ({ ...prev, configTokenUrl: e.target.value }))}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="https://district.example.com/oauth/token"
+                    />
+                    <p className="text-xs text-gray-500">OAuth2 client_credentials tokens are cached per source.</p>
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <label className="block space-y-1">
+                    <span className="text-sm font-medium text-gray-700">Roles to import</span>
+                    <input
+                      value={form.configContactRoles}
+                      onChange={(e) => setForm((prev) => ({ ...prev, configContactRoles: e.target.value }))}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="contact,guardian,parent,teacher,staff"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-sm font-medium text-gray-700">Email field fallbacks</span>
+                    <input
+                      value={form.configEmailFields}
+                      onChange={(e) => setForm((prev) => ({ ...prev, configEmailFields: e.target.value }))}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="email,emailAddress,username"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-sm font-medium text-gray-700">Role field paths</span>
+                    <input
+                      value={form.configRoleFieldPaths}
+                      onChange={(e) => setForm((prev) => ({ ...prev, configRoleFieldPaths: e.target.value }))}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="role,roles"
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500">
+                  ClassLink Roster Server is OneRoster REST; Clever/OneRoster credentials live in <code>DIRECTORY_SOURCE_SECRETS_JSON</code>.
+                </p>
+              </div>
+            )}
+
+            {form.source_type === 'clever_secure_sync' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <label className="block space-y-1 md:col-span-2">
+                    <span className="text-sm font-medium text-gray-700">Base URL</span>
+                    <input
+                      value={form.configBaseUrl}
+                      onChange={(e) => setForm((prev) => ({ ...prev, configBaseUrl: e.target.value }))}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="https://api.clever.com"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-sm font-medium text-gray-700">API Version</span>
+                    <input
+                      value={form.configApiVersion}
+                      onChange={(e) => setForm((prev) => ({ ...prev, configApiVersion: e.target.value }))}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="v3.0"
+                    />
+                  </label>
+                </div>
+                <label className="block space-y-1 md:col-span-2">
+                  <span className="text-sm font-medium text-gray-700">Role filter</span>
+                  <input
+                    value={form.configRoleFilter}
+                    onChange={(e) => setForm((prev) => ({ ...prev, configRoleFilter: e.target.value }))}
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="contact"
+                  />
+                  <p className="text-xs text-gray-500">Clever Secure Sync requires district connection and partner approval.</p>
                 </label>
               </div>
             )}

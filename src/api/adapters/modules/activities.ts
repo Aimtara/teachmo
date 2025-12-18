@@ -5,7 +5,7 @@ import * as graphqlImpl from './activities.graphql';
 
 const USE_GRAPHQL = Boolean(import.meta.env.VITE_USE_GRAPHQL_ACTIVITIES);
 
-export async function list(params: Record<string, any> = {}): Promise<Paginated<Activity>> {
+export async function list(params: Record<string, unknown> = {}): Promise<Paginated<Activity>> {
   return USE_GRAPHQL ? graphqlImpl.list(params) : base44Impl.list(params);
 }
 
