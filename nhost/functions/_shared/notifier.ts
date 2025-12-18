@@ -296,6 +296,10 @@ export async function handleDirectorySyncAlert(params: {
     links.preview = `${baseUrl}/admin/directory-import/preview/${result.previewId}`;
   }
 
+  if ((result as any)?.approvalId && baseUrl) {
+    links.approval = `${baseUrl}/admin/directory-approvals/${(result as any).approvalId}`;
+  }
+
   const failureMetadata = {
     sourceId: source.id,
     runId: result?.runId ?? null,
@@ -324,6 +328,33 @@ export async function handleDirectorySyncAlert(params: {
   }
 
   if (!result) return;
+
+  if (result.status === 'needs_approval') {
+    const approvalStats = (result as any)?.stats?.approval ?? {};
+    const toDeactivate = approvalStats.toDeactivateCount ?? approvalStats.counts?.toDeactivate ?? 0;
+    const activeCount = approvalStats.activeCount ?? approvalStats.counts?.currentActive ?? 0;
+
+    await notifyDirectoryIssue({
+      hasura,
+      schoolId: source.school_id,
+      districtId: source.district_id ?? null,
+      type: 'directory.needs_approval',
+      severity: 'warning',
+      title: `Directory sync requires approval for ${source.name}`,
+      body: `Deactivating ${toDeactivate} of ${activeCount || 'the current'} contacts requires admin approval before applying changes.`,
+      entityType: 'directory_deactivation_approval',
+      entityId: (result as any)?.approvalId ?? null,
+      dedupeKey: `directory:${source.id}:approval_pending`,
+      metadata: {
+        runId: result.runId ?? null,
+        approvalId: (result as any)?.approvalId ?? null,
+        previewId: result.previewId ?? null,
+        stats: approvalStats,
+        links,
+      },
+    });
+    return;
+  }
 
   const thresholdError = (result.errors ?? []).find((err) => err?.reason === 'deactivation_threshold_exceeded');
   if (thresholdError) {

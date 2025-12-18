@@ -580,14 +580,23 @@ export async function applyDirectoryImportPreview(params: {
         source_id
         source_ref
         source_hash
-        schema_version
-        created_at
-        expires_at
+      schema_version
+      created_at
+      expires_at
+      applied_at
+      requires_approval
+      approval_id
+      deactivate_missing
+      stats
+      approval {
+        id
+        status
         applied_at
-        deactivate_missing
-        stats
+        expires_at
+        decision_reason
       }
-    }`,
+    }
+  }`,
     { id: previewId }
   );
 
@@ -598,6 +607,16 @@ export async function applyDirectoryImportPreview(params: {
   if (expiresAt && expiresAt.getTime() < Date.now()) throw new Error('preview_expired');
 
   if (preview.applied_at) throw new Error('preview_already_applied');
+
+  if (preview.approval_id || preview.requires_approval) {
+    const approval = preview.approval;
+    if (!approval?.id) throw new Error('approval_required');
+
+    const approvalExpired = approval.expires_at ? new Date(approval.expires_at).getTime() < Date.now() : false;
+    if (approvalExpired) throw new Error('approval_expired');
+    if (approval.applied_at) throw new Error('approval_already_applied');
+    if (approval.status !== 'approved') throw new Error('approval_required');
+  }
 
   const rows = await fetchPreviewRows(hasura, previewId);
   const stats = preview.stats && typeof preview.stats === 'object' ? preview.stats : {};
@@ -669,7 +688,7 @@ export async function applyDirectoryImportPreview(params: {
     }
   );
 
-  return { jobId, stats: upsertResult.stats };
+  return { jobId, stats: upsertResult.stats, appliedAt: finishedAt };
 }
 
 export async function createImportJob(
