@@ -15,6 +15,8 @@ const AdminDirectorySources = lazy(() => import('./AdminDirectorySources.jsx'));
 const AdminDirectoryImportPreview = lazy(() => import('./AdminDirectoryImportPreview.jsx'));
 const AdminDirectoryApprovals = lazy(() => import('./AdminDirectoryApprovals.jsx'));
 const AdminDirectoryApprovalDetail = lazy(() => import('./AdminDirectoryApprovalDetail.jsx'));
+const AdminDirectoryOpsDashboard = lazy(() => import('./AdminDirectoryOpsDashboard.jsx'));
+const AdminDirectoryJobDetail = lazy(() => import('./AdminDirectoryJobDetail.jsx'));
 const Notifications = lazy(() => import('./Notifications.jsx'));
 const NotificationPreferences = lazy(() => import('./NotificationPreferences.jsx'));
 
@@ -56,6 +58,20 @@ export default function Pages() {
       key: 'index',
       index: true,
       element: <RoleRedirect />
+    },
+    {
+      key: 'admin-directory-ops-dashboard',
+      path: '/admin/ops/directory',
+      Component: AdminDirectoryOpsDashboard,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+      requiresAuth: true
+    },
+    {
+      key: 'admin-directory-job-detail',
+      path: '/admin/directory-jobs/:jobId',
+      Component: AdminDirectoryJobDetail,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+      requiresAuth: true
     },
     {
       key: 'accept-invite',
@@ -208,6 +224,25 @@ export default function Pages() {
               }
 
               if (path === '/admin/directory-approvals' || path === '/admin/directory-approvals/:approvalId') {
+                return (
+                  <Route
+                    key={key || path}
+                    path={path}
+                    element={(
+                      <ProtectedRoute
+                        allowedRoles={allowedRoles || ['school_admin', 'district_admin', 'system_admin', 'admin']}
+                        requiredScopes={requiredScopes}
+                      >
+                        <RequirePermission action="directory:manage">
+                          {wrappedContent}
+                        </RequirePermission>
+                      </ProtectedRoute>
+                    )}
+                  />
+                );
+              }
+
+              if (path === '/admin/ops/directory' || path === '/admin/directory-jobs/:jobId') {
                 return (
                   <Route
                     key={key || path}

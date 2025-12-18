@@ -1,3 +1,4 @@
+import { graphql } from '@/lib/graphql';
 import { nhost } from '@/lib/nhostClient';
 
 type FunctionEnvelope<T> = { data?: T } | T;
@@ -49,4 +50,30 @@ export async function getDirectoryImportJobs(params: { schoolId?: string }) {
     (res as FunctionEnvelope<{ ok: boolean; jobs: DirectoryImportJob[] }>);
 
   return payload;
+}
+
+export async function getDirectoryImportJob(jobId: string) {
+  const data = await graphql(
+    `
+    query DirectoryImportJob($id: uuid!) {
+      directory_import_jobs_by_pk(id: $id) {
+        id
+        actor_id
+        school_id
+        district_id
+        source_type
+        source_ref
+        source_hash
+        status
+        started_at
+        finished_at
+        stats
+        errors
+      }
+    }
+  `,
+    { id: jobId }
+  );
+
+  return data?.directory_import_jobs_by_pk ?? null;
 }
