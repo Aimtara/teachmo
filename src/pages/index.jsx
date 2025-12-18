@@ -13,6 +13,8 @@ const AcceptInvite = lazy(() => import('./AcceptInvite.jsx'));
 const AdminDirectoryImport = lazy(() => import('./AdminDirectoryImport.jsx'));
 const AdminDirectorySources = lazy(() => import('./AdminDirectorySources.jsx'));
 const AdminDirectoryImportPreview = lazy(() => import('./AdminDirectoryImportPreview.jsx'));
+const AdminDirectoryApprovals = lazy(() => import('./AdminDirectoryApprovals.jsx'));
+const AdminDirectoryApprovalDetail = lazy(() => import('./AdminDirectoryApprovalDetail.jsx'));
 const Notifications = lazy(() => import('./Notifications.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
@@ -77,6 +79,20 @@ export default function Pages() {
       key: 'admin-directory-sources',
       path: '/admin/directory-sources',
       Component: AdminDirectorySources,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+      requiresAuth: true
+    },
+    {
+      key: 'admin-directory-approvals',
+      path: '/admin/directory-approvals',
+      Component: AdminDirectoryApprovals,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+      requiresAuth: true
+    },
+    {
+      key: 'admin-directory-approval-detail',
+      path: '/admin/directory-approvals/:approvalId',
+      Component: AdminDirectoryApprovalDetail,
       allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
       requiresAuth: true
     },
@@ -165,6 +181,25 @@ export default function Pages() {
               }
 
               if (path === '/admin/directory-sources') {
+                return (
+                  <Route
+                    key={key || path}
+                    path={path}
+                    element={(
+                      <ProtectedRoute
+                        allowedRoles={allowedRoles || ['school_admin', 'district_admin', 'system_admin', 'admin']}
+                        requiredScopes={requiredScopes}
+                      >
+                        <RequirePermission action="directory:manage">
+                          {wrappedContent}
+                        </RequirePermission>
+                      </ProtectedRoute>
+                    )}
+                  />
+                );
+              }
+
+              if (path === '/admin/directory-approvals' || path === '/admin/directory-approvals/:approvalId') {
                 return (
                   <Route
                     key={key || path}

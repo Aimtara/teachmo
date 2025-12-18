@@ -2,6 +2,7 @@ import { applyDirectoryImportPreview, createDirectoryImportPreview, HasuraClient
 import { fetchHttpsUrlSource } from './sourceFetchers/httpsUrl';
 import { fetchSftpSource } from './sourceFetchers/sftp';
 import { DirectorySourceSecrets } from './sourceFetchers/secrets';
+import { upsertApprovalRequest } from './approvals';
 
 export type DirectorySource = {
   id: string;
@@ -105,18 +106,71 @@ export async function runDirectorySourceSync(params: {
       limits: { pctLimit, absLimit },
     };
 
-    if (dryRun || (deactivateMissing && (exceedsPct || exceedsAbs))) {
-      const errors = dryRun
-        ? []
-        : [
-            {
-              reason: 'deactivation_threshold_exceeded',
-              deactivateCount,
-              currentActive,
-              pctLimit,
-              absLimit,
-            },
-          ];
+    if (dryRun) {
+      await hasura(
+        `mutation FinishRun($id: uuid!, $status: String!, $stats: jsonb!, $errors: jsonb!, $finishedAt: timestamptz!) {
+          update_directory_source_runs_by_pk(
+            pk_columns: { id: $id },
+            _set: { status: $status, stats: $stats, errors: $errors, finished_at: $finishedAt }
+          ) { id }
+        }`,
+        {
+          id: runId,
+          status: 'completed',
+          stats: runStats,
+          errors: [],
+          finishedAt,
+        }
+      );
+
+      return {
+        status: 'completed',
+        runId,
+        previewId,
+        stats: preview.stats,
+        errors: [],
+      };
+    }
+
+    if (deactivateMissing && (exceedsPct || exceedsAbs)) {
+      const approvalStats = {
+        toDeactivateCount: deactivateCount,
+        activeCount: currentActive,
+        pct: currentActive > 0 ? deactivateCount / currentActive : 0,
+        counts: preview.diffSummary?.counts ?? {},
+        samples: preview.diffSummary?.samples ?? {},
+      };
+
+      const dedupeMinutes = Number(process.env.DIRECTORY_APPROVAL_DEDUPE_MINUTES ?? 360);
+      const dedupeSince =
+        Number.isFinite(dedupeMinutes) && dedupeMinutes > 0
+          ? new Date(Date.now() - dedupeMinutes * 60 * 1000).toISOString()
+          : null;
+
+      const approval = await upsertApprovalRequest({
+        hasura,
+        previewId,
+        schoolId: source.school_id,
+        districtId: source.district_id ?? null,
+        requestedBy: effectiveActorId,
+        stats: approvalStats,
+        sourceId: source.id,
+        sourceRunId: runId,
+        metadata: { sourceId: source.id, sourceRunId: runId, sourceName: source.name },
+        dedupeSince,
+        expiresAt: null,
+      });
+
+      const approvalId = approval?.id ?? null;
+      const needsApprovalStats = {
+        ...runStats,
+        approvalId,
+        needsApproval: {
+          toDeactivateCount: deactivateCount,
+          activeCount: currentActive,
+          pct: approvalStats.pct,
+        },
+      };
 
       await hasura(
         `mutation FinishRun($id: uuid!, $status: String!, $stats: jsonb!, $errors: jsonb!, $finishedAt: timestamptz!) {
@@ -127,19 +181,20 @@ export async function runDirectorySourceSync(params: {
         }`,
         {
           id: runId,
-          status: dryRun ? 'completed' : 'failed',
-          stats: runStats,
-          errors,
+          status: 'needs_approval',
+          stats: needsApprovalStats,
+          errors: [],
           finishedAt,
         }
       );
 
       return {
-        status: dryRun ? 'completed' : 'failed',
+        status: 'needs_approval',
         runId,
         previewId,
-        stats: preview.stats,
-        errors,
+        approvalId,
+        stats: { ...preview.stats, approval: approvalStats },
+        errors: [],
       };
     }
 
