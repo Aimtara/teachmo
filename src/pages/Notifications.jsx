@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { NotificationsAPI } from '@/api/adapters';
 import { cn } from '@/utils';
@@ -104,6 +105,13 @@ export default function Notifications() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <Link
+            to="/notification-preferences"
+            className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+          >
+            Preferences
+          </Link>
+
           <button
             type="button"
             onClick={() => setFilterUnread((value) => !value)}

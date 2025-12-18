@@ -1,0 +1,30 @@
+name: Send daily notification digests
+
+on:
+  schedule:
+    - cron: '5 12 * * *' # ~7:05 AM America/New_York
+  workflow_dispatch:
+
+jobs:
+  send-digests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily digest sender
+        env:
+          FUNCTIONS_URL: ${{ secrets.DIGEST_FUNCTIONS_URL || secrets.DIRECTORY_SYNC_FUNCTIONS_URL }}
+          DIGEST_TOKEN: ${{ secrets.DIGEST_TOKEN }}
+        run: |
+          if [ -z "$FUNCTIONS_URL" ]; then
+            echo "FUNCTIONS_URL secret (DIGEST_FUNCTIONS_URL or DIRECTORY_SYNC_FUNCTIONS_URL) is required"
+            exit 1
+          fi
+
+          if [ -z "$DIGEST_TOKEN" ]; then
+            echo "DIGEST_TOKEN secret is required"
+            exit 1
+          fi
+
+          curl -sS -X POST "$FUNCTIONS_URL/v1/functions/send-daily-digests" \
+            -H "Authorization: Bearer $DIGEST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{}'

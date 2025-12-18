@@ -134,7 +134,7 @@ export default async (req: any, res: any) => {
         body: `Deactivating ${toDeactivateCount} of ${activeCount || '0'} contacts requires approval before applying changes.`,
         entityType: 'directory_deactivation_approval',
         entityId: approval.id,
-        dedupeKey: `directory:${preview.school_id}:approval_pending`,
+        dedupeKey: `directory.needs_approval:school:${preview.school_id}:source:${sourceId ?? 'unknown'}`,
         metadata: {
           previewId,
           approvalId: approval.id,

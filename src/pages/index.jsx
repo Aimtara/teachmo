@@ -16,6 +16,7 @@ const AdminDirectoryImportPreview = lazy(() => import('./AdminDirectoryImportPre
 const AdminDirectoryApprovals = lazy(() => import('./AdminDirectoryApprovals.jsx'));
 const AdminDirectoryApprovalDetail = lazy(() => import('./AdminDirectoryApprovalDetail.jsx'));
 const Notifications = lazy(() => import('./Notifications.jsx'));
+const NotificationPreferences = lazy(() => import('./NotificationPreferences.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -100,6 +101,13 @@ export default function Pages() {
       key: 'notifications',
       path: '/notifications',
       Component: Notifications,
+      allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin', 'admin'],
+      requiresAuth: true
+    },
+    {
+      key: 'notification-preferences',
+      path: '/notification-preferences',
+      Component: NotificationPreferences,
       allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin', 'admin'],
       requiresAuth: true
     },
