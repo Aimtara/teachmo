@@ -1,7 +1,7 @@
 import base44Entities from '@/api/base44/entities';
 import type { Activity, Paginated } from '../types';
 
-export async function list(params: Record<string, any> = {}): Promise<Paginated<Activity>> {
+export async function list(params: Record<string, unknown> = {}): Promise<Paginated<Activity>> {
   const items = await base44Entities.Activity?.findMany?.(params);
   return { items: items ?? [], nextCursor: null };
 }

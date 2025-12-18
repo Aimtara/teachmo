@@ -1,6 +1,7 @@
 import { nhost } from '@/lib/nhostClient';
 import { createThreadWithParticipants } from '@/domains/messages';
 import { logEvent } from './audit';
+import type { MessageThread } from '../types';
 import type { InviteResult } from './invites';
 
 type FunctionEnvelope<T> = { data?: T } | T;
@@ -13,7 +14,7 @@ export async function createThread(input: {
   participantIds: string[];
   participantEmails?: string[];
   initialMessage?: string;
-}): Promise<{ thread: any; inviteResults: InviteResult[] }> {
+}): Promise<{ thread: MessageThread | { id: string; title?: string } | null | undefined; inviteResults: InviteResult[] }> {
   const uniq = Array.from(new Set([input.creatorId, ...(input.participantIds ?? [])]));
 
   if (USE_SCOPED_THREAD_CREATE) {
@@ -26,7 +27,7 @@ export async function createThread(input: {
 
     if (error) throw error;
 
-    const payload = (res as FunctionEnvelope<any>)?.data ?? (res as any);
+    const payload = (res as FunctionEnvelope<unknown>)?.data ?? res;
     if (payload?.ok === false) throw new Error('create-thread-scoped failed');
     const thread = payload?.thread ?? (payload?.threadId ? { id: payload.threadId, title: input.title } : null);
 

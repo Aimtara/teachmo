@@ -1,8 +1,12 @@
 import { applyDirectoryImportPreview, createDirectoryImportPreview, HasuraClient } from './directoryImportCore';
+import { createDirectoryPreviewFromContacts } from './directory/computePreview';
 import { fetchHttpsUrlSource } from './sourceFetchers/httpsUrl';
 import { fetchSftpSource } from './sourceFetchers/sftp';
 import { fetchCsvFromGoogleDrive } from './sourceFetchers/googleDrive';
+import { fetchContactsFromClever } from './sourceFetchers/clever';
+import { fetchContactsFromOneRosterRest } from './sourceFetchers/onerosterRest';
 import { DirectorySourceSecrets } from './sourceFetchers/secrets';
+import { loadDirectorySchemaVersion } from './directory/computePreview';
 import { upsertApprovalRequest } from './approvals';
 
 export type DirectorySource = {
@@ -67,6 +71,8 @@ export async function runDirectorySourceSync(params: {
 
   try {
     const config = source.config && typeof source.config === 'object' ? source.config : {};
+    const schema = await loadDirectorySchemaVersion(hasura, 'v1');
+
     const fetchResult =
       source.source_type === 'https_url'
         ? await fetchHttpsUrlSource({ sourceId: source.id, config, secrets })
@@ -74,22 +80,48 @@ export async function runDirectorySourceSync(params: {
           ? await fetchSftpSource({ sourceId: source.id, config, secrets })
           : source.source_type === 'google_drive'
             ? await fetchCsvFromGoogleDrive({ sourceId: source.id, config, secrets })
-            : null;
+            : source.source_type === 'oneroster_rest'
+              ? await fetchContactsFromOneRosterRest({ hasura, sourceId: source.id, config, secrets })
+              : source.source_type === 'classlink_roster_server'
+                ? await fetchContactsFromOneRosterRest({
+                    hasura,
+                    sourceId: source.id,
+                    config: { apiRoot: '/ims/oneroster/v1p1', auth: { mode: 'oauth_client_credentials' }, ...config },
+                    secrets,
+                  })
+                : source.source_type === 'clever_secure_sync'
+                  ? await fetchContactsFromClever({ sourceId: source.id, config, secrets })
+                  : null;
 
     if (!fetchResult) throw new Error('unsupported_source');
 
-    const preview = await createDirectoryImportPreview({
-      hasura,
-      actorId: effectiveActorId,
-      schoolId: source.school_id,
-      districtId: source.district_id ?? null,
-      csvText: fetchResult.csvText,
-      schemaVersion: 'v1',
-      deactivateMissing,
-      sourceId: source.id,
-      sourceRef: fetchResult.sourceRef ?? source.name,
-      sourceHash: fetchResult.sourceHash ?? undefined,
-    });
+    const preview = fetchResult.csvText
+      ? await createDirectoryImportPreview({
+          hasura,
+          actorId: effectiveActorId,
+          schoolId: source.school_id,
+          districtId: source.district_id ?? null,
+          csvText: fetchResult.csvText,
+          schemaVersion: 'v1',
+          deactivateMissing,
+          sourceId: source.id,
+          sourceRef: fetchResult.sourceRef ?? source.name,
+          sourceHash: fetchResult.sourceHash ?? undefined,
+        })
+      : await createDirectoryPreviewFromContacts({
+          hasura,
+          actorId: effectiveActorId,
+          schoolId: source.school_id,
+          districtId: source.district_id ?? null,
+          contacts: fetchResult.contacts,
+          schema,
+          deactivateMissing,
+          sourceId: source.id,
+          sourceRef: fetchResult.sourceRef ?? source.name,
+          sampleLimit: config.sampleLimit,
+          sourceHash: fetchResult.sourceHash ?? undefined,
+          metadata: fetchResult.meta ?? null,
+        });
 
     previewId = preview.previewId;
 

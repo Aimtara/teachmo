@@ -1,5 +1,6 @@
 import { base44Entities } from '@/api/base44';
 import { logEvent } from './audit';
+import type { MessageThread } from '../types';
 import type { InviteResult } from './invites';
 
 export async function createThread(input: {
@@ -8,7 +9,7 @@ export async function createThread(input: {
   participantIds: string[];
   participantEmails?: string[];
   initialMessage?: string;
-}): Promise<{ thread: any; inviteResults: InviteResult[] }> {
+}): Promise<{ thread: MessageThread | null | undefined; inviteResults: InviteResult[] }> {
   const uniq = Array.from(new Set([input.creatorId, ...(input.participantIds ?? [])]));
 
   const thread = await base44Entities.MessageThread?.create?.({

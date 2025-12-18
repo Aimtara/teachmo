@@ -6,8 +6,8 @@ type FunctionEnvelope<T> = { data?: T } | T;
 type OpsSummaryParams = { schoolId?: string; districtId?: string };
 
 type OpsSummaryResult = {
-  summary?: any;
-  [key: string]: any;
+  summary?: unknown;
+  [key: string]: unknown;
 };
 
 export async function getOpsSummary(params: OpsSummaryParams = {}) {

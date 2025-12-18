@@ -1,7 +1,7 @@
 import type { Activity, Paginated } from '../types';
 import { getActivity, listActivities } from '@/domains/activities';
 
-export async function list(params: Record<string, any> = {}): Promise<Paginated<Activity>> {
+export async function list(params: Record<string, unknown> = {}): Promise<Paginated<Activity>> {
   const result = await listActivities(params);
 
   if (Array.isArray(result)) {

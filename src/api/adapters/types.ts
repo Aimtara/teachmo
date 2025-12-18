@@ -65,8 +65,3 @@ export interface Message {
   created_at?: string | null;
   [key: string]: unknown;
 }
-
-export interface Paginated<T> {
-  items: T[];
-  nextCursor: string | null;
-}
