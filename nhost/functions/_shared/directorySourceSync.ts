@@ -1,6 +1,7 @@
 import { applyDirectoryImportPreview, createDirectoryImportPreview, HasuraClient } from './directoryImportCore';
 import { fetchHttpsUrlSource } from './sourceFetchers/httpsUrl';
 import { fetchSftpSource } from './sourceFetchers/sftp';
+import { fetchCsvFromGoogleDrive } from './sourceFetchers/googleDrive';
 import { DirectorySourceSecrets } from './sourceFetchers/secrets';
 import { upsertApprovalRequest } from './approvals';
 
@@ -71,7 +72,9 @@ export async function runDirectorySourceSync(params: {
         ? await fetchHttpsUrlSource({ sourceId: source.id, config, secrets })
         : source.source_type === 'sftp'
           ? await fetchSftpSource({ sourceId: source.id, config, secrets })
-          : null;
+          : source.source_type === 'google_drive'
+            ? await fetchCsvFromGoogleDrive({ sourceId: source.id, config, secrets })
+            : null;
 
     if (!fetchResult) throw new Error('unsupported_source');
 
@@ -85,6 +88,7 @@ export async function runDirectorySourceSync(params: {
       deactivateMissing,
       sourceId: source.id,
       sourceRef: fetchResult.sourceRef ?? source.name,
+      sourceHash: fetchResult.sourceHash ?? undefined,
     });
 
     previewId = preview.previewId;
@@ -255,7 +259,13 @@ export async function runDirectorySourceSync(params: {
   } catch (error: any) {
     const originalError = error;
     const finishedAt = new Date().toISOString();
-    const errors = [{ reason: 'exception', message: String(error?.message ?? error) }];
+    const reason =
+      typeof error?.reason === 'string'
+        ? error.reason
+        : typeof error?.message === 'string' && error.message.startsWith('gdrive_')
+          ? error.message.split(' ')[0]
+          : 'exception';
+    const errors = [{ reason, message: String(error?.message ?? error) }];
 
     try {
       await hasura(

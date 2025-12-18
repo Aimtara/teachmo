@@ -5,6 +5,10 @@ import { DirectorySourcesAdminAPI } from '@/api/adapters';
 const SOURCE_TYPES = [
   { value: 'https_url', label: 'HTTPS URL' },
   { value: 'sftp', label: 'SFTP' },
+  { value: 'google_drive', label: 'Google Drive / Sheets' },
+  { value: 'oneroster', label: 'OneRoster (coming soon)', comingSoon: true },
+  { value: 'clever', label: 'Clever (coming soon)', comingSoon: true },
+  { value: 'classlink', label: 'ClassLink (coming soon)', comingSoon: true },
 ];
 
 function formatDate(value) {
@@ -67,6 +71,9 @@ export default function AdminDirectorySources() {
     configPort: '22',
     configUsername: '',
     configRemotePath: '',
+    configFileId: '',
+    configSupportsAllDrives: true,
+    configForceExportCsv: false,
     is_enabled: true,
     schedule_cron: '',
     schedule_tz: 'America/New_York',
@@ -108,6 +115,9 @@ export default function AdminDirectorySources() {
         configPort: '22',
         configUsername: '',
         configRemotePath: '',
+        configFileId: '',
+        configSupportsAllDrives: true,
+        configForceExportCsv: false,
         is_enabled: true,
         schedule_cron: '',
         schedule_tz: 'America/New_York',
@@ -127,6 +137,9 @@ export default function AdminDirectorySources() {
       configPort: String(config.port ?? '22'),
       configUsername: config.username ?? '',
       configRemotePath: config.remotePath ?? '',
+      configFileId: config.fileId ?? '',
+      configSupportsAllDrives: config.supportsAllDrives ?? true,
+      configForceExportCsv: Boolean(config.forceExportCsv),
       is_enabled: Boolean(source.is_enabled),
       schedule_cron: source.schedule_cron ?? '',
       schedule_tz: source.schedule_tz ?? 'America/New_York',
@@ -158,6 +171,10 @@ export default function AdminDirectorySources() {
     }
   }, [sources, selectedId, selectSource]);
   const buildConfig = () => {
+    if (['oneroster', 'clever', 'classlink'].includes(form.source_type)) {
+      throw new Error('Integration is coming soon for this source type.');
+    }
+
     if (form.source_type === 'https_url') {
       let headers = {};
       if (form.configHeaders) {
@@ -170,6 +187,19 @@ export default function AdminDirectorySources() {
       return { url: form.configUrl, headers };
     }
 
+    if (form.source_type === 'google_drive') {
+      const fileId = String(form.configFileId || '').trim();
+      if (!fileId) {
+        throw new Error('Google Drive fileId is required.');
+      }
+
+      return {
+        fileId,
+        supportsAllDrives: Boolean(form.configSupportsAllDrives),
+        forceExportCsv: Boolean(form.configForceExportCsv),
+      };
+    }
+
     return {
       host: form.configHost,
       port: Number(form.configPort) || 22,
@@ -177,6 +207,11 @@ export default function AdminDirectorySources() {
       remotePath: form.configRemotePath,
     };
   };
+
+  const selectedSourceType = useMemo(
+    () => SOURCE_TYPES.find((type) => type.value === form.source_type),
+    [form.source_type]
+  );
 
   const handleSave = async (evt) => {
     evt.preventDefault();
@@ -314,7 +349,9 @@ export default function AdminDirectorySources() {
                   className="w-full border rounded px-3 py-2"
                 >
                   {SOURCE_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
+                    <option key={type.value} value={type.value} disabled={type.comingSoon}>
+                      {type.label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -369,6 +406,43 @@ export default function AdminDirectorySources() {
               </div>
             )}
 
+            {form.source_type === 'google_drive' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="block space-y-1 md:col-span-2">
+                  <span className="text-sm font-medium text-gray-700">Google Drive file ID</span>
+                  <input
+                    required
+                    value={form.configFileId}
+                    onChange={(e) => setForm((prev) => ({ ...prev, configFileId: e.target.value }))}
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="1AbC..."
+                  />
+                  <p className="text-xs text-gray-500">
+                    Share the file with the service account used for directory sync. If it&apos;s a Google Sheet, Teachmo exports
+                    it as CSV automatically.
+                  </p>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.configSupportsAllDrives}
+                    onChange={(e) => setForm((prev) => ({ ...prev, configSupportsAllDrives: e.target.checked }))}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm text-gray-700">Supports shared drives</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.configForceExportCsv}
+                    onChange={(e) => setForm((prev) => ({ ...prev, configForceExportCsv: e.target.checked }))}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm text-gray-700">Force CSV export</span>
+                </label>
+              </div>
+            )}
+
             {form.source_type === 'sftp' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="block space-y-1">
@@ -417,6 +491,12 @@ export default function AdminDirectorySources() {
               </div>
             )}
 
+            {selectedSourceType?.comingSoon && (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">
+                {selectedSourceType.label} is planned but not available yet.
+              </p>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <label className="flex items-center gap-2">
                 <input
@@ -444,7 +524,7 @@ export default function AdminDirectorySources() {
               <button
                 type="submit"
                 className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-                disabled={saving}
+                disabled={saving || selectedSourceType?.comingSoon}
               >
                 {saving ? 'Saving…' : selectedId ? 'Update source' : 'Create source'}
               </button>
