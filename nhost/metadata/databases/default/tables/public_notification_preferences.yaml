@@ -1,0 +1,206 @@
+table:
+  name: notification_preferences
+  schema: public
+object_relationships:
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+select_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+  - role: system_admin
+    permission:
+      columns: "*"
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+  - role: teacher
+    permission:
+      columns: "*"
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+  - role: parent
+    permission:
+      columns: "*"
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+  - role: partner
+    permission:
+      columns: "*"
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+insert_permissions:
+  - role: admin
+    permission:
+      check:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      columns:
+        - user_id
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+  - role: district_admin
+    permission:
+      check:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      columns:
+        - user_id
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+  - role: school_admin
+    permission:
+      check:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      columns:
+        - user_id
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+  - role: system_admin
+    permission:
+      check:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      columns:
+        - user_id
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+  - role: teacher
+    permission:
+      check:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      columns:
+        - user_id
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+  - role: parent
+    permission:
+      check:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      columns:
+        - user_id
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+  - role: partner
+    permission:
+      check:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      columns:
+        - user_id
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+update_permissions:
+  - role: admin
+    permission:
+      columns:
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      check: {}
+  - role: district_admin
+    permission:
+      columns:
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      check: {}
+  - role: school_admin
+    permission:
+      columns:
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      check: {}
+  - role: system_admin
+    permission:
+      columns:
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      check: {}
+  - role: teacher
+    permission:
+      columns:
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      check: {}
+  - role: parent
+    permission:
+      columns:
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      check: {}
+  - role: partner
+    permission:
+      columns:
+        - email_enabled
+        - in_app_enabled
+        - directory_alerts
+        - digest_mode
+      filter:
+        user_id:
+          _eq: "X-Hasura-User-Id"
+      check: {}

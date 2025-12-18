@@ -1,10 +1,13 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, Bell } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { User } from '@/api/entities';
-import { ChevronDown } from 'lucide-react';
+import { NotificationsAPI } from '@/api/adapters';
 
 export default function Header({ user, onLogout }) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [unreadCount, setUnreadCount] = React.useState(0);
 
   const roleLabel = user?.user_type || user?.role || 'parent';
   const streak = user?.login_streak ?? 0;
@@ -15,6 +18,30 @@ export default function Header({ user, onLogout }) {
     onLogout?.();
   };
 
+  React.useEffect(() => {
+    if (!user) return undefined;
+
+    let isMounted = true;
+
+    const loadUnread = async () => {
+      try {
+        const count = await NotificationsAPI.getUnreadCount();
+        if (isMounted) setUnreadCount(Number(count) || 0);
+      } catch (error) {
+        if (import.meta.env?.MODE !== 'production') {
+          console.error('Unable to load notification count', error);
+        }
+      }
+    };
+
+    loadUnread();
+    const interval = setInterval(loadUnread, 60000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user]);
+
   return (
     <header className="border-b border-gray-100 bg-white sticky top-0 z-10">
       <div className="px-4 py-3 flex items-center justify-between">
@@ -24,6 +51,19 @@ export default function Header({ user, onLogout }) {
         </div>
 
         <div className="flex items-center gap-4">
+          <Link
+            to={createPageUrl('Notifications')}
+            className="relative inline-flex items-center justify-center rounded-full border border-gray-200 bg-white p-2 text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
+            aria-label="Notifications"
+          >
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[20px] rounded-full bg-emerald-600 px-1.5 text-center text-xs font-semibold text-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
+
           <div className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-sm font-semibold" aria-label="login streak">
             🔥 {streak}
           </div>

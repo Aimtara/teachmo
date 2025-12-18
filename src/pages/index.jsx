@@ -13,6 +13,7 @@ const AcceptInvite = lazy(() => import('./AcceptInvite.jsx'));
 const AdminDirectoryImport = lazy(() => import('./AdminDirectoryImport.jsx'));
 const AdminDirectorySources = lazy(() => import('./AdminDirectorySources.jsx'));
 const AdminDirectoryImportPreview = lazy(() => import('./AdminDirectoryImportPreview.jsx'));
+const Notifications = lazy(() => import('./Notifications.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -77,6 +78,13 @@ export default function Pages() {
       path: '/admin/directory-sources',
       Component: AdminDirectorySources,
       allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+      requiresAuth: true
+    },
+    {
+      key: 'notifications',
+      path: '/notifications',
+      Component: Notifications,
+      allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin', 'admin'],
       requiresAuth: true
     },
     ...ROUTE_CONFIG,

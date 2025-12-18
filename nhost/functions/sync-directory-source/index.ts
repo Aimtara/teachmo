@@ -1,6 +1,7 @@
 import { runDirectorySourceSync } from '../_shared/directorySourceSync';
 import { getDirectorySourceSecrets } from '../_shared/sourceFetchers/secrets';
 import { getActorScope } from '../_shared/tenantScope';
+import { handleDirectorySyncAlert } from '../_shared/notifier';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
@@ -88,9 +89,26 @@ export default async (req: any, res: any) => {
       secrets,
     });
 
+    if (isCronRequest) {
+      try {
+        await handleDirectorySyncAlert({ hasura, source, result, isCron: isCronRequest });
+      } catch (notifyError) {
+        console.error('sync-directory-source notification failed', notifyError);
+      }
+    }
+
     return res.status(200).json({ ok: true, ...result });
   } catch (error: any) {
     console.error('sync-directory-source failed', error);
+
+    if (isCronRequest) {
+      try {
+        await handleDirectorySyncAlert({ hasura, source, error, isCron: isCronRequest });
+      } catch (notifyError) {
+        console.error('sync-directory-source notification failed after error', notifyError);
+      }
+    }
+
     return res.status(500).json({ ok: false, reason: 'sync_failed', message: error?.message ?? 'sync_failed' });
   }
 };
