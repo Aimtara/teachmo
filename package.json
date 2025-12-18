@@ -55,6 +55,7 @@
     "embla-carousel-react": "^8.5.2",
     "express": "^5.2.1",
     "framer-motion": "^12.4.7",
+    "googleapis": "^169.0.0",
     "input-otp": "^1.4.2",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",

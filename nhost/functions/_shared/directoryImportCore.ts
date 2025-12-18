@@ -426,6 +426,7 @@ export async function createDirectoryImportPreview(params: {
   sourceId?: string | null;
   sourceRef?: string | null;
   sampleLimit?: number;
+  sourceHash?: string | null;
 }) {
   const {
     hasura,
@@ -438,6 +439,7 @@ export async function createDirectoryImportPreview(params: {
     sourceId = null,
     sourceRef = null,
     sampleLimit = MAX_DIFF_SAMPLES,
+    sourceHash: providedSourceHash = null,
   } = params;
 
   const schema = await loadDirectorySchemaVersion(hasura, schemaVersion);
@@ -461,7 +463,7 @@ export async function createDirectoryImportPreview(params: {
   }));
   diff.samples.invalid = invalidSamples;
 
-  const sourceHash = sha256(`${schoolId}::${csvText}::${schema.version}`);
+  const sourceHash = providedSourceHash || sha256(`${schoolId}::${csvText}::${schema.version}`);
 
   const stats = {
     totalRows: validation.totalRows,
