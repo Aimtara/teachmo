@@ -6,4 +6,5 @@ export * as DirectoryAdminAPI from './modules/directoryAdmin';
 export * as DirectorySourcesAdminAPI from './modules/directorySourcesAdmin';
 export * as DirectoryPreviewAdminAPI from './modules/directoryPreviewAdmin';
 export * as DirectoryApprovalsAdminAPI from './modules/directoryApprovalsAdmin';
+export * as DirectoryOpsAdminAPI from './modules/directoryOpsAdmin';
 export * as NotificationsAPI from './modules/notifications';

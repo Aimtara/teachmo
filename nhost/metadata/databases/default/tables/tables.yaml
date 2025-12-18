@@ -14,3 +14,4 @@
 - "!include public_directory_import_previews.yaml"
 - "!include public_directory_import_quarantine.yaml"
 - "!include public_directory_import_preview_rows.yaml"
+- "!include public_directory_metrics_snapshots.yaml"

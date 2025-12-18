@@ -1,4 +1,5 @@
 import { completeJob, createImportJob, failJob, parseDirectoryCsv, sha256, upsertDirectoryRows } from '../_shared/directoryImportCore';
+import { recordDirectoryMetricsSnapshot } from '../_shared/directoryMetrics';
 import { getActorScope } from '../_shared/tenantScope';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
@@ -38,6 +39,8 @@ export default async (req: any, res: any) => {
     sid = scope.schoolId ?? '';
   }
 
+  const districtId = scope?.districtId ?? null;
+
   if (!sid) return res.status(400).json({ ok: false, reason: 'school_required' });
 
   const sourceHash = sha256(`${sid}::${text}`);
@@ -45,7 +48,7 @@ export default async (req: any, res: any) => {
   const jobId = await createImportJob(hasura, {
     actorId,
     schoolId: sid,
-    districtId: scope?.districtId ?? null,
+    districtId,
     sourceType: 'csv',
     sourceRef: sourceRef ?? null,
     sourceHash,
@@ -70,6 +73,21 @@ export default async (req: any, res: any) => {
     const nowIso = new Date().toISOString();
 
     await completeJob(hasura, { id: jobId, stats: upsertResult.stats, errors: upsertResult.errors, finishedAt: nowIso });
+
+    if (!dryRun) {
+      try {
+        await recordDirectoryMetricsSnapshot({
+          hasura,
+          schoolId: sid,
+          districtId,
+          stats: upsertResult.stats,
+          lastImportJobId: jobId,
+          metadata: { sourceRef: sourceRef ?? null, sourceType: 'csv' },
+        });
+      } catch (metricsError) {
+        console.error('directory metrics snapshot failed after import', metricsError);
+      }
+    }
 
     return res.status(200).json({
       ok: true,

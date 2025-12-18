@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { recordDirectoryMetricsSnapshot } from './directoryMetrics';
 
 export type HasuraClient = (query: string, variables?: Record<string, any>) => Promise<any>;
 
@@ -619,15 +620,15 @@ export async function applyDirectoryImportPreview(params: {
   }
 
   const rows = await fetchPreviewRows(hasura, previewId);
-  const stats = preview.stats && typeof preview.stats === 'object' ? preview.stats : {};
+  const previewStats = preview.stats && typeof preview.stats === 'object' ? preview.stats : {};
 
   const upsertResult = await upsertDirectoryRows({
     hasura,
     schoolId: preview.school_id,
     actorId,
     normalizedRows: rows,
-    totalRowsOverride: stats.totalRows ?? rows.length,
-    invalidCountOverride: stats.invalid ?? 0,
+    totalRowsOverride: previewStats.totalRows ?? rows.length,
+    invalidCountOverride: previewStats.invalid ?? 0,
     deactivateMissing: preview.deactivate_missing,
     dryRun: false,
     sourceRef: preview.source_ref ?? null,
@@ -687,6 +688,22 @@ export async function applyDirectoryImportPreview(params: {
       },
     }
   );
+
+  try {
+    await recordDirectoryMetricsSnapshot({
+      hasura,
+      schoolId: preview.school_id,
+      districtId: preview.district_id ?? null,
+      stats: upsertResult.stats,
+      diffCounts: previewStats,
+      lastImportJobId: jobId ?? null,
+      lastPreviewId: previewId,
+      lastApprovalId: preview.approval_id ?? null,
+      metadata: { sourceId: preview.source_id ?? null, appliedFrom: 'apply_preview' },
+    });
+  } catch (metricsError) {
+    console.error('failed to record directory metrics snapshot', metricsError);
+  }
 
   return { jobId, stats: upsertResult.stats, appliedAt: finishedAt };
 }
