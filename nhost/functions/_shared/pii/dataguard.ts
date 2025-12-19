@@ -20,9 +20,13 @@ export function applyDataGuardRules(contact: DirectoryContact, dataguardMode: 'a
   const maskedLast = detectMaskedName(contact.lastName);
   const piiMasked = maskedFirst || maskedLast;
 
-  const sanitized: DirectoryContact = {
-    ...contact,
-  };
+  const sanitized: DirectoryContact = piiMasked
+    ? ({
+        ...contact,
+        firstName: undefined as unknown as DirectoryContact['firstName'],
+        lastName: undefined as unknown as DirectoryContact['lastName'],
+      } as DirectoryContact)
+    : contact;
 
   return { contact: sanitized, piiMasked };
 }
