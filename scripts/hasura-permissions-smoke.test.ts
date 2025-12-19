@@ -25,6 +25,20 @@ async function runQuery(token: string, query: string, variables?: Record<string,
   return json;
 }
 
+function userIdFromJwt(token: string): string | null {
+  try {
+    const parts = token.split('.');
+    const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+    const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+    const claims = payload['https://hasura.io/jwt/claims'] || {};
+    return claims['x-hasura-user-id'] || payload.sub || null;
+  } catch (error) {
+    console.warn('decode token failed', error);
+    return null;
+  }
+}
+
 async function testTeacherCannotSelectSources() {
   const result = await runQuery(
     teacherToken!,
@@ -33,12 +47,26 @@ async function testTeacherCannotSelectSources() {
   assert.ok(result.errors, 'teacher query should fail');
 }
 
-async function testTeacherNotificationsScoped() {
+async function testTeacherCannotSelectSourceRuns() {
   const result = await runQuery(
     teacherToken!,
-    `query TeacherNotifs { notification_outbox(limit: 1) { id recipient_id } }`
+    `query TeacherRuns { directory_source_runs(limit: 1) { id status } }`
   );
-  assert.ok(result.errors, 'teacher notifications must be scoped');
+  assert.ok(result.errors, 'teacher should not access source runs');
+}
+
+async function testTeacherNotificationsScoped() {
+  const userId = userIdFromJwt(teacherToken!);
+  const result = await runQuery(
+    teacherToken!,
+    `query TeacherNotifs { notifications(limit: 5) { id user_id } }`
+  );
+  assert.ok(!result.errors, 'teacher notifications should be readable for self');
+  if (result.data?.notifications?.length) {
+    result.data.notifications.forEach((notif: any) => {
+      assert.strictEqual(String(notif.user_id), String(userId), 'notifications must be scoped to user');
+    });
+  }
 }
 
 async function testDistrictAdminCanSelectSources() {
@@ -49,10 +77,38 @@ async function testDistrictAdminCanSelectSources() {
   assert.ok(!result.errors, 'district_admin should read sources');
 }
 
+async function testDistrictAdminCanSelectRuns() {
+  const result = await runQuery(
+    districtAdminToken!,
+    `query DistrictRuns { directory_source_runs(limit: 1) { id status } }`
+  );
+  assert.ok(!result.errors, 'district_admin should read source runs');
+}
+
+async function testDistrictAdminCanUpdatePreferences() {
+  const userId = userIdFromJwt(districtAdminToken!);
+  assert.ok(userId, 'district admin token missing user id');
+  const result = await runQuery(
+    districtAdminToken!,
+    `mutation UpdatePrefs($userId: uuid!, $digest: text!) {
+      insert_notification_preferences_one(
+        object: { user_id: $userId, digest_mode: $digest },
+        on_conflict: { constraint: notification_preferences_pkey, update_columns: [digest_mode] }
+      ) { user_id digest_mode }
+    }`,
+    { userId, digest: 'daily' }
+  );
+  assert.ok(!result.errors, 'district_admin should update own notification preferences');
+  assert.strictEqual(result.data?.insert_notification_preferences_one?.user_id, userId);
+}
+
 async function main() {
   await testTeacherCannotSelectSources();
+  await testTeacherCannotSelectSourceRuns();
   await testTeacherNotificationsScoped();
   await testDistrictAdminCanSelectSources();
+  await testDistrictAdminCanSelectRuns();
+  await testDistrictAdminCanUpdatePreferences();
   console.log('permissions smoke tests passed');
 }
 

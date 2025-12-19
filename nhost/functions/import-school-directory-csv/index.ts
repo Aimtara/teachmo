@@ -1,6 +1,7 @@
 import { completeJob, createImportJob, failJob, parseDirectoryCsv, sha256, upsertDirectoryRows } from '../_shared/directoryImportCore';
 import { recordDirectoryMetricsSnapshot } from '../_shared/directoryMetrics';
 import { getActorScope } from '../_shared/tenantScope';
+import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
@@ -39,11 +40,23 @@ export default async (req: any, res: any) => {
     sid = scope.schoolId ?? '';
   }
 
-  const districtId = scope?.districtId ?? null;
+  if (!scope) {
+    scope = await getActorScope(hasura, actorId);
+  }
+
+  const districtId = scope?.districtId || null;
 
   if (!sid) return res.status(400).json({ ok: false, reason: 'school_required' });
 
   const sourceHash = sha256(`${sid}::${text}`);
+
+  let scopes: Record<string, any> = {};
+  try {
+    scopes = await getEffectiveScopes({ hasura, districtId, schoolId: sid });
+    assertScope(scopes, 'directory.email', true);
+  } catch (error: any) {
+    return res.status(400).json({ ok: false, reason: error?.message ?? 'scope_denied' });
+  }
 
   const jobId = await createImportJob(hasura, {
     actorId,
@@ -52,6 +65,7 @@ export default async (req: any, res: any) => {
     sourceType: 'csv',
     sourceRef: sourceRef ?? null,
     sourceHash,
+    scopesSnapshot: scopes,
   });
 
   if (!jobId) return res.status(500).json({ ok: false, reason: 'job_not_created' });

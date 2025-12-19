@@ -9,7 +9,9 @@ select_permissions:
   - role: district_admin
     permission:
       columns: "*"
-      filter: {}
+      filter:
+        district_id:
+          _eq: "X-Hasura-District-Id"
 insert_permissions:
   - role: admin
     permission:
@@ -17,7 +19,9 @@ insert_permissions:
       columns: "*"
   - role: district_admin
     permission:
-      check: {}
+      check:
+        district_id:
+          _eq: "X-Hasura-District-Id"
       columns: "*"
 update_permissions:
   - role: admin
@@ -27,4 +31,6 @@ update_permissions:
   - role: district_admin
     permission:
       columns: "*"
-      filter: {}
+      filter:
+        district_id:
+          _eq: "X-Hasura-District-Id"

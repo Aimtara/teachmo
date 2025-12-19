@@ -176,6 +176,7 @@ export async function createDirectoryImportPreview(params: {
   sampleLimit?: number;
   sourceHash?: string | null;
   scopesSnapshot?: Record<string, any> | null;
+  piiPolicySnapshot?: Record<string, any> | null;
 }) {
   const {
     hasura,
@@ -190,6 +191,7 @@ export async function createDirectoryImportPreview(params: {
     sampleLimit = MAX_DIFF_SAMPLES,
     sourceHash: providedSourceHash = null,
     scopesSnapshot = null,
+    piiPolicySnapshot = null,
   } = params;
 
   const schema = await loadDirectorySchemaVersion(hasura, schemaVersion);
@@ -209,6 +211,7 @@ export async function createDirectoryImportPreview(params: {
     sampleLimit,
     sourceHash,
     scopesSnapshot,
+    piiPolicySnapshot,
   });
 }
 

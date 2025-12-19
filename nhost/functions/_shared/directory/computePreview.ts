@@ -207,8 +207,18 @@ export async function createDirectoryPreviewFromRows(params: {
     scopesSnapshot = null,
   } = params;
 
+  const piiPolicy: PiiPolicy = {
+    ...DEFAULT_PII_POLICY,
+    ...(piiPolicySnapshot && typeof piiPolicySnapshot === 'object' ? piiPolicySnapshot : {}),
+  };
+
+  if (scopesSnapshot?.directory?.names === false) {
+    piiPolicy.storeNames = false;
+  }
+
   const effectiveSampleLimit = Number.isFinite(Number(sampleLimit)) && Number(sampleLimit) > 0 ? Number(sampleLimit) : MAX_DIFF_SAMPLES;
 
+  const initialInvalidRows: DirectoryInvalidRow[] = [];
   const validation = normalizeAndValidateDirectoryRows(rows, schema, piiPolicy, initialInvalidRows);
 
   const diff = await computeDirectoryDiff({
@@ -336,6 +346,7 @@ export async function createDirectoryPreviewFromContacts(params: {
   metadata?: Record<string, any> | null;
   scopesSnapshot?: Record<string, any> | null;
   mode?: 'snapshot' | 'delta';
+  piiPolicySnapshot?: Record<string, any> | null;
 }) {
   const rows = mapDirectoryContactsToRows(params.contacts);
   return createDirectoryPreviewFromRows({ ...params, rows, mode: params.mode });

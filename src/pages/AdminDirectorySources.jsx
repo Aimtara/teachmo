@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useUserData } from '@nhost/react';
 import { DirectorySourcesAdminAPI } from '@/api/adapters';
 
@@ -349,6 +350,9 @@ export default function AdminDirectorySources() {
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold">Directory sources</h1>
         <p className="text-gray-600">Manage scheduled roster sources and trigger on-demand syncs.</p>
+        <Link to="/admin/data-scopes" className="text-sm text-blue-600 hover:underline">
+          Manage data scopes / consent
+        </Link>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
