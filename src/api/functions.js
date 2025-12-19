@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const getFunctionsBaseUrl = () => {
   if (typeof import.meta !== "undefined") {
     const url = import.meta?.env?.VITE_NHOST_FUNCTIONS_URL;

@@ -14,6 +14,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <UltraMinimalToast />
           <Toaster />
+          <UltraMinimalToast />
           <Pages />
           {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
         </QueryClientProvider>
