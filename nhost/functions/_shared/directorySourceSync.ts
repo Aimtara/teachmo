@@ -27,8 +27,9 @@ export async function runDirectorySourceSync(params: {
   deactivateMissing?: boolean;
   dryRun?: boolean;
   secrets: DirectorySourceSecrets;
+  scopes?: Record<string, any> | null;
 }) {
-  const { hasura, source, deactivateMissing = true, dryRun = false, secrets } = params;
+  const { hasura, source, deactivateMissing = true, dryRun = false, secrets, scopes } = params;
   const effectiveActorId = params.actorId || source.school_id;
 
   const nowIso = new Date().toISOString();
@@ -107,6 +108,7 @@ export async function runDirectorySourceSync(params: {
           sourceId: source.id,
           sourceRef: fetchResult.sourceRef ?? source.name,
           sourceHash: fetchResult.sourceHash ?? undefined,
+          scopesSnapshot: scopes ?? null,
         })
       : await createDirectoryPreviewFromContacts({
           hasura,
@@ -121,14 +123,15 @@ export async function runDirectorySourceSync(params: {
           sampleLimit: config.sampleLimit,
           sourceHash: fetchResult.sourceHash ?? undefined,
           metadata: fetchResult.meta ?? null,
+          scopesSnapshot: scopes ?? null,
         });
 
     previewId = preview.previewId;
 
     const deactivateCount = preview.diffSummary?.counts?.toDeactivate ?? 0;
     const currentActive = preview.diffSummary?.counts?.currentActive ?? 0;
-    const pctLimit = Number(process.env.DIRECTORY_MAX_DEACTIVATE_PCT ?? 0.1);
-    const absLimit = Number(process.env.DIRECTORY_MAX_DEACTIVATE_ABS ?? 100);
+    const pctLimit = Number(process.env.RISKY_DEACTIVATION_PCT ?? process.env.DIRECTORY_MAX_DEACTIVATE_PCT ?? 0.1);
+    const absLimit = Number(process.env.RISKY_DEACTIVATION_ABS ?? process.env.DIRECTORY_MAX_DEACTIVATE_ABS ?? 100);
     const exceedsPct = currentActive > 0 && Number.isFinite(pctLimit) && pctLimit > 0 && deactivateCount > currentActive * pctLimit;
     const exceedsAbs = Number.isFinite(absLimit) && deactivateCount > absLimit;
 

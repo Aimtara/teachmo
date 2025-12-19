@@ -38,6 +38,7 @@ export function normalizeAndValidateDirectoryRows(rows: DirectoryRowInput[], sch
     const contactTypeRaw = String(row.contact_type ?? '').trim();
     const contactTypeDefaulted =
       contactTypeRaw || (!schema && !row.contact_type ? 'parent_guardian' : contactTypeRaw || '');
+    const action = row.action === 'deactivate' ? 'deactivate' : 'upsert';
     const rowNumber = row.rowNumber ?? idx + 1;
 
     if (!email || !isEmailLike(email)) {
@@ -72,7 +73,7 @@ export function normalizeAndValidateDirectoryRows(rows: DirectoryRowInput[], sch
       return;
     }
     seen.add(email);
-    valid.push({ email, contact_type: contactTypeDefaulted || 'parent_guardian' });
+    valid.push({ email, contact_type: contactTypeDefaulted || 'parent_guardian', action });
   });
 
   const totalRows = rows.length;
