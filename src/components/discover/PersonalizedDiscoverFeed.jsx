@@ -131,10 +131,13 @@ export default function PersonalizedDiscoverFeed({ userId, childId }) {
 
   const handleRefreshFeed = async () => {
     setGeneratingFeed(true);
-    await queryClient.invalidateQueries({ queryKey: ["personalized-feed"] });
-    setDismissedIds([]);
-    ultraMinimalToast("Feed refreshed! ✨", "success");
-    setGeneratingFeed(false);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["personalized-feed"] });
+      setDismissedIds([]);
+      ultraMinimalToast("Feed refreshed! ✨", "success");
+    } finally {
+      setGeneratingFeed(false);
+    }
   };
 
   const allRecommendations = useMemo(
