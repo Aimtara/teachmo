@@ -33,14 +33,16 @@ export function normalizeAndValidateDirectoryRows(
   const errors: JobError[] = [];
   const invalidRows: DirectoryInvalidRow[] = [];
 
-  const initialLimit = Math.min(initialInvalidRows.length, MAX_QUARANTINE_ROWS, MAX_ERRORS);
-  for (let i = 0; i < initialLimit; i++) {
+  const quarantineLimit = Math.min(initialInvalidRows.length, MAX_QUARANTINE_ROWS);
+  for (let i = 0; i < quarantineLimit; i++) {
     const row = initialInvalidRows[i];
     invalidRows.push({
       ...row,
       raw_redacted: row.raw_redacted ?? redactQuarantineRow(row.raw, piiPolicy),
     });
-    errors.push({ row: row.rowNumber, reason: row.reason });
+    if (errors.length < MAX_ERRORS) {
+      errors.push({ row: row.rowNumber, reason: row.reason });
+    }
   }
 
   const contactTypeOptions =

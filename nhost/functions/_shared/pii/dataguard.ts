@@ -34,8 +34,8 @@ export function applyDataGuardRules(contact: DirectoryContact, dataguardMode: 'a
         email: contact.email,
         contactType: contact.contactType,
         sourceRole: contact.sourceRole,
-        externalId: contact.externalId,
-        metadata: contact.metadata,
+        ...(contact.externalId && { externalId: contact.externalId }),
+        ...(contact.metadata && { metadata: contact.metadata }),
       }
     : { ...contact };
 
