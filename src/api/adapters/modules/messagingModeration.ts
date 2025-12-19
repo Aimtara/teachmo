@@ -43,17 +43,20 @@ export async function liftBlock(input: { blockId: string }) {
 export async function listReports(input: { status?: string } = {}) {
   const { res, error } = await nhost.functions.call('get-open-message-reports', input);
   if (error) throw error;
-  return (res as any)?.data?.reports ?? (res as any)?.reports ?? [];
+  const payload = (res as FunctionEnvelope<{ reports?: unknown[] }>)?.data ?? (res as { reports?: unknown[] });
+  return Array.isArray(payload?.reports) ? payload.reports : [];
 }
 
 export async function listBlocks() {
   const { res, error } = await nhost.functions.call('list-message-blocks', {});
   if (error) throw error;
-  return (res as any)?.data?.blocks ?? (res as any)?.blocks ?? [];
+  const payload = (res as FunctionEnvelope<{ blocks?: unknown[] }>)?.data ?? (res as { blocks?: unknown[] });
+  return Array.isArray(payload?.blocks) ? payload.blocks : [];
 }
 
 export async function exportTranscript(input: { threadId: string }) {
   const { res, error } = await nhost.functions.call('export-thread-transcript', input);
   if (error) throw error;
-  return (res as any)?.data ?? res;
+  const payload = (res as FunctionEnvelope<unknown>)?.data ?? res;
+  return payload;
 }

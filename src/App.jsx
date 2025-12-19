@@ -5,6 +5,7 @@ import Pages from './pages/index.jsx';
 import { nhost } from './lib/nhostClient.js';
 import { queryClient } from './lib/queryClient.js';
 import { Toaster } from './components/ui/toaster';
+import UltraMinimalToast from './components/shared/UltraMinimalToast';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <NhostReactProvider nhost={nhost}>
         <QueryClientProvider client={queryClient}>
           <Toaster />
+          <UltraMinimalToast />
           <Pages />
           {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
         </QueryClientProvider>

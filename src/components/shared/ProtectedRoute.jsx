@@ -1,23 +1,31 @@
 import PropTypes from "prop-types";
 import { Navigate } from "react-router-dom";
 import { useAuthenticationStatus } from "@nhost/react";
-import { getDefaultPathForRole, useUserRole } from "@/hooks/useUserRole";
+import { getDefaultPathForRole, useAuthorization } from "@/hooks/useUserRole";
 
-export default function ProtectedRoute({ children, allowedRoles, redirectTo = "/" }) {
+/**
+ * ProtectedRoute - GitHub migration-friendly guard
+ *
+ * Supports both GitHub and Base44 prop shapes:
+ * - allowedRoles?: string[]
+ * - requiredScopes?: string[]
+ * - requireAuth?: boolean (Base44)
+ */
+export default function ProtectedRoute({
+  children,
+  allowedRoles,
+  requiredScopes,
+  requireAuth = true,
+  fallbackPath = "/"
+}) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
-  const role = useUserRole();
+  const { role, defaultPath, canAccess } = useAuthorization();
+  const hasAccess = canAccess({ allowedRoles, requiredScopes });
 
-  if (isLoading) {
-    return <p className="p-6 text-gray-600">Checking your session…</p>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to={getDefaultPathForRole(role)} replace />;
-  }
+  if (!requireAuth) return children;
+  if (isLoading) return <p className="p-6 text-gray-600">Checking your session…</p>;
+  if (!isAuthenticated) return <Navigate to={fallbackPath} replace />;
+  if (!hasAccess) return <Navigate to={defaultPath || getDefaultPathForRole(role)} replace />;
 
   return children;
 }
@@ -25,5 +33,7 @@ export default function ProtectedRoute({ children, allowedRoles, redirectTo = "/
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
   allowedRoles: PropTypes.arrayOf(PropTypes.string),
-  redirectTo: PropTypes.string
+  requiredScopes: PropTypes.arrayOf(PropTypes.string),
+  requireAuth: PropTypes.bool,
+  fallbackPath: PropTypes.string
 };
