@@ -9,6 +9,7 @@ import {
   HasuraClient,
 } from './types';
 import { normalizeAndValidateDirectoryRows, normEmail } from './validate';
+import { DEFAULT_PII_POLICY, PiiPolicy, redactQuarantineRow, sanitizeContact } from '../pii/policy';
 
 export const MAX_DIFF_SAMPLES = 200;
 
@@ -149,7 +150,7 @@ async function insertPreviewRows(hasura: HasuraClient, previewId: string, rows: 
   }
 }
 
-async function insertQuarantineRows(hasura: HasuraClient, previewId: string, rows: DirectoryInvalidRow[]) {
+async function insertQuarantineRows(hasura: HasuraClient, previewId: string, rows: DirectoryInvalidRow[], piiPolicy: PiiPolicy) {
   if (!rows.length) return;
   const batchSize = 500;
   for (let i = 0; i < rows.length; i += batchSize) {
@@ -208,7 +209,7 @@ export async function createDirectoryPreviewFromRows(params: {
 
   const effectiveSampleLimit = Number.isFinite(Number(sampleLimit)) && Number(sampleLimit) > 0 ? Number(sampleLimit) : MAX_DIFF_SAMPLES;
 
-  const validation = normalizeAndValidateDirectoryRows(rows, schema);
+  const validation = normalizeAndValidateDirectoryRows(rows, schema, piiPolicy, initialInvalidRows);
 
   const diff = await computeDirectoryDiff({
     hasura,
@@ -273,7 +274,7 @@ export async function createDirectoryPreviewFromRows(params: {
   }
 
   if (validation.invalidRows.length > 0) {
-    await insertQuarantineRows(hasura, previewId, validation.invalidRows);
+    await insertQuarantineRows(hasura, previewId, validation.invalidRows, piiPolicy);
   }
 
   await hasura(

@@ -8,6 +8,7 @@ import { fetchContactsFromOneRosterRest } from './sourceFetchers/onerosterRest';
 import { DirectorySourceSecrets } from './sourceFetchers/secrets';
 import { loadDirectorySchemaVersion } from './directory/computePreview';
 import { upsertApprovalRequest } from './approvals';
+import { getPiiPolicyForSource } from './pii/policy';
 
 export type DirectorySource = {
   id: string;
@@ -18,6 +19,9 @@ export type DirectorySource = {
   is_enabled: boolean;
   config: Record<string, any>;
   last_run_at?: string | null;
+  pii_policy?: Record<string, any>;
+  retention_days?: number | null;
+  dataguard_mode?: 'auto' | 'on' | 'off';
 };
 
 export async function runDirectorySourceSync(params: {
@@ -73,6 +77,8 @@ export async function runDirectorySourceSync(params: {
   try {
     const config = source.config && typeof source.config === 'object' ? source.config : {};
     const schema = await loadDirectorySchemaVersion(hasura, 'v1');
+    const piiPolicy = getPiiPolicyForSource(source);
+    const dataguardMode = (source.dataguard_mode as any) ?? 'auto';
 
     const fetchResult =
       source.source_type === 'https_url'

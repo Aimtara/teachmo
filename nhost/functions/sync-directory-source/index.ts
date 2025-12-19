@@ -48,6 +48,9 @@ export default async (req: any, res: any) => {
         is_enabled
         config
         last_run_at
+        pii_policy
+        retention_days
+        dataguard_mode
       }
     }`,
     { id: sourceId }

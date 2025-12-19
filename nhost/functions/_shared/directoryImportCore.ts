@@ -2,6 +2,7 @@ import { recordDirectoryMetricsSnapshot } from './directoryMetrics';
 import { DirectoryInvalidRow, DirectoryRowInput, DirectoryRowNormalized, DirectorySchemaVersion, HasuraClient } from './directory/types';
 import { createDirectoryPreviewFromRows, loadDirectorySchemaVersion, MAX_DIFF_SAMPLES, sha256 } from './directory/computePreview';
 import { normalizeAndValidateDirectoryRows, normalizeHeader, normEmail } from './directory/validate';
+import { DEFAULT_PII_POLICY, PiiPolicy } from './pii/policy';
 
 export { HasuraClient } from './directory/types';
 
