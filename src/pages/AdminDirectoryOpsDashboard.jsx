@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUserData } from '@nhost/react';
-import { DirectoryOpsAdminAPI } from '@/api/adapters';
+import { DirectoryInvitesAPI, DirectoryOpsAdminAPI } from '@/api/adapters';
 
 const EMPTY_SUMMARY = {
   sources: [],
@@ -66,6 +66,11 @@ export default function AdminDirectoryOpsDashboard() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [runningSourceId, setRunningSourceId] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('parent');
+  const [inviteStatus, setInviteStatus] = useState('');
+  const [inviteError, setInviteError] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   useEffect(() => {
     if (!schoolId && defaultSchoolId) setSchoolId(defaultSchoolId);
@@ -135,6 +140,34 @@ export default function AdminDirectoryOpsDashboard() {
     if (approvalId) navigate(DirectoryOpsAdminAPI.openApproval(approvalId));
   }, [navigate]);
 
+  const handleSendInvite = useCallback(async () => {
+    if (!schoolId || !inviteEmail) {
+      setInviteError('School ID and email are required');
+      return;
+    }
+    setInviteLoading(true);
+    setInviteError('');
+    setInviteStatus('');
+    try {
+      const resp = await DirectoryInvitesAPI.createDirectoryInvite({
+        schoolId,
+        districtId: districtId || undefined,
+        email: inviteEmail,
+        role: inviteRole
+      });
+      if (resp?.ok) {
+        setInviteStatus(resp.status || 'sent');
+      } else {
+        setInviteError(resp?.reason || 'Unable to send invite');
+      }
+    } catch (err) {
+      console.error(err);
+      setInviteError(err?.message ?? 'Unable to send invite');
+    } finally {
+      setInviteLoading(false);
+    }
+  }, [schoolId, districtId, inviteEmail, inviteRole]);
+
   const changeCounts = summary.directoryMetrics?.lastChangeCounts || { added: 0, updated: 0, deactivated: 0, invalid: 0 };
 
   return (
@@ -178,6 +211,50 @@ export default function AdminDirectoryOpsDashboard() {
             </button>
             {error ? <span className="text-sm text-red-600">{error}</span> : null}
             {success ? <span className="text-sm text-green-600">{success}</span> : null}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white rounded shadow p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Invite directory contact</h2>
+            <p className="text-sm text-gray-600">Send a claim invite to a directory email.</p>
+          </div>
+          {inviteStatus ? <span className="text-sm text-green-600">Status: {inviteStatus}</span> : null}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-gray-700">Email</span>
+            <input
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="parent@example.com"
+              className="w-full border rounded px-3 py-2"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-gray-700">Role</span>
+            <select
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            >
+              <option value="parent">Parent</option>
+              <option value="teacher">Teacher</option>
+              <option value="staff">Staff</option>
+            </select>
+          </label>
+          <div className="flex items-end gap-3">
+            <button
+              type="button"
+              onClick={handleSendInvite}
+              className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+              disabled={inviteLoading}
+            >
+              {inviteLoading ? 'Sending…' : 'Send invite'}
+            </button>
+            {inviteError ? <span className="text-sm text-red-600">{inviteError}</span> : null}
           </div>
         </div>
       </section>

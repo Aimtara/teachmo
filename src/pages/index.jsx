@@ -20,6 +20,7 @@ const AdminDirectoryJobDetail = lazy(() => import('./AdminDirectoryJobDetail.jsx
 const AdminDataScopes = lazy(() => import('./AdminDataScopes.jsx'));
 const Notifications = lazy(() => import('./Notifications.jsx'));
 const NotificationPreferences = lazy(() => import('./NotificationPreferences.jsx'));
+const ClaimInvite = lazy(() => import('./ClaimInvite.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -85,6 +86,11 @@ export default function Pages() {
       key: 'accept-invite',
       path: '/accept-invite',
       Component: AcceptInvite
+    },
+    {
+      key: 'claim-invite',
+      path: '/claim',
+      Component: ClaimInvite
     },
     {
       key: 'admin-directory-import',

@@ -1,0 +1,49 @@
+table:
+  name: directory_contact_links
+  schema: public
+select_permissions:
+  - role: admin
+    permission:
+      columns:
+        - id
+        - school_id
+        - district_id
+        - email
+        - user_id
+        - link_status
+        - linked_at
+        - unlinked_at
+        - linked_by
+        - metadata
+      filter: {}
+      allow_aggregations: true
+  - role: district_admin
+    permission:
+      columns:
+        - id
+        - school_id
+        - district_id
+        - email
+        - user_id
+        - link_status
+        - linked_at
+        - unlinked_at
+        - linked_by
+        - metadata
+      filter: {}
+      allow_aggregations: true
+  - role: school_admin
+    permission:
+      columns:
+        - id
+        - school_id
+        - district_id
+        - email
+        - user_id
+        - link_status
+        - linked_at
+        - unlinked_at
+        - linked_by
+        - metadata
+      filter: {}
+      allow_aggregations: true
