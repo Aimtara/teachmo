@@ -2,6 +2,7 @@ import { runDirectorySourceSync } from '../_shared/directorySourceSync';
 import { getDirectorySourceSecrets } from '../_shared/sourceFetchers/secrets';
 import { getActorScope } from '../_shared/tenantScope';
 import { handleDirectorySyncAlert } from '../_shared/notifier';
+import { getPiiPolicyForSource } from '../_shared/pii/policy';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
@@ -47,6 +48,9 @@ export default async (req: any, res: any) => {
         is_enabled
         config
         last_run_at
+        pii_policy
+        retention_days
+        dataguard_mode
       }
     }`,
     { id: sourceId }

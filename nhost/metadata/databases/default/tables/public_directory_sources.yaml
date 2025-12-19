@@ -42,9 +42,33 @@ update_permissions:
       filter: {}
   - role: district_admin
     permission:
-      columns: "*"
+      columns:
+        - config
+        - created_at
+        - district_id
+        - id
+        - is_enabled
+        - last_run_at
+        - name
+        - schedule_cron
+        - schedule_tz
+        - school_id
+        - source_type
+        - updated_at
       filter: {}
   - role: school_admin
     permission:
-      columns: "*"
+      columns:
+        - config
+        - created_at
+        - district_id
+        - id
+        - is_enabled
+        - last_run_at
+        - name
+        - schedule_cron
+        - schedule_tz
+        - school_id
+        - source_type
+        - updated_at
       filter: {}

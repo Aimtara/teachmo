@@ -2,6 +2,7 @@ import { recordDirectoryMetricsSnapshot } from './directoryMetrics';
 import { DirectoryInvalidRow, DirectoryRowInput, DirectoryRowNormalized, DirectorySchemaVersion, HasuraClient } from './directory/types';
 import { createDirectoryPreviewFromRows, loadDirectorySchemaVersion, MAX_DIFF_SAMPLES, sha256 } from './directory/computePreview';
 import { normalizeAndValidateDirectoryRows, normalizeHeader, normEmail } from './directory/validate';
+import { DEFAULT_PII_POLICY, PiiPolicy } from './pii/policy';
 
 export { HasuraClient } from './directory/types';
 
@@ -174,6 +175,7 @@ export async function createDirectoryImportPreview(params: {
   sourceRef?: string | null;
   sampleLimit?: number;
   sourceHash?: string | null;
+  piiPolicy?: PiiPolicy;
 }) {
   const {
     hasura,
@@ -187,6 +189,7 @@ export async function createDirectoryImportPreview(params: {
     sourceRef = null,
     sampleLimit = MAX_DIFF_SAMPLES,
     sourceHash: providedSourceHash = null,
+    piiPolicy = DEFAULT_PII_POLICY,
   } = params;
 
   const schema = await loadDirectorySchemaVersion(hasura, schemaVersion);
@@ -205,6 +208,7 @@ export async function createDirectoryImportPreview(params: {
     sourceRef,
     sampleLimit,
     sourceHash,
+    piiPolicy,
   });
 }
 

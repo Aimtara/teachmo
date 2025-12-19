@@ -5,6 +5,7 @@ export type DirectoryContact = {
   externalId?: string;
   firstName?: string;
   lastName?: string;
+  metadata?: Record<string, any>;
 };
 
 export type HasuraClient = (query: string, variables?: Record<string, any>) => Promise<any>;
@@ -18,7 +19,12 @@ export type DirectorySchemaVersion = {
   optional_headers: string[];
   rules: Record<string, any>;
 };
-export type DirectoryInvalidRow = { rowNumber: number; raw: Record<string, any>; reason: string };
+export type DirectoryInvalidRow = {
+  rowNumber: number;
+  raw: Record<string, any>;
+  raw_redacted?: Record<string, any>;
+  reason: string;
+};
 export type DirectoryDiff = {
   counts: { toAdd: number; toUpdate: number; toDeactivate: number; invalid: number; currentActive: number };
   samples: {
