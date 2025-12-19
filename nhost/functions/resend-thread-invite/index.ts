@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { sendEmail } from '../_shared/email';
 import { enforceInviteRateLimits } from '../_shared/rateLimit';
+import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 
 const allowedRoles = new Set(['teacher', 'school_admin', 'district_admin', 'admin', 'system_admin']);
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -70,7 +71,7 @@ export default async (req: any, res: any) => {
       return res.status(400).json({ ok: false, reason: 'invite_expired' });
 
     const threadResp = await hasura(
-      `query Thread($id: uuid!) { message_threads_by_pk(id: $id) { id created_by title } }`,
+      `query Thread($id: uuid!) { message_threads_by_pk(id: $id) { id created_by title school_id district_id } }`,
       { id: invite.thread_id }
     );
 
@@ -78,6 +79,10 @@ export default async (req: any, res: any) => {
     if (!thread?.id) return res.status(404).json({ ok: false });
 
     if (!isAdminRole && String(thread.created_by) !== actorId) return res.status(403).json({ ok: false });
+
+    const scopes = await getEffectiveScopes({ hasura, districtId: thread.district_id, schoolId: thread.school_id });
+    assertScope(scopes, 'messaging.sendInvites', true);
+    assertScope(scopes, 'messaging.useEmail', true);
 
     const rateLimit = await enforceInviteRateLimits(hasura, actorId, 1);
     if (!rateLimit.allowed) {

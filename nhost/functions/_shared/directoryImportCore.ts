@@ -174,6 +174,7 @@ export async function createDirectoryImportPreview(params: {
   sourceRef?: string | null;
   sampleLimit?: number;
   sourceHash?: string | null;
+  scopesSnapshot?: Record<string, any> | null;
 }) {
   const {
     hasura,
@@ -187,6 +188,7 @@ export async function createDirectoryImportPreview(params: {
     sourceRef = null,
     sampleLimit = MAX_DIFF_SAMPLES,
     sourceHash: providedSourceHash = null,
+    scopesSnapshot = null,
   } = params;
 
   const schema = await loadDirectorySchemaVersion(hasura, schemaVersion);
@@ -205,6 +207,7 @@ export async function createDirectoryImportPreview(params: {
     sourceRef,
     sampleLimit,
     sourceHash,
+    scopesSnapshot,
   });
 }
 
@@ -218,6 +221,7 @@ async function fetchPreviewRows(hasura: HasuraClient, previewId: string) {
         directory_import_preview_rows(where: { preview_id: { _eq: $previewId } }, limit: $limit, offset: $offset) {
           email
           contact_type
+          action
         }
       }`,
       { previewId, limit: batchSize, offset }
@@ -230,6 +234,7 @@ async function fetchPreviewRows(hasura: HasuraClient, previewId: string) {
       ...batch.map((row: any) => ({
         email: normEmail(row.email),
         contact_type: row.contact_type,
+        action: row.action ?? 'upsert',
       }))
     );
     if (batch.length < batchSize) break;
@@ -297,20 +302,62 @@ export async function applyDirectoryImportPreview(params: {
   const rows = await fetchPreviewRows(hasura, previewId);
   const previewStats = preview.stats && typeof preview.stats === 'object' ? preview.stats : {};
 
-  const upsertResult = await upsertDirectoryRows({
-    hasura,
-    schoolId: preview.school_id,
-    actorId,
-    normalizedRows: rows,
-    totalRowsOverride: previewStats.totalRows ?? rows.length,
-    invalidCountOverride: previewStats.invalid ?? 0,
-    deactivateMissing: preview.deactivate_missing,
-    dryRun: false,
-    sourceRef: preview.source_ref ?? null,
-    sourceHash: preview.source_hash ?? null,
-    auditAction: 'directory:apply_preview',
-    previewId,
-  });
+  const upsertRows = rows.filter((row) => row.action !== 'deactivate');
+  const deactivateRows = rows.filter((row) => row.action === 'deactivate');
+
+  const deactivateCount = deactivateRows.length;
+  const riskyPct = Number(process.env.RISKY_DEACTIVATION_PCT ?? 0.1);
+  const riskyAbs = Number(process.env.RISKY_DEACTIVATION_ABS ?? 25);
+
+  if (deactivateCount > 0) {
+    const directoryResp = await hasura(
+      `query ActiveCount($schoolId: uuid!) {
+        school_contact_directory_aggregate(where: { school_id: { _eq: $schoolId }, is_active: { _eq: true } }) {
+          aggregate { count }
+        }
+      }`,
+      { schoolId: preview.school_id }
+    );
+    const activeCount = directoryResp?.data?.school_contact_directory_aggregate?.aggregate?.count ?? 0;
+    const exceedsPct = activeCount > 0 && Number.isFinite(riskyPct) && riskyPct > 0 && deactivateCount > activeCount * riskyPct;
+    const exceedsAbs = Number.isFinite(riskyAbs) && deactivateCount > riskyAbs;
+    if (exceedsPct || exceedsAbs) throw new Error('risky_deactivation_requires_approval');
+  }
+
+  let upsertResult = { stats: { totalRows: rows.length, totalValid: rows.length, invalid: 0, upserted: 0, deactivated: 0 }, errors: [] as any[] };
+
+  if (upsertRows.length > 0) {
+    upsertResult = await upsertDirectoryRows({
+      hasura,
+      schoolId: preview.school_id,
+      actorId,
+      normalizedRows: upsertRows,
+      totalRowsOverride: previewStats.totalRows ?? rows.length,
+      invalidCountOverride: previewStats.invalid ?? 0,
+      deactivateMissing: false,
+      dryRun: false,
+      sourceRef: preview.source_ref ?? null,
+      sourceHash: preview.source_hash ?? null,
+      auditAction: 'directory:apply_preview',
+      previewId,
+    });
+  }
+
+  let deactivated = 0;
+  if (deactivateRows.length > 0) {
+    const resp = await hasura(
+      `mutation Deactivate($schoolId: uuid!, $emails: [citext!]!, $ts: timestamptz!) {
+        update_school_contact_directory(
+          where: { school_id: { _eq: $schoolId }, email: { _in: $emails } },
+          _set: { is_active: false, deactivated_at: $ts, updated_at: $ts }
+        ) { affected_rows }
+      }`,
+      { schoolId: preview.school_id, emails: deactivateRows.map((row) => row.email), ts: new Date().toISOString() }
+    );
+    deactivated = resp?.data?.update_school_contact_directory?.affected_rows ?? 0;
+  }
+
+  const mergedStats = { ...upsertResult.stats, deactivated: (upsertResult.stats?.deactivated ?? 0) + deactivated };
 
   const finishedAt = new Date().toISOString();
 
@@ -321,12 +368,13 @@ export async function applyDirectoryImportPreview(params: {
     sourceType: preview.source_id ? 'source_preview' : 'preview',
     sourceRef: preview.source_ref ?? null,
     sourceHash: preview.source_hash,
+    scopesSnapshot: preview.scopes_snapshot ?? {},
   });
 
   if (jobId) {
     await completeJob(hasura, {
       id: jobId,
-      stats: upsertResult.stats,
+      stats: mergedStats,
       errors: upsertResult.errors,
       finishedAt,
     });
@@ -352,10 +400,10 @@ export async function applyDirectoryImportPreview(params: {
         action: 'directory:apply_preview',
         entity_type: 'school_contact_directory',
         entity_id: preview.school_id,
-        metadata: {
-          previewId,
-          jobId,
-          stats: upsertResult.stats,
+          metadata: {
+            previewId,
+            jobId,
+          stats: mergedStats,
           sourceRef: preview.source_ref ?? null,
           sourceHash: preview.source_hash,
           ...auditMetadata,
@@ -370,6 +418,7 @@ export async function applyDirectoryImportPreview(params: {
       schoolId: preview.school_id,
       districtId: preview.district_id ?? null,
       stats: upsertResult.stats,
+      deactivated: mergedStats.deactivated,
       diffCounts: previewStats,
       lastImportJobId: jobId ?? null,
       lastPreviewId: previewId,
@@ -392,6 +441,7 @@ export async function createImportJob(
     sourceType: string;
     sourceRef?: string | null;
     sourceHash: string;
+    scopesSnapshot?: Record<string, any> | null;
   }
 ) {
   const jobInsert = await hasura(
@@ -407,6 +457,7 @@ export async function createImportJob(
         source_ref: params.sourceRef ?? null,
         source_hash: params.sourceHash,
         status: 'running',
+        scopes_snapshot: params.scopesSnapshot ?? {},
       },
     }
   );

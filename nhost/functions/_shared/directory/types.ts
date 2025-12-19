@@ -9,8 +9,8 @@ export type DirectoryContact = {
 
 export type HasuraClient = (query: string, variables?: Record<string, any>) => Promise<any>;
 
-export type DirectoryRowInput = { email?: string | null; contact_type?: string | null; rowNumber?: number };
-export type DirectoryRowNormalized = { email: string; contact_type: string };
+export type DirectoryRowInput = { email?: string | null; contact_type?: string | null; rowNumber?: number; action?: 'upsert' | 'deactivate' };
+export type DirectoryRowNormalized = { email: string; contact_type: string; action?: 'upsert' | 'deactivate' };
 export type JobError = { reason: string; message?: string; row?: number };
 export type DirectorySchemaVersion = {
   version: string;

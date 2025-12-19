@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { sendEmail } from '../_shared/email';
 import { enforceInviteRateLimits } from '../_shared/rateLimit';
 import { emailAllowedForSchool, getActorScope } from '../_shared/tenantScope';
+import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 
 type InviteStatus = 'added_existing_user' | 'invited_new_user' | 'not_allowed';
 
@@ -96,6 +97,13 @@ export default async (req: any, res: any) => {
   try {
     const scope = await getActorScope(hasura, actorId);
     if (!scope.schoolId) return res.status(403).json({ ok: false });
+
+    const targetSchoolId = scope.schoolId;
+    const targetDistrictId = scope.districtId ?? null;
+
+    const scopes = await getEffectiveScopes({ hasura, districtId: targetDistrictId, schoolId: targetSchoolId });
+    assertScope(scopes, 'messaging.sendInvites', true);
+    assertScope(scopes, 'messaging.useEmail', true);
 
     const allowedIds = new Set<string>();
     const deniedIds = new Set<string>();

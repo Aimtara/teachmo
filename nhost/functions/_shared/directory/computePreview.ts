@@ -133,7 +133,7 @@ async function insertPreviewRows(hasura: HasuraClient, previewId: string, rows: 
           objects: $objects,
           on_conflict: {
             constraint: directory_import_preview_rows_preview_id_email_key,
-            update_columns: [contact_type]
+          update_columns: [contact_type, action]
           }
         ) { affected_rows }
       }`,
@@ -142,6 +142,7 @@ async function insertPreviewRows(hasura: HasuraClient, previewId: string, rows: 
           preview_id: previewId,
           email: row.email,
           contact_type: row.contact_type,
+          action: row.action ?? 'upsert',
         })),
       }
     );
@@ -161,7 +162,8 @@ async function insertQuarantineRows(hasura: HasuraClient, previewId: string, row
         objects: slice.map((row) => ({
           preview_id: previewId,
           row_number: row.rowNumber,
-          raw: row.raw,
+          raw: {},
+          raw_redacted: row.raw,
           reason: row.reason,
         })),
       }
@@ -182,6 +184,9 @@ export async function createDirectoryPreviewFromRows(params: {
   sampleLimit?: number;
   sourceHash?: string | null;
   metadata?: Record<string, any> | null;
+  mode?: 'snapshot' | 'delta';
+  piiPolicySnapshot?: Record<string, any> | null;
+  scopesSnapshot?: Record<string, any> | null;
 }) {
   const {
     hasura,
@@ -196,6 +201,9 @@ export async function createDirectoryPreviewFromRows(params: {
     sampleLimit = MAX_DIFF_SAMPLES,
     sourceHash: providedSourceHash = null,
     metadata = null,
+    mode = 'snapshot',
+    piiPolicySnapshot = null,
+    scopesSnapshot = null,
   } = params;
 
   const effectiveSampleLimit = Number.isFinite(Number(sampleLimit)) && Number(sampleLimit) > 0 ? Number(sampleLimit) : MAX_DIFF_SAMPLES;
@@ -250,6 +258,9 @@ export async function createDirectoryPreviewFromRows(params: {
         diff,
         stats,
         errors: validation.errors,
+        mode,
+        pii_policy_snapshot: piiPolicySnapshot ?? {},
+        scopes_snapshot: scopesSnapshot ?? {},
       },
     }
   );
@@ -322,7 +333,9 @@ export async function createDirectoryPreviewFromContacts(params: {
   sampleLimit?: number;
   sourceHash?: string | null;
   metadata?: Record<string, any> | null;
+  scopesSnapshot?: Record<string, any> | null;
+  mode?: 'snapshot' | 'delta';
 }) {
   const rows = mapDirectoryContactsToRows(params.contacts);
-  return createDirectoryPreviewFromRows({ ...params, rows });
+  return createDirectoryPreviewFromRows({ ...params, rows, mode: params.mode });
 }
