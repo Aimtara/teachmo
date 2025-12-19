@@ -1,0 +1,1 @@
+-- No schema changes required; notifications can reference invites via entity_type = 'invite'.

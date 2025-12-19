@@ -1,0 +1,30 @@
+name: Expire pending invites
+
+on:
+  schedule:
+    - cron: '15 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  expire-invites:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger invite expiry
+        env:
+          FUNCTIONS_URL: ${{ secrets.INVITES_FUNCTIONS_URL || secrets.DIRECTORY_SYNC_FUNCTIONS_URL }}
+          INVITE_CRON_TOKEN: ${{ secrets.INVITE_CRON_TOKEN }}
+        run: |
+          if [ -z "$FUNCTIONS_URL" ]; then
+            echo "FUNCTIONS_URL secret (INVITES_FUNCTIONS_URL or DIRECTORY_SYNC_FUNCTIONS_URL) is required"
+            exit 1
+          fi
+
+          if [ -z "$INVITE_CRON_TOKEN" ]; then
+            echo "INVITE_CRON_TOKEN secret is required"
+            exit 1
+          fi
+
+          curl -sS -X POST "$FUNCTIONS_URL/v1/functions/expire-invites" \
+            -H "Authorization: Bearer $INVITE_CRON_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{}'
