@@ -1,0 +1,30 @@
+table:
+  name: school_data_scopes
+  schema: public
+select_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}
+insert_permissions:
+  - role: admin
+    permission:
+      check: {}
+      columns: "*"
+  - role: district_admin
+    permission:
+      check: {}
+      columns: "*"
+update_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}

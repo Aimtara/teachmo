@@ -1,7 +1,5 @@
-import { mapRoleToContactType } from '../directory/computePreview';
 import { DirectoryContact } from '../directory/types';
-import { isEmailLike, normEmail } from '../directory/validate';
-import { applyDataGuardRules } from './dataguard';
+import { DataScopes } from '../scopes/resolveScopes';
 
 export type PiiPolicy = {
   storeEmail: boolean;
@@ -14,6 +12,11 @@ export type PiiPolicy = {
   emailDenylistDomains: string[];
 };
 
+export type SanitizedContact = Pick<DirectoryContact, 'email' | 'contactType'> &
+  Partial<DirectoryContact> & {
+    metadata?: Record<string, any>;
+  };
+
 export const DEFAULT_PII_POLICY: PiiPolicy = {
   storeEmail: true,
   storeNames: false,
@@ -25,76 +28,76 @@ export const DEFAULT_PII_POLICY: PiiPolicy = {
   emailDenylistDomains: [],
 };
 
-export function getPiiPolicyForSource(sourceRow: any): PiiPolicy {
-  const policyRaw = sourceRow?.pii_policy && typeof sourceRow.pii_policy === 'object' ? sourceRow.pii_policy : {};
-  const merged = { ...DEFAULT_PII_POLICY, ...policyRaw } as PiiPolicy;
-  merged.emailAllowlistDomains = Array.isArray(policyRaw.emailAllowlistDomains)
-    ? policyRaw.emailAllowlistDomains.map((v: any) => String(v).toLowerCase())
-    : [];
-  merged.emailDenylistDomains = Array.isArray(policyRaw.emailDenylistDomains)
-    ? policyRaw.emailDenylistDomains.map((v: any) => String(v).toLowerCase())
-    : [];
-  return merged;
+export function getPiiPolicyForSource(sourceRow: any, scopes?: DataScopes): PiiPolicy {
+  const rawPolicy = sourceRow?.pii_policy;
+  const policy = rawPolicy && typeof rawPolicy === 'object' ? { ...DEFAULT_PII_POLICY, ...rawPolicy } : DEFAULT_PII_POLICY;
+
+  if (scopes && scopes.directory && scopes.directory.names === false) {
+    policy.storeNames = false;
+  }
+
+  return policy;
 }
 
-export function redactQuarantineRow(rawRow: Record<string, any>, policy: PiiPolicy) {
-  const safeRaw = rawRow && typeof rawRow === 'object' ? rawRow : {};
+function emailDomain(email: string): string | null {
+  const parts = String(email || '').toLowerCase().split('@');
+  if (parts.length !== 2) return null;
+  return parts[1];
+}
+
+export function redactQuarantineRow(rawRow: Record<string, any>, policy: PiiPolicy): Record<string, any> {
+  if (!policy.storeRawQuarantine) return {};
   const redacted: Record<string, any> = {};
-
-  if (policy.storeEmail && safeRaw.email) redacted.email = safeRaw.email;
-  if (safeRaw.contact_type) redacted.contact_type = safeRaw.contact_type;
-  if (policy.storeNames) {
-    if (safeRaw.firstName) redacted.firstName = safeRaw.firstName;
-    if (safeRaw.lastName) redacted.lastName = safeRaw.lastName;
-  }
-  if (policy.storeExternalIds && (safeRaw.externalId || safeRaw.external_id)) {
-    redacted.externalId = safeRaw.externalId ?? safeRaw.external_id;
-  }
-
+  Object.entries(rawRow || {}).forEach(([key, value]) => {
+    if (key.toLowerCase().includes('email')) {
+      redacted[key] = value;
+      return;
+    }
+    if (policy.storeNames && (key.toLowerCase().includes('name') || key.toLowerCase().includes('first') || key.toLowerCase().includes('last'))) {
+      redacted[key] = value;
+      return;
+    }
+    if (policy.storeExternalIds && key.toLowerCase().includes('id')) {
+      redacted[key] = value;
+      return;
+    }
+    // everything else is dropped
+  });
   return redacted;
 }
 
 export function sanitizeContact(
   contact: DirectoryContact,
-  policy: PiiPolicy = DEFAULT_PII_POLICY,
-  ctx?: { dataguardMode?: 'auto' | 'on' | 'off'; sourceType?: string }
-) {
-  const email = normEmail(contact.email);
-  if (!email || !isEmailLike(email)) {
-    return { valid: false, reason: 'invalid_email', raw_redacted: redactQuarantineRow(contact as any, policy) };
+  policy: PiiPolicy,
+  ctx?: { sourceType?: string; scopes?: DataScopes }
+): SanitizedContact | null {
+  if (ctx?.scopes?.directory?.email === false) return null;
+  const email = String(contact.email || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) return null;
+  const domain = emailDomain(email);
+  if (policy.emailAllowlistDomains?.length) {
+    if (!domain || !policy.emailAllowlistDomains.map((d) => d.toLowerCase()).includes(domain)) return null;
+  }
+  if (policy.emailDenylistDomains?.length) {
+    if (domain && policy.emailDenylistDomains.map((d) => d.toLowerCase()).includes(domain)) return null;
   }
 
-  const domain = email.split('@')[1]?.toLowerCase();
-  if (policy.emailAllowlistDomains.length > 0 && domain && !policy.emailAllowlistDomains.includes(domain)) {
-    return { valid: false, reason: 'domain_not_allowed', raw_redacted: redactQuarantineRow({ email }, policy) };
-  }
-
-  if (domain && policy.emailDenylistDomains.includes(domain)) {
-    return { valid: false, reason: 'domain_denied', raw_redacted: redactQuarantineRow({ email }, policy) };
-  }
-
-  const contactType = contact.contactType || mapRoleToContactType(contact.sourceRole);
-  if (!contactType) {
-    return { valid: false, reason: 'missing_contact_type', raw_redacted: redactQuarantineRow({ email }, policy) };
-  }
-
-  const { contact: dgContact, piiMasked } = applyDataGuardRules(contact, ctx?.dataguardMode ?? 'auto');
-
-  const sanitized: DirectoryContact = {
+  const sanitized: SanitizedContact = {
     email,
-    contactType,
-    sourceRole: dgContact.sourceRole,
+    contactType: contact.contactType,
+    metadata: {},
   };
 
-  if (policy.storeExternalIds && dgContact.externalId) sanitized.externalId = dgContact.externalId;
-  if (policy.storeNames) {
-    if (dgContact.firstName) sanitized.firstName = dgContact.firstName;
-    if (dgContact.lastName) sanitized.lastName = dgContact.lastName;
+  if (policy.storeExternalIds && contact.externalId) {
+    sanitized.externalId = contact.externalId;
   }
 
-  const metadata: Record<string, any> = { ...dgContact.metadata };
-  if (piiMasked) metadata.piiMasked = true;
-  if (Object.keys(metadata).length > 0) sanitized.metadata = metadata;
+  if (policy.storeNames) {
+    if (contact.firstName) sanitized.firstName = contact.firstName;
+    if (contact.lastName) sanitized.lastName = contact.lastName;
+  }
 
-  return { valid: true, contact: sanitized };
+  sanitized.metadata = sanitized.metadata && Object.keys(sanitized.metadata).length ? sanitized.metadata : undefined;
+
+  return sanitized;
 }

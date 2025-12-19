@@ -2,7 +2,7 @@ import { runDirectorySourceSync } from '../_shared/directorySourceSync';
 import { getDirectorySourceSecrets } from '../_shared/sourceFetchers/secrets';
 import { getActorScope } from '../_shared/tenantScope';
 import { handleDirectorySyncAlert } from '../_shared/notifier';
-import { getPiiPolicyForSource } from '../_shared/pii/policy';
+import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
@@ -83,6 +83,8 @@ export default async (req: any, res: any) => {
 
   try {
     const secrets = getDirectorySourceSecrets();
+    const scopes = await getEffectiveScopes({ hasura, districtId: source.district_id ?? null, schoolId: source.school_id });
+    assertScope(scopes, 'directory.email', true);
 
     const result = await runDirectorySourceSync({
       hasura,
@@ -91,6 +93,7 @@ export default async (req: any, res: any) => {
       deactivateMissing: Boolean(deactivateMissing),
       dryRun: Boolean(dryRun),
       secrets,
+      scopes,
     });
 
     if (isCronRequest) {
