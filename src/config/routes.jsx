@@ -24,7 +24,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'UnifiedDiscover',
     path: '/discover',
-    Component: lazy(() => import('@/pages/UnifiedDiscover.jsx')),
+    Component: lazy(() => import('@/pages/Discover.jsx')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
@@ -34,7 +34,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'UnifiedCommunity',
     path: '/community',
-    Component: lazy(() => import('@/pages/UnifiedCommunity.jsx')),
+    Component: lazy(() => import('@/pages/Community.jsx')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
