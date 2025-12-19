@@ -114,7 +114,8 @@ export const NAV_STRUCTURE = [
       { name: 'Districts', page: 'AdminDistricts', icon: Building2, roles: ['system_admin'], requiredScopes: ['district:manage'] },
       { name: 'Schools', page: 'AdminSchools', icon: School, roles: ['system_admin', 'district_admin'], requiredScopes: ['org:manage'] },
       { name: 'Licenses', page: 'AdminLicenses', icon: FileText, requiredScopes: ['users:manage'] },
-      { name: 'Moderation', page: 'AdminModeration', icon: Shield, requiredScopes: ['safety:review'] }
+      { name: 'Message Reports', page: 'AdminModerationQueue', icon: Shield, requiredScopes: ['safety:review'] },
+      { name: 'Messaging Blocks', page: 'AdminMessagingBlocklist', icon: Shield, requiredScopes: ['safety:review'] }
     ]
   },
   {

@@ -226,6 +226,22 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading admin analytics...</p>
   },
   {
+    name: 'AdminModerationQueue',
+    path: '/admin/moderation/messages',
+    Component: lazy(() => import('@/pages/AdminModerationQueue.jsx')),
+    allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+    requiredScopes: ['safety:review'],
+    fallback: <p className="p-6 text-gray-600">Loading moderation queue...</p>
+  },
+  {
+    name: 'AdminMessagingBlocklist',
+    path: '/admin/moderation/blocks',
+    Component: lazy(() => import('@/pages/AdminMessagingBlocklist.jsx')),
+    allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+    requiredScopes: ['safety:review'],
+    fallback: <p className="p-6 text-gray-600">Loading messaging blocklist...</p>
+  },
+  {
     name: 'SchoolDirectory',
     path: '/school-directory',
     Component: lazy(() => import('@/pages/SchoolDirectory.jsx')),
