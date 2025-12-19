@@ -1,35 +1,22 @@
-import React from "react";
 import PropTypes from "prop-types";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuthenticationStatus } from "@nhost/react";
-import { useAuthorization } from "@/hooks/useUserRole";
-import { LoadingSpinner } from "@/components/shared/LoadingStates";
+import { getDefaultPathForRole, useUserRole } from "@/hooks/useUserRole";
 
-export default function ProtectedRoute({
-  children,
-  allowedRoles,
-  requiredScopes,
-  fallbackPath = "/",
-  loadingLabel = "Loading..."
-}) {
-  const location = useLocation();
+export default function ProtectedRoute({ children, allowedRoles, redirectTo = "/" }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
-  const { defaultPath, canAccess } = useAuthorization();
+  const role = useUserRole();
 
   if (isLoading) {
-    return (
-      <div className="min-h-[40vh] flex items-center justify-center">
-        <LoadingSpinner message={loadingLabel} />
-      </div>
-    );
+    return <p className="p-6 text-gray-600">Checking your session…</p>;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={fallbackPath} state={{ from: location }} replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
-  if (!canAccess({ allowedRoles, requiredScopes })) {
-    return <Navigate to={defaultPath || fallbackPath} replace />;
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to={getDefaultPathForRole(role)} replace />;
   }
 
   return children;
@@ -38,7 +25,5 @@ export default function ProtectedRoute({
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
   allowedRoles: PropTypes.arrayOf(PropTypes.string),
-  requiredScopes: PropTypes.arrayOf(PropTypes.string),
-  fallbackPath: PropTypes.string,
-  loadingLabel: PropTypes.string
+  redirectTo: PropTypes.string
 };
