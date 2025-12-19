@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUserData } from '@nhost/react';
-import { InviteAdminAPI, ThreadsAPI } from '@/api/adapters';
+import { DataScopesAPI, InviteAdminAPI, ThreadsAPI } from '@/api/adapters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useUserRole } from '@/hooks/useUserRole';
 import { can } from '@/security/permissions';
+import { SYSTEM_SCOPE_DEFAULTS } from '@/utils/scopes';
 
 export default function Messages() {
   const user = useUserData();
@@ -22,13 +23,56 @@ export default function Messages() {
   const [manageStatus, setManageStatus] = useState('');
   const [isLoadingInvites, setIsLoadingInvites] = useState(false);
   const [activeInviteAction, setActiveInviteAction] = useState('');
+  const [scopes, setScopes] = useState(SYSTEM_SCOPE_DEFAULTS);
+  const [scopesError, setScopesError] = useState('');
+  const [scopesLoading, setScopesLoading] = useState(false);
 
   const canInvite = can(role, 'messages:invite');
   const canManageInvites = can(role, 'threads:invite_manage');
+  const invitesAllowedByScope = scopes?.messaging?.sendInvites !== false;
+  const emailAllowedByScope = scopes?.messaging?.useEmail !== false;
+  const scopeBlockReason = !invitesAllowedByScope
+    ? 'Invitations are disabled by your district consent settings.'
+    : !emailAllowedByScope
+      ? 'Email delivery is disabled by your district consent settings.'
+      : '';
+
+  useEffect(() => {
+    const loadScopes = async () => {
+      if (!user?.id) return;
+      const districtId = String(user?.metadata?.district_id ?? user?.metadata?.districtId ?? '').trim();
+      const schoolId = String(user?.metadata?.school_id ?? user?.metadata?.schoolId ?? '').trim();
+
+      if (!districtId) {
+        setScopes(SYSTEM_SCOPE_DEFAULTS);
+        setScopesError('');
+        return;
+      }
+
+      setScopesLoading(true);
+      setScopesError('');
+      try {
+        const result = await DataScopesAPI.fetchDataScopes({ districtId, schoolId: schoolId || undefined });
+        setScopes(result.effectiveScopes ?? SYSTEM_SCOPE_DEFAULTS);
+      } catch (error) {
+        console.error('load scopes failed', error);
+        setScopes(SYSTEM_SCOPE_DEFAULTS);
+        setScopesError('Unable to load consent settings; using safe defaults.');
+      } finally {
+        setScopesLoading(false);
+      }
+    };
+
+    loadScopes();
+  }, [user]);
 
   const handleNewThread = async (event) => {
     event.preventDefault();
     if (!user?.id || !canInvite || isCreating) return;
+    if (!invitesAllowedByScope || !emailAllowedByScope) {
+      setStatus(scopeBlockReason);
+      return;
+    }
 
     setIsCreating(true);
     setStatus('');
@@ -102,6 +146,10 @@ export default function Messages() {
 
   const handleResendInvite = async (inviteId) => {
     if (!inviteId || !canManageInvites) return;
+    if (!invitesAllowedByScope || !emailAllowedByScope) {
+      setManageStatus(scopeBlockReason);
+      return;
+    }
     setActiveInviteAction(`resend-${inviteId}`);
     setManageStatus('');
     try {
@@ -153,6 +201,18 @@ export default function Messages() {
         </p>
       )}
 
+      {user?.id && canInvite && scopeBlockReason && (
+        <p className="text-sm text-muted-foreground">
+          {scopeBlockReason}
+        </p>
+      )}
+
+      {scopesError && (
+        <p className="text-sm text-muted-foreground">
+          {scopesError}
+        </p>
+      )}
+
       {user?.id && canInvite && (
         <form onSubmit={handleNewThread} className="space-y-4 max-w-xl">
           <div className="space-y-2">
@@ -193,7 +253,7 @@ export default function Messages() {
           </div>
 
           <div className="space-y-2">
-            <Button type="submit" disabled={!user?.id || isCreating}>
+            <Button type="submit" disabled={!user?.id || isCreating || !invitesAllowedByScope || !emailAllowedByScope}>
               {isCreating ? 'Creating…' : 'Start New Thread'}
             </Button>
             {status && <p className="text-sm text-muted-foreground">{status}</p>}

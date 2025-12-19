@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUserData } from '@nhost/react';
 import { DirectoryOpsAdminAPI } from '@/api/adapters';
 
@@ -142,6 +142,9 @@ export default function AdminDirectoryOpsDashboard() {
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold">Directory Ops dashboard</h1>
         <p className="text-gray-600">Monitor sync health, approvals, and coverage at a glance.</p>
+        <Link to="/admin/data-scopes" className="text-sm text-blue-600 hover:underline">
+          Manage data scopes / consent
+        </Link>
       </header>
 
       <section className="bg-white rounded shadow p-4 space-y-4">

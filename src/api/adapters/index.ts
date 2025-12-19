@@ -8,3 +8,4 @@ export * as DirectoryPreviewAdminAPI from './modules/directoryPreviewAdmin';
 export * as DirectoryApprovalsAdminAPI from './modules/directoryApprovalsAdmin';
 export * as DirectoryOpsAdminAPI from './modules/directoryOpsAdmin';
 export * as NotificationsAPI from './modules/notifications';
+export * as DataScopesAPI from './modules/dataScopes';

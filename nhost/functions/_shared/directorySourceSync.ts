@@ -77,7 +77,7 @@ export async function runDirectorySourceSync(params: {
   try {
     const config = source.config && typeof source.config === 'object' ? source.config : {};
     const schema = await loadDirectorySchemaVersion(hasura, 'v1');
-    const piiPolicy = getPiiPolicyForSource(source);
+    const piiPolicy = getPiiPolicyForSource(source, scopes ?? undefined);
     const dataguardMode = (source.dataguard_mode as any) ?? 'auto';
 
     const fetchResult =
@@ -115,6 +115,7 @@ export async function runDirectorySourceSync(params: {
           sourceRef: fetchResult.sourceRef ?? source.name,
           sourceHash: fetchResult.sourceHash ?? undefined,
           scopesSnapshot: scopes ?? null,
+          piiPolicySnapshot: piiPolicy,
         })
       : await createDirectoryPreviewFromContacts({
           hasura,
@@ -130,6 +131,7 @@ export async function runDirectorySourceSync(params: {
           sourceHash: fetchResult.sourceHash ?? undefined,
           metadata: fetchResult.meta ?? null,
           scopesSnapshot: scopes ?? null,
+          piiPolicySnapshot: piiPolicy,
         });
 
     previewId = preview.previewId;

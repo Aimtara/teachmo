@@ -1,3 +1,5 @@
+import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
+
 const allowedRoles = new Set(['admin', 'system_admin', 'district_admin']);
 
 type DirectoryEntry = {
@@ -57,6 +59,9 @@ export default async (req: any, res: any) => {
     return res.status(400).json({ ok: false, reason: 'missing_school_or_email' });
   }
 
+  const scopeSchoolId = objects[0]?.school_id ?? fallbackSchool;
+  const scopeDistrictId = objects[0]?.district_id ?? districtId ?? null;
+
   async function hasura(query: string, variables?: Record<string, any>) {
     const response = await fetch(HASURA_URL, {
       method: 'POST',
@@ -71,6 +76,13 @@ export default async (req: any, res: any) => {
   }
 
   try {
+    const scopes = await getEffectiveScopes({
+      hasura,
+      districtId: scopeDistrictId || null,
+      schoolId: scopeSchoolId || null,
+    });
+    assertScope(scopes, 'directory.email', true);
+
     const resp = await hasura(
       `mutation Seed($objects: [school_contact_directory_insert_input!]!) {
         insert_school_contact_directory(

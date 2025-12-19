@@ -30,7 +30,8 @@ export const DEFAULT_PII_POLICY: PiiPolicy = {
 
 export function getPiiPolicyForSource(sourceRow: any, scopes?: DataScopes): PiiPolicy {
   const rawPolicy = sourceRow?.pii_policy;
-  const policy = rawPolicy && typeof rawPolicy === 'object' ? { ...DEFAULT_PII_POLICY, ...rawPolicy } : DEFAULT_PII_POLICY;
+  const policy =
+    rawPolicy && typeof rawPolicy === 'object' ? { ...DEFAULT_PII_POLICY, ...rawPolicy } : { ...DEFAULT_PII_POLICY };
 
   if (scopes && scopes.directory && scopes.directory.names === false) {
     policy.storeNames = false;
@@ -92,7 +93,7 @@ export function sanitizeContact(
     sanitized.externalId = contact.externalId;
   }
 
-  if (policy.storeNames) {
+  if (policy.storeNames && ctx?.scopes?.directory?.names !== false) {
     if (contact.firstName) sanitized.firstName = contact.firstName;
     if (contact.lastName) sanitized.lastName = contact.lastName;
   }
