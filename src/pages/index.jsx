@@ -8,6 +8,8 @@ import FeatureGate from '@/components/shared/FeatureGate';
 import RequirePermission from '@/components/security/RequirePermission';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import Landing from './Landing.jsx';
+import UnifiedDiscover from './UnifiedDiscover.jsx';
+import UnifiedCommunity from './UnifiedCommunity.jsx';
 
 const AcceptInvite = lazy(() => import('./AcceptInvite.jsx'));
 const AdminDirectoryImport = lazy(() => import('./AdminDirectoryImport.jsx'));
@@ -155,6 +157,24 @@ export default function Pages() {
     <BrowserRouter>
       <Suspense fallback={defaultFallback}>
         <Routes>
+          <Route
+            path="/discover"
+            element={(
+              <ProtectedRoute allowedRoles={["parent", "teacher", "school_admin", "district_admin", "system_admin"]}>
+                <UnifiedDiscover />
+              </ProtectedRoute>
+            )}
+          />
+
+          <Route
+            path="/community"
+            element={(
+              <ProtectedRoute allowedRoles={["parent", "teacher"]}>
+                <UnifiedCommunity />
+              </ProtectedRoute>
+            )}
+          />
+
           {routeConfig.map(
             ({
               key,
