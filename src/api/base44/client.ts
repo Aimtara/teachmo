@@ -3,16 +3,24 @@ import { createClient } from '@base44/sdk';
 export type Base44Client = ReturnType<typeof createClient>;
 
 function resolveBase44AppId(): string {
-  const metaAppId = typeof import.meta !== 'undefined' ? (import.meta as { env?: Record<string, string> })?.env?.VITE_BASE44_APP_ID : undefined;
-  if (metaAppId) return metaAppId;
+  const metaEnv =
+    typeof import.meta !== 'undefined'
+      ? (import.meta as { env?: Record<string, string | boolean | undefined> })?.env ?? {}
+      : {};
+  const processEnv = typeof process !== 'undefined' ? process.env ?? {} : {};
 
-  if (typeof process !== 'undefined' && process.env?.VITE_BASE44_APP_ID) {
-    return process.env.VITE_BASE44_APP_ID;
+  const appId = metaEnv.VITE_BASE44_APP_ID ?? processEnv.VITE_BASE44_APP_ID;
+  if (appId) return appId;
+
+  const message =
+    'Base44 app ID is not set. Define VITE_BASE44_APP_ID in your environment to enable Base44 client connectivity.';
+  const isDev = Boolean(metaEnv.DEV ?? processEnv.NODE_ENV === 'development');
+
+  if (isDev) {
+    throw new Error(message);
   }
 
-  console.warn(
-    'Base44 app ID is not set. Define VITE_BASE44_APP_ID in your environment to enable Base44 client connectivity.'
-  );
+  console.warn(message);
   return '';
 }
 
