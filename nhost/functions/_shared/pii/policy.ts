@@ -42,6 +42,8 @@ export function redactQuarantineRow(rawRow: Record<string, any>, policy: PiiPoli
   const redacted: Record<string, any> = {};
 
   if (policy.storeEmail && safeRaw.email) redacted.email = safeRaw.email;
+  // contact_type is always preserved as it's a non-PII classification field (parent_guardian, teacher, etc.)
+  // required for system operation and not considered personally identifiable information
   if (safeRaw.contact_type) redacted.contact_type = safeRaw.contact_type;
   if (policy.storeNames) {
     if (safeRaw.firstName) redacted.firstName = safeRaw.firstName;
