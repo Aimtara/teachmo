@@ -43,6 +43,7 @@ export function redactQuarantineRow(rawRow: Record<string, any>, policy: PiiPoli
   const redacted: Record<string, any> = {};
 
   if (policy.storeEmail && safeRaw.email) redacted.email = safeRaw.email;
+  // contact_type is always included as it's non-PII and required for quarantine analysis
   if (safeRaw.contact_type) redacted.contact_type = safeRaw.contact_type;
   if (policy.storeNames) {
     if (safeRaw.firstName) redacted.firstName = safeRaw.firstName;
@@ -55,11 +56,15 @@ export function redactQuarantineRow(rawRow: Record<string, any>, policy: PiiPoli
   return redacted;
 }
 
+type SanitizeContactResult =
+  | { valid: false; reason: string; raw_redacted: Record<string, any> }
+  | { valid: true; contact: DirectoryContact };
+
 export function sanitizeContact(
   contact: DirectoryContact,
   policy: PiiPolicy = DEFAULT_PII_POLICY,
   ctx?: { dataguardMode?: 'auto' | 'on' | 'off' }
-) {
+): SanitizeContactResult {
   const email = normEmail(contact.email);
   if (!email || !isEmailLike(email)) {
     return { valid: false, reason: 'invalid_email', raw_redacted: redactQuarantineRow(contact as any, policy) };

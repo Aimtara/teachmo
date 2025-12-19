@@ -40,6 +40,8 @@ update_permissions:
     permission:
       columns: "*"
       filter: {}
+  # Security: pii_policy, retention_days, and dataguard_mode columns are restricted to admin-only
+  # to prevent unauthorized modification of sensitive data handling policies
   - role: district_admin
     permission:
       columns:
