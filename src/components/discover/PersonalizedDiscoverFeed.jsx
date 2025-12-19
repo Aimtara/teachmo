@@ -1,131 +1,296 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useUserData } from '@nhost/react';
-import { RefreshCw, Sparkles } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { showToast } from '@/components/shared/UltraMinimalToast';
-import RecommendationCard from './RecommendationCard';
+import React, { useMemo, useState } from "react";
+import PropTypes from "prop-types";
+import { useUserData } from "@nhost/react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Breadcrumbs, { generateBreadcrumbs } from "@/components/shared/Breadcrumbs";
+import { ArrowLeft, Sparkles, RefreshCw, Brain } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { navigateToDashboard } from "@/components/utils/navigationHelpers";
+import { ultraMinimalToast } from "@/components/shared/UltraMinimalToast";
+import { AnimatePresence } from "framer-motion";
+import RecommendationCard from "./RecommendationCard";
+import { base44 } from "@/api/base44Client";
 
-const fetchRecommendations = async (userId) => {
-  if (!userId) return { items: [], unavailable: true };
-
-  try {
-    const response = await base44.functions.invoke('personalizedDiscoverFeed', { userId });
-    const recommendations = response?.recommendations || response?.data || response || [];
-
-    return {
-      items: Array.isArray(recommendations) ? recommendations : [],
-      unavailable: false
-    };
-  } catch (error) {
-    const message = String(error?.message || '').toLowerCase();
-    const unavailable =
-      message.includes('not found') ||
-      message.includes('404') ||
-      message.includes('missing') ||
-      message.includes('route not found');
-
-    return { items: [], unavailable, error };
-  }
+const EMPTY_FEED = {
+  activities: [],
+  events: [],
+  resources: [],
+  personalization_factors: []
 };
 
-export default function PersonalizedDiscoverFeed() {
-  const user = useUserData();
+export default function PersonalizedDiscoverFeed({ userId, childId }) {
+  const navigate = useNavigate();
+  const nhostUser = useUserData();
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['personalized-discover-feed', user?.id],
-    enabled: Boolean(user?.id),
-    queryFn: () => fetchRecommendations(user?.id),
-    staleTime: 1000 * 60 * 5
+  const resolvedUserId = userId || nhostUser?.id || null;
+  const resolvedChildId = childId || nhostUser?.metadata?.active_child_id || null;
+
+  const [dismissedIds, setDismissedIds] = useState([]);
+  const [generatingFeed, setGeneratingFeed] = useState(false);
+  const queryClient = useQueryClient();
+
+  const breadcrumbs = generateBreadcrumbs("UnifiedDiscover", nhostUser);
+
+  const { data: feedData, isLoading } = useQuery({
+    queryKey: ["personalized-feed", resolvedUserId, resolvedChildId],
+    enabled: Boolean(resolvedUserId),
+    staleTime: 300_000,
+    queryFn: async () => {
+      try {
+        const response = await base44.functions.invoke("personalizedDiscoverFeed", {
+          user_id: resolvedUserId,
+          child_id: resolvedChildId,
+          limit: 15
+        });
+
+        const data = response?.data ?? response;
+        return data || EMPTY_FEED;
+      } catch (error) {
+        console.warn("[Discover] personalizedDiscoverFeed unavailable (expected during migration):", error);
+        ultraMinimalToast("Discover feed backend not configured yet — showing an empty feed.", "info");
+        return EMPTY_FEED;
+      }
+    }
   });
 
-  const items = useMemo(() => data?.items || [], [data]);
-  const unavailable = data?.unavailable;
+  const saveMutation = useMutation({
+    mutationFn: async ({ itemId, itemType }) => {
+      if (!resolvedUserId) throw new Error("User not available");
 
-  const handleGenerate = async () => {
-    const result = await refetch();
-    if (result?.error && !result?.data?.unavailable) {
-      showToast('Unable to generate recommendations', {
-        description: result.error.message || 'Please try again shortly.'
-      });
+      if (itemType === "event") {
+        const event = feedData?.events?.find((e) => e.id === itemId);
+        if (!event) return null;
+
+        return base44.entities.CalendarEvent.create({
+          title: event.title,
+          description: event.description,
+          start_time: event.start_time,
+          end_time: event.end_time,
+          resource_id: event.id,
+          resource_type: "local_event",
+          user_id: resolvedUserId,
+          ...(resolvedChildId ? { child_id: resolvedChildId } : {})
+        });
+      }
+
+      if (itemType === "activity") {
+        if (!resolvedChildId) {
+          throw new Error("Child not available for activity planning");
+        }
+
+        return base44.entities.Activity.update(itemId, {
+          status: "planned",
+          child_id: resolvedChildId
+        });
+      }
+
+      // Resources (bookmarks) are user-scoped, not child-scoped, so we don't include child_id.
+      // This allows users to save resources that can be accessed across all their children.
+      if (itemType === "resource") {
+        return base44.entities.UserBookmark.create({
+          resource_id: itemId,
+          resource_type: "library_resource",
+          ...(resolvedUserId ? { user_id: resolvedUserId } : {})
+        });
+      }
+
+      return null;
+    },
+    onSuccess: (_data, variables) => {
+      const { itemType } = variables;
+      
+      // Use specific toast messages based on item type
+      if (itemType === "event") {
+        ultraMinimalToast("Event saved to calendar! ✨", "success");
+        queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+      } else if (itemType === "activity") {
+        ultraMinimalToast("Activity saved successfully! ✨", "success");
+        queryClient.invalidateQueries({ queryKey: ["activities"] });
+      } else if (itemType === "resource") {
+        ultraMinimalToast("Resource bookmarked! ✨", "success");
+        queryClient.invalidateQueries({ queryKey: ["user-bookmarks"] });
+      }
+    },
+    onError: (_error, variables) => {
+      const { itemType } = variables;
+      
+      // Use specific error messages based on item type
+      if (itemType === "event") {
+        ultraMinimalToast("Failed to save event", "error");
+      } else if (itemType === "activity") {
+        ultraMinimalToast("Failed to save activity", "error");
+      } else if (itemType === "resource") {
+        ultraMinimalToast("Failed to bookmark resource", "error");
+      } else {
+        ultraMinimalToast("Failed to save", "error");
+      }
     }
+  });
+
+  const handleRefreshFeed = async () => {
+    setGeneratingFeed(true);
+    await queryClient.invalidateQueries({ queryKey: ["personalized-feed"] });
+    setDismissedIds([]);
+    ultraMinimalToast("Feed refreshed! ✨", "success");
+    setGeneratingFeed(false);
   };
 
-  if (!user) return null;
+  const allRecommendations = useMemo(
+    () => [
+      ...(feedData?.activities || [])
+        .filter((a) => !dismissedIds.includes(a.id))
+        .map((a) => ({ ...a, type: "activity" })),
+      ...(feedData?.events || [])
+        .filter((e) => !dismissedIds.includes(e.id))
+        .map((e) => ({ ...e, type: "event" })),
+      ...(feedData?.resources || [])
+        .filter((r) => !dismissedIds.includes(r.id))
+        .map((r) => ({ ...r, type: "resource" }))
+    ].sort((a, b) => (b.recommendation_score || 0) - (a.recommendation_score || 0)),
+    [feedData, dismissedIds]
+  );
+
+  if (isLoading) {
+    return <FeedLoadingSkeleton />;
+  }
+
+  if (allRecommendations.length === 0) {
+    return (
+      <EmptyFeedState
+        onRefresh={handleRefreshFeed}
+        isRefreshing={generatingFeed}
+        breadcrumbs={breadcrumbs}
+        onBack={() => navigateToDashboard(nhostUser, navigate)}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Personalized for you</h2>
-          <p className="text-sm text-gray-600">
-            Recommendations generated from your saved interests and classroom activity.
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="gap-2"
-          onClick={handleGenerate}
-          disabled={isFetching}
-        >
-          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          {isFetching ? 'Refreshing' : 'Generate Recommendations'}
+    <div className="container mx-auto py-8">
+      <div className="flex items-center gap-4 mb-8">
+        <Button variant="ghost" size="icon" onClick={() => navigateToDashboard(nhostUser, navigate)}>
+          <ArrowLeft className="h-5 w-5" />
         </Button>
+        <Breadcrumbs segments={breadcrumbs} />
       </div>
 
-      {isLoading ? (
-        <Card>
-          <CardContent className="p-6 space-y-3">
-            <div className="h-4 w-1/3 rounded bg-gray-100" />
-            <div className="h-3 w-3/4 rounded bg-gray-100" />
-            <div className="h-3 w-2/3 rounded bg-gray-100" />
-          </CardContent>
-        </Card>
-      ) : null}
+      <FeedHeader onRefresh={handleRefreshFeed} isRefreshing={generatingFeed} />
 
-      {!isLoading && items.length === 0 ? (
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-800">
-              <Sparkles className="h-4 w-4" />
-              No Recommendations Yet
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-gray-600">
-            <p>
-              We’ll surface personalized ideas once the recommendation function is live for your
-              account.
-            </p>
-            <div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={handleGenerate}
-                disabled={isFetching}
-              >
-                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-                {isFetching ? 'Checking again...' : 'Generate Recommendations'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+      {feedData?.personalization_factors?.length > 0 && (
+        <PersonalizationExplainer factors={feedData.personalization_factors} />
+      )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((recommendation, index) => (
-          <RecommendationCard key={recommendation?.id || recommendation?.title || index} recommendation={recommendation} />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AnimatePresence>
+          {allRecommendations.map((item, index) => (
+            <RecommendationCard
+              key={`${item.type}-${item.id}`}
+              item={item}
+              index={index}
+              onSave={() => saveMutation.mutate({ itemId: item.id, itemType: item.type })}
+              onDismiss={() => setDismissedIds((prev) => [...prev, item.id])}
+              isSaving={saveMutation.isPending}
+            />
+          ))}
+        </AnimatePresence>
       </div>
-
-      {data?.error && unavailable ? (
-        <p className="text-sm text-amber-600">
-          Recommendation service is not available yet. We’ll enable it as soon as it ships.
-        </p>
-      ) : null}
     </div>
   );
 }
+
+function FeedLoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <Card key={i} className="animate-pulse">
+          <CardContent className="p-6">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+            <div className="h-3 bg-gray-200 rounded w-full mb-2" />
+            <div className="h-3 bg-gray-200 rounded w-2/3" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function FeedHeader({ onRefresh, isRefreshing }) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-2">
+        <Sparkles className="w-6 h-6 text-purple-600" />
+        <h2 className="text-2xl font-bold text-gray-900">For You</h2>
+      </div>
+      <Button variant="outline" size="sm" onClick={onRefresh} disabled={isRefreshing}>
+        <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+        Refresh
+      </Button>
+    </div>
+  );
+}
+
+function PersonalizationExplainer({ factors }) {
+  return (
+    <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 mb-6">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <Brain className="w-5 h-5 text-purple-600 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-medium text-gray-900 mb-1">Personalized for you</p>
+            <p className="text-sm text-gray-600">Based on: {factors.join(", ")}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyFeedState({ onRefresh, isRefreshing, breadcrumbs, onBack }) {
+  return (
+    <div className="container mx-auto py-8">
+      <div className="flex items-center gap-4 mb-8">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <Breadcrumbs segments={breadcrumbs} />
+      </div>
+
+      <Card className="border-2 border-dashed border-gray-300">
+        <CardContent className="p-12 text-center">
+          <Sparkles className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No recommendations yet</h3>
+          <p className="text-gray-600 mb-6">
+            We're learning your preferences. Keep using Teachmo to personalize your feed!
+          </p>
+          <Button onClick={onRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            Generate Recommendations
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+PersonalizedDiscoverFeed.propTypes = {
+  userId: PropTypes.string,
+  childId: PropTypes.string
+};
+
+FeedHeader.propTypes = {
+  onRefresh: PropTypes.func.isRequired,
+  isRefreshing: PropTypes.bool.isRequired
+};
+
+PersonalizationExplainer.propTypes = {
+  factors: PropTypes.arrayOf(PropTypes.string).isRequired
+};
+
+EmptyFeedState.propTypes = {
+  onRefresh: PropTypes.func.isRequired,
+  isRefreshing: PropTypes.bool.isRequired,
+  breadcrumbs: PropTypes.array,
+  onBack: PropTypes.func.isRequired
+};
