@@ -1,0 +1,48 @@
+table:
+  name: message_blocks
+  schema: public
+select_permissions:
+  - role: parent
+    permission:
+      columns:
+        - id
+        - school_id
+        - blocker_user_id
+        - blocked_user_id
+        - reason
+        - metadata
+        - created_at
+      filter:
+        _or:
+          - blocker_user_id: {_eq: "X-Hasura-User-Id"}
+          - blocked_user_id: {_eq: "X-Hasura-User-Id"}
+  - role: teacher
+    permission:
+      columns:
+        - id
+        - school_id
+        - blocker_user_id
+        - blocked_user_id
+        - reason
+        - metadata
+        - created_at
+      filter:
+        _or:
+          - blocker_user_id: {_eq: "X-Hasura-User-Id"}
+          - blocked_user_id: {_eq: "X-Hasura-User-Id"}
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: system_admin
+    permission:
+      columns: "*"
+      filter: {}

@@ -178,14 +178,14 @@ export default function Pages() {
                 wrappedContent
               );
 
-              if (path === '/messages') {
+              if (path === '/messages' || path === '/messages/requests') {
                 return (
                   <Route
                     key={key || path}
                     path={path}
                     element={(
                       <ProtectedRoute
-                        allowedRoles={['parent', 'teacher', 'school_admin', 'district_admin', 'admin']}
+                        allowedRoles={allowedRoles || ['parent', 'teacher', 'school_admin', 'district_admin', 'admin', 'system_admin']}
                         requiredScopes={requiredScopes}
                       >
                         <RequirePermission action="messages:read">

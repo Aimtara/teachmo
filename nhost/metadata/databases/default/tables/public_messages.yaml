@@ -12,16 +12,26 @@ select_permissions:
         - id
         - thread_id
         - sender_id
+        - sender_user_id
         - created_at
         - body
         - is_hidden
         - is_redacted
         - is_deleted
+        - flagged
+        - flag_reason
       filter:
         _and:
           - thread:
-              participants:
-                user_id: {_eq: "X-Hasura-User-Id"}
+              _and:
+                - _or:
+                    - status: {_is_null: true}
+                    - status: {_eq: "active"}
+                - _or:
+                    - participants:
+                        user_id: {_eq: "X-Hasura-User-Id"}
+                    - requester_user_id: {_eq: "X-Hasura-User-Id"}
+                    - target_user_id: {_eq: "X-Hasura-User-Id"}
           - is_hidden: {_eq: false}
           - is_deleted: {_eq: false}
   - role: teacher
@@ -30,16 +40,26 @@ select_permissions:
         - id
         - thread_id
         - sender_id
+        - sender_user_id
         - created_at
         - body
         - is_hidden
         - is_redacted
         - is_deleted
+        - flagged
+        - flag_reason
       filter:
         _and:
           - thread:
-              participants:
-                user_id: {_eq: "X-Hasura-User-Id"}
+              _and:
+                - _or:
+                    - status: {_is_null: true}
+                    - status: {_eq: "active"}
+                - _or:
+                    - participants:
+                        user_id: {_eq: "X-Hasura-User-Id"}
+                    - requester_user_id: {_eq: "X-Hasura-User-Id"}
+                    - target_user_id: {_eq: "X-Hasura-User-Id"}
           - is_hidden: {_eq: false}
           - is_deleted: {_eq: false}
   - role: school_admin
@@ -64,10 +84,18 @@ insert_permissions:
         _and:
           - sender_id: {_eq: "X-Hasura-User-Id"}
           - thread:
-              participants:
-                user_id: {_eq: "X-Hasura-User-Id"}
+              _and:
+                - _or:
+                    - status: {_is_null: true}
+                    - status: {_eq: "active"}
+                - _or:
+                    - participants:
+                        user_id: {_eq: "X-Hasura-User-Id"}
+                    - requester_user_id: {_eq: "X-Hasura-User-Id"}
+                    - target_user_id: {_eq: "X-Hasura-User-Id"}
       set:
         sender_id: "X-Hasura-User-Id"
+        sender_user_id: "X-Hasura-User-Id"
   - role: teacher
     permission:
       columns:
@@ -77,10 +105,18 @@ insert_permissions:
         _and:
           - sender_id: {_eq: "X-Hasura-User-Id"}
           - thread:
-              participants:
-                user_id: {_eq: "X-Hasura-User-Id"}
+              _and:
+                - _or:
+                    - status: {_is_null: true}
+                    - status: {_eq: "active"}
+                - _or:
+                    - participants:
+                        user_id: {_eq: "X-Hasura-User-Id"}
+                    - requester_user_id: {_eq: "X-Hasura-User-Id"}
+                    - target_user_id: {_eq: "X-Hasura-User-Id"}
       set:
         sender_id: "X-Hasura-User-Id"
+        sender_user_id: "X-Hasura-User-Id"
 update_permissions:
   - role: school_admin
     permission:
@@ -98,6 +134,8 @@ update_permissions:
         - deleted_reason
         - deleted_at
         - body
+        - flagged
+        - flag_reason
       filter: {}
       check: {}
       set:
@@ -120,6 +158,8 @@ update_permissions:
         - deleted_reason
         - deleted_at
         - body
+        - flagged
+        - flag_reason
       filter: {}
       check: {}
       set:
@@ -142,6 +182,8 @@ update_permissions:
         - deleted_reason
         - deleted_at
         - body
+        - flagged
+        - flag_reason
       filter: {}
       check: {}
       set:

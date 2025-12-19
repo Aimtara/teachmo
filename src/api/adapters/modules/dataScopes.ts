@@ -1,5 +1,5 @@
 import { graphql } from '@/lib/graphql';
-import { mergeScopes, resolveEffectiveScopes, SYSTEM_SCOPE_DEFAULTS } from '@/utils/scopes';
+import { mergeScopes, resolveEffectiveScopes, SYSTEM_SCOPE_DEFAULTS, type DataScopes } from '@/utils/scopes';
 
 type FetchParams = {
   districtId: string;
@@ -26,7 +26,7 @@ export async function fetchDataScopes({ districtId, schoolId }: FetchParams) {
   };
 }
 
-export async function saveDistrictScopes(districtId: string, scopes: Record<string, any>) {
+export async function saveDistrictScopes(districtId: string, scopes: DataScopes) {
   return graphql(
     `mutation UpsertDistrictScopes($districtId: uuid!, $scopes: jsonb!) {
       insert_district_data_scopes_one(
@@ -38,7 +38,7 @@ export async function saveDistrictScopes(districtId: string, scopes: Record<stri
   );
 }
 
-export async function saveSchoolScopes(schoolId: string, districtId: string, scopes: Record<string, any>) {
+export async function saveSchoolScopes(schoolId: string, districtId: string, scopes: DataScopes) {
   return graphql(
     `mutation UpsertSchoolScopes($schoolId: uuid!, $districtId: uuid!, $scopes: jsonb!) {
       insert_school_data_scopes_one(

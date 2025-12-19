@@ -1,4 +1,4 @@
-export type DataScopes = Record<string, any>;
+export type DataScopes = Record<string, unknown>;
 
 export const SYSTEM_SCOPE_DEFAULTS: DataScopes = {
   directory: { email: true, names: false, externalIds: true },
@@ -10,7 +10,8 @@ export function mergeScopes(base: DataScopes = {}, override: DataScopes = {}): D
   const result: DataScopes = { ...(base || {}) };
   Object.entries(override || {}).forEach(([key, value]) => {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-      result[key] = mergeScopes(result[key] || {}, value as DataScopes);
+      const nestedBase = (result[key] as DataScopes | undefined) || {};
+      result[key] = mergeScopes(nestedBase, value as DataScopes);
     } else {
       result[key] = value;
     }

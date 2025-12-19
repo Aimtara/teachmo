@@ -10,3 +10,4 @@ export * as DirectoryOpsAdminAPI from './modules/directoryOpsAdmin';
 export * as DirectoryInvitesAPI from './modules/directoryInvites';
 export * as NotificationsAPI from './modules/notifications';
 export * as DataScopesAPI from './modules/dataScopes';
+export * as MessagingAPI from './modules/messaging';
