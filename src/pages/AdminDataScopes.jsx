@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useUserData } from '@nhost/react';
 import { DataScopesAPI } from '@/api/adapters';
-import Button from '@/components/shared/Button';
-import Card from '@/components/shared/Card';
-import Input from '@/components/shared/Input';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { mergeScopes, resolveEffectiveScopes, SYSTEM_SCOPE_DEFAULTS } from '@/utils/scopes';
 
 function CheckboxField({ label, checked, onChange, disabled }) {
