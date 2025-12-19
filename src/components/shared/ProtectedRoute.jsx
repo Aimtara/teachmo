@@ -1,31 +1,44 @@
-import PropTypes from "prop-types";
-import { Navigate } from "react-router-dom";
-import { useAuthenticationStatus } from "@nhost/react";
-import { getDefaultPathForRole, useAuthorization } from "@/hooks/useUserRole";
+import PropTypes from 'prop-types';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuthenticationStatus, useUserData } from '@nhost/react';
+import { getDefaultPathForRole, getEffectiveScopes, normalizeRole } from '@/config/rbac';
 
-/**
- * ProtectedRoute - GitHub migration-friendly guard
- *
- * Supports both GitHub and Base44 prop shapes:
- * - allowedRoles?: string[]
- * - requiredScopes?: string[]
- * - requireAuth?: boolean (Base44)
- */
 export default function ProtectedRoute({
   children,
   allowedRoles,
   requiredScopes,
-  requireAuth = true,
-  fallbackPath = "/"
+  requireAuth,
+  requiresAuth,
+  redirectTo = '/login',
+  fallback
 }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
-  const { role, defaultPath, canAccess } = useAuthorization();
-  const hasAccess = canAccess({ allowedRoles, requiredScopes });
+  const user = useUserData();
+  const location = useLocation();
 
-  if (!requireAuth) return children;
-  if (isLoading) return <p className="p-6 text-gray-600">Checking your session…</p>;
-  if (!isAuthenticated) return <Navigate to={fallbackPath} replace />;
-  if (!hasAccess) return <Navigate to={defaultPath || getDefaultPathForRole(role)} replace />;
+  const role = normalizeRole(user?.metadata?.role ?? user?.defaultRole);
+  const scopes = getEffectiveScopes(role);
+  const mustAuth = requireAuth ?? requiresAuth ?? Boolean(allowedRoles?.length || requiredScopes?.length);
+  const defaultRedirect = getDefaultPathForRole(role) || redirectTo;
+
+  if (isLoading) {
+    return fallback || <p className="p-6 text-gray-600">Checking your session…</p>;
+  }
+
+  if (mustAuth && !isAuthenticated) {
+    return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
+  }
+
+  if (allowedRoles?.length && role && !allowedRoles.includes(role)) {
+    return <Navigate to={defaultRedirect} replace />;
+  }
+
+  if (requiredScopes?.length) {
+    const hasRequiredScopes = requiredScopes.every((scope) => scopes.includes(scope));
+    if (!hasRequiredScopes) {
+      return <Navigate to={defaultRedirect} replace />;
+    }
+  }
 
   return children;
 }
@@ -35,5 +48,7 @@ ProtectedRoute.propTypes = {
   allowedRoles: PropTypes.arrayOf(PropTypes.string),
   requiredScopes: PropTypes.arrayOf(PropTypes.string),
   requireAuth: PropTypes.bool,
-  fallbackPath: PropTypes.string
+  requiresAuth: PropTypes.bool,
+  redirectTo: PropTypes.string,
+  fallback: PropTypes.node
 };

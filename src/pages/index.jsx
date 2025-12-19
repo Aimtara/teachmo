@@ -42,6 +42,10 @@ export default function Pages() {
     <LazyPageWrapper fallback={fallback}>{children}</LazyPageWrapper>
   );
 
+  const routesFromConfig = ROUTE_CONFIG.filter(
+    ({ path }) => path !== '/discover' && path !== '/community'
+  );
+
   const routeConfig = [
     {
       key: 'index',
@@ -144,7 +148,7 @@ export default function Pages() {
       allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin', 'admin'],
       requiresAuth: true
     },
-    ...ROUTE_CONFIG,
+    ...routesFromConfig,
     {
       key: 'not-found',
       path: '*',
@@ -160,8 +164,14 @@ export default function Pages() {
           <Route
             path="/discover"
             element={(
-              <ProtectedRoute allowedRoles={["parent", "teacher", "school_admin", "district_admin", "system_admin"]}>
-                <UnifiedDiscover />
+              <ProtectedRoute
+                requireAuth
+                allowedRoles={['parent', 'teacher']}
+                requiredScopes={['content:read']}
+              >
+                <FeatureGate feature="DISCOVER">
+                  <UnifiedDiscover />
+                </FeatureGate>
               </ProtectedRoute>
             )}
           />
@@ -169,8 +179,14 @@ export default function Pages() {
           <Route
             path="/community"
             element={(
-              <ProtectedRoute allowedRoles={["parent", "teacher"]}>
-                <UnifiedCommunity />
+              <ProtectedRoute
+                requireAuth
+                allowedRoles={['parent', 'teacher']}
+                requiredScopes={['content:read']}
+              >
+                <FeatureGate feature="COMMUNITY">
+                  <UnifiedCommunity />
+                </FeatureGate>
               </ProtectedRoute>
             )}
           />

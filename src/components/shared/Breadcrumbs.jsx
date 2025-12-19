@@ -1,45 +1,80 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { ChevronRight, Home } from "lucide-react";
-import { createPageUrl, ROUTE_MAP } from "@/utils";
-import { getDefaultPathForRole } from "@/hooks/useUserRole";
+import PropTypes from 'prop-types';
+import { Link, useLocation } from 'react-router-dom';
+import { ChevronRight, Home } from 'lucide-react';
+import { ROUTE_MAP } from '@/config/navigation';
 
-function deriveRole(user) {
-  const direct = user?.preferred_active_role || user?.role;
-  if (direct) return direct;
+const ROUTE_ENTRIES = Object.entries(ROUTE_MAP || {}).map(([name, path]) => ({
+  name,
+  path,
+  normalizedName: name?.toLowerCase(),
+  normalizedPath: path?.toLowerCase()
+}));
 
-  const metaRole = user?.metadata?.role || user?.user_metadata?.role;
-  if (metaRole) return metaRole;
+const formatLabel = (value = '') =>
+  value
+    .replace(/^\//, '')
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  if (Array.isArray(user?.roles) && user.roles.length) return user.roles[0];
-  return "parent";
-}
+const resolveFromRoutes = (segment = '') => {
+  const normalized = segment.toLowerCase();
+  const direct = ROUTE_ENTRIES.find(
+    ({ normalizedName, normalizedPath }) =>
+      normalizedName === normalized || normalizedPath === normalized || normalizedPath === `/${normalized}`
+  );
 
-export default function Breadcrumbs({ items, segments }) {
-  const crumbItems = items && items.length ? items : segments || [];
-  if (!crumbItems || crumbItems.length === 0) return null;
+  if (direct) {
+    return {
+      label: formatLabel(direct.name),
+      href: direct.path
+    };
+  }
+
+  return {
+    label: formatLabel(segment),
+    href: `/${segment.replace(/^\//, '')}`
+  };
+};
+
+const buildItems = (items, segments, pathname) => {
+  if (Array.isArray(items) && items.length > 0) return items;
+  if (Array.isArray(segments) && segments.length > 0) {
+    return segments.map((segment) => (typeof segment === 'string' ? resolveFromRoutes(segment) : segment));
+  }
+
+  if (pathname === '/') return [];
+
+  const parts = pathname.split('/').filter(Boolean);
+  return parts.map((part, index) => ({
+    label: formatLabel(part),
+    href: `/${parts.slice(0, index + 1).join('/')}`
+  }));
+};
+
+export default function Breadcrumbs({ items = [], segments = [] }) {
+  const location = useLocation();
+  const crumbs = buildItems(items, segments, location.pathname);
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-6">
-      <ol className="flex items-center gap-2 text-sm text-gray-600">
-        {crumbItems.map((item, index) => {
-          const isLast = index === crumbItems.length - 1;
-          const isLink = Boolean(item.href) && !isLast;
-
+    <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-gray-600">
+      <ol className="flex items-center gap-1">
+        <li className="flex items-center gap-1">
+          <Link to="/" className="flex items-center gap-1 text-gray-700 hover:text-gray-900">
+            <Home className="h-4 w-4" />
+            <span className="sr-only">Home</span>
+          </Link>
+        </li>
+        {crumbs.map((item, index) => {
+          const isLast = index === crumbs.length - 1;
           return (
-            <li key={index} className="flex items-center gap-2">
-              {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400" aria-hidden="true" />}
-
-              {isLink ? (
-                <Link to={item.href} className="hover:text-blue-600 transition-colors">
-                  {index === 0 && <Home className="w-4 h-4 mr-1 inline" aria-hidden="true" />}
+            <li key={item.href || item.label} className="flex items-center gap-1">
+              <ChevronRight className="h-3 w-3 text-gray-400" />
+              {isLast ? (
+                <span className="text-gray-500">{item.label}</span>
+              ) : (
+                <Link to={item.href || '#'} className="text-gray-700 hover:text-gray-900">
                   {item.label}
                 </Link>
-              ) : (
-                <span className={isLast ? "font-medium text-gray-900" : ""} aria-current={isLast ? "page" : undefined}>
-                  {index === 0 && item.href && <Home className="w-4 h-4 mr-1 inline" aria-hidden="true" />}
-                  {item.label}
-                </span>
               )}
             </li>
           );
@@ -49,40 +84,12 @@ export default function Breadcrumbs({ items, segments }) {
   );
 }
 
-/**
- * Lightweight breadcrumb generator for GitHub migration.
- * - Uses ROUTE_MAP / createPageUrl
- * - Avoids Base44's security/permissions dependency
- */
-export function generateBreadcrumbs(currentPageName, user = null) {
-  const role = deriveRole(user);
-  const homeHref = getDefaultPathForRole(role);
-
-  const homeLabelMap = {
-    parent: "Home",
-    teacher: "Home",
-    partner: "Partner",
-    system_admin: "Admin",
-    school_admin: "Admin",
-    district_admin: "Admin"
-  };
-
-  const crumbs = [
-    {
-      label: homeLabelMap[role] || "Home",
-      href: homeHref
-    }
-  ];
-
-  if (!currentPageName) return crumbs;
-
-  const route = ROUTE_MAP[currentPageName];
-  const label = currentPageName.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[-_]/g, " ").trim();
-
-  crumbs.push({
-    label: currentPageName === "UnifiedDiscover" ? "Discover" : label,
-    href: route ? createPageUrl(currentPageName) : null
-  });
-
-  return crumbs;
-}
+Breadcrumbs.propTypes = {
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      href: PropTypes.string
+    })
+  ),
+  segments: PropTypes.arrayOf(PropTypes.string)
+};
