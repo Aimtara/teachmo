@@ -2,7 +2,6 @@ import { runDirectorySourceSync } from '../_shared/directorySourceSync';
 import { getDirectorySourceSecrets } from '../_shared/sourceFetchers/secrets';
 import { getActorScope } from '../_shared/tenantScope';
 import { handleDirectorySyncAlert } from '../_shared/notifier';
-import { getPiiPolicyForSource } from '../_shared/pii/policy';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
