@@ -4,7 +4,13 @@ export type DataScopes = Record<string, any>;
 
 const SYSTEM_DEFAULT_SCOPES: DataScopes = {
   directory: { email: true, names: false, externalIds: true },
-  messaging: { sendInvites: true, useEmail: true },
+  messaging: {
+    enabled: true,
+    sendInvites: true,
+    useEmail: true,
+    parentToTeacherRequests: true,
+    requireApproval: true,
+  },
   analytics: { enabled: false },
 };
 

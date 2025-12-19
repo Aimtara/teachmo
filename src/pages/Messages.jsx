@@ -1,374 +1,321 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { useUserData } from '@nhost/react';
-import { DataScopesAPI, InviteAdminAPI, ThreadsAPI } from '@/api/adapters';
+import { MessagingAPI } from '@/api/adapters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useUserRole } from '@/hooks/useUserRole';
-import { can } from '@/security/permissions';
-import { SYSTEM_SCOPE_DEFAULTS } from '@/utils/scopes';
+import { cn } from '@/utils';
+
+function ThreadList({ threads, selectedId, onSelect, loading }) {
+  if (loading) return <p className="text-gray-600">Loading threads…</p>;
+  if (!threads?.length) return <p className="text-gray-600">No threads yet.</p>;
+
+  return (
+    <div className="space-y-2">
+      {threads.map((thread) => {
+        const isActive = selectedId === thread.id;
+        const statusLabel = thread.status || 'active';
+        return (
+          <button
+            key={thread.id}
+            type="button"
+            onClick={() => onSelect(thread.id)}
+            className={cn(
+              'w-full rounded-lg border p-3 text-left transition-colors',
+              isActive ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white hover:border-emerald-200'
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-gray-900">Thread</p>
+                <p className="text-xs text-gray-600">Requester: {thread.requester_user_id}</p>
+                <p className="text-xs text-gray-600">Target: {thread.target_user_id}</p>
+              </div>
+              <span className="text-xs font-medium text-emerald-700">{statusLabel}</span>
+            </div>
+            {thread.last_message_preview && (
+              <p className="mt-2 text-sm text-gray-700 line-clamp-2">{thread.last_message_preview}</p>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MessageList({ messages, currentUserId }) {
+  if (!messages?.length) return <p className="text-gray-600">No messages yet.</p>;
+
+  return (
+    <div className="space-y-3">
+      {messages.map((message) => {
+        const isMine = message.sender_id === currentUserId || message.sender_user_id === currentUserId;
+        let when = 'just now';
+        try {
+          when = message.created_at
+            ? formatDistanceToNow(new Date(message.created_at), { addSuffix: true })
+            : 'just now';
+        } catch (error) {
+          console.error(error);
+          when = message.created_at || 'unknown';
+        }
+        return (
+          <div
+            key={message.id}
+            className={cn(
+              'max-w-[80%] rounded-lg border p-3 shadow-sm',
+              isMine ? 'ml-auto bg-emerald-50 border-emerald-100' : 'mr-auto bg-white border-gray-200'
+            )}
+          >
+            <p className="text-sm text-gray-900 whitespace-pre-wrap">{message.body}</p>
+            <p className="mt-1 text-xs text-gray-500">{isMine ? 'You' : 'Other'} · {when}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Messages() {
   const user = useUserData();
-  const role = useUserRole();
-  const [title, setTitle] = useState('New Conversation');
-  const [emailsInput, setEmailsInput] = useState('');
-  const [initialMessage, setInitialMessage] = useState('');
-  const [inviteResults, setInviteResults] = useState([]);
+  const [threads, setThreads] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [selectedThreadId, setSelectedThreadId] = useState('');
+  const [loadingThreads, setLoadingThreads] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
   const [status, setStatus] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [manageThreadId, setManageThreadId] = useState('');
-  const [managedInvites, setManagedInvites] = useState([]);
-  const [manageStatus, setManageStatus] = useState('');
-  const [isLoadingInvites, setIsLoadingInvites] = useState(false);
-  const [activeInviteAction, setActiveInviteAction] = useState('');
-  const [scopes, setScopes] = useState(SYSTEM_SCOPE_DEFAULTS);
-  const [scopesError, setScopesError] = useState('');
-  const [scopesLoading, setScopesLoading] = useState(false);
 
-  const canInvite = can(role, 'messages:invite');
-  const canManageInvites = can(role, 'threads:invite_manage');
-  const invitesAllowedByScope = scopes?.messaging?.sendInvites !== false;
-  const emailAllowedByScope = scopes?.messaging?.useEmail !== false;
-  const scopeBlockReason = !invitesAllowedByScope
-    ? 'Invitations are disabled by your district consent settings.'
-    : !emailAllowedByScope
-      ? 'Email delivery is disabled by your district consent settings.'
-      : '';
+  const [requestTargetId, setRequestTargetId] = useState('');
+  const [requestSchoolId, setRequestSchoolId] = useState('');
+  const [requestNote, setRequestNote] = useState('');
+  const [requestStatus, setRequestStatus] = useState('');
+  const [requestBusy, setRequestBusy] = useState(false);
 
   useEffect(() => {
-    const loadScopes = async () => {
-      if (!user?.id) return;
-      const districtId = String(user?.metadata?.district_id ?? user?.metadata?.districtId ?? '').trim();
-      const schoolId = String(user?.metadata?.school_id ?? user?.metadata?.schoolId ?? '').trim();
-
-      if (!districtId) {
-        setScopes(SYSTEM_SCOPE_DEFAULTS);
-        setScopesError('');
-        return;
-      }
-
-      setScopesLoading(true);
-      setScopesError('');
-      try {
-        const result = await DataScopesAPI.fetchDataScopes({ districtId, schoolId: schoolId || undefined });
-        setScopes(result.effectiveScopes ?? SYSTEM_SCOPE_DEFAULTS);
-      } catch (error) {
-        console.error('load scopes failed', error);
-        setScopes(SYSTEM_SCOPE_DEFAULTS);
-        setScopesError('Unable to load consent settings; using safe defaults.');
-      } finally {
-        setScopesLoading(false);
-      }
-    };
-
-    loadScopes();
+    const schoolId =
+      String(user?.metadata?.school_id ?? user?.metadata?.schoolId ?? '').trim();
+    if (schoolId) setRequestSchoolId(schoolId);
   }, [user]);
 
-  const handleNewThread = async (event) => {
-    event.preventDefault();
-    if (!user?.id || !canInvite || isCreating) return;
-    if (!invitesAllowedByScope || !emailAllowedByScope) {
-      setStatus(scopeBlockReason);
+  const loadThreads = useCallback(async () => {
+    setLoadingThreads(true);
+    try {
+      const list = await MessagingAPI.listThreads();
+      setThreads(Array.isArray(list) ? list : []);
+      if (!selectedThreadId && list?.[0]?.id) {
+        setSelectedThreadId(list[0].id);
+      }
+      setStatus('');
+    } catch (err) {
+      console.error(err);
+      setStatus(err?.message ?? 'Unable to load threads');
+    } finally {
+      setLoadingThreads(false);
+    }
+  }, [selectedThreadId]);
+
+  const loadMessages = useCallback(async (threadId) => {
+    if (!threadId) {
+      setMessages([]);
       return;
     }
-
-    setIsCreating(true);
-    setStatus('');
-    setInviteResults([]);
-
-    const emails = emailsInput
-      .split(',')
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean);
-
+    setLoadingMessages(true);
     try {
-      const { thread, invites } = await ThreadsAPI.createThreadByEmails({
-        title: title || 'New Conversation',
-        creatorId: user.id,
-        participantEmails: emails,
-        initialMessage: initialMessage || undefined,
+      const list = await MessagingAPI.listMessages(threadId);
+      setMessages(Array.isArray(list) ? list : []);
+      setStatus('');
+    } catch (err) {
+      console.error(err);
+      setStatus(err?.message ?? 'Unable to load messages');
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadThreads();
+  }, [loadThreads]);
+
+  useEffect(() => {
+    if (selectedThreadId) loadMessages(selectedThreadId);
+  }, [selectedThreadId, loadMessages]);
+
+  const selectedThread = useMemo(
+    () => threads.find((thread) => thread.id === selectedThreadId),
+    [threads, selectedThreadId]
+  );
+  const canSend = useMemo(() => {
+    if (!selectedThread) return false;
+    if (selectedThread.status && selectedThread.status !== 'active') return false;
+    if (selectedThread.request && selectedThread.request.status && selectedThread.request.status !== 'approved') return false;
+    return true;
+  }, [selectedThread]);
+
+  const handleSend = async (event) => {
+    event.preventDefault();
+    if (!selectedThreadId || !newMessage.trim()) return;
+    setSending(true);
+    try {
+      await MessagingAPI.sendMessage({ threadId: selectedThreadId, body: newMessage.trim() });
+      setNewMessage('');
+      await loadMessages(selectedThreadId);
+      await loadThreads();
+    } catch (err) {
+      console.error(err);
+      setStatus(err?.message ?? 'Unable to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const submitRequest = async (event) => {
+    event.preventDefault();
+    if (!requestSchoolId || !requestTargetId) return;
+    setRequestBusy(true);
+    setRequestStatus('');
+    try {
+      const response = await MessagingAPI.requestMessagingAccess({
+        schoolId: requestSchoolId,
+        targetUserId: requestTargetId,
+        note: requestNote || undefined,
       });
-
-      if (thread) {
-        setStatus(`Created thread: ${thread.title ?? thread.id}`);
+      if (response?.ok) {
+        setRequestStatus('Request submitted. We will notify the teacher.');
+        setRequestNote('');
       } else {
-        setStatus('Thread created, but details are unavailable.');
+        setRequestStatus('Request could not be submitted.');
       }
-      setInviteResults(invites ?? []);
-
-      setTitle('');
-      setEmailsInput('');
-      setInitialMessage('');
-    } catch (error) {
-      console.error('Thread creation failed', error);
-      setStatus('Unable to create thread or send invites.');
+    } catch (err) {
+      console.error(err);
+      setRequestStatus(err?.message ?? 'Unable to submit request');
     } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const formatDate = (value) => {
-    if (!value) return '—';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '—';
-    return date.toLocaleString();
-  };
-
-  const loadInvites = async (threadIdValue) => {
-    if (!threadIdValue || !canManageInvites) return;
-    setIsLoadingInvites(true);
-    setManageStatus('');
-    setManagedInvites([]);
-
-    try {
-      const invites = await InviteAdminAPI.listThreadInvites(threadIdValue);
-      setManagedInvites(invites ?? []);
-      if (!invites?.length) {
-        setManageStatus('No invites found for this thread.');
-      }
-    } catch (error) {
-      console.error('list-thread-invites failed', error);
-      setManageStatus('Unable to load invites for this thread.');
-    } finally {
-      setIsLoadingInvites(false);
-    }
-  };
-
-  const handleLoadInvites = async (event) => {
-    event.preventDefault();
-    const trimmed = manageThreadId.trim();
-    if (!trimmed) return;
-    setManageThreadId(trimmed);
-    await loadInvites(trimmed);
-  };
-
-  const handleResendInvite = async (inviteId) => {
-    if (!inviteId || !canManageInvites) return;
-    if (!invitesAllowedByScope || !emailAllowedByScope) {
-      setManageStatus(scopeBlockReason);
-      return;
-    }
-    setActiveInviteAction(`resend-${inviteId}`);
-    setManageStatus('');
-    try {
-      await InviteAdminAPI.resendThreadInvite(inviteId);
-      setManageStatus('Invite resent.');
-      await loadInvites(manageThreadId.trim());
-    } catch (error) {
-      console.error('resend-thread-invite failed', error);
-      setManageStatus('Unable to resend invite.');
-    } finally {
-      setActiveInviteAction('');
-    }
-  };
-
-  const handleRevokeInvite = async (inviteId) => {
-    if (!inviteId || !canManageInvites) return;
-    const reason =
-      typeof window !== 'undefined'
-        ? window.prompt('Why are you revoking this invite? (optional)') ?? undefined
-        : undefined;
-    setActiveInviteAction(`revoke-${inviteId}`);
-    setManageStatus('');
-    try {
-      await InviteAdminAPI.revokeThreadInvite(inviteId, reason || undefined);
-      setManageStatus('Invite revoked.');
-      await loadInvites(manageThreadId.trim());
-    } catch (error) {
-      console.error('revoke-thread-invite failed', error);
-      setManageStatus('Unable to revoke invite.');
-    } finally {
-      setActiveInviteAction('');
+      setRequestBusy(false);
     }
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Messages</h1>
-        <p className="text-sm text-muted-foreground">
-          Start a conversation by inviting parents via email.
-        </p>
-      </div>
+    <div className="p-6 space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-2xl font-semibold text-gray-900">Messages</h1>
+        <p className="text-sm text-gray-600">Approved threads appear below. Requests are required before messaging.</p>
+      </header>
 
-      {!user?.id && <p className="text-sm text-muted-foreground">Sign in to start a thread.</p>}
-
-      {user?.id && !canInvite && (
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to invite participants by email.
-        </p>
-      )}
-
-      {user?.id && canInvite && scopeBlockReason && (
-        <p className="text-sm text-muted-foreground">
-          {scopeBlockReason}
-        </p>
-      )}
-
-      {scopesError && (
-        <p className="text-sm text-muted-foreground">
-          {scopesError}
-        </p>
-      )}
-
-      {user?.id && canInvite && (
-        <form onSubmit={handleNewThread} className="space-y-4 max-w-xl">
-          <div className="space-y-2">
-            <Label htmlFor="thread-title">Thread title</Label>
+      <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
+        <h2 className="text-lg font-semibold text-emerald-900">Request access to message a teacher</h2>
+        <p className="text-sm text-emerald-800">Submit a request; the teacher will approve before messages are allowed.</p>
+        <form onSubmit={submitRequest} className="mt-3 grid gap-3 md:grid-cols-3 md:items-end">
+          <div className="space-y-1">
+            <Label htmlFor="school-id">School ID</Label>
             <Input
-              id="thread-title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Parent check-in"
+              id="school-id"
+              value={requestSchoolId}
+              onChange={(event) => setRequestSchoolId(event.target.value)}
+              placeholder="School ID"
               required
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="participant-emails">Invite emails</Label>
+          <div className="space-y-1">
+            <Label htmlFor="target-id">Teacher or staff user ID</Label>
             <Input
-              id="participant-emails"
-              value={emailsInput}
-              onChange={(event) => setEmailsInput(event.target.value)}
-              placeholder="parent1@example.com, parent2@example.com"
+              id="target-id"
+              value={requestTargetId}
+              onChange={(event) => setRequestTargetId(event.target.value)}
+              placeholder="Target user ID"
               required
             />
-            <p className="text-xs text-muted-foreground">
-              Enter comma-separated emails. We will add existing users immediately and email invites to
-              new participants.
-            </p>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="initial-message">Initial message (optional)</Label>
+          <div className="space-y-1 md:col-span-3">
+            <Label htmlFor="note">Optional note</Label>
             <Textarea
-              id="initial-message"
-              value={initialMessage}
-              onChange={(event) => setInitialMessage(event.target.value)}
-              placeholder="Welcome to our class thread!"
-              rows={4}
+              id="note"
+              value={requestNote}
+              onChange={(event) => setRequestNote(event.target.value)}
+              placeholder="Share context for your request"
+              rows={2}
             />
           </div>
-
-          <div className="space-y-2">
-            <Button type="submit" disabled={!user?.id || isCreating || !invitesAllowedByScope || !emailAllowedByScope}>
-              {isCreating ? 'Creating…' : 'Start New Thread'}
+          <div className="md:col-span-3 flex items-center gap-3">
+            <Button type="submit" disabled={requestBusy}>
+              {requestBusy ? 'Submitting…' : 'Request to message'}
             </Button>
-            {status && <p className="text-sm text-muted-foreground">{status}</p>}
-            {inviteResults.length > 0 && (
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p className="font-semibold">Invite results</p>
-                <ul className="list-disc pl-5 space-y-1">
-                  {inviteResults.map((result) => (
-                    <li key={`${result.email}-${result.status}`}>
-                      <span className="font-medium">{result.email}</span> —{' '}
-                      {result.status === 'added_existing_user'
-                        ? 'added to the thread'
-                        : result.status === 'invited_new_user'
-                          ? 'invited with a secure link'
-                          : "Can't invite: not found in your school directory."}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {requestStatus && <p className="text-sm text-gray-700">{requestStatus}</p>}
           </div>
         </form>
-      )}
+      </div>
 
-      {user?.id && canManageInvites && (
-        <div className="space-y-3 border rounded-md p-4 max-w-4xl">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold">Manage invites</h2>
-            <p className="text-sm text-muted-foreground">
-              Review pending invites for threads you created. Emails are masked to avoid exposing full addresses.
-            </p>
+      <div className="grid gap-4 lg:grid-cols-[320px,1fr]">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Threads</h2>
+            <Button variant="outline" size="sm" onClick={loadThreads} disabled={loadingThreads}>
+              Refresh
+            </Button>
           </div>
+          <ThreadList
+            threads={threads}
+            selectedId={selectedThreadId}
+            onSelect={setSelectedThreadId}
+            loading={loadingThreads}
+          />
+        </div>
 
-          <form onSubmit={handleLoadInvites} className="space-y-2">
-            <Label htmlFor="manage-thread-id">Thread ID</Label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Input
-                id="manage-thread-id"
-                value={manageThreadId}
-                onChange={(event) => setManageThreadId(event.target.value)}
-                placeholder="Thread ID you own"
-                className="sm:max-w-xs"
-              />
-              <Button type="submit" disabled={isLoadingInvites || !manageThreadId.trim()}>
-                {isLoadingInvites ? 'Loading…' : 'Load invites'}
-              </Button>
-            </div>
-            {manageStatus && <p className="text-sm text-muted-foreground">{manageStatus}</p>}
-          </form>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-4 min-h-[320px]">
+          {selectedThread ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Thread</p>
+                  <p className="font-semibold text-gray-900">{selectedThread.id}</p>
+                  <p className="text-xs text-gray-600">Status: {selectedThread.status}</p>
+                  {selectedThread.request?.status && (
+                    <p className="text-xs text-gray-600">Request: {selectedThread.request.status}</p>
+                  )}
+                </div>
+              </div>
 
-          {managedInvites.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border rounded-md">
-                <thead>
-                  <tr className="bg-muted text-left">
-                    <th className="p-2 font-medium">Email</th>
-                    <th className="p-2 font-medium">Status</th>
-                    <th className="p-2 font-medium">Expires</th>
-                    <th className="p-2 font-medium">Last sent</th>
-                    <th className="p-2 font-medium">Send count</th>
-                    <th className="p-2 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {managedInvites.map((invite) => {
-                    const isAccepted = Boolean(invite.acceptedAt);
-                    const isRevoked = Boolean(invite.revokedAt);
-                    const isExpired = invite.expiresAt
-                      ? new Date(invite.expiresAt).getTime() <= Date.now()
-                      : false;
-                    const statusLabel = isAccepted
-                      ? 'Accepted'
-                      : isRevoked
-                        ? 'Revoked'
-                        : isExpired
-                          ? 'Expired'
-                          : 'Pending';
-                    const isResending = activeInviteAction === `resend-${invite.id}`;
-                    const isRevoking = activeInviteAction === `revoke-${invite.id}`;
-                    return (
-                      <tr key={invite.id} className="border-t">
-                        <td className="p-2">{invite.emailMasked}</td>
-                        <td className="p-2">{statusLabel}</td>
-                        <td className="p-2">{formatDate(invite.expiresAt)}</td>
-                        <td className="p-2">{formatDate(invite.lastSentAt)}</td>
-                        <td className="p-2">{invite.sendCount ?? 0}</td>
-                        <td className="p-2 space-x-2 whitespace-nowrap">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            disabled={isAccepted || isRevoked || isExpired || isResending}
-                            onClick={() => handleResendInvite(invite.id)}
-                          >
-                            {isResending ? 'Resending…' : 'Resend'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={isAccepted || isRevoked || isRevoking}
-                            onClick={() => handleRevokeInvite(invite.id)}
-                          >
-                            {isRevoking ? 'Revoking…' : 'Revoke'}
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+              <div className="border rounded-md p-3 bg-gray-50 max-h-[420px] overflow-y-auto">
+                {loadingMessages ? (
+                  <p className="text-gray-600">Loading messages…</p>
+                ) : (
+                  <MessageList messages={messages} currentUserId={user?.id} />
+                )}
+              </div>
+
+              <form onSubmit={handleSend} className="space-y-2">
+                <Label htmlFor="new-message">New message</Label>
+                <Textarea
+                  id="new-message"
+                  value={newMessage}
+                  onChange={(event) => setNewMessage(event.target.value)}
+                  placeholder="Type your message"
+                  rows={3}
+                  disabled={!canSend}
+                />
+                {!canSend && (
+                  <p className="text-sm text-gray-600">
+                    Messaging is locked until this request is approved and the thread is active.
+                  </p>
+                )}
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="submit"
+                    disabled={sending || !newMessage.trim() || !canSend}
+                  >
+                    {sending ? 'Sending…' : 'Send message'}
+                  </Button>
+                  {status && <p className="text-sm text-gray-700">{status}</p>}
+                </div>
+              </form>
+            </>
+          ) : (
+            <p className="text-gray-600">Select a thread to view messages.</p>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

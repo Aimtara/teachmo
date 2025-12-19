@@ -81,6 +81,28 @@ function normalizeTimezone(timezone?: string | null): string {
   return value || 'America/New_York';
 }
 
+function normalizePreferences(pref: Partial<NotificationPreference> | null | undefined): NotificationPreference {
+  const quietStart = Number((pref as any)?.quiet_hours_start ?? (pref as any)?.quietHoursStart);
+  const quietEnd = Number((pref as any)?.quiet_hours_end ?? (pref as any)?.quietHoursEnd);
+  const digestHour = Number((pref as any)?.digest_hour ?? (pref as any)?.digestHour);
+
+  return {
+    emailEnabled: (pref as any)?.email_enabled !== false && (pref as any)?.emailEnabled !== false,
+    inAppEnabled: (pref as any)?.in_app_enabled !== false && (pref as any)?.inAppEnabled !== false,
+    directoryAlerts: (pref as any)?.directory_alerts !== false && (pref as any)?.directoryAlerts !== false,
+    digestMode: String((pref as any)?.digest_mode ?? (pref as any)?.digestMode ?? 'immediate'),
+    quietHoursStart: Number.isFinite(quietStart) ? quietStart : null,
+    quietHoursEnd: Number.isFinite(quietEnd) ? quietEnd : null,
+    timezone: normalizeTimezone((pref as any)?.timezone),
+    digestHour: Number.isFinite(digestHour) ? digestHour : 7,
+    invitesAlerts: (pref as any)?.invites_alerts !== false && (pref as any)?.invitesAlerts !== false,
+    messagingAlerts: (pref as any)?.messaging_alerts !== false && (pref as any)?.messagingAlerts !== false,
+    directoryDigest: (pref as any)?.directory_digest !== false && (pref as any)?.directoryDigest !== false,
+    invitesDigest: (pref as any)?.invites_digest === true || (pref as any)?.invitesDigest === true,
+    messagingDigest: (pref as any)?.messaging_digest === true || (pref as any)?.messagingDigest === true,
+  };
+}
+
 function getTimezoneOffsetMs(date: Date, timeZone: string): number {
   try {
     const localeString = date.toLocaleString('en-US', { timeZone });
@@ -534,4 +556,88 @@ export async function handleDirectorySyncAlert(params: {
       metadata: failureMetadata,
     });
   }
+}
+
+export async function notifyUserEvent(input: {
+  hasura: HasuraClient;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  severity?: 'info' | 'warning' | 'critical';
+  metadata?: Record<string, any>;
+  dedupeKey?: string | null;
+}) {
+  const { hasura, userId, type, title, body, severity = 'info', metadata = {}, dedupeKey = null } = input;
+  if (!userId) return { ok: false, reason: 'missing_user' };
+
+  const prefResp = await hasura(
+    `query Pref($userId: uuid!) {
+      user: auth_users_by_pk(id: $userId) { id email display_name }
+      pref: notification_preferences_by_pk(user_id: $userId) {
+        email_enabled
+        in_app_enabled
+        directory_alerts
+        digest_mode
+        quiet_hours_start
+        quiet_hours_end
+        timezone
+        digest_hour
+        invites_alerts
+        messaging_alerts
+        directory_digest
+        invites_digest
+        messaging_digest
+      }
+    }`,
+    { userId }
+  );
+
+  const user = prefResp?.data?.user ?? {};
+  const prefs = normalizePreferences(prefResp?.data?.pref ?? {});
+  const sanitizedMetadata = sanitizeMetadata(metadata);
+  const allowMessagingAlerts = prefs.messagingAlerts !== false;
+  const now = new Date();
+
+  let notificationId: string | null = null;
+  if (allowMessagingAlerts && prefs.inAppEnabled !== false) {
+    const insertResp = await hasura(
+      `mutation InsertNotification($object: notifications_insert_input!) {
+        insert_notifications_one(object: $object) { id }
+      }`,
+      {
+        object: {
+          user_id: userId,
+          type,
+          severity,
+          title,
+          body,
+          metadata: sanitizedMetadata,
+          dedupe_key: dedupeKey,
+        },
+      }
+    );
+    notificationId = insertResp?.data?.insert_notifications_one?.id ?? null;
+  }
+
+  const emailEnabledGlobally = parseBool(process.env.ALERT_EMAIL_ENABLED ?? 'false');
+  const digestMode = String(prefs.digestMode || 'immediate').toLowerCase();
+  const allowEmail = emailEnabledGlobally && prefs.emailEnabled && allowMessagingAlerts && digestMode !== 'off';
+  const inQuietHours = digestMode === 'immediate' && isWithinQuietHours(now, prefs.quietHoursStart, prefs.quietHoursEnd, prefs.timezone);
+
+  if (allowEmail && digestMode === 'immediate' && !inQuietHours && user?.email) {
+    const textBody = `${body}\n\nView in Teachmo: ${process.env.APP_BASE_URL ?? ''}`.trim();
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: title,
+        text: textBody,
+        html: `<p>${body}</p>`,
+      });
+    } catch (error) {
+      console.error('notifyUserEvent email failed', error);
+    }
+  }
+
+  return { ok: true, id: notificationId };
 }

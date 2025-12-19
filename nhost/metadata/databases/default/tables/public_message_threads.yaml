@@ -16,6 +16,10 @@ array_relationships:
         table:
           name: messages
           schema: public
+object_relationships:
+  - name: request
+    using:
+      foreign_key_constraint_on: request_id
 select_permissions:
   - role: parent
     permission:
@@ -26,9 +30,19 @@ select_permissions:
         - updated_at
         - created_by
         - last_message_preview
+        - school_id
+        - district_id
+        - requester_user_id
+        - target_user_id
+        - request_id
+        - status
+        - closed_at
       filter:
-        participants:
-          user_id: {_eq: "X-Hasura-User-Id"}
+        _or:
+          - participants:
+              user_id: {_eq: "X-Hasura-User-Id"}
+          - requester_user_id: {_eq: "X-Hasura-User-Id"}
+          - target_user_id: {_eq: "X-Hasura-User-Id"}
   - role: teacher
     permission:
       columns:
@@ -38,9 +52,19 @@ select_permissions:
         - updated_at
         - created_by
         - last_message_preview
+        - school_id
+        - district_id
+        - requester_user_id
+        - target_user_id
+        - request_id
+        - status
+        - closed_at
       filter:
-        participants:
-          user_id: {_eq: "X-Hasura-User-Id"}
+        _or:
+          - participants:
+              user_id: {_eq: "X-Hasura-User-Id"}
+          - requester_user_id: {_eq: "X-Hasura-User-Id"}
+          - target_user_id: {_eq: "X-Hasura-User-Id"}
   - role: school_admin
     permission:
       columns: "*"
@@ -53,36 +77,7 @@ select_permissions:
     permission:
       columns: "*"
       filter: {}
-insert_permissions:
-  - role: teacher
+  - role: system_admin
     permission:
-      columns:
-        - title
-      set:
-        created_by: "X-Hasura-User-Id"
-      check:
-        created_by: {_eq: "X-Hasura-User-Id"}
-  - role: school_admin
-    permission:
-      columns:
-        - title
-      set:
-        created_by: "X-Hasura-User-Id"
-      check:
-        created_by: {_eq: "X-Hasura-User-Id"}
-  - role: district_admin
-    permission:
-      columns:
-        - title
-      set:
-        created_by: "X-Hasura-User-Id"
-      check:
-        created_by: {_eq: "X-Hasura-User-Id"}
-  - role: admin
-    permission:
-      columns:
-        - title
-      set:
-        created_by: "X-Hasura-User-Id"
-      check:
-        created_by: {_eq: "X-Hasura-User-Id"}
+      columns: "*"
+      filter: {}

@@ -62,6 +62,16 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading messages...</p>
   },
   {
+    name: 'MessagingRequests',
+    path: '/messages/requests',
+    Component: lazy(() => import('@/pages/MessagingRequests.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['teacher', 'school_admin', 'district_admin', 'admin', 'system_admin'],
+    requiredScopes: ['content:read'],
+    feature: 'MESSAGING',
+    fallback: <p className="p-6 text-gray-600">Loading messaging requests...</p>
+  },
+  {
     name: 'AIAssistant',
     path: '/ai-assistant',
     Component: lazy(() => import('@/pages/AIAssistant.jsx')),

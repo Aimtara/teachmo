@@ -1,0 +1,1 @@
+-- No-op; scope defaults are managed in application logic.
