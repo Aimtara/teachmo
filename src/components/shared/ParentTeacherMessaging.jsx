@@ -15,7 +15,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { can } from "@/security/permissions";
 import { useUserData } from "@nhost/react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { queryClient } from "@/components/providers/ReactQueryProvider";
+import { queryClient } from "@/lib/queryClient";
 
 export default function ParentTeacherMessaging({ user }) {
   const [conversations, setConversations] = useState([]);

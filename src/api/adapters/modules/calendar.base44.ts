@@ -1,4 +1,4 @@
-import base44Entities from '@/api/base44/entities';
+import * as base44Entities from '@/api/base44/entities';
 import type { CalendarEvent, Paginated } from '../types';
 
 export async function list(params: Record<string, unknown> = {}): Promise<Paginated<CalendarEvent>> {

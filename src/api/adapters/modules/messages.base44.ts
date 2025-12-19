@@ -1,4 +1,4 @@
-import base44Entities from '@/api/base44/entities';
+import * as base44Entities from '@/api/base44/entities';
 import type { Message, MessageThread, Paginated } from '../types';
 import { logEvent } from './audit';
 

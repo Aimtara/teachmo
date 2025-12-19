@@ -1,7 +1,6 @@
-import * as base44Functions from './legacy/functions';
+import * as functions from '../functions';
 
-// Centralize Base44 function imports to ease future migrations.
-export const base44FunctionsMap = base44Functions;
-export default base44Functions;
+export const base44FunctionsMap = functions;
+export default base44FunctionsMap;
 
-export * from './legacy/functions';
+export * from '../functions';

@@ -1,12 +1,12 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PropTypes from 'prop-types';
 import { useAuthenticationStatus } from '@nhost/react';
 import LazyPageWrapper from '@/components/shared/LazyPageWrapper';
 import { useAuthorization } from '@/hooks/useUserRole';
 import { ROUTE_CONFIG } from '@/config/routes';
 import FeatureGate from '@/components/shared/FeatureGate';
 import RequirePermission from '@/components/security/RequirePermission';
+import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import Landing from './Landing.jsx';
 
 const AcceptInvite = lazy(() => import('./AcceptInvite.jsx'));
@@ -23,23 +23,6 @@ const NotificationPreferences = lazy(() => import('./NotificationPreferences.jsx
 const ClaimInvite = lazy(() => import('./ClaimInvite.jsx'));
 const AdminModerationQueue = lazy(() => import('./AdminModerationQueue.jsx'));
 const AdminMessagingBlocklist = lazy(() => import('./AdminMessagingBlocklist.jsx'));
-
-function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
-  const { isAuthenticated, isLoading } = useAuthenticationStatus();
-  const { defaultPath, canAccess } = useAuthorization();
-
-  if (isLoading) return <p className="p-6 text-gray-600">Checking your session…</p>;
-  if (!isAuthenticated) return <Navigate to="/" replace />;
-  if (!canAccess({ allowedRoles, requiredScopes })) return <Navigate to={defaultPath} replace />;
-
-  return children;
-}
-
-ProtectedRoute.propTypes = {
-  children: PropTypes.node.isRequired,
-  allowedRoles: PropTypes.arrayOf(PropTypes.string),
-  requiredScopes: PropTypes.arrayOf(PropTypes.string)
-};
 
 function RoleRedirect() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();

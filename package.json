@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint src/api src/hooks src/utils src/config src/pages/index.jsx src/lib/utils.ts src/App.jsx src/main.jsx backend/index.js backend/models.js backend/routes/submissions.js backend/routes/programs.js backend/routes/courses.js backend/routes/incentives.js backend/routes/contracts.js backend/routes/onboarding.js backend/routes/partnerPortalAdmin.js backend/routes/quizzes.js --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint src/api src/hooks src/utils src/config src/pages/index.jsx src/lib/utils.js src/App.jsx src/main.jsx backend/index.js backend/models.js backend/routes/submissions.js backend/routes/programs.js backend/routes/courses.js backend/routes/incentives.js backend/routes/contracts.js backend/routes/onboarding.js backend/routes/partnerPortalAdmin.js backend/routes/quizzes.js --ext .js,.jsx,.ts,.tsx",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -44,6 +44,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/supabase-js": "^2.88.0",
     "@tanstack/react-query": "^5.90.12",
+    "@tanstack/react-query-devtools": "^5.90.12",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -54,6 +55,7 @@
     "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.5.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.0.0",
     "framer-motion": "^12.4.7",
     "googleapis": "^169.0.0",
     "input-otp": "^1.4.2",
@@ -85,6 +87,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "web-vitals": "^5.1.0",
+    "uuid": "^9.0.0",
     "zod": "^3.24.2",
     "zustand": "^5.0.2"
   },
