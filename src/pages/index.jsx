@@ -21,6 +21,8 @@ const AdminDataScopes = lazy(() => import('./AdminDataScopes.jsx'));
 const Notifications = lazy(() => import('./Notifications.jsx'));
 const NotificationPreferences = lazy(() => import('./NotificationPreferences.jsx'));
 const ClaimInvite = lazy(() => import('./ClaimInvite.jsx'));
+const AdminModerationQueue = lazy(() => import('./AdminModerationQueue.jsx'));
+const AdminMessagingBlocklist = lazy(() => import('./AdminMessagingBlocklist.jsx'));
 
 function ProtectedRoute({ children, allowedRoles, requiredScopes }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -98,6 +100,22 @@ export default function Pages() {
       Component: AdminDirectoryImport,
       allowedRoles: ['school_admin', 'district_admin', 'system_admin'],
       requiresAuth: true
+    },
+    {
+      key: 'admin-messaging-moderation',
+      path: '/admin/moderation/messages',
+      Component: AdminModerationQueue,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+      requiresAuth: true,
+      requiredScopes: ['safety:review']
+    },
+    {
+      key: 'admin-messaging-blocks',
+      path: '/admin/moderation/blocks',
+      Component: AdminMessagingBlocklist,
+      allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
+      requiresAuth: true,
+      requiredScopes: ['safety:review']
     },
     {
       key: 'admin-directory-import-preview',

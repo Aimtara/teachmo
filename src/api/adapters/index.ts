@@ -11,3 +11,4 @@ export * as DirectoryInvitesAPI from './modules/directoryInvites';
 export * as NotificationsAPI from './modules/notifications';
 export * as DataScopesAPI from './modules/dataScopes';
 export * as MessagingAPI from './modules/messaging';
+export * as MessagingModerationAPI from './modules/messagingModeration';

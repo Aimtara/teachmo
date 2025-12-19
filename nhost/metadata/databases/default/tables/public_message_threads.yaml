@@ -16,6 +16,13 @@ array_relationships:
         table:
           name: messages
           schema: public
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: thread_id
+        table:
+          name: message_reports
+          schema: public
 object_relationships:
   - name: request
     using:
@@ -37,6 +44,9 @@ select_permissions:
         - request_id
         - status
         - closed_at
+        - moderation_status
+        - last_reported_at
+        - closed_reason
       filter:
         _or:
           - participants:
@@ -59,6 +69,9 @@ select_permissions:
         - request_id
         - status
         - closed_at
+        - moderation_status
+        - last_reported_at
+        - closed_reason
       filter:
         _or:
           - participants:

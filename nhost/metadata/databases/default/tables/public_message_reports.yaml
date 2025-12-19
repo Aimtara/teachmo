@@ -5,42 +5,56 @@ object_relationships:
   - name: message
     using:
       foreign_key_constraint_on: message_id
+  - name: thread
+    using:
+      foreign_key_constraint_on: thread_id
+  - name: reporter
+    using:
+      foreign_key_constraint_on:
+        column: reporter_user_id
+        table:
+          name: users
+          schema: auth
 select_permissions:
   - role: parent
     permission:
       columns:
         - id
-        - message_id
+        - school_id
+        - district_id
         - reporter_user_id
+        - thread_id
+        - message_id
         - reason
-        - metadata
+        - detail
+        - status
+        - severity
         - created_at
+        - triaged_at
+        - triaged_by
+        - resolved_at
+        - resolved_by
+        - metadata
       filter:
         reporter_user_id: {_eq: "X-Hasura-User-Id"}
   - role: teacher
     permission:
       columns:
         - id
-        - message_id
+        - school_id
+        - district_id
         - reporter_user_id
+        - thread_id
+        - message_id
         - reason
-        - metadata
+        - detail
+        - status
+        - severity
         - created_at
+        - triaged_at
+        - triaged_by
+        - resolved_at
+        - resolved_by
+        - metadata
       filter:
         reporter_user_id: {_eq: "X-Hasura-User-Id"}
-  - role: school_admin
-    permission:
-      columns: "*"
-      filter: {}
-  - role: district_admin
-    permission:
-      columns: "*"
-      filter: {}
-  - role: admin
-    permission:
-      columns: "*"
-      filter: {}
-  - role: system_admin
-    permission:
-      columns: "*"
-      filter: {}

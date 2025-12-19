@@ -7,6 +7,14 @@ const RATE_WINDOWS = [
   { windowSeconds: 86400, limit: 100 },
 ];
 
+const PROFANITY_LIST = String(process.env.SAFETY_PROFANITY_LIST ?? '')
+  .split(',')
+  .map((w) => w.trim().toLowerCase())
+  .filter(Boolean);
+
+const LINK_FLAG_THRESHOLD = Number(process.env.SAFETY_LINK_FLAG_THRESHOLD ?? 3);
+const BURST_FLAG_THRESHOLD = Number(process.env.SAFETY_BURST_FLAG_THRESHOLD ?? 8);
+
 function windowStart(seconds: number): string {
   const now = Date.now();
   const windowMs = seconds * 1000;
@@ -116,6 +124,7 @@ export default async (req: any, res: any) => {
           requester_user_id
           target_user_id
           status
+          moderation_status
           request { id status }
         }
       }`,
@@ -140,6 +149,10 @@ export default async (req: any, res: any) => {
       return res.status(403).json({ ok: false, error: 'thread_inactive' });
     }
 
+    if (thread.moderation_status && ['blocked', 'closed'].includes(thread.moderation_status)) {
+      return res.status(403).json({ ok: false, error: 'thread_moderated' });
+    }
+
     if (thread.request && thread.request.status && thread.request.status !== 'approved') {
       return res.status(403).json({ ok: false, error: 'request_not_approved' });
     }
@@ -150,21 +163,22 @@ export default async (req: any, res: any) => {
         blocks: message_blocks(
           where: {
             school_id: { _eq: $schoolId },
-            _or: [
-              { _and: [{ blocker_user_id: { _eq: $otherId } }, { blocked_user_id: { _eq: $actorId } }] },
-              { _and: [{ blocker_user_id: { _eq: $actorId } }, { blocked_user_id: { _eq: $otherId } }] }
-            ]
+            status: { _eq: "active" },
+            blocked_user_id: { _in: [$actorId, $otherId] }
           },
           limit: 1
         ) {
           id
+          blocked_user_id
         }
       }`,
       { schoolId: thread.school_id, actorId, otherId: otherUserId }
     );
 
     if (blocksResp?.data?.blocks?.length) {
-      return res.status(403).json({ ok: false, error: 'blocked' });
+      const blockedEntry = blocksResp.data.blocks[0];
+      const isActorBlocked = blockedEntry?.blocked_user_id === actorId;
+      return res.status(403).json({ ok: false, error: isActorBlocked ? 'blocked_sender' : 'blocked_recipient' });
     }
 
     const rateCheck = await checkRateLimits(hasura, `msg:${thread.id}:${actorId}`);
@@ -175,8 +189,34 @@ export default async (req: any, res: any) => {
     const preview = messageBody.length > 240 ? `${messageBody.slice(0, 240)}…` : messageBody;
     const nowIso = new Date().toISOString();
 
+    // Lightweight safety checks
+    const urlCount = (messageBody.match(/https?:\\/\\/[^\\s]+/gi) || []).length;
+    const containsProfanity = PROFANITY_LIST.some((word) => word && messageBody.toLowerCase().includes(word));
+    let flaggedReason: string | null = null;
+    if (LINK_FLAG_THRESHOLD > 0 && urlCount >= LINK_FLAG_THRESHOLD) {
+      flaggedReason = 'link_spam';
+    } else if (containsProfanity) {
+      flaggedReason = 'language';
+    }
+
+    if (!flaggedReason && BURST_FLAG_THRESHOLD > 0) {
+      const burstSince = new Date(Date.now() - 30_000).toISOString();
+      const burstResp = await hasura(
+        `query Burst($threadId: uuid!, $senderId: uuid!, $since: timestamptz!) {
+          messages_aggregate(where: { thread_id: { _eq: $threadId }, sender_user_id: { _eq: $senderId }, created_at: { _gte: $since } }) {
+            aggregate { count }
+          }
+        }`,
+        { threadId: thread.id, senderId: actorId, since: burstSince }
+      );
+      const burstCount = Number(burstResp?.data?.messages_aggregate?.aggregate?.count ?? 0);
+      if (burstCount >= BURST_FLAG_THRESHOLD) {
+        flaggedReason = 'rate_limit_spike';
+      }
+    }
+
     const insertResp = await hasura(
-      `mutation SendMessage($object: messages_insert_input!, $threadId: uuid!, $preview: String, $now: timestamptz!) {
+      `mutation SendMessage($object: messages_insert_input!, $threadId: uuid!, $preview: String, $now: timestamptz!, $flagged: Boolean!, $flagReason: String) {
         insert_messages_one(object: $object) { id thread_id created_at }
         update_message_threads_by_pk(pk_columns: { id: $threadId }, _set: { last_message_preview: $preview, updated_at: $now }) {
           id
@@ -188,15 +228,44 @@ export default async (req: any, res: any) => {
           sender_id: actorId,
           sender_user_id: actorId,
           body: messageBody,
+          flagged: Boolean(flaggedReason),
+          flag_reason: flaggedReason,
         },
         threadId: thread.id,
         preview,
         now: nowIso,
+        flagged: Boolean(flaggedReason),
+        flagReason: flaggedReason,
       }
     );
 
     const message = insertResp?.data?.insert_messages_one;
     if (!message?.id) return res.status(500).json({ ok: false, error: 'message_not_created' });
+
+    if (flaggedReason) {
+      await hasura(
+        `mutation AutoReport($object: message_reports_insert_input!, $threadId: uuid!, $now: timestamptz!) {
+          insert_message_reports_one(object: $object) { id }
+          update_message_threads_by_pk(pk_columns: { id: $threadId }, _set: { moderation_status: "flagged", last_reported_at: $now }) { id }
+        }`,
+        {
+          object: {
+            school_id: thread.school_id,
+            district_id: thread.district_id,
+            reporter_user_id: actorId,
+            thread_id: thread.id,
+            message_id: message.id,
+            reason: flaggedReason,
+            detail: 'Automatic safety flag',
+            status: 'open',
+            severity: 'low',
+            metadata: { automatic: true, flag_reason: flaggedReason },
+          },
+          threadId: thread.id,
+          now: nowIso,
+        }
+      );
+    }
 
     if (otherUserId) {
       await notifyUserEvent({
