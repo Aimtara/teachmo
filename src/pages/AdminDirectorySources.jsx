@@ -475,7 +475,7 @@ export default function AdminDirectorySources() {
                     placeholder='{\n  "Authorization": "Bearer {{secret.bearerToken}}"\n}'
                   />
                   <p className="text-xs text-gray-500">
-                    Use <code>{{'{{secret.yourKey}}'}}</code> to reference values from DIRECTORY_SOURCE_SECRETS_JSON.
+                    Use <code>{'{{secret.yourKey}}'}</code> to reference values from DIRECTORY_SOURCE_SECRETS_JSON.
                   </p>
                 </label>
               </div>
