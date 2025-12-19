@@ -18,7 +18,7 @@ export function applyDataGuardRules(contact: DirectoryContact, dataguardMode: 'a
 
   const maskedFirst = detectMaskedName(contact.firstName);
   const maskedLast = detectMaskedName(contact.lastName);
-  const piiMasked = dataguardMode === 'on' ? maskedFirst || maskedLast || true : maskedFirst || maskedLast;
+  const piiMasked = maskedFirst || maskedLast;
 
   const sanitized: DirectoryContact = {
     ...contact,

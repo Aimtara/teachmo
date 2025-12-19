@@ -27,12 +27,13 @@ export const DEFAULT_PII_POLICY: PiiPolicy = {
 
 export function getPiiPolicyForSource(sourceRow: any): PiiPolicy {
   const policyRaw = sourceRow?.pii_policy && typeof sourceRow.pii_policy === 'object' ? sourceRow.pii_policy : {};
-  const merged = { ...DEFAULT_PII_POLICY, ...policyRaw } as PiiPolicy;
-  merged.emailAllowlistDomains = Array.isArray(policyRaw.emailAllowlistDomains)
-    ? policyRaw.emailAllowlistDomains.map((v: any) => String(v).toLowerCase())
+  const { emailAllowlistDomains, emailDenylistDomains, ...policyRawRest } = policyRaw as any;
+  const merged = { ...DEFAULT_PII_POLICY, ...policyRawRest } as PiiPolicy;
+  merged.emailAllowlistDomains = Array.isArray(emailAllowlistDomains)
+    ? emailAllowlistDomains.map((v: any) => String(v).toLowerCase())
     : [];
-  merged.emailDenylistDomains = Array.isArray(policyRaw.emailDenylistDomains)
-    ? policyRaw.emailDenylistDomains.map((v: any) => String(v).toLowerCase())
+  merged.emailDenylistDomains = Array.isArray(emailDenylistDomains)
+    ? emailDenylistDomains.map((v: any) => String(v).toLowerCase())
     : [];
   return merged;
 }
@@ -57,7 +58,7 @@ export function redactQuarantineRow(rawRow: Record<string, any>, policy: PiiPoli
 export function sanitizeContact(
   contact: DirectoryContact,
   policy: PiiPolicy = DEFAULT_PII_POLICY,
-  ctx?: { dataguardMode?: 'auto' | 'on' | 'off'; sourceType?: string }
+  ctx?: { dataguardMode?: 'auto' | 'on' | 'off' }
 ) {
   const email = normEmail(contact.email);
   if (!email || !isEmailLike(email)) {
@@ -65,7 +66,7 @@ export function sanitizeContact(
   }
 
   const domain = email.split('@')[1]?.toLowerCase();
-  if (policy.emailAllowlistDomains.length > 0 && domain && !policy.emailAllowlistDomains.includes(domain)) {
+  if (policy.emailAllowlistDomains.length > 0 && (!domain || !policy.emailAllowlistDomains.includes(domain))) {
     return { valid: false, reason: 'domain_not_allowed', raw_redacted: redactQuarantineRow({ email }, policy) };
   }
 

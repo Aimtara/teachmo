@@ -77,7 +77,7 @@ export async function runDirectorySourceSync(params: {
     const config = source.config && typeof source.config === 'object' ? source.config : {};
     const schema = await loadDirectorySchemaVersion(hasura, 'v1');
     const piiPolicy = getPiiPolicyForSource(source);
-    const dataguardMode = (source.dataguard_mode as any) ?? 'auto';
+    const dataguardMode = source.dataguard_mode ?? 'auto';
 
     const fetchResult =
       source.source_type === 'https_url'
