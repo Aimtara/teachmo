@@ -31,13 +31,18 @@ export function applyDataGuardRules(contact: DirectoryContact, dataguardMode: 'a
   // When masking is detected, strip the PII fields to prevent storing masked data
   const sanitized: DirectoryContact = piiMasked
     ? {
+        // Only include non-PII fields when masking is detected
         email: contact.email,
         contactType: contact.contactType,
         sourceRole: contact.sourceRole,
         ...(contact.externalId && { externalId: contact.externalId }),
         ...(contact.metadata && { metadata: contact.metadata }),
+        // firstName and lastName are intentionally excluded when piiMasked is true
       }
-    : { ...contact };
+    : {
+        // Include all fields including PII when no masking is detected
+        ...contact,
+      };
 
   return { contact: sanitized, piiMasked };
 }
