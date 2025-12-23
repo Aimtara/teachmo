@@ -1,6 +1,6 @@
 import '../jestGlobals';
 import React from 'react';
-import { renderWithProviders, screen, waitFor } from '../testUtils';
+import { renderWithProviders, screen, waitFor } from '../testing/testUtils';
 import { User } from '@/api/entities';
 import { axe } from 'jest-axe';
 

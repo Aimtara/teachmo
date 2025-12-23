@@ -2,8 +2,8 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event'; // Added this import
-import { renderWithProviders, createMockActivity, testUtils } from '../testUtils';
-import ActivityCard from '../../../components/activities/ActivityCard';
+import { renderWithProviders, createMockActivity, testUtils } from '../testing/testUtils';
+import ActivityCard from '../activities/ActivityCard';
 
 describe('ActivityCard Component', () => {
   const mockActivity = createMockActivity({

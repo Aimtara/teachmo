@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderWithProviders, screen, waitFor, axe } from '../testUtils';
+import { renderWithProviders, screen, waitFor, axe } from '../testing/testUtils';
 import ReferralCodeInput from '@/components/onboarding/ReferralCodeInput';
 import { applyReferralCode } from '@/api/functions';
 

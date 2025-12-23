@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderWithProviders, screen, waitFor } from '../testUtils';
+import { renderWithProviders, screen, waitFor } from '../testing/testUtils';
 import Dashboard from '@/pages/Dashboard';
 import ActivityCard from '@/components/activities/ActivityCard';
 import { axe } from 'jest-axe';

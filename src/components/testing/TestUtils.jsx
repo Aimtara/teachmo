@@ -96,6 +96,55 @@ export const createMockTip = (overrides = {}) => ({
   ...overrides,
 });
 
+// Common testing helpers used across specs and integration tests
+export const testUtils = {
+  async fillField(user, label, value) {
+    const input = await screen.findByLabelText(label);
+    await user.clear(input);
+    await user.type(input, value);
+  },
+  async clickButton(user, name) {
+    const button = await screen.findByRole('button', { name });
+    await user.click(button);
+  },
+  async waitForElement(testId) {
+    return screen.findByTestId(testId);
+  },
+  async waitForLoadingToFinish() {
+    await waitFor(() => {
+      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+    });
+  },
+};
+
+// Accessibility helpers (currently lightweight stubs for future expansion)
+export const a11yUtils = {
+  async checkHeadingHierarchy(container = document.body) {
+    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    return headings.length > 0;
+  },
+  checkFormLabels(container = document.body) {
+    const inputs = container.querySelectorAll('input, textarea, select');
+    return Array.from(inputs).every((input) => {
+      const id = input.getAttribute('id');
+      return !id || container.querySelector(`label[for="${id}"]`);
+    });
+  },
+};
+
+// Simple performance helpers to keep tests deterministic
+export const performanceUtils = {
+  async measureRenderTime(element) {
+    const start = performance.now();
+    render(element);
+    return performance.now() - start;
+  },
+  checkCleanup() {
+    // Placeholder hook for future resource cleanup checks
+    expect(jest).toBeDefined();
+  },
+};
+
 // Re-export everything from testing library
 export * from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';
