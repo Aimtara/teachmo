@@ -52,6 +52,12 @@ export default function UnifiedCommunity() {
     });
   };
 
+  const LoadingSpinner = () => (
+    <div className="flex items-center justify-center py-16">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
   return (
     <ProtectedRoute allowedRoles={["parent", "teacher"]} requireAuth={true}>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
@@ -107,9 +113,7 @@ export default function UnifiedCommunity() {
 
               <TabsContent value="feed" className="mt-6">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  </div>
+                  <LoadingSpinner />
                 ) : (
                   <>
                     <CommunityScope user={me} />
@@ -120,9 +124,7 @@ export default function UnifiedCommunity() {
 
               <TabsContent value="pods" className="mt-6">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  </div>
+                  <LoadingSpinner />
                 ) : (
                   <CommunityPods user={me} />
                 )}
@@ -130,16 +132,18 @@ export default function UnifiedCommunity() {
 
               <TabsContent value="messages" className="mt-6">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  </div>
+                  <LoadingSpinner />
                 ) : (
                   <CommunityMessages user={me} />
                 )}
               </TabsContent>
 
               <TabsContent value="privacy" className="mt-6">
-                <CommunityPrivacySettings userId={me?.id} />
+                {isLoading ? (
+                  <LoadingSpinner />
+                ) : (
+                  <CommunityPrivacySettings userId={me?.id} />
+                )}
               </TabsContent>
             </Tabs>
           )}
