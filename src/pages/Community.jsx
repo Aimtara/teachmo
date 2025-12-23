@@ -1,2 +1,1 @@
-import UnifiedCommunity from "./UnifiedCommunity.jsx";
-export default UnifiedCommunity;
+export { default } from './UnifiedCommunity';
