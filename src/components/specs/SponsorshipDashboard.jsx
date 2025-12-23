@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderWithProviders, screen, waitFor, createMockUser, axe } from '../testUtils';
+import { renderWithProviders, screen, waitFor, createMockUser, axe } from '../testing/testUtils';
 import SponsorshipDashboard from '@/pages/SponsorshipDashboard';
 import { SponsorshipPartner, ReferralCode } from '@/api/entities';
 

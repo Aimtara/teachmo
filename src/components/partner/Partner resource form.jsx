@@ -1,6 +1,6 @@
 import { setupServer } from 'msw/node';
 import { rest } from 'msw';
-import { createMockUser, createMockChild, createMockActivity } from '../testUtils';
+import { createMockUser, createMockChild, createMockActivity } from '../testing/testUtils';
 
 // Mock API responses
 export const handlers = [
