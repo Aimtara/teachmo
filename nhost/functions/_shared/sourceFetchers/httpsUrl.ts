@@ -25,7 +25,7 @@ export async function fetchHttpsUrlSource(params: {
 
   const response = await fetch(url, { headers });
   if (!response.ok) {
-    throw new Error(`fetch_failed_${response.status}`);
+    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
   }
 
   const csvText = await response.text();
