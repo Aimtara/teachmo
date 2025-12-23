@@ -1,17 +1,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import ReactMarkdown from 'react-markdown';
 import { Message } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  Send, 
-  Paperclip, 
-  Languages, 
-  Download
-} from 'lucide-react';
+import { Send, Paperclip, Languages, Download } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
+import { useWebSocket } from '@/providers/WebSocketProvider';
+import { sendMessageStatusUpdate } from '@/utils/MessageStatusUpdater';
 import backendAdapter from '@/backend/adapter';
 
 export default function ChatWindow({ conversationId, recipientUser, currentUser }) {
@@ -24,7 +22,9 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
   const [uploadingFile, setUploadingFile] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const lastReadMessageIdRef = useRef(null);
   const { toast } = useToast();
+  const wsRef = useWebSocket();
 
   // Real-time typing indicator simulation
   const typingTimeoutRef = useRef(null);
@@ -59,6 +59,23 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const ws = wsRef?.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const latestIncoming = [...messages]
+      .reverse()
+      .find((message) => message.sender_id !== currentUser.id && message.status !== 'read');
+
+    if (latestIncoming && lastReadMessageIdRef.current !== latestIncoming.id) {
+      sendMessageStatusUpdate(ws, String(latestIncoming.id), 'read');
+      lastReadMessageIdRef.current = latestIncoming.id;
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === latestIncoming.id ? { ...msg, status: 'read' } : msg))
+      );
+    }
+  }, [currentUser.id, messages, wsRef]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -249,12 +266,12 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
               <div className={`max-w-xs lg:max-w-md ${isFromCurrentUser ? 'order-2' : 'order-1'}`}>
                 <div
                   className={`p-3 rounded-lg ${
-                    isFromCurrentUser
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
+                    isFromCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
                   }`}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  <div className={`prose prose-sm max-w-none ${isFromCurrentUser ? 'prose-invert' : ''}`}>
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  </div>
                   
                   {message.attachments?.map((attachment, idx) => (
                     <div key={idx}>
