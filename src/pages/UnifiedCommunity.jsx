@@ -34,6 +34,7 @@ export default function UnifiedCommunity() {
       } catch (e) {
         console.error("Error loading Base44 user:", e);
         setError({ message: "Could not load your community profile. (Base44 session missing?)" });
+        setReportState({ open: false, contentType: "post", contentId: null, reportedUserId: null });
       } finally {
         setIsLoading(false);
       }
@@ -50,6 +51,12 @@ export default function UnifiedCommunity() {
       reportedUserId: post?.user_id,
     });
   };
+
+  const LoadingSpinner = () => (
+    <div className="flex items-center justify-center py-16">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <ProtectedRoute allowedRoles={["parent", "teacher"]} requireAuth={true}>
@@ -106,9 +113,7 @@ export default function UnifiedCommunity() {
 
               <TabsContent value="feed" className="mt-6">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  </div>
+                  <LoadingSpinner />
                 ) : (
                   <>
                     <CommunityScope user={me} />
@@ -118,26 +123,40 @@ export default function UnifiedCommunity() {
               </TabsContent>
 
               <TabsContent value="pods" className="mt-6">
-                <CommunityPods user={me} />
+                {isLoading ? (
+                  <LoadingSpinner />
+                ) : (
+                  <CommunityPods user={me} />
+                )}
               </TabsContent>
 
               <TabsContent value="messages" className="mt-6">
-                <CommunityMessages user={me} />
+                {isLoading ? (
+                  <LoadingSpinner />
+                ) : (
+                  <CommunityMessages user={me} />
+                )}
               </TabsContent>
 
               <TabsContent value="privacy" className="mt-6">
-                <CommunityPrivacySettings userId={me?.id} />
+                {isLoading ? (
+                  <LoadingSpinner />
+                ) : (
+                  <CommunityPrivacySettings userId={me?.id} />
+                )}
               </TabsContent>
             </Tabs>
           )}
 
-          <ReportConcernModal
-            open={reportState.open}
-            onOpenChange={(open) => setReportState((prev) => ({ ...prev, open }))}
-            contentType={reportState.contentType}
-            contentId={reportState.contentId}
-            reportedUserId={reportState.reportedUserId}
-          />
+          {!error && (
+            <ReportConcernModal
+              open={reportState.open}
+              onOpenChange={(open) => setReportState((prev) => ({ ...prev, open }))}
+              contentType={reportState.contentType}
+              contentId={reportState.contentId}
+              reportedUserId={reportState.reportedUserId}
+            />
+          )}
         </div>
       </div>
     </ProtectedRoute>
