@@ -7,7 +7,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AnimatePresence } from 'framer-motion';
 
-export default function CommunityFeed({ initialContent, initialType, onPostCreated }) {
+export default function CommunityFeed({ initialContent, initialType, onPostCreated, onReport }) {
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState([]);
   const [likes, setLikes] = useState([]);
@@ -84,6 +84,7 @@ export default function CommunityFeed({ initialContent, initialType, onPostCreat
               onLike={() => handleLikePost(post.id)}
               currentUser={user}
               onUpdate={loadFeedData}
+              onReport={onReport}
             />
           ))}
         </AnimatePresence>
