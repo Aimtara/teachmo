@@ -1,9 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import path from 'path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const plugins = [react()];
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 if (process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT) {
   plugins.push(
@@ -29,7 +32,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': resolve(__dirname, './src')
     },
     extensions: ['.mjs', '.js', '.jsx', '.ts', '.tsx', '.json']
   },
