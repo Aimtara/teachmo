@@ -198,6 +198,7 @@ export default function ConversationList({ onSelectConversation, selectedConvers
                 const isSelected = selectedConversationId === conversation.id;
                 const avatar = getConversationAvatar(conversation);
                 const conversationName = getConversationName(conversation);
+                const isUnread = conversation.unread_count > 0;
                 
                 return (
                   <motion.div
@@ -222,9 +223,18 @@ export default function ConversationList({ onSelectConversation, selectedConvers
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <p className={`font-medium text-sm ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
-                              {conversationName}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              {isUnread ? (
+                                <span className="h-2 w-2 rounded-full bg-blue-500" aria-hidden="true" />
+                              ) : null}
+                              <p
+                                className={`font-medium text-sm ${
+                                  isSelected ? 'text-blue-900' : 'text-gray-900'
+                                } ${isUnread ? 'font-semibold' : ''}`}
+                              >
+                                {conversationName}
+                              </p>
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                               {getConversationIcon(conversation)}
                               <span className="text-xs text-gray-500">

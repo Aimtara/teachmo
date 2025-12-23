@@ -18,6 +18,7 @@ import ParentOnboardingPage from './onboarding/parent';
 import TeacherOnboardingPage from './onboarding/teacher';
 import { getDefaultPathForRole, useUserRole } from '@/hooks/useUserRole';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
+import WorkflowBuilder from '@/components/workflows/WorkflowBuilder';
 
 // Base44 UI parity track (incremental)
 import UnifiedDiscover from './UnifiedDiscover.jsx';
@@ -202,6 +203,14 @@ export default function Pages() {
             element={(
               <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/workflows"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+                <WorkflowBuilder />
               </ProtectedRoute>
             )}
           />

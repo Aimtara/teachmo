@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react';
+import { flushQueue } from '../utils/OfflineMessageQueue';
 
 const WSContext = createContext<React.MutableRefObject<WebSocket | null> | null>(null);
 
@@ -13,7 +14,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const socket = new WebSocket('wss://api.teachmo.dev/ws'); // TODO: Replace with actual endpoint
     ws.current = socket;
 
-    const handleOpen = () => console.log('WebSocket connected');
+    const handleOpen = () => {
+      console.log('WebSocket connected');
+      flushQueue(socket);
+    };
     const handleClose = () => console.log('WebSocket disconnected');
 
     socket.addEventListener('open', handleOpen);
