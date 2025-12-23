@@ -36,7 +36,19 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...tsPlugin.configs.recommended.rules,
-      ...reactRules
+      ...reactRules,
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/API/*', '@/API/**'],
+              caseSensitive: true,
+              message: 'Use "@/api" instead of "@/API".'
+            }
+          ]
+        }
+      ]
     }
   },
   {
@@ -57,7 +69,19 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
-      ...reactRules
+      ...reactRules,
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/API/*', '@/API/**'],
+              caseSensitive: true,
+              message: 'Use "@/api" instead of "@/API".'
+            }
+          ]
+        }
+      ]
     }
   }
 ];

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/backend/**/*",
+    "src/hooks/useUserRole.ts",
+    "src/components/hooks/useStore.ts",
+    "src/components/shared/ProtectedRoute.tsx",
+    "src/lib/utils.ts",
+    "src/observability/**/*"
+  ]
+}
