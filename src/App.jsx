@@ -12,10 +12,11 @@ function App() {
     <NhostProvider nhost={nhost}>
       <NhostReactProvider nhost={nhost}>
         <QueryClientProvider client={queryClient}>
-          <UltraMinimalToast />
-          <Toaster />
-          <UltraMinimalToast />
           <Pages />
+          {/* Required for legacy Base44 UI components that call ultraMinimalToast() */}
+          <UltraMinimalToast />
+          {/* Shadcn-style toasts for components using useToast() */}
+          <Toaster />
           {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
         </QueryClientProvider>
       </NhostReactProvider>
