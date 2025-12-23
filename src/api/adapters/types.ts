@@ -11,7 +11,6 @@ export interface Event {
   end_time?: string;
   starts_at?: string;
   ends_at?: string;
-  location?: string;
   location_name?: string;
   school_id?: string;
   [key: string]: unknown;
