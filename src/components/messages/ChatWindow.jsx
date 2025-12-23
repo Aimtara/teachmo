@@ -1,23 +1,18 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { User, Message, MessageReaction, Translation } from '@/api/entities';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
+import { Message } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { 
   Send, 
   Paperclip, 
-  Image, 
-  Smile, 
   Languages, 
-  Download,
-  Eye,
-  MoreVertical,
-  Trash2
+  Download
 } from 'lucide-react';
-import { UploadFile } from '@/api/integrations';
 import { format, isToday, isYesterday } from 'date-fns';
+import backendAdapter from '@/backend/adapter';
 
 export default function ChatWindow({ conversationId, recipientUser, currentUser }) {
   const [messages, setMessages] = useState([]);
@@ -34,33 +29,36 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
   // Real-time typing indicator simulation
   const typingTimeoutRef = useRef(null);
 
-  useEffect(() => {
-    loadMessages();
-    // In a real app, you'd set up WebSocket connections here for real-time updates
-    simulateOnlineStatus();
-  }, [conversationId]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
-      const messagesData = await Message.filter({ conversation_id: conversationId }, '-created_date');
+      const messagesData = await Message.filter(
+        { conversation_id: conversationId },
+        '-created_date'
+      );
       setMessages(messagesData);
     } catch (error) {
       console.error('Failed to load messages:', error);
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to load messages.' });
     }
-  };
+  }, [conversationId, toast]);
 
-  const simulateOnlineStatus = () => {
+  const simulateOnlineStatus = useCallback(() => {
     // Simulate online status - in production this would be via WebSocket
     const isRecipientOnline = Math.random() > 0.3; // 70% chance online
-    if (isRecipientOnline) {
-      setOnlineUsers(prev => new Set(prev).add(recipientUser.id));
+    if (isRecipientOnline && recipientUser?.id) {
+      setOnlineUsers((prev) => new Set(prev).add(recipientUser.id));
     }
-  };
+  }, [recipientUser?.id]);
+
+  useEffect(() => {
+    loadMessages();
+    // In a real app, you'd set up WebSocket connections here for real-time updates
+    simulateOnlineStatus();
+  }, [conversationId, loadMessages, simulateOnlineStatus]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -75,9 +73,9 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
     setNewMessage('');
 
     try {
-      await Message.create({
-        conversation_id: conversationId,
-        sender_id: currentUser.id,
+      await backendAdapter.createMessage({
+        conversationId,
+        senderId: currentUser.id,
         content: messageContent
       });
 
@@ -117,14 +115,15 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
 
     setUploadingFile(true);
     try {
-      const { file_url } = await UploadFile({ file });
+      const uploadResult = await backendAdapter.uploadFile(file, file.name);
+      const fileUrl = uploadResult?.url;
       
-      await Message.create({
-        conversation_id: conversationId,
-        sender_id: currentUser.id,
+      await backendAdapter.createMessage({
+        conversationId,
+        senderId: currentUser.id,
         content: `Shared file: ${file.name}`,
         attachments: [{
-          url: file_url,
+          url: fileUrl,
           type: file.type.startsWith('image/') ? 'image' : 'file',
           filename: file.name,
           size: file.size
@@ -353,3 +352,14 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
     </div>
   );
 }
+
+ChatWindow.propTypes = {
+  conversationId: PropTypes.string.isRequired,
+  recipientUser: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    full_name: PropTypes.string
+  }).isRequired,
+  currentUser: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
+  }).isRequired
+};

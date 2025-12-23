@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User } from '@/api/entities';
+import backendAdapter from '@/backend/adapter';
 
 export const useUser = () => {
   const [user, setUser] = useState(null);
@@ -10,7 +10,7 @@ export const useUser = () => {
     const fetchUser = async () => {
       try {
         setIsLoading(true);
-        const currentUser = await User.me();
+        const currentUser = await backendAdapter.getCurrentUser();
         setUser(currentUser);
       } catch (err) {
         setError(err);

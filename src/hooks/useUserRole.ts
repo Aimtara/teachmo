@@ -9,10 +9,28 @@ import {
   type AppRole
 } from '@/config/rbac';
 
+function resolveNhostRole(user: ReturnType<typeof useUserData>) {
+  if (!user) return undefined;
+
+  const metadataRole =
+    typeof user?.metadata?.preferred_active_role === 'string'
+      ? user.metadata.preferred_active_role
+      : typeof user?.metadata?.role === 'string'
+        ? user.metadata.role
+        : undefined;
+
+  const claimRole =
+    metadataRole ||
+    (Array.isArray(user?.roles) && typeof user.roles[0] === 'string' ? user.roles[0] : undefined) ||
+    (typeof user?.defaultRole === 'string' ? user.defaultRole : undefined);
+
+  return normalizeRole(claimRole);
+}
+
 export function useUserRole(): AppRole {
   const user = useUserData();
 
-  return useMemo(() => normalizeRole(user?.metadata?.role ?? user?.defaultRole), [user]);
+  return useMemo(() => resolveNhostRole(user), [user]);
 }
 
 export function useAuthorization() {

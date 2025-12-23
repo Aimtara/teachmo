@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint src/api src/hooks src/utils src/config src/pages/index.jsx src/lib/utils.js src/App.jsx src/main.jsx backend/index.js backend/models.js backend/routes/submissions.js backend/routes/programs.js backend/routes/courses.js backend/routes/incentives.js backend/routes/contracts.js backend/routes/onboarding.js backend/routes/partnerPortalAdmin.js backend/routes/quizzes.js --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint src/backend src/observability src/api/base44Client.js src/hooks/useUserRole.ts src/components/shared/ProtectedRoute.tsx src/components/shared/AdminRoleGuard.tsx src/components/hooks/useStore.ts src/components/hooks/useUser.jsx src/components/hooks/useDashboardData.jsx src/components/messages/ChatWindow.jsx src/lib/utils.ts src/main.jsx src/pages/index.jsx --ext .js,.jsx,.ts,.tsx",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "test": "vitest run --passWithNoTests",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -42,6 +44,7 @@
     "@radix-ui/react-toggle": "^1.1.2",
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@sentry/react": "^8.37.1",
     "@supabase/supabase-js": "^2.88.0",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-query-devtools": "^5.91.1",
@@ -95,6 +98,7 @@
     "@eslint/js": "^9.19.0",
     "@flydotio/dockerfile": "^0.7.8",
     "@playwright/test": "^1.57.0",
+    "@sentry/vite-plugin": "^2.22.4",
     "@storybook/react-vite": "^10.1.9",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -112,6 +116,7 @@
     "eslint-plugin-react-refresh": "^0.4.18",
     "globals": "^15.14.0",
     "jest-axe": "^9.0.0",
+    "jsdom": "^27.3.0",
     "msw": "^2.7.0",
     "postcss": "^8.5.3",
     "supertest": "^7.0.0",
