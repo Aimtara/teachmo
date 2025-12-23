@@ -17,6 +17,8 @@ export async function listEvents(params = {}) {
     ? params
     : { schoolId: params };
 
+  // Accepts both 'schoolId' (camelCase, preferred) and 'school_id' (snake_case) 
+  // for backward compatibility with existing callers and database field naming
   const schoolId = normalizedParams.schoolId ?? normalizedParams.school_id ?? null;
   const limit = normalizedParams.limit ?? 50;
   const offset = normalizedParams.offset ?? 0;
