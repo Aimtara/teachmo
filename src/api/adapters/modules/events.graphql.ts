@@ -15,6 +15,6 @@ export async function list(params: Record<string, any> = {}): Promise<Paginated<
 }
 
 export async function getById(id: string): Promise<Event | null> {
-  // Optional if available in domains
-  return null;
+  // TODO: Implement getById when domain function is available
+  throw new Error(`getById(${id}) is not yet implemented for GraphQL events adapter`);
 }
