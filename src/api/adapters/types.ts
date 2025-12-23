@@ -3,6 +3,14 @@ export interface Paginated<T> {
   nextCursor: string | null;
 }
 
+export interface ListEventsParams {
+  /** Filter by school ID (accepts either camelCase or snake_case) */
+  schoolId?: string;
+  school_id?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export interface Event {
   id: string;
   title?: string;
