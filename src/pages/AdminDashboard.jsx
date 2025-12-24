@@ -1,17 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { bootstrapOrganization } from '@/domains/onboarding';
 import { createProfile } from '@/domains/auth';
+import { API_BASE_URL } from '@/config/api';
+import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
+import { useTelemetry } from '@/utils/useTelemetry';
 
 export default function AdminDashboard() {
   const [orgForm, setOrgForm] = useState({ organizationName: '', schoolName: '' });
   const [userForm, setUserForm] = useState({ userId: '', fullName: '', role: 'teacher', organizationId: '', schoolId: '' });
   const [message, setMessage] = useState('');
+  const [metrics, setMetrics] = useState({});
+  const { log } = useTelemetry();
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/admin/metrics`)
+      .then((res) => res.json())
+      .then(setMetrics)
+      .catch(() => setMetrics({}));
+  }, []);
 
   const handleOrgSubmit = async (evt) => {
     evt.preventDefault();
     const data = await bootstrapOrganization({
       organizationName: orgForm.organizationName,
       schoolName: orgForm.schoolName
+    });
+    log('organization_bootstrap', {
+      organizationName: orgForm.organizationName,
+      schoolName: orgForm.schoolName,
+      organizationId: data.organization?.id
     });
     setMessage(`Created/updated organization ${data.organization?.name}`);
   };
@@ -25,6 +42,12 @@ export default function AdminDashboard() {
       organization_id: userForm.organizationId || null,
       school_id: userForm.schoolId || null
     });
+    log('admin_assign_role', {
+      userId: userForm.userId,
+      role: userForm.role,
+      organizationId: userForm.organizationId || null,
+      schoolId: userForm.schoolId || null
+    });
     setMessage('User role saved');
   };
 
@@ -34,6 +57,13 @@ export default function AdminDashboard() {
         <h1 className="text-3xl font-semibold">Admin dashboard</h1>
         <p className="text-gray-600">Manage organizations, schools, and roles.</p>
       </header>
+
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Active Parents (7d)" value={metrics.active_parents} />
+        <Stat label="Messages Sent (24h)" value={metrics.messages_sent} />
+        <Stat label="Workflows Run (total)" value={metrics.workflows_run} />
+        <Stat label="Average AI Latency (ms)" value={metrics.ai_latency} />
+      </section>
 
       <form onSubmit={handleOrgSubmit} className="bg-white rounded shadow p-4 space-y-3">
         <h2 className="font-medium">Create organization & school</h2>
@@ -98,6 +128,15 @@ export default function AdminDashboard() {
       </form>
 
       {message && <p className="text-green-700 text-sm">{message}</p>}
+
+      <AuditLogViewer />
     </div>
   );
 }
+
+const Stat = ({ label, value }) => (
+  <div className="border rounded p-4 bg-white shadow">
+    <p className="text-sm text-gray-600">{label}</p>
+    <p className="text-3xl font-semibold">{value ?? '—'}</p>
+  </div>
+);
