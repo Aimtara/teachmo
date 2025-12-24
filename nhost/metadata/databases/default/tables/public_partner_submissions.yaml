@@ -1,14 +1,19 @@
 table:
   name: partner_submissions
   schema: public
-array_relationships:
-  - name: audits
-    using:
-      foreign_key_constraint_on:
-        column: submission_id
-        table:
-          name: partner_submission_audits
-          schema: public
+insert_permissions:
+  - role: partner
+    permission:
+      check:
+        partner_user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        partner_user_id: x-hasura-user-id
+      columns:
+        - district_id
+        - type
+        - title
+        - description
 select_permissions:
   - role: system_admin
     permission:
@@ -17,42 +22,12 @@ select_permissions:
   - role: admin
     permission:
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: district_admin
-    permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: school_admin
-    permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
+      filter: {}
   - role: partner
     permission:
       columns: '*'
       filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        partner_id:
-          _eq: X-Hasura-User-Id
-insert_permissions:
-  - role: partner
-    permission:
-      columns:
-        - organization_id
-        - partner_id
-        - type
-        - title
-        - description
-      check:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        partner_id:
+        partner_user_id:
           _eq: X-Hasura-User-Id
 update_permissions:
   - role: partner
@@ -61,8 +36,8 @@ update_permissions:
         - title
         - description
       filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        partner_id:
+        partner_user_id:
           _eq: X-Hasura-User-Id
+        status:
+          _eq: pending
       check: {}

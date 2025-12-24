@@ -1,5 +1,5 @@
 table:
-  name: partner_incentive_applications
+  name: partner_training_modules
   schema: public
 select_permissions:
   - role: system_admin

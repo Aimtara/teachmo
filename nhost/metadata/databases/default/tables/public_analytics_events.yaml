@@ -2,34 +2,80 @@ table:
   name: analytics_events
   schema: public
 select_permissions:
+  - role: parent
+    permission:
+      columns: '*'
+      filter: {}
+  - role: teacher
+    permission:
+      columns: '*'
+      filter: {}
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
   - role: system_admin
     permission:
       columns: '*'
       filter: {}
-      allow_aggregations: true
   - role: admin
     permission:
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-      allow_aggregations: true
-  - role: district_admin
+      filter: {}
+insert_permissions:
+  - role: parent
     permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-      allow_aggregations: true
+      check: {}
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+  - role: teacher
+    permission:
+      check: {}
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
   - role: school_admin
     permission:
+      check: {}
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+  - role: district_admin
+    permission:
+      check: {}
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+  - role: system_admin
+    permission:
+      check: {}
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        _or:
-          - school_id:
-              _eq: X-Hasura-School-Id
-          - school_id:
-              _is_null: true
-      allow_aggregations: true
+  - role: admin
+    permission:
+      check: {}
+      columns: '*'
