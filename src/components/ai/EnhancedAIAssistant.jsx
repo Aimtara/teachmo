@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Bot, Send, Loader2, AlertCircle, Lightbulb, BookOpen, Users, Sparkles, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { invokeAdvancedAI } from '@/api/functions';
+import { logAiInteraction } from '@/api/ai/log';
+import { useTenant } from '@/contexts/TenantContext';
+import { estimateTokens, scoreHallucinationRisk } from '@/observability/aiSafety';
+import { logAnalyticsEvent } from '@/observability/telemetry';
 
 const AICapabilityBadge = ({ icon: Icon, label, description }) => (
   <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
@@ -147,6 +151,7 @@ const AIThinkingIndicator = ({ stage }) => {
 };
 
 export default function EnhancedAIAssistant({ user, children }) {
+  const tenant = useTenant();
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -223,6 +228,47 @@ What would you like help with today?`,
       };
 
       setMessages(prev => [...prev, aiMessage]);
+
+      if (tenant.organizationId) {
+        const tokenPrompt = estimateTokens(inputValue);
+        const tokenResponse = estimateTokens(aiResponse.response);
+        const tokenTotal = tokenPrompt + tokenResponse;
+        const risk = scoreHallucinationRisk(aiResponse.response);
+        const childId = Array.isArray(children) && children.length
+          ? String(children[0].id || children[0].childId || '')
+          : null;
+
+        Promise.allSettled([
+          logAiInteraction(
+            { organizationId: tenant.organizationId, schoolId: tenant.schoolId },
+            {
+              prompt: inputValue,
+              response: aiResponse.response,
+              tokenPrompt,
+              tokenResponse,
+              tokenTotal,
+              safetyRiskScore: risk.score,
+              safetyFlags: risk.flags,
+              model: aiResponse.model || aiResponse.provider || 'unknown',
+              metadata: { confidence: aiResponse.confidence, sources: aiResponse.sources },
+              childId
+            }
+          ),
+          logAnalyticsEvent(
+            { organizationId: tenant.organizationId, schoolId: tenant.schoolId },
+            {
+              eventName: 'ai_call',
+              metadata: {
+                tokenPrompt,
+                tokenResponse,
+                tokenTotal,
+                safetyRiskScore: risk.score,
+                safetyFlags: risk.flags
+              }
+            }
+          )
+        ]).catch(() => {});
+      }
     } catch (error) {
       console.error('AI Assistant error:', error);
       const errorMessage = {

@@ -9,12 +9,20 @@ const plugins = [
   react(),
   VitePWA({
     registerType: 'autoUpdate',
-    includeAssets: ['favicon.svg', 'robots.txt', 'icon.svg'],
+    strategies: 'injectManifest',
+    srcDir: 'src',
+    filename: 'service-worker.ts',
+    includeAssets: ['favicon.svg', 'robots.txt', 'icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
     manifest: {
       name: 'Teachmo',
       short_name: 'Teachmo',
       theme_color: '#ffffff',
-      icons: [{ src: '/icon.svg', sizes: '192x192', type: 'image/svg+xml' }],
+      background_color: '#ffffff',
+      display: 'standalone',
+      icons: [
+        { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' }
+      ],
     },
   }),
 ];

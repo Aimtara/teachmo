@@ -1,9 +1,10 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
 import Dashboard from './Dashboard.jsx';
 import AdminAnalytics from './AdminAnalytics.jsx';
 import AdminDashboard from './AdminDashboard.jsx';
+import AdminWorkflows from './AdminWorkflows.jsx';
 import PartnerPortal from './PartnerPortal.jsx';
 import PartnerSubmissions from './PartnerSubmissions.jsx';
 import PartnerTraining from './PartnerTraining.jsx';
@@ -18,7 +19,6 @@ import ParentOnboardingPage from './onboarding/parent';
 import TeacherOnboardingPage from './onboarding/teacher';
 import { getDefaultPathForRole, useUserRole } from '@/hooks/useUserRole';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
-import WorkflowBuilder from '@/components/workflows/WorkflowBuilder';
 
 // Base44 UI parity track (incremental)
 import UnifiedDiscover from './UnifiedDiscover.jsx';
@@ -44,12 +44,11 @@ function RoleRedirect() {
 
 export default function Pages() {
   return (
-    <BrowserRouter>
-      <Suspense fallback={<div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>}>
-        <Routes>
-          <Route index element={<RoleRedirect />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
+    <Suspense fallback={<div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>}>
+      <Routes>
+        <Route index element={<RoleRedirect />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Base44 parity routes */}
           <Route path="/discover" element={<UnifiedDiscover />} />
@@ -206,26 +205,25 @@ export default function Pages() {
               </ProtectedRoute>
             )}
           />
-          <Route
-            path="/admin/workflows"
-            element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
-                <WorkflowBuilder />
-              </ProtectedRoute>
-            )}
-          />
-          <Route
-            path="/admin/analytics"
-            element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
-                <AdminAnalytics />
-              </ProtectedRoute>
-            )}
-          />
+        <Route
+          path="/admin/workflows"
+          element={(
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+              <AdminWorkflows />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/admin/analytics"
+          element={(
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+              <AdminAnalytics />
+            </ProtectedRoute>
+          )}
+        />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }

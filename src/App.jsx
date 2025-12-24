@@ -9,6 +9,8 @@ import { Toaster } from './components/ui/toaster';
 import { UltraMinimalToast } from './components/shared/UltraMinimalToast.jsx';
 import { TypingIndicatorProvider } from './providers/TypingIndicatorProvider';
 import { WebSocketProvider } from './providers/WebSocketProvider';
+import { TenantProvider } from './contexts/TenantContext';
+import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
 
 function App() {
   return (
@@ -17,7 +19,11 @@ function App() {
         <NhostProvider nhost={nhost}>
           <NhostReactProvider nhost={nhost}>
             <QueryClientProvider client={queryClient}>
-              <Pages />
+              <TenantProvider>
+                <TenantBrandingProvider>
+                  <Pages />
+                </TenantBrandingProvider>
+              </TenantProvider>
               {/* Required for legacy Base44 UI components that call ultraMinimalToast() */}
               <UltraMinimalToast />
               {/* Shadcn-style toasts for components using useToast() */}
