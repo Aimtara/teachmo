@@ -1,72 +1,85 @@
 /* eslint-env node */
 import { Router } from 'express';
+import { incentives } from '../models.js';
 import { query } from '../db.js';
-import { requireTenant } from '../middleware/tenant.js';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
-import { requireScopes } from '../middleware/scopes.js';
+import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
 
 const router = Router();
 
-router.use(requireAuth);
-router.use(requireTenant);
+async function safeQuery(res, sql, params = []) {
+  try {
+    return await query(sql, params);
+  } catch (error) {
+    console.error('[incentives] db error', error);
+    res.status(500).json({ error: 'db_error', detail: error.message });
+    return null;
+  }
+}
 
-router.get('/', requireScopes(['partner:resources', 'partner:admin'], { any: true }), async (req, res) => {
-  const { organizationId } = req.tenant;
-  const r = await query(
-    `select id, title, description, value, status, created_at, updated_at
-     from partner_incentives
-     where organization_id = $1
-     order by created_at desc`,
-    [organizationId]
-  );
-  res.json(r.rows || []);
+// Incentive catalog remains a configuration list (currently seeded demo data).
+router.get('/', (req, res) => {
+  res.json(incentives);
 });
 
-router.post('/', requireAdmin, requireScopes('partner:admin'), async (req, res) => {
-  const { organizationId } = req.tenant;
-  const { title, value, description } = req.body || {};
-  if (!title) return res.status(400).json({ error: 'title required' });
+// List applications for a partner (tenant + partner scoped).
+router.get('/applications/:partnerId', requireDistrictScope, async (req, res) => {
+  const { districtId, userId } = getTenantScope(req);
+  const partnerId = asUuidOrNull(req.params.partnerId) || userId;
+  if (!partnerId) return res.status(400).json({ error: 'partner scope required (x-user-id or partnerId)' });
 
-  const r = await query(
-    `insert into partner_incentives (organization_id, title, description, value)
-     values ($1,$2,$3,$4)
-     returning id, title, description, value, status, created_at, updated_at`,
-    [organizationId, title, description || null, value || null]
+  const result = await safeQuery(
+    res,
+    `select id, partner_user_id, incentive_id, title, status, payout, created_at
+       from public.partner_incentive_applications
+      where district_id = $1
+        and partner_user_id = $2::uuid
+      order by created_at desc
+      limit 500`,
+    [districtId, partnerId]
   );
-  res.status(201).json(r.rows?.[0]);
+  if (!result) return;
+
+  res.json(
+    result.rows.map((row) => ({
+      id: row.id,
+      partnerId: row.partner_user_id,
+      incentiveId: row.incentive_id,
+      title: row.title,
+      status: row.status,
+      payout: row.payout,
+      created_at: row.created_at,
+    }))
+  );
 });
 
-router.post('/:id/apply', requireScopes('partner:resources'), async (req, res) => {
-  const { organizationId } = req.tenant;
-  const { id } = req.params;
-  const partnerId = req.auth?.userId || null;
+// Apply for an incentive.
+router.post('/:id/apply', requireDistrictScope, async (req, res) => {
+  const { districtId, userId } = getTenantScope(req);
+  const partnerId = asUuidOrNull(req.body?.partnerId) || userId;
+  if (!partnerId) return res.status(400).json({ error: 'partner scope required (x-user-id or partnerId)' });
 
-  const existing = await query(
-    `select id from partner_incentive_applications where incentive_id = $1 and partner_id = $2`,
-    [id, partnerId]
-  );
-  if (existing.rows?.length) return res.status(400).json({ error: 'already applied' });
+  const incentiveId = String(req.params.id);
+  const incentive = incentives.find((i) => String(i.id) === incentiveId);
+  if (!incentive) return res.status(404).json({ error: 'incentive_not_found' });
 
-  const r = await query(
-    `insert into partner_incentive_applications (organization_id, incentive_id, partner_id)
-     values ($1,$2,$3)
-     returning id, incentive_id, partner_id, status, payout, created_at, updated_at`,
-    [organizationId, id, partnerId]
+  const result = await safeQuery(
+    res,
+    `insert into public.partner_incentive_applications (partner_user_id, district_id, incentive_id, title, status)
+     values ($1::uuid, $2::uuid, $3, $4, 'submitted')
+     returning id, partner_user_id, incentive_id, title, status, payout, created_at`,
+    [partnerId, districtId, incentiveId, incentive.title]
   );
-  res.status(201).json(r.rows?.[0]);
-});
+  if (!result) return;
 
-router.get('/applications/me', requireScopes('partner:resources'), async (req, res) => {
-  const { organizationId } = req.tenant;
-  const partnerId = req.auth?.userId || null;
-  const r = await query(
-    `select id, incentive_id, partner_id, status, payout, created_at, updated_at
-     from partner_incentive_applications
-     where organization_id = $1 and partner_id = $2
-     order by created_at desc`,
-    [organizationId, partnerId]
-  );
-  res.json(r.rows || []);
+  res.status(201).json({
+    id: result.rows[0].id,
+    partnerId: result.rows[0].partner_user_id,
+    incentiveId: result.rows[0].incentive_id,
+    title: result.rows[0].title,
+    status: result.rows[0].status,
+    payout: result.rows[0].payout,
+    created_at: result.rows[0].created_at,
+  });
 });
 
 export default router;

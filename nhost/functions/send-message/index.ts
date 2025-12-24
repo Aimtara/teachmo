@@ -242,6 +242,35 @@ export default async (req: any, res: any) => {
     const message = insertResp?.data?.insert_messages_one;
     if (!message?.id) return res.status(500).json({ ok: false, error: 'message_not_created' });
 
+    // Telemetry: message sent
+    try {
+      await hasura(
+        `mutation TrackMessageSent($object: analytics_events_insert_input!) {
+          insert_analytics_events_one(object: $object) { id }
+        }`,
+        {
+          object: {
+            event_name: 'messaging.message_sent',
+            actor_user_id: actorId,
+            district_id: thread.district_id,
+            school_id: thread.school_id,
+            entity_type: 'message',
+            entity_id: message.id,
+            metadata: {
+              thread_id: thread.id,
+              preview,
+              flagged: Boolean(flaggedReason),
+              flag_reason: flaggedReason || null,
+              recipient_user_id: otherUserId || null,
+              source: 'send-message',
+            },
+          },
+        }
+      );
+    } catch (e) {
+      console.warn('telemetry insert failed', e);
+    }
+
     if (flaggedReason) {
       await hasura(
         `mutation AutoReport($object: message_reports_insert_input!, $threadId: uuid!, $now: timestamptz!) {
