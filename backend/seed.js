@@ -9,6 +9,10 @@ import {
   trainingCourses,
   trainingModules,
   courseEnrollments,
+  userActivity,
+  messageLogs,
+  automationRuns,
+  aiLogs,
   nextId
 } from './models.js';
 
@@ -62,6 +66,44 @@ export function seedDemoData() {
     partnerSubmissionAudits.push(
       { id: nextId('audit'), entity: 'submission', entityId: 1, action: 'approved', timestamp: new Date().toISOString() },
       { id: nextId('audit'), entity: 'incentiveApplication', entityId: 2, action: 'payout', timestamp: new Date().toISOString() }
+    );
+  }
+
+  if (userActivity.length === 0) {
+    const now = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    const lastWeek = new Date();
+    lastWeek.setDate(now.getDate() - 5);
+    userActivity.push(
+      { id: nextId('activity'), userId: 'parent-1', email: 'parent1@teachmo.dev', lastActive: now.toISOString() },
+      { id: nextId('activity'), userId: 'parent-2', email: 'parent2@teachmo.dev', lastActive: yesterday.toISOString() },
+      { id: nextId('activity'), userId: 'parent-3', email: 'parent3@teachmo.dev', lastActive: lastWeek.toISOString() }
+    );
+  }
+
+  if (messageLogs.length === 0) {
+    const now = new Date();
+    const lastHour = new Date();
+    lastHour.setHours(now.getHours() - 2);
+    messageLogs.push(
+      { id: nextId('message'), channel: 'email', createdAt: now.toISOString() },
+      { id: nextId('message'), channel: 'sms', createdAt: lastHour.toISOString() }
+    );
+  }
+
+  if (automationRuns.length === 0) {
+    automationRuns.push(
+      { id: nextId('automation'), workflowId: 'welcome-flow', createdAt: new Date().toISOString() },
+      { id: nextId('automation'), workflowId: 'reminder-flow', createdAt: new Date().toISOString() }
+    );
+  }
+
+  if (aiLogs.length === 0) {
+    aiLogs.push(
+      { id: nextId('ai'), latencyMs: 420, createdAt: new Date().toISOString() },
+      { id: nextId('ai'), latencyMs: 610, createdAt: new Date().toISOString() },
+      { id: nextId('ai'), latencyMs: 350, createdAt: new Date().toISOString() }
     );
   }
 }

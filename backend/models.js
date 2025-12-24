@@ -10,6 +10,11 @@ export const incentiveApplications = [];
 export const partnerContracts = [];
 export const partnerSubmissionAudits = [];
 export const partnerSubmissions = [];
+export const userActivity = [];
+export const messageLogs = [];
+export const automationRuns = [];
+export const aiLogs = [];
+export const telemetryLogs = [];
 
 let counters = {
   program: 1,
@@ -23,6 +28,11 @@ let counters = {
   contract: 1,
   audit: 1,
   submission: 1,
+  activity: 1,
+  message: 1,
+  automation: 1,
+  ai: 1,
+  telemetry: 1,
 };
 
 export const nextId = (key) => counters[key]++;

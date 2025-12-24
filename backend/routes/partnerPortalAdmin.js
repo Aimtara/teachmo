@@ -9,6 +9,10 @@ import {
   trainingModules,
   partnerSubmissionAudits,
   nextId,
+  userActivity,
+  messageLogs,
+  automationRuns,
+  aiLogs,
 } from '../models.js';
 
 const router = Router();
@@ -19,6 +23,29 @@ const logAudit = (entry) => {
 
 router.get('/audits', (req, res) => {
   res.json(partnerSubmissionAudits);
+});
+
+router.get('/audit-logs', (req, res) => {
+  res.json(partnerSubmissionAudits);
+});
+
+router.get('/metrics', (req, res) => {
+  const sevenDaysAgo = getDaysAgo(7);
+  const oneDayAgo = getHoursAgo(24);
+
+  const activeParents = userActivity.filter((entry) => new Date(entry.lastActive) >= sevenDaysAgo);
+  const recentMessages = messageLogs.filter((entry) => new Date(entry.createdAt) >= oneDayAgo);
+  const workflowRuns = automationRuns.length;
+  const latencyAvg = aiLogs.length
+    ? aiLogs.reduce((sum, log) => sum + log.latencyMs, 0) / aiLogs.length
+    : 0;
+
+  res.json({
+    active_parents: activeParents.length,
+    messages_sent: recentMessages.length,
+    workflows_run: workflowRuns,
+    ai_latency: Math.round(latencyAvg),
+  });
 });
 
 // approve/reject submission
@@ -88,3 +115,15 @@ router.post('/courses', (req, res) => {
 });
 
 export default router;
+
+function getDaysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
+function getHoursAgo(hours) {
+  const date = new Date();
+  date.setHours(date.getHours() - hours);
+  return date;
+}

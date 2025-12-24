@@ -14,6 +14,7 @@ import programsRouter from './routes/programs.js';
 import faqsRouter from './routes/faqs.js';
 import quizzesRouter from './routes/quizzes.js';
 import learningPathsRouter from './routes/learningPaths.js';
+import telemetryRouter from './routes/telemetry.js';
 import { seedDemoData } from './seed.js';
 
 // Load environment variables
@@ -38,6 +39,7 @@ app.use('/api/programs', programsRouter);
 app.use('/api/faqs', faqsRouter);
 app.use('/api/quizzes', quizzesRouter);
 app.use('/api/learning-paths', learningPathsRouter);
+app.use('/api/log', telemetryRouter);
 
 // Root endpoint to verify API is running
 app.get('/api', (req, res) => {
