@@ -2,6 +2,14 @@ table:
   name: tenant_settings
   schema: public
 select_permissions:
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
   - role: system_admin
     permission:
       columns: '*'
@@ -9,92 +17,42 @@ select_permissions:
   - role: admin
     permission:
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: district_admin
-    permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: school_admin
-    permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        _or:
-          - school_id:
-              _eq: X-Hasura-School-Id
-          - school_id:
-              _is_null: true
+      filter: {}
 insert_permissions:
-  - role: admin
-    permission:
-      columns:
-        - organization_id
-        - school_id
-        - branding
-        - settings
-      check:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: district_admin
-    permission:
-      columns:
-        - organization_id
-        - school_id
-        - branding
-        - settings
-      check:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
   - role: school_admin
     permission:
-      columns:
-        - organization_id
-        - school_id
-        - branding
-        - settings
-      check:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        _or:
-          - school_id:
-              _eq: X-Hasura-School-Id
-          - school_id:
-              _is_null: true
+      check: {}
+      columns: '*'
+  - role: district_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: system_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: admin
+    permission:
+      check: {}
+      columns: '*'
 update_permissions:
-  - role: admin
+  - role: school_admin
     permission:
-      columns:
-        - branding
-        - settings
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
+      columns: '*'
+      filter: {}
       check: {}
   - role: district_admin
     permission:
-      columns:
-        - branding
-        - settings
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
+      columns: '*'
+      filter: {}
       check: {}
-  - role: school_admin
+  - role: system_admin
     permission:
-      columns:
-        - branding
-        - settings
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        _or:
-          - school_id:
-              _eq: X-Hasura-School-Id
-          - school_id:
-              _is_null: true
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
       check: {}

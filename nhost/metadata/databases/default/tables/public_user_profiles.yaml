@@ -4,7 +4,97 @@ table:
 object_relationships:
   - name: user
     using:
-      foreign_key_constraint_on: user_id
+      manual_configuration:
+        column_mapping:
+          user_id: id
+        insertion_order: null
+        remote_table:
+          name: users
+          schema: auth
+select_permissions:
+  - role: parent
+    permission:
+      columns:
+        - user_id
+        - full_name
+        - role
+        - district_id
+        - school_id
+        - created_at
+        - updated_at
+      filter: {}
+  - role: teacher
+    permission:
+      columns:
+        - user_id
+        - full_name
+        - role
+        - district_id
+        - school_id
+        - created_at
+        - updated_at
+      filter: {}
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: system_admin
+    permission:
+      columns:
+        - user_id
+        - full_name
+        - role
+        - district_id
+        - school_id
+      check: {}
+  - role: admin
+    permission:
+      columns:
+        - user_id
+        - full_name
+        - role
+        - district_id
+        - school_id
+      check: {}
+update_permissions:
+  - role: school_admin
+    permission:
+      columns:
+        - full_name
+        - role
+      filter: {}
+      check: {}
+  - role: district_admin
+    permission:
+      columns:
+        - full_name
+        - role
+        - school_id
+      filter: {}
+      check: {}
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
 select_permissions:
   - role: system_admin
     permission:

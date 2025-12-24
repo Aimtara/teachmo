@@ -1,10 +1,6 @@
 table:
   name: partner_submission_audits
   schema: public
-object_relationships:
-  - name: submission
-    using:
-      foreign_key_constraint_on: submission_id
 select_permissions:
   - role: system_admin
     permission:
@@ -13,27 +9,4 @@ select_permissions:
   - role: admin
     permission:
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: district_admin
-    permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: school_admin
-    permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: partner
-    permission:
-      columns: '*'
-      filter:
-        submission:
-          partner_id:
-            _eq: X-Hasura-User-Id
-          organization_id:
-            _eq: X-Hasura-Organization-Id
+      filter: {}

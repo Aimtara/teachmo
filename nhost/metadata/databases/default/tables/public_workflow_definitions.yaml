@@ -1,22 +1,15 @@
 table:
   name: workflow_definitions
   schema: public
-array_relationships:
-  - name: versions
-    using:
-      foreign_key_constraint_on:
-        column: workflow_id
-        table:
-          name: workflow_definition_versions
-          schema: public
-  - name: runs
-    using:
-      foreign_key_constraint_on:
-        column: workflow_id
-        table:
-          name: workflow_runs
-          schema: public
 select_permissions:
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
   - role: system_admin
     permission:
       columns: '*'
@@ -24,125 +17,42 @@ select_permissions:
   - role: admin
     permission:
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: district_admin
-    permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: school_admin
-    permission:
-      columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        _or:
-          - school_id:
-              _eq: X-Hasura-School-Id
-          - school_id:
-              _is_null: true
+      filter: {}
 insert_permissions:
-  - role: admin
-    permission:
-      columns:
-        - organization_id
-        - school_id
-        - name
-        - description
-        - definition
-        - is_active
-        - created_by
-        - updated_by
-      check:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: district_admin
-    permission:
-      columns:
-        - organization_id
-        - school_id
-        - name
-        - description
-        - definition
-        - is_active
-        - created_by
-        - updated_by
-      check:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
   - role: school_admin
     permission:
-      columns:
-        - organization_id
-        - school_id
-        - name
-        - description
-        - definition
-        - is_active
-        - created_by
-        - updated_by
-      check:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        school_id:
-          _eq: X-Hasura-School-Id
+      check: {}
+      columns: '*'
+  - role: district_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: system_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: admin
+    permission:
+      check: {}
+      columns: '*'
 update_permissions:
-  - role: admin
+  - role: school_admin
     permission:
-      columns:
-        - name
-        - description
-        - definition
-        - is_active
-        - updated_by
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
+      columns: '*'
+      filter: {}
       check: {}
   - role: district_admin
     permission:
-      columns:
-        - name
-        - description
-        - definition
-        - is_active
-        - updated_by
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
+      columns: '*'
+      filter: {}
       check: {}
-  - role: school_admin
+  - role: system_admin
     permission:
-      columns:
-        - name
-        - description
-        - definition
-        - is_active
-        - updated_by
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        school_id:
-          _eq: X-Hasura-School-Id
+      columns: '*'
+      filter: {}
       check: {}
-delete_permissions:
   - role: admin
     permission:
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: district_admin
-    permission:
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: school_admin
-    permission:
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        school_id:
-          _eq: X-Hasura-School-Id
+      columns: '*'
+      filter: {}
+      check: {}

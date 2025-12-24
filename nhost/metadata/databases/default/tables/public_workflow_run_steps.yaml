@@ -1,5 +1,5 @@
 table:
-  name: ai_interactions
+  name: workflow_run_steps
   schema: public
 select_permissions:
   - role: school_admin

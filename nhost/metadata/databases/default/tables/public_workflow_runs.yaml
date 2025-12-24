@@ -1,14 +1,15 @@
 table:
   name: workflow_runs
   schema: public
-object_relationships:
-  - name: workflow
-    using:
-      foreign_key_constraint_on: workflow_id
-  - name: version
-    using:
-      foreign_key_constraint_on: workflow_version_id
 select_permissions:
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
   - role: system_admin
     permission:
       columns: '*'
@@ -16,23 +17,13 @@ select_permissions:
   - role: admin
     permission:
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: district_admin
+      filter: {}
+insert_permissions:
+  - role: system_admin
     permission:
+      check: {}
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-  - role: school_admin
+  - role: admin
     permission:
+      check: {}
       columns: '*'
-      filter:
-        organization_id:
-          _eq: X-Hasura-Organization-Id
-        _or:
-          - school_id:
-              _eq: X-Hasura-School-Id
-          - school_id:
-              _is_null: true

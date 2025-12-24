@@ -1,5 +1,5 @@
 table:
-  name: ai_interactions
+  name: analytics_event_rollups_daily
   schema: public
 select_permissions:
   - role: school_admin
@@ -18,12 +18,3 @@ select_permissions:
     permission:
       columns: '*'
       filter: {}
-insert_permissions:
-  - role: system_admin
-    permission:
-      check: {}
-      columns: '*'
-  - role: admin
-    permission:
-      check: {}
-      columns: '*'
