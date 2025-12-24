@@ -10,6 +10,12 @@ type MessageInputProps = {
 };
 
 const MIN_MESSAGE_LENGTH = 1;
+const createMessageId = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
 
 export default function MessageInput({ user, threadPartnerId, placeholder = 'Type a message…', onSent }: MessageInputProps) {
   const [message, setMessage] = useState('');
@@ -30,7 +36,7 @@ export default function MessageInput({ user, threadPartnerId, placeholder = 'Typ
     const payload = {
       type: 'new_message',
       payload: {
-        id: crypto.randomUUID(),
+        id: createMessageId(),
         content: trimmedMessage,
         senderId: user.id,
         recipientId: threadPartnerId,

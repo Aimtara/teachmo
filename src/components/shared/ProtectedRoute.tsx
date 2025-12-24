@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
 import { useUserRole } from '@/hooks/useUserRole';
+import { canAccess } from '@/config/rbac';
 
 type Props = {
   children: React.ReactNode;
@@ -49,7 +50,7 @@ export default function ProtectedRoute({
     return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
   }
 
-  if (roleWhitelist.length && (!role || !roleWhitelist.includes(role))) {
+  if (roleWhitelist.length && !canAccess({ role, allowedRoles: roleWhitelist })) {
     return <Navigate to={unauthorizedTo} replace />;
   }
 
