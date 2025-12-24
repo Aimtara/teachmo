@@ -2,12 +2,18 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
 import { useUserRole } from '@/hooks/useUserRole';
+import { canAll, type Action, type Role } from '@/security/permissions';
 import { canAccess } from '@/config/rbac';
 
 type Props = {
   children: React.ReactNode;
   requiredRole?: string | string[];
   allowedRoles?: string[];
+  /**
+   * Fine-grained permission gates. If provided, ALL actions must be allowed.
+   * This is additive with requiredRole / allowedRoles.
+   */
+  requiredActions?: Action | Action[];
   redirectTo?: string;
   unauthorizedTo?: string;
   loadingFallback?: React.ReactNode;
@@ -19,11 +25,12 @@ export default function ProtectedRoute({
   children,
   requiredRole,
   allowedRoles,
+  requiredActions,
   redirectTo = '/login',
   unauthorizedTo = '/unauthorized',
   loadingFallback,
   requireAuth,
-  requiresAuth
+  requiresAuth,
 }: Props) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const location = useLocation();
@@ -35,6 +42,11 @@ export default function ProtectedRoute({
     return Array.isArray(requiredRole) ? requiredRole : [requiredRole];
   }, [allowedRoles, requiredRole]);
 
+  const requiredActionsList = React.useMemo(() => {
+    if (!requiredActions) return [];
+    return Array.isArray(requiredActions) ? requiredActions : [requiredActions];
+  }, [requiredActions]);
+
   const mustBeAuthed = React.useMemo(
     () => requireAuth ?? requiresAuth ?? true,
     [requireAuth, requiresAuth]
@@ -42,7 +54,9 @@ export default function ProtectedRoute({
 
   if (isLoading) {
     return (
-      loadingFallback || <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
+      loadingFallback || (
+        <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
+      )
     );
   }
 
@@ -51,6 +65,10 @@ export default function ProtectedRoute({
   }
 
   if (roleWhitelist.length && !canAccess({ role, allowedRoles: roleWhitelist })) {
+    return <Navigate to={unauthorizedTo} replace />;
+  }
+
+  if (requiredActionsList.length && !canAll(role as Role | null, requiredActionsList)) {
     return <Navigate to={unauthorizedTo} replace />;
   }
 
