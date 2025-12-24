@@ -3,3 +3,4 @@ backend/node_modules/
 .env
 .env.*
 _base44_export/
+public/icon.png
