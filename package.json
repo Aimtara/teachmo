@@ -61,6 +61,7 @@
     "express-rate-limit": "^7.0.0",
     "framer-motion": "^12.4.7",
     "googleapis": "^169.0.0",
+    "idb-keyval": "^6.2.2",
     "input-otp": "^1.4.2",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
@@ -125,6 +126,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.3",
     "vite": "^6.1.0",
+    "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.0.16"
   }
 }

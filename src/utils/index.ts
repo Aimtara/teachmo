@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { ROUTE_MAP, findRouteConfig, resolveRouteName } from "@/config/routes";
+import { cn } from "@/utils/cn";
 
 export function createPageUrl(pageName: string, params: Record<string, string | number> = {}) {
   const resolvedName = resolveRouteName(pageName);

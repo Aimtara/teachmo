@@ -1,10 +1,23 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const plugins = [react()];
+const plugins = [
+  react(),
+  VitePWA({
+    registerType: 'autoUpdate',
+    includeAssets: ['favicon.svg', 'robots.txt', 'icon.svg'],
+    manifest: {
+      name: 'Teachmo',
+      short_name: 'Teachmo',
+      theme_color: '#ffffff',
+      icons: [{ src: '/icon.svg', sizes: '192x192', type: 'image/svg+xml' }],
+    },
+  }),
+];
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
