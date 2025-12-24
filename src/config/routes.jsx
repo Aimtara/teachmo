@@ -235,6 +235,24 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading workflow builder...</p>
   },
   {
+    name: 'AdminTenantSettings',
+    path: '/admin/tenant-settings',
+    Component: lazy(() => import('@/pages/AdminTenantSettings.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+    requiredScopes: ['org:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading tenant settings...</p>
+  },
+  {
+    name: 'AdminUsers',
+    path: '/admin/users',
+    Component: lazy(() => import('@/pages/AdminUsers.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+    requiredScopes: ['org:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading users...</p>
+  },
+  {
     name: 'AdminModerationQueue',
     path: '/admin/moderation/messages',
     Component: lazy(() => import('@/pages/AdminModerationQueue.jsx')),

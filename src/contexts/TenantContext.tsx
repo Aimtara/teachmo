@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { nhost } from '@/lib/nhostClient';
+import { fetchUserProfile } from '@/domains/auth';
 
 type TenantState = {
   organizationId: string | null;
@@ -67,8 +68,22 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       const token = await nhost.auth.getAccessToken();
       const claims = decodeToken(token);
       const tenant = resolveTenantClaims(user, claims);
+      let profileTenant = { organizationId: null, schoolId: null };
+      try {
+        const profile = await fetchUserProfile(user.id);
+        profileTenant = {
+          organizationId: profile?.district_id || null,
+          schoolId: profile?.school_id || null
+        };
+      } catch (err) {
+        profileTenant = { organizationId: null, schoolId: null };
+      }
       if (mounted) {
-        setState({ organizationId: tenant.organizationId, schoolId: tenant.schoolId, loading: false });
+        setState({
+          organizationId: profileTenant.organizationId || tenant.organizationId,
+          schoolId: profileTenant.schoolId || tenant.schoolId,
+          loading: false
+        });
       }
     })();
 

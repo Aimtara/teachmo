@@ -5,6 +5,8 @@ import Dashboard from './Dashboard.jsx';
 import AdminAnalytics from './AdminAnalytics.jsx';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminWorkflows from './AdminWorkflows.jsx';
+import AdminTenantSettings from './AdminTenantSettings.jsx';
+import AdminUsers from './AdminUsers.jsx';
 import PartnerPortal from './PartnerPortal.jsx';
 import PartnerSubmissions from './PartnerSubmissions.jsx';
 import PartnerTraining from './PartnerTraining.jsx';
@@ -210,6 +212,22 @@ export default function Pages() {
           element={(
             <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
               <AdminWorkflows />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/admin/tenant-settings"
+          element={(
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+              <AdminTenantSettings />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/admin/users"
+          element={(
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+              <AdminUsers />
             </ProtectedRoute>
           )}
         />

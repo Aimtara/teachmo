@@ -1,31 +1,32 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { API_BASE_URL } from '@/config/api';
+import { useTenant } from '@/contexts/TenantContext';
+import { partnerRequest } from '@/api/partner/client';
 
 export default function PartnerPortal() {
+  const tenant = useTenant();
   const [stats, setStats] = useState({ submissions: 0, enrollments: 0, applications: 0, contracts: 0 });
   const [activity, setActivity] = useState([]);
-  const partnerId = 'demo';
 
   useEffect(() => {
+    if (tenant.loading || !tenant.organizationId) return;
     async function load() {
-      const [subs, enrolls, apps, contracts, audits] = await Promise.all([
-        fetch(`${API_BASE_URL}/submissions`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/courses/enrollments/${partnerId}`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/incentives/applications/${partnerId}`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/contracts?partnerId=${partnerId}`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/admin/audits`).then((r) => r.json()),
+      const [subs, enrolls, apps, contracts] = await Promise.all([
+        partnerRequest('/submissions', { method: 'GET' }, tenant),
+        partnerRequest('/courses/enrollments/me', { method: 'GET' }, tenant),
+        partnerRequest('/incentives/applications/me', { method: 'GET' }, tenant),
+        partnerRequest('/contracts', { method: 'GET' }, tenant)
       ]);
       setStats({
         submissions: subs.length,
         enrollments: enrolls.length,
         applications: apps.length,
-        contracts: contracts.length,
+        contracts: contracts.length
       });
-      setActivity(audits.slice(-5).reverse());
+      setActivity(subs.slice(-5).reverse());
     }
     load();
-  }, []);
+  }, [tenant.loading, tenant.organizationId, tenant.schoolId]);
 
   return (
     <div>
@@ -37,14 +38,14 @@ export default function PartnerPortal() {
         <div>Contracts: {stats.contracts}</div>
       </div>
       <nav style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
-        <Link to="/submissions">Manage Submissions</Link>
-        <Link to="/training">Training</Link>
-        <Link to="/incentives">Incentives</Link>
+        <Link to="/partners/submissions">Manage Submissions</Link>
+        <Link to="/partners/training">Training</Link>
+        <Link to="/partners/incentives">Incentives</Link>
       </nav>
       <h2 style={{ marginTop: '1rem' }}>Recent Activity</h2>
       <ul>
         {activity.map((a) => (
-          <li key={a.id}>{a.timestamp}: {a.entity} {a.action}</li>
+          <li key={a.id}>{a.created_at}: {a.title} ({a.status})</li>
         ))}
       </ul>
     </div>

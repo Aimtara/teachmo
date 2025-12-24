@@ -45,12 +45,31 @@ function resolveClaims(req) {
     getClaim(hasuraClaims, 'x-hasura-school-id') ||
     getClaim(jwtClaims, 'x-school-id');
 
+  const scopesRaw =
+    getClaim(hasuraClaims, 'x-hasura-scopes') ||
+    getClaim(jwtClaims, 'x-hasura-scopes') ||
+    getClaim(jwtClaims, 'scopes');
+  const scopes = normalizeScopes(scopesRaw);
+
   return {
     role,
     userId,
     organizationId: orgId,
-    schoolId
+    schoolId,
+    scopes
   };
+}
+
+function normalizeScopes(input) {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.map(String);
+  if (typeof input === 'string') {
+    return input
+      .split(/[,\s]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
 }
 
 export function attachAuthContext(req, res, next) {

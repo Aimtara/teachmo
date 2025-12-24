@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireScopes } from '../middleware/scopes.js';
 
 const router = Router();
 
@@ -38,7 +39,61 @@ function interpolateObject(obj, ctx) {
   return out;
 }
 
-function linearize(definition) {
+function resolveValue(value, ctx) {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') {
+    const pathValue = getPath(ctx, value);
+    if (pathValue !== undefined) return pathValue;
+    return interpolate(value, ctx);
+  }
+  return value;
+}
+
+function evaluateCondition(condition, ctx) {
+  if (condition === null || condition === undefined) return true;
+  if (typeof condition === 'boolean') return condition;
+  if (typeof condition === 'string') return Boolean(resolveValue(condition, ctx));
+  if (typeof condition !== 'object') return Boolean(condition);
+
+  const operator = condition.op || condition.operator || condition.compare || null;
+  const left = condition.path ? getPath(ctx, condition.path) : resolveValue(condition.left ?? condition.field, ctx);
+  const right = resolveValue(condition.right ?? condition.value ?? condition.equals ?? condition.eq, ctx);
+
+  const op = operator || (condition.hasOwnProperty('equals') || condition.hasOwnProperty('eq') ? 'equals' : 'truthy');
+  switch (op) {
+    case 'equals':
+    case 'eq':
+    case '==':
+      return left === right;
+    case 'not_equals':
+    case 'neq':
+    case '!=':
+      return left !== right;
+    case 'gt':
+    case '>':
+      return Number(left) > Number(right);
+    case 'gte':
+    case '>=':
+      return Number(left) >= Number(right);
+    case 'lt':
+    case '<':
+      return Number(left) < Number(right);
+    case 'lte':
+    case '<=':
+      return Number(left) <= Number(right);
+    case 'contains':
+      if (Array.isArray(left)) return left.includes(right);
+      if (typeof left === 'string') return left.includes(String(right));
+      return false;
+    case 'in':
+      return Array.isArray(right) ? right.includes(left) : false;
+    case 'truthy':
+    default:
+      return Boolean(left ?? right);
+  }
+}
+
+function buildGraph(definition) {
   const nodes = Array.isArray(definition?.nodes) ? definition.nodes : [];
   const edges = Array.isArray(definition?.edges) ? definition.edges : [];
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -49,55 +104,60 @@ function linearize(definition) {
     list.push(e);
     outgoing.set(e.source, list);
   }
+  return { nodes, edges, byId, outgoing };
+}
 
-  const trigger = nodes.find((n) => n.type === 'trigger') || nodes[0];
-  if (!trigger) return [];
-
-  const ordered = [];
-  const visited = new Set();
-  let cur = trigger;
-  while (cur && !visited.has(cur.id)) {
-    visited.add(cur.id);
-    ordered.push(cur);
-    const outs = outgoing.get(cur.id) || [];
-    cur = outs.length ? byId.get(outs[0].target) : null;
+function nextNodeFor(currentId, graph, ctx) {
+  const edges = graph.outgoing.get(currentId) || [];
+  for (const edge of edges) {
+    const condition = edge.condition ?? edge?.data?.condition;
+    if (evaluateCondition(condition, ctx)) {
+      return graph.byId.get(edge.target) || null;
+    }
   }
-  return ordered;
+  return null;
 }
 
 async function runWorkflow(definition, { trigger = {}, actor = {} }) {
   const execution = { trigger, steps: {}, actor };
-  const nodes = linearize(definition);
-  for (const node of nodes) {
-    if (node.type === 'trigger') {
-      execution.steps[node.id] = { ok: true, output: trigger };
-      continue;
-    }
-    if (node.type === 'action') {
-      const cfg = node?.data?.config || {};
+  const graph = buildGraph(definition);
+  const triggerNode = graph.nodes.find((n) => n.type === 'trigger') || graph.nodes[0];
+  if (!triggerNode) return execution;
+
+  const visited = new Set();
+  let current = triggerNode;
+
+  while (current && !visited.has(current.id)) {
+    visited.add(current.id);
+    if (current.type === 'trigger') {
+      execution.steps[current.id] = { ok: true, output: trigger };
+    } else if (current.type === 'action') {
+      const cfg = current?.data?.config || {};
       const actionType = cfg.type || 'noop';
       const payload = {
         entity: cfg.entity,
         fields: cfg.fields || {},
-        body: cfg.body
+        body: cfg.body,
       };
       const input = interpolateObject(payload, execution);
-      execution.steps[node.id] = {
+      execution.steps[current.id] = {
         ok: true,
-        output: { actionType, input, note: 'recorded_only' }
+        output: { actionType, input, note: 'recorded_only' },
       };
-      continue;
+    } else {
+      execution.steps[current.id] = { ok: true, output: {} };
     }
-    execution.steps[node.id] = { ok: true, output: {} };
+
+    current = nextNodeFor(current.id, graph, execution);
   }
+
   return execution;
 }
 
 router.use(requireAuth);
 router.use(requireTenant);
-router.use(requireAdmin);
 
-router.get('/', async (req, res) => {
+router.get('/', requireAdmin, requireScopes('workflow:manage'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const scopeSql = schoolId
     ? 'organization_id = $1 and (school_id is null or school_id = $2)'
@@ -115,7 +175,7 @@ router.get('/', async (req, res) => {
   res.json({ workflows: r.rows ?? [] });
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireAdmin, requireScopes('workflow:manage'), async (req, res) => {
   const { organizationId } = req.tenant;
   const { id } = req.params;
   const r = await query(
@@ -128,7 +188,7 @@ router.get('/:id', async (req, res) => {
   res.json({ workflow: r.rows[0] });
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, requireScopes('workflow:manage'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const role = req.auth?.role || 'anonymous';
   const { name, description, definition, isActive } = req.body || {};
@@ -153,7 +213,7 @@ router.post('/', async (req, res) => {
   res.status(201).json({ workflow: r.rows?.[0] });
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdmin, requireScopes('workflow:manage'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const role = req.auth?.role || 'anonymous';
   const restrictSchool = role === 'school_admin' && !!schoolId;
@@ -186,7 +246,7 @@ router.put('/:id', async (req, res) => {
   res.json({ workflow: r.rows[0] });
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, requireScopes('workflow:manage'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const role = req.auth?.role || 'anonymous';
   const restrictSchool = role === 'school_admin' && !!schoolId;
@@ -198,42 +258,104 @@ router.delete('/:id', async (req, res) => {
   res.status(204).send();
 });
 
-router.post('/:id/run', async (req, res) => {
-  const { organizationId, schoolId } = req.tenant;
+router.get('/:id/versions', requireAdmin, requireScopes('workflow:manage'), async (req, res) => {
+  const { organizationId } = req.tenant;
   const { id } = req.params;
-  const trigger = req.body?.trigger || {};
-
-  const wf = await query(
-    `select id, definition
-     from workflow_definitions
-     where id = $1 and organization_id = $2`,
+  const r = await query(
+    `select v.id, v.version_number, v.created_at, v.created_by
+     from workflow_definition_versions v
+     join workflow_definitions w on w.id = v.workflow_id
+     where v.workflow_id = $1 and w.organization_id = $2
+     order by v.version_number desc`,
     [id, organizationId]
   );
-  if (!wf.rows?.length) return res.status(404).json({ error: 'not_found' });
+  res.json({ versions: r.rows || [] });
+});
 
-  const startedAt = new Date();
-  const execution = await runWorkflow(wf.rows[0].definition, {
-    trigger,
-    actor: { userId: req.auth?.userId || null, role: req.auth?.role || null },
-  });
-  const finishedAt = new Date();
+router.post('/:id/rollback', requireAdmin, requireScopes('workflow:manage'), async (req, res) => {
+  const { organizationId } = req.tenant;
+  const { id } = req.params;
+  const { versionId, versionNumber } = req.body || {};
+  if (!versionId && !versionNumber) return res.status(400).json({ error: 'missing version' });
 
-  await query(
-    `insert into workflow_runs (workflow_id, organization_id, school_id, actor_id, status, started_at, finished_at, metadata)
-     values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb)`,
+  const versionQuery = versionId
+    ? 'select id, definition from workflow_definition_versions where id = $1'
+    : 'select id, definition from workflow_definition_versions where workflow_id = $1 and version_number = $2';
+  const versionParams = versionId ? [versionId] : [id, Number(versionNumber)];
+  const versionResult = await query(versionQuery, versionParams);
+  if (!versionResult.rows?.length) return res.status(404).json({ error: 'version_not_found' });
+
+  const r = await query(
+    `update workflow_definitions
+     set definition = $3::jsonb, updated_at = now(), updated_by = $4
+     where id = $1 and organization_id = $2
+     returning id, name, description, is_active, school_id, created_at, updated_at`,
+    [id, organizationId, JSON.stringify(versionResult.rows[0].definition), req.auth?.userId || null]
+  );
+  if (!r.rows?.length) return res.status(404).json({ error: 'not_found' });
+  res.json({ workflow: r.rows[0] });
+});
+
+router.post('/:id/run', requireScopes('workflow:run'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const { id } = req.params;
+  const { trigger } = req.body || {};
+
+  const workflowResp = await query(
+    `select id, definition, is_active from workflow_definitions where id = $1 and organization_id = $2`,
+    [id, organizationId]
+  );
+  const workflow = workflowResp.rows?.[0];
+  if (!workflow?.id) return res.status(404).json({ error: 'not_found' });
+  if (!workflow.is_active) return res.status(400).json({ error: 'workflow_inactive' });
+
+  const versionResp = await query(
+    `select id from workflow_definition_versions where workflow_id = $1 order by version_number desc limit 1`,
+    [id]
+  );
+  const versionId = versionResp.rows?.[0]?.id || null;
+
+  const actor = { id: req.auth?.userId || null, role: req.auth?.role || null };
+  const execution = await runWorkflow(workflow.definition, { trigger: trigger || {}, actor });
+
+  const now = new Date().toISOString();
+  const runResp = await query(
+    `insert into workflow_runs
+      (workflow_id, workflow_version_id, organization_id, school_id, status, input, output, actor_id, actor_role, started_at, finished_at)
+     values ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,$9,$10,$11)
+     returning id`,
     [
       id,
+      versionId,
       organizationId,
       schoolId || null,
-      req.auth?.userId || null,
       'success',
-      startedAt.toISOString(),
-      finishedAt.toISOString(),
-      JSON.stringify({ execution }),
+      JSON.stringify({ trigger: trigger || {} }),
+      JSON.stringify(execution),
+      req.auth?.userId || null,
+      req.auth?.role || null,
+      now,
+      now,
     ]
   );
 
-  res.json({ execution });
+  await query(
+    `insert into analytics_events
+      (event_name, event_ts, organization_id, school_id, actor_id, actor_role, metadata, source)
+     values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8)`,
+    [
+      'workflow_run',
+      now,
+      organizationId,
+      schoolId || null,
+      req.auth?.userId || null,
+      req.auth?.role || null,
+      JSON.stringify({ workflow_id: id, run_id: runResp.rows?.[0]?.id || null }),
+      'backend',
+    ]
+  );
+
+  res.status(201).json({ runId: runResp.rows?.[0]?.id, execution });
 });
 
 export default router;

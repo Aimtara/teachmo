@@ -1,0 +1,68 @@
+table:
+  name: partner_submissions
+  schema: public
+array_relationships:
+  - name: audits
+    using:
+      foreign_key_constraint_on:
+        column: submission_id
+        table:
+          name: partner_submission_audits
+          schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: partner
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+        partner_id:
+          _eq: X-Hasura-User-Id
+insert_permissions:
+  - role: partner
+    permission:
+      columns:
+        - organization_id
+        - partner_id
+        - type
+        - title
+        - description
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+        partner_id:
+          _eq: X-Hasura-User-Id
+update_permissions:
+  - role: partner
+    permission:
+      columns:
+        - title
+        - description
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+        partner_id:
+          _eq: X-Hasura-User-Id
+      check: {}

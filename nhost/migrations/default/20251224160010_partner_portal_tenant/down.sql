@@ -1,0 +1,21 @@
+DROP TRIGGER IF EXISTS set_updated_at_partner_onboarding_progress ON public.partner_onboarding_progress;
+DROP TRIGGER IF EXISTS set_updated_at_partner_onboarding_tasks ON public.partner_onboarding_tasks;
+DROP TRIGGER IF EXISTS set_updated_at_partner_contracts ON public.partner_contracts;
+DROP TRIGGER IF EXISTS set_updated_at_partner_course_enrollments ON public.partner_course_enrollments;
+DROP TRIGGER IF EXISTS set_updated_at_partner_courses ON public.partner_courses;
+DROP TRIGGER IF EXISTS set_updated_at_partner_incentive_applications ON public.partner_incentive_applications;
+DROP TRIGGER IF EXISTS set_updated_at_partner_incentives ON public.partner_incentives;
+DROP TRIGGER IF EXISTS set_updated_at_partner_submissions ON public.partner_submissions;
+DROP FUNCTION IF EXISTS public.set_partner_updated_at();
+
+DROP TABLE IF EXISTS public.partner_onboarding_progress;
+DROP TABLE IF EXISTS public.partner_onboarding_tasks;
+DROP TABLE IF EXISTS public.partner_contracts;
+DROP TABLE IF EXISTS public.partner_course_module_completions;
+DROP TABLE IF EXISTS public.partner_course_enrollments;
+DROP TABLE IF EXISTS public.partner_course_modules;
+DROP TABLE IF EXISTS public.partner_courses;
+DROP TABLE IF EXISTS public.partner_incentive_applications;
+DROP TABLE IF EXISTS public.partner_incentives;
+DROP TABLE IF EXISTS public.partner_submission_audits;
+DROP TABLE IF EXISTS public.partner_submissions;

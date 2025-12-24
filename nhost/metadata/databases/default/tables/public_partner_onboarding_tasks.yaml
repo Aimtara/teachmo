@@ -1,0 +1,60 @@
+table:
+  name: partner_onboarding_tasks
+  schema: public
+array_relationships:
+  - name: progress
+    using:
+      foreign_key_constraint_on:
+        column: task_id
+        table:
+          name: partner_onboarding_progress
+          schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: partner
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+insert_permissions:
+  - role: admin
+    permission:
+      columns:
+        - organization_id
+        - title
+        - description
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+update_permissions:
+  - role: admin
+    permission:
+      columns:
+        - title
+        - description
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check: {}

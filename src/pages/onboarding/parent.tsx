@@ -28,9 +28,8 @@ const parentOnboardingSchema = z.object({
 });
 
 const CREATE_PARENT_PROFILE = `
-  mutation CreateParentProfile($input: profiles_insert_input!) {
-    insert_profiles_one(object: $input) {
-      id
+  mutation CreateParentProfile($input: user_profiles_insert_input!) {
+    insert_user_profiles_one(object: $input) {
       user_id
     }
   }
@@ -108,7 +107,7 @@ export default function ParentOnboardingPage() {
       input: profileInput
     });
 
-    if (profileError || !profileData?.insert_profiles_one?.id) {
+    if (profileError || !profileData?.insert_user_profiles_one?.user_id) {
       console.error('Failed to create parent profile', profileError);
       toast({
         variant: 'destructive',
@@ -118,7 +117,7 @@ export default function ParentOnboardingPage() {
       return;
     }
 
-    const profileId = profileData.insert_profiles_one.id;
+    const profileId = profileData.insert_user_profiles_one.user_id;
 
     const { error: linkError } = await nhost.graphql.request(LINK_PARENT_SCHOOL, {
       parentId: profileId,

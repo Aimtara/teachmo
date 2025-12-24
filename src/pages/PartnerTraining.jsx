@@ -1,37 +1,31 @@
 import { useEffect, useState } from 'react';
-import { API_BASE_URL } from '@/config/api';
+import { useTenant } from '@/contexts/TenantContext';
+import { partnerRequest } from '@/api/partner/client';
 
 export default function PartnerTraining() {
+  const tenant = useTenant();
   const [courses, setCourses] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
-  const partnerId = 'demo';
 
   const load = async () => {
+    if (!tenant.organizationId) return;
     const [cs, ens] = await Promise.all([
-      fetch(`${API_BASE_URL}/courses`).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/courses/enrollments/${partnerId}`).then((r) => r.json()),
+      partnerRequest('/courses', { method: 'GET' }, tenant),
+      partnerRequest('/courses/enrollments/me', { method: 'GET' }, tenant)
     ]);
     setCourses(cs);
     setEnrollments(ens);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [tenant.organizationId]);
 
   const enroll = async (courseId) => {
-    await fetch(`${API_BASE_URL}/courses/${courseId}/enroll`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ partnerId }),
-    });
+    await partnerRequest(`/courses/${courseId}/enroll`, { method: 'POST' }, tenant);
     load();
   };
 
   const complete = async (courseId, moduleId) => {
-    await fetch(`${API_BASE_URL}/courses/${courseId}/modules/${moduleId}/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ partnerId }),
-    });
+    await partnerRequest(`/courses/${courseId}/modules/${moduleId}/complete`, { method: 'POST' }, tenant);
     load();
   };
 

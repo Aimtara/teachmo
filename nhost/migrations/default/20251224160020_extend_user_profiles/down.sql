@@ -1,0 +1,11 @@
+ALTER TABLE public.user_profiles
+  DROP COLUMN IF EXISTS children_count,
+  DROP COLUMN IF EXISTS notes,
+  DROP COLUMN IF EXISTS bio,
+  DROP COLUMN IF EXISTS grades,
+  DROP COLUMN IF EXISTS subjects,
+  DROP COLUMN IF EXISTS city,
+  DROP COLUMN IF EXISTS phone,
+  DROP COLUMN IF EXISTS last_name,
+  DROP COLUMN IF EXISTS first_name,
+  DROP COLUMN IF EXISTS full_name;

@@ -1,0 +1,58 @@
+table:
+  name: partner_contracts
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: partner
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+        partner_id:
+          _eq: X-Hasura-User-Id
+insert_permissions:
+  - role: admin
+    permission:
+      columns:
+        - organization_id
+        - partner_id
+        - title
+        - description
+        - status
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+update_permissions:
+  - role: admin
+    permission:
+      columns:
+        - status
+        - signed_at
+        - description
+        - title
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check: {}

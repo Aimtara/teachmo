@@ -1,0 +1,66 @@
+table:
+  name: partner_course_modules
+  schema: public
+object_relationships:
+  - name: course
+    using:
+      foreign_key_constraint_on: course_id
+array_relationships:
+  - name: completions
+    using:
+      foreign_key_constraint_on:
+        column: module_id
+        table:
+          name: partner_course_module_completions
+          schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        course:
+          organization_id:
+            _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        course:
+          organization_id:
+            _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        course:
+          organization_id:
+            _eq: X-Hasura-Organization-Id
+  - role: partner
+    permission:
+      columns: '*'
+      filter:
+        course:
+          organization_id:
+            _eq: X-Hasura-Organization-Id
+insert_permissions:
+  - role: admin
+    permission:
+      columns:
+        - course_id
+        - title
+        - content
+        - module_order
+      check: {}
+update_permissions:
+  - role: admin
+    permission:
+      columns:
+        - title
+        - content
+        - module_order
+      filter: {}
+      check: {}

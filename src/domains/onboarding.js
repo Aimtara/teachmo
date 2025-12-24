@@ -25,12 +25,12 @@ export async function bootstrapOrganization({ organizationName, schoolName }) {
 }
 
 export async function completeOnboarding({ userId, fullName, appRole, organizationId, schoolId }) {
-  const query = `mutation CompleteOnboarding($input: profiles_insert_input!) {
-    insert_profiles_one(object: $input) {
-      id
+  const query = `mutation CompleteOnboarding($input: user_profiles_insert_input!) {
+    insert_user_profiles_one(object: $input) {
+      user_id
       full_name
-      app_role
-      organization_id
+      role
+      district_id
       school_id
     }
   }`;
@@ -41,12 +41,12 @@ export async function completeOnboarding({ userId, fullName, appRole, organizati
       input: {
         user_id: userId,
         full_name: fullName,
-        app_role: appRole,
-        organization_id: organizationId,
+        role: appRole,
+        district_id: organizationId,
         school_id: schoolId
       }
     }
   });
 
-  return data?.insert_profiles_one;
+  return data?.insert_user_profiles_one;
 }

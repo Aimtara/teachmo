@@ -2,24 +2,30 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuthenticationStatus } from '@nhost/react';
 import { Navigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/config/api';
-
-const partnerId = 'demo';
+import { useTenant } from '@/contexts/TenantContext';
+import { nhost } from '@/lib/nhostClient';
 
 export default function TeacherDashboard() {
   const { isAuthenticated } = useAuthenticationStatus();
+  const tenant = useTenant();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || tenant.loading || !tenant.organizationId) return;
     const load = async () => {
       setLoading(true);
       try {
+        const token = await nhost.auth.getAccessToken();
+        const headers = {};
+        if (token) headers.authorization = `Bearer ${token}`;
+        headers['x-teachmo-org-id'] = tenant.organizationId;
+        if (tenant.schoolId) headers['x-teachmo-school-id'] = tenant.schoolId;
         const [courseList, enrollmentList] = await Promise.all([
-          fetch(`${API_BASE_URL}/courses`).then((res) => res.json()),
-          fetch(`${API_BASE_URL}/courses/enrollments/${partnerId}`).then((res) => res.json())
+          fetch(`${API_BASE_URL}/courses`, { headers }).then((res) => res.json()),
+          fetch(`${API_BASE_URL}/courses/enrollments/me`, { headers }).then((res) => res.json())
         ]);
         setCourses(courseList);
         setEnrollments(enrollmentList);
@@ -31,7 +37,7 @@ export default function TeacherDashboard() {
       }
     };
     load();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, tenant.loading, tenant.organizationId, tenant.schoolId]);
 
   const enrollmentMap = useMemo(
     () => Object.fromEntries(enrollments.map((enrollment) => [enrollment.courseId, enrollment])),
