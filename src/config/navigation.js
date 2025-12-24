@@ -17,7 +17,6 @@ import {
   FileText,
   Building2,
   UserCheck,
-  Workflow,
   Compass
 } from 'lucide-react';
 import { isRouteEnabled } from './routes';
@@ -108,14 +107,11 @@ export const NAV_STRUCTURE = [
     roles: ['school_admin', 'district_admin', 'system_admin'],
     requiredScopes: ['org:manage'],
     children: [
+      { name: 'Admin Dashboard', page: 'AdminDashboard', icon: Shield, requiredScopes: ['org:manage'] },
       { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
-      { name: 'Workflows', page: 'AdminWorkflows', icon: Workflow, requiredScopes: ['org:manage'] },
-      { name: 'User Management', page: 'AdminSystemUsers', icon: UserCheck, roles: ['system_admin'], requiredScopes: ['users:manage'] },
-      { name: 'School Users', page: 'AdminSchoolUsers', icon: UserCheck, roles: ['school_admin'], requiredScopes: ['org:manage'] },
-      { name: 'District Users', page: 'AdminDistrictUsers', icon: UserCheck, roles: ['district_admin'], requiredScopes: ['district:manage'] },
-      { name: 'Districts', page: 'AdminDistricts', icon: Building2, roles: ['system_admin'], requiredScopes: ['district:manage'] },
-      { name: 'Schools', page: 'AdminSchools', icon: School, roles: ['system_admin', 'district_admin'], requiredScopes: ['org:manage'] },
-      { name: 'Licenses', page: 'AdminLicenses', icon: FileText, requiredScopes: ['users:manage'] },
+      { name: 'Users', page: 'AdminUsers', icon: UserCheck, requiredScopes: ['users:manage'] },
+      { name: 'Tenant Settings', page: 'AdminTenantSettings', icon: Building2, requiredScopes: ['org:manage'] },
+      { name: 'Workflows', page: 'AdminWorkflows', icon: Compass, requiredScopes: ['automation:manage'] },
       { name: 'Message Reports', page: 'AdminModerationQueue', icon: Shield, requiredScopes: ['safety:review'] },
       { name: 'Messaging Blocks', page: 'AdminMessagingBlocklist', icon: Shield, requiredScopes: ['safety:review'] }
     ]
