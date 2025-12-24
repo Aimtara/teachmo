@@ -1,11 +1,19 @@
+import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { registerSW } from 'virtual:pwa-register';
 import App from './App.jsx';
-import './index.css';
 import './observability/sentry';
+import { installTelemetryAutoFlush } from './observability/telemetry';
+
+installTelemetryAutoFlush();
+registerSW({ immediate: true });
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );

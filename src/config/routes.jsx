@@ -226,6 +226,15 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading admin analytics...</p>
   },
   {
+    name: 'AdminWorkflows',
+    path: '/admin/workflows',
+    Component: lazy(() => import('@/pages/AdminWorkflows.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+    requiredScopes: ['org:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading workflow builder...</p>
+  },
+  {
     name: 'AdminModerationQueue',
     path: '/admin/moderation/messages',
     Component: lazy(() => import('@/pages/AdminModerationQueue.jsx')),

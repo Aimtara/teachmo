@@ -1,12 +1,14 @@
-import { API_BASE_URL } from '@/config/api';
+import { useTenant } from '@/contexts/TenantContext';
+import { logAnalyticsEvent } from '@/observability/telemetry';
 
 export const useTelemetry = () => {
+  const tenant = useTenant();
   const log = (event: string, metadata: Record<string, unknown> = {}) => {
-    fetch(`${API_BASE_URL}/log/telemetry`, {
-      method: 'POST',
-      body: JSON.stringify({ event, metadata }),
-      headers: { 'Content-Type': 'application/json' },
-    });
+    if (!tenant.organizationId) return;
+    logAnalyticsEvent(
+      { organizationId: tenant.organizationId, schoolId: tenant.schoolId },
+      { eventName: event, metadata }
+    ).catch(() => {});
   };
 
   return { log };

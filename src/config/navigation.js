@@ -17,6 +17,7 @@ import {
   FileText,
   Building2,
   UserCheck,
+  Workflow,
   Compass
 } from 'lucide-react';
 import { isRouteEnabled } from './routes';
@@ -108,6 +109,7 @@ export const NAV_STRUCTURE = [
     requiredScopes: ['org:manage'],
     children: [
       { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
+      { name: 'Workflows', page: 'AdminWorkflows', icon: Workflow, requiredScopes: ['org:manage'] },
       { name: 'User Management', page: 'AdminSystemUsers', icon: UserCheck, roles: ['system_admin'], requiredScopes: ['users:manage'] },
       { name: 'School Users', page: 'AdminSchoolUsers', icon: UserCheck, roles: ['school_admin'], requiredScopes: ['org:manage'] },
       { name: 'District Users', page: 'AdminDistrictUsers', icon: UserCheck, roles: ['district_admin'], requiredScopes: ['district:manage'] },
