@@ -1,202 +1,380 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useAuthenticationStatus } from '@nhost/react';
-import { Navigate } from 'react-router-dom';
-import { fetchSummary, fetchDrilldown, exportAnalyticsCsv, exportAnalyticsPdf } from '@/api/analytics/client';
-import { useTenant } from '@/contexts/TenantContext';
-import { useToast } from '@/hooks/use-toast';
-import FiltersBar from '@/components/admin/analytics/FiltersBar';
-import MetricCards from '@/components/admin/analytics/MetricCards';
-import DrilldownDrawer from '@/components/admin/analytics/DrilldownDrawer';
-import ReportBuilder from '@/components/admin/analytics/ReportBuilder';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { graphql } from '@/lib/graphql';
+import { useTenantScope } from '@/hooks/useTenantScope';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-function defaultFilters() {
-  const end = new Date();
-  const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  return {
-    start: start.toISOString().slice(0, 10),
-    end: end.toISOString().slice(0, 10),
-    role: 'all',
-    childId: '',
-    schoolId: ''
-  };
+function toDateOnly(isoString) {
+  if (!isoString) return null;
+  return isoString.slice(0, 10);
+}
+
+function downloadText(filename, text, mime = 'text/plain') {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(value) {
+  const s = String(value ?? '');
+  if (/[\n\r,\"]/g.test(s)) return `"${s.replaceAll('"', '""')}"`;
+  return s;
 }
 
 export default function AdminAnalytics() {
-  const { isAuthenticated } = useAuthenticationStatus();
-  const tenant = useTenant();
-  const { toast } = useToast();
-  const [filters, setFilters] = useState(defaultFilters());
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [drilldownOpen, setDrilldownOpen] = useState(false);
-  const [drilldownMetric, setDrilldownMetric] = useState(null);
-  const [drilldownRows, setDrilldownRows] = useState([]);
+  const { data: scope } = useTenantScope();
+  const [from, setFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 14);
+    return d.toISOString().slice(0, 10);
+  });
+  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [eventName, setEventName] = useState('all');
+  const [actorRole, setActorRole] = useState('all');
+  const [drillEventName, setDrillEventName] = useState(null);
 
-  const scope = useMemo(
-    () => ({ organizationId: tenant.organizationId || '', schoolId: tenant.schoolId || null }),
-    [tenant.organizationId, tenant.schoolId]
-  );
+  const rollupWhere = useMemo(() => {
+    const where = {
+      day: { _gte: from, _lte: to },
+    };
 
-  const normalizedFilters = useMemo(
-    () => ({
-      ...filters,
-      role: filters.role === 'all' ? null : filters.role,
-      childId: filters.childId || null,
-      schoolId: filters.schoolId || null
-    }),
-    [filters]
-  );
+    // Tenant scope:
+    // - district_id is always included when present
+    // - school_id optional
+    if (scope?.districtId) where.district_id = { _eq: scope.districtId };
+    if (scope?.schoolId) where.school_id = { _eq: scope.schoolId };
+    if (eventName !== 'all') where.event_name = { _eq: eventName };
 
-  async function loadSummary(nextFilters = normalizedFilters) {
-    if (!scope.organizationId) return;
-    setLoading(true);
-    try {
-      const res = await fetchSummary(scope, nextFilters);
-      setSummary(res);
-    } catch (err) {
-      toast({ title: 'Failed to load analytics', description: String(err) });
-    } finally {
-      setLoading(false);
+    return where;
+  }, [from, to, scope?.districtId, scope?.schoolId, eventName]);
+
+  const rollupsQuery = useQuery({
+    queryKey: ['analytics-rollups', rollupWhere],
+    enabled: Boolean(scope?.districtId),
+    queryFn: async () => {
+      const data = await graphql(
+        `query Rollups($where: analytics_event_rollups_daily_bool_exp!) {
+          analytics_event_rollups_daily(
+            where: $where,
+            order_by: [{ day: desc }, { event_count: desc }],
+            limit: 500
+          ) {
+            day
+            event_name
+            district_id
+            school_id
+            event_count
+          }
+        }`,
+        { where: rollupWhere }
+      );
+      return data?.analytics_event_rollups_daily ?? [];
+    },
+  });
+
+  const drillWhere = useMemo(() => {
+    if (!drillEventName) return null;
+
+    const where = {
+      event_ts: { _gte: `${from}T00:00:00.000Z`, _lte: `${to}T23:59:59.999Z` },
+      event_name: { _eq: drillEventName },
+    };
+    if (scope?.districtId) where.district_id = { _eq: scope.districtId };
+    if (scope?.schoolId) where.school_id = { _eq: scope.schoolId };
+    if (actorRole !== 'all') where.metadata = { _contains: { actor_role: actorRole } };
+
+    return where;
+  }, [drillEventName, from, to, scope?.districtId, scope?.schoolId, actorRole]);
+
+  const drillQuery = useQuery({
+    queryKey: ['analytics-drill', drillWhere],
+    enabled: Boolean(drillWhere),
+    queryFn: async () => {
+      const data = await graphql(
+        `query Drill($where: analytics_events_bool_exp!) {
+          analytics_events(
+            where: $where,
+            order_by: { event_ts: desc },
+            limit: 200
+          ) {
+            id
+            event_ts
+            event_name
+            actor_user_id
+            entity_type
+            entity_id
+            metadata
+          }
+        }`,
+        { where: drillWhere }
+      );
+      return data?.analytics_events ?? [];
+    },
+  });
+
+  const uniqueEventNames = useMemo(() => {
+    const s = new Set();
+    for (const r of rollupsQuery.data ?? []) s.add(r.event_name);
+    return Array.from(s).sort();
+  }, [rollupsQuery.data]);
+
+  const exportRollupsCsv = () => {
+    const rows = rollupsQuery.data ?? [];
+    const header = ['day', 'event_name', 'district_id', 'school_id', 'event_count'];
+    const lines = [header.join(',')];
+    for (const r of rows) {
+      lines.push([
+        csvEscape(r.day),
+        csvEscape(r.event_name),
+        csvEscape(r.district_id ?? ''),
+        csvEscape(r.school_id ?? ''),
+        csvEscape(r.event_count ?? 0),
+      ].join(','));
     }
-  }
+    downloadText(`teachmo_analytics_rollups_${from}_${to}.csv`, lines.join('\n'), 'text/csv');
+  };
 
-  useEffect(() => {
-    if (!isAuthenticated || tenant.loading) return;
-    if (!scope.organizationId) return;
-    loadSummary();
-  }, [isAuthenticated, tenant.loading, scope.organizationId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleDrilldown(metricKey) {
-    if (!scope.organizationId) return;
-    setDrilldownMetric(metricKey);
-    setDrilldownOpen(true);
-    try {
-      const res = await fetchDrilldown(scope, metricKey, normalizedFilters);
-      setDrilldownRows(res.rows || []);
-    } catch (err) {
-      toast({ title: 'Failed to load drilldown', description: String(err) });
+  const exportDrillCsv = () => {
+    const rows = drillQuery.data ?? [];
+    const header = ['event_ts', 'event_name', 'actor_user_id', 'entity_type', 'entity_id', 'metadata'];
+    const lines = [header.join(',')];
+    for (const r of rows) {
+      lines.push([
+        csvEscape(r.event_ts),
+        csvEscape(r.event_name),
+        csvEscape(r.actor_user_id ?? ''),
+        csvEscape(r.entity_type ?? ''),
+        csvEscape(r.entity_id ?? ''),
+        csvEscape(JSON.stringify(r.metadata ?? {})),
+      ].join(','));
     }
-  }
+    downloadText(`teachmo_analytics_events_${drillEventName}_${from}_${to}.csv`, lines.join('\n'), 'text/csv');
+  };
 
-  async function handleExport(kind) {
-    try {
-      const blob = kind === 'csv'
-        ? await exportAnalyticsCsv(scope, normalizedFilters)
-        : await exportAnalyticsPdf(scope, normalizedFilters);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = kind === 'csv' ? 'teachmo-analytics.csv' : 'teachmo-analytics.pdf';
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      toast({ title: 'Export failed', description: String(err) });
-    }
-  }
+  const exportPdf = () => {
+    // Lightweight, dependency-free PDF via the browser print dialog.
+    const html = `
+      <html>
+        <head>
+          <title>Teachmo Analytics Export</title>
+          <style>
+            body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; }
+            h1 { font-size: 18px; margin: 0 0 8px; }
+            h2 { font-size: 14px; margin: 18px 0 8px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 6px 8px; font-size: 12px; }
+            th { text-align: left; background: #f6f6f6; }
+            .meta { color: #555; font-size: 12px; margin-bottom: 8px; }
+          </style>
+        </head>
+        <body>
+          <h1>Teachmo Analytics Export</h1>
+          <div class="meta">Range: ${from} → ${to}</div>
+          <h2>Rollups (daily)</h2>
+          <table>
+            <thead>
+              <tr><th>Day</th><th>Event</th><th>District</th><th>School</th><th>Count</th></tr>
+            </thead>
+            <tbody>
+              ${(rollupsQuery.data ?? [])
+                .map(
+                  (r) =>
+                    `<tr><td>${r.day}</td><td>${r.event_name}</td><td>${r.district_id ?? ''}</td><td>${r.school_id ?? ''}</td><td>${r.event_count ?? 0}</td></tr>`
+                )
+                .join('')}
+            </tbody>
+          </table>
+          ${drillEventName ? `
+            <h2>Drilldown: ${drillEventName}</h2>
+            <table>
+              <thead>
+                <tr><th>Time</th><th>User</th><th>Entity</th><th>Metadata</th></tr>
+              </thead>
+              <tbody>
+                ${(drillQuery.data ?? [])
+                  .map(
+                    (r) =>
+                      `<tr><td>${new Date(r.event_ts).toLocaleString()}</td><td>${r.actor_user_id ?? ''}</td><td>${(r.entity_type ?? '') + (r.entity_id ? ':' + r.entity_id : '')}</td><td><pre style="margin:0; white-space: pre-wrap;">${JSON.stringify(r.metadata ?? {}, null, 2)}</pre></td></tr>`
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+          ` : ''}
+        </body>
+      </html>
+    `;
 
-  if (!isAuthenticated) return <Navigate to="/" replace />;
-  if (tenant.loading) return <div className="p-6 text-center text-sm text-muted-foreground">Loading tenant…</div>;
-  if (!scope.organizationId) return <div className="p-6 text-center text-sm text-destructive">Missing tenant scope.</div>;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
 
   return (
     <div className="p-6 space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-gray-900">Admin analytics</h1>
-        <p className="text-gray-600">District rollups, AI safety telemetry, and exportable reports.</p>
-      </header>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">Analytics</h1>
+          <p className="text-sm text-muted-foreground">
+            Tenant-scoped rollups and event drilldowns (event_ts + metadata). Export to CSV or PDF.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={exportPdf} disabled={rollupsQuery.isLoading}>
+            Export PDF
+          </Button>
+          <Button onClick={exportRollupsCsv} disabled={rollupsQuery.isLoading}>
+            Export Rollups CSV
+          </Button>
+        </div>
+      </div>
 
-      <FiltersBar
-        filters={filters}
-        onApply={(next) => {
-          setFilters(next);
-          loadSummary({
-            ...next,
-            role: next.role === 'all' ? null : next.role,
-            childId: next.childId || null,
-            schoolId: next.schoolId || null
-          });
-        }}
-        onReset={() => {
-          const defaults = defaultFilters();
-          setFilters(defaults);
-          loadSummary({
-            ...defaults,
-            role: null,
-            childId: null,
-            schoolId: null
-          });
-        }}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">From</div>
+            <Input type="date" value={from} onChange={(e) => setFrom(toDateOnly(e.target.value))} />
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">To</div>
+            <Input type="date" value={to} onChange={(e) => setTo(toDateOnly(e.target.value))} />
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Event</div>
+            <Select value={eventName} onValueChange={setEventName}>
+              <SelectTrigger>
+                <SelectValue placeholder="All events" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All events</SelectItem>
+                {uniqueEventNames.map((e) => (
+                  <SelectItem key={e} value={e}>{e}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Actor role (drilldown)</div>
+            <Select value={actorRole} onValueChange={setActorRole}>
+              <SelectTrigger>
+                <SelectValue placeholder="All roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All roles</SelectItem>
+                {['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'].map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-      {loading ? (
-        <div className="text-sm text-muted-foreground">Loading analytics…</div>
-      ) : (
-        <>
-          <MetricCards metrics={summary?.metrics} ai={summary?.ai} onSelect={handleDrilldown} />
-
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">District rollup by school</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  className="text-sm text-blue-600 hover:underline"
-                  onClick={() => handleExport('csv')}
-                >
-                  Export CSV
-                </button>
-                <button
-                  className="text-sm text-blue-600 hover:underline"
-                  onClick={() => handleExport('pdf')}
-                >
-                  Export PDF
-                </button>
-              </div>
-            </div>
-            <div className="mt-3 overflow-auto">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Daily rollups</CardTitle>
+          <div className="text-xs text-muted-foreground">
+            {scope?.districtId ? `District: ${scope.districtId}${scope.schoolId ? ` • School: ${scope.schoolId}` : ''}` : 'Loading tenant scope…'}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {rollupsQuery.isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading rollups…</div>
+          ) : rollupsQuery.data?.length ? (
+            <div className="overflow-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-medium">School</th>
-                    <th className="px-3 py-2 text-left font-medium">Events</th>
-                    <th className="px-3 py-2 text-left font-medium">Active users</th>
-                    <th className="px-3 py-2 text-left font-medium">Messages sent</th>
-                    <th className="px-3 py-2 text-left font-medium">AI calls</th>
+                <thead>
+                  <tr className="text-left border-b">
+                    <th className="p-2">Day</th>
+                    <th className="p-2">Event</th>
+                    <th className="p-2">School</th>
+                    <th className="p-2">Count</th>
+                    <th className="p-2"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(summary?.rollups?.by_school || []).map((row) => (
-                    <tr key={row.school_id || 'district'} className="border-t">
-                      <td className="px-3 py-2">{row.school_id || 'District'}</td>
-                      <td className="px-3 py-2">{row.events}</td>
-                      <td className="px-3 py-2">{row.active_users}</td>
-                      <td className="px-3 py-2">{row.messages_sent}</td>
-                      <td className="px-3 py-2">{row.ai_calls}</td>
-                    </tr>
-                  ))}
-                  {!(summary?.rollups?.by_school || []).length && (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-4 text-sm text-muted-foreground">
-                        No events yet for this district.
+                  {rollupsQuery.data.map((r) => (
+                    <tr key={`${r.day}-${r.event_name}-${r.school_id ?? 'district'}`} className="border-b hover:bg-muted/30">
+                      <td className="p-2 whitespace-nowrap">{r.day}</td>
+                      <td className="p-2">{r.event_name}</td>
+                      <td className="p-2 font-mono text-xs">{r.school_id ?? '—'}</td>
+                      <td className="p-2 font-semibold">{r.event_count}</td>
+                      <td className="p-2">
+                        <Button size="sm" variant="secondary" onClick={() => setDrillEventName(r.event_name)}>
+                          Drill down
+                        </Button>
                       </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
-          </section>
+          ) : (
+            <div className="text-sm text-muted-foreground">No events in this range yet.</div>
+          )}
+        </CardContent>
+      </Card>
 
-          <ReportBuilder tenant={scope} filters={normalizedFilters} />
-        </>
-      )}
-
-      <DrilldownDrawer
-        open={drilldownOpen}
-        onOpenChange={setDrilldownOpen}
-        metricKey={drilldownMetric}
-        rows={drilldownRows}
-        onExportCsv={() => handleExport('csv')}
-        onExportPdf={() => handleExport('pdf')}
-      />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Drilldown {drillEventName ? `• ${drillEventName}` : ''}</CardTitle>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setDrillEventName(null)} disabled={!drillEventName}>
+              Clear
+            </Button>
+            <Button onClick={exportDrillCsv} disabled={!drillEventName || drillQuery.isLoading}>
+              Export Events CSV
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!drillEventName ? (
+            <div className="text-sm text-muted-foreground">Select an event in rollups to drill down.</div>
+          ) : drillQuery.isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading events…</div>
+          ) : drillQuery.data?.length ? (
+            <div className="overflow-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b">
+                    <th className="p-2">Time</th>
+                    <th className="p-2">User</th>
+                    <th className="p-2">Entity</th>
+                    <th className="p-2">Metadata</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drillQuery.data.map((e) => (
+                    <tr key={e.id} className="border-b">
+                      <td className="p-2 whitespace-nowrap">{new Date(e.event_ts).toLocaleString()}</td>
+                      <td className="p-2 font-mono text-xs">{e.actor_user_id ?? '—'}</td>
+                      <td className="p-2 font-mono text-xs">{(e.entity_type ?? '') + (e.entity_id ? `:${e.entity_id}` : '')}</td>
+                      <td className="p-2">
+                        <pre className="text-xs whitespace-pre-wrap max-w-[720px]">{JSON.stringify(e.metadata ?? {}, null, 2)}</pre>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">No matching events.</div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

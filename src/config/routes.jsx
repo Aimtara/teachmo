@@ -230,9 +230,9 @@ export const ROUTE_DEFINITIONS = [
     path: '/admin/workflows',
     Component: lazy(() => import('@/pages/AdminWorkflows.jsx')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
-    requiredScopes: ['org:manage'],
+    requiredScopes: ['automation:manage'],
     internalOnly: true,
-    fallback: <p className="p-6 text-gray-600">Loading workflow builder...</p>
+    fallback: <p className="p-6 text-gray-600">Loading workflows...</p>
   },
   {
     name: 'AdminTenantSettings',
@@ -248,9 +248,9 @@ export const ROUTE_DEFINITIONS = [
     path: '/admin/users',
     Component: lazy(() => import('@/pages/AdminUsers.jsx')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
-    requiredScopes: ['org:manage'],
+    requiredScopes: ['users:manage'],
     internalOnly: true,
-    fallback: <p className="p-6 text-gray-600">Loading users...</p>
+    fallback: <p className="p-6 text-gray-600">Loading admin users...</p>
   },
   {
     name: 'AdminModerationQueue',
