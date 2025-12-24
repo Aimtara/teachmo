@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { bootstrapOrganization, completeOnboarding } from '@/domains/onboarding';
-import { logAnalyticsEvent } from '@/observability/telemetry';
+import { trackEvent } from '@/observability/telemetry';
 
 export default function Onboarding() {
   const { isAuthenticated } = useAuthenticationStatus();
@@ -26,6 +26,13 @@ export default function Onboarding() {
     setStatus('Setting up your organization…');
     setError('');
 
+    void trackEvent({
+      eventName: 'onboarding.started',
+      entityType: 'user',
+      entityId: user?.id,
+      metadata: { role: form.appRole, organizationName: form.organizationName, schoolName: form.schoolName },
+    });
+
     try {
       const org = await bootstrapOrganization({
         organizationName: form.organizationName,
@@ -41,25 +48,25 @@ export default function Onboarding() {
         schoolId: org?.school?.id
       });
 
-      await logAnalyticsEvent(
-        { organizationId: org?.organization?.id, schoolId: org?.school?.id },
-        {
-          eventName: 'onboarding_complete',
-          actorId: user?.id,
-          actorRole: form.appRole,
-          metadata: {
-            organization_id: org?.organization?.id,
-            school_id: org?.school?.id
-          },
-          source: 'web'
-        }
-      );
+      void trackEvent({
+        eventName: 'onboarding.completed',
+        entityType: 'user',
+        entityId: user?.id,
+        metadata: { role: form.appRole, organizationId: org?.organization?.id ?? null, schoolId: org?.school?.id ?? null },
+      });
 
       setStatus('Onboarding complete! You can continue to your dashboard.');
     } catch (err) {
       console.error(err);
       setError(err.message);
       setStatus('');
+
+      void trackEvent({
+        eventName: 'onboarding.failed',
+        entityType: 'user',
+        entityId: user?.id,
+        metadata: { message: err?.message || 'unknown' },
+      });
     }
   };
 
