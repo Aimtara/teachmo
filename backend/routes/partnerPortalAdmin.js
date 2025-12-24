@@ -1,178 +1,181 @@
 /* eslint-env node */
 import { Router } from 'express';
 import { query } from '../db.js';
-import { requireTenant } from '../middleware/tenant.js';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
-import { requireScopes } from '../middleware/scopes.js';
+import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
 
 const router = Router();
 
-router.use(requireAuth);
-router.use(requireTenant);
-router.use(requireAdmin);
-router.use(requireScopes('partner:admin'));
+// Tenant-scoped admin endpoints backing the Partner Portal.
+// These endpoints previously used in-memory demo models; we now persist to Postgres
+// using the same `public.partner_*` tables that are tracked in Hasura.
 
-const logAudit = async ({ organizationId, submissionId, action, actorId, reason }) => {
-  if (!submissionId) return;
-  await query(
-    `insert into partner_submission_audits (organization_id, submission_id, actor_id, action, reason)
-     values ($1,$2,$3,$4,$5)`,
-    [organizationId, submissionId, actorId || null, action, reason || null]
-  );
-};
-
-router.get('/audits', async (req, res) => {
-  const { organizationId } = req.tenant;
-  const r = await query(
-    `select id, submission_id, actor_id, action, reason, created_at
-     from partner_submission_audits
-     where organization_id = $1
-     order by created_at desc
-     limit 200`,
-    [organizationId]
-  );
-  res.json(r.rows || []);
-});
-
-router.get('/audit-logs', async (req, res) => {
-  const { organizationId } = req.tenant;
-  const r = await query(
-    `select id, submission_id, actor_id, action, reason, created_at
-     from partner_submission_audits
-     where organization_id = $1
-     order by created_at desc
-     limit 200`,
-    [organizationId]
-  );
-  res.json(r.rows || []);
-});
-
-router.get('/metrics', async (req, res) => {
-  const { organizationId } = req.tenant;
-
-  const [activeParents, recentMessages, workflowRuns, latencyAvg] = await Promise.all([
-    query(
-      `select count(distinct actor_id) as count
-       from analytics_events
-       where organization_id = $1
-         and actor_role = 'parent'
-         and event_ts >= now() - interval '7 days'`,
-      [organizationId]
-    ),
-    query(
-      `select count(*) as count
-       from analytics_events
-       where organization_id = $1
-         and event_name = 'message_sent'
-         and event_ts >= now() - interval '24 hours'`,
-      [organizationId]
-    ),
-    query(
-      `select count(*) as count
-       from workflow_runs
-       where organization_id = $1`,
-      [organizationId]
-    ),
-    query(
-      `select avg(latency_ms) as avg_latency
-       from ai_interactions
-       where organization_id = $1`,
-      [organizationId]
-    )
-  ]);
-
-  res.json({
-    active_parents: Number(activeParents.rows?.[0]?.count || 0),
-    messages_sent: Number(recentMessages.rows?.[0]?.count || 0),
-    workflows_run: Number(workflowRuns.rows?.[0]?.count || 0),
-    ai_latency: Math.round(Number(latencyAvg.rows?.[0]?.avg_latency || 0))
-  });
-});
-
-router.patch('/submissions/:id', async (req, res) => {
-  const { organizationId } = req.tenant;
-  const { id } = req.params;
-  const { status, reason } = req.body || {};
-  const r = await query(
-    `update partner_submissions
-     set status = $3, reason = $4, updated_at = now()
-     where id = $1 and organization_id = $2
-     returning id, partner_id, type, title, description, status, reason, created_at, updated_at`,
-    [id, organizationId, status, reason || null]
-  );
-  if (!r.rows?.length) return res.status(404).json({ error: 'not found' });
-  await logAudit({ organizationId, submissionId: id, action: status, actorId: req.auth?.userId, reason });
-  res.json(r.rows[0]);
-});
-
-router.patch('/incentive-applications/:id', async (req, res) => {
-  const { organizationId } = req.tenant;
-  const { id } = req.params;
-  const { status, payout } = req.body || {};
-  const r = await query(
-    `update partner_incentive_applications
-     set status = coalesce($3, status), payout = coalesce($4, payout), updated_at = now()
-     where id = $1 and organization_id = $2
-     returning id, incentive_id, partner_id, status, payout, created_at, updated_at`,
-    [id, organizationId, status || null, payout || null]
-  );
-  if (!r.rows?.length) return res.status(404).json({ error: 'not found' });
-  await logAudit({ organizationId, submissionId: null, action: status || 'update', actorId: req.auth?.userId });
-  res.json(r.rows[0]);
-});
-
-router.patch('/contracts/:id', async (req, res) => {
-  const { organizationId } = req.tenant;
-  const { id } = req.params;
-  const { status } = req.body || {};
-  const r = await query(
-    `update partner_contracts
-     set status = $3, updated_at = now()
-     where id = $1 and organization_id = $2
-     returning id, partner_id, title, description, status, signed_at, created_at, updated_at`,
-    [id, organizationId, status]
-  );
-  if (!r.rows?.length) return res.status(404).json({ error: 'not found' });
-  await logAudit({ organizationId, submissionId: null, action: status || 'update', actorId: req.auth?.userId });
-  res.json(r.rows[0]);
-});
-
-router.post('/onboarding-tasks', async (req, res) => {
-  const { organizationId } = req.tenant;
-  const { name, description, title } = req.body || {};
-  const resolvedTitle = title || name;
-  if (!resolvedTitle) return res.status(400).json({ error: 'name required' });
-  const r = await query(
-    `insert into partner_onboarding_tasks (organization_id, title, description)
-     values ($1,$2,$3)
-     returning id, title, description, created_at, updated_at`,
-    [organizationId, resolvedTitle, description || null]
-  );
-  res.status(201).json(r.rows?.[0]);
-});
-
-router.post('/courses', async (req, res) => {
-  const { organizationId } = req.tenant;
-  const { title, description, modules } = req.body || {};
-  if (!title) return res.status(400).json({ error: 'title required' });
-  const r = await query(
-    `insert into partner_courses (organization_id, title, description)
-     values ($1,$2,$3)
-     returning id, title, description`,
-    [organizationId, title, description || null]
-  );
-
-  const course = r.rows?.[0];
-  if (Array.isArray(modules) && course?.id) {
-    for (const [idx, mod] of modules.entries()) {
-      await query(
-        `insert into partner_course_modules (course_id, title, content, module_order)
-         values ($1,$2,$3,$4)`,
-        [course.id, mod.title, mod.content || null, idx]
-      );
-    }
+async function safeQuery(res, sql, params = []) {
+  try {
+    const result = await query(sql, params);
+    return result;
+  } catch (error) {
+    console.error('[partnerPortalAdmin] db error', error);
+    res.status(500).json({ error: 'db_error', detail: error.message });
+    return null;
   }
-  res.status(201).json({ course });
+}
+
+router.get('/submissions', requireDistrictScope, async (req, res) => {
+  const { districtId } = getTenantScope(req);
+  const result = await safeQuery(
+    res,
+    `select id, type, title, description, status, reason, created_at, updated_at
+     from public.partner_submissions
+     where district_id = $1
+     order by created_at desc
+     limit 500`,
+    [districtId]
+  );
+  if (!result) return;
+  res.json(result.rows);
+});
+
+router.patch('/submissions/:id', requireDistrictScope, async (req, res) => {
+  const { districtId, adminUserId } = getTenantScope(req);
+  const id = asUuidOrNull(req.params.id);
+  if (!id) return res.status(400).json({ error: 'invalid id' });
+  const { status, reason } = req.body || {};
+  if (!status) return res.status(400).json({ error: 'status required' });
+
+  const updated = await safeQuery(
+    res,
+    `update public.partner_submissions
+       set status = $2,
+           reason = $3,
+           updated_at = now()
+     where id = $1 and district_id = $4
+     returning id, type, title, description, status, reason, created_at, updated_at`,
+    [id, status, reason ?? null, districtId]
+  );
+  if (!updated) return;
+  if (!updated.rows[0]) return res.status(404).json({ error: 'not_found' });
+
+  await safeQuery(
+    res,
+    `insert into public.partner_submission_audits (district_id, admin_user_id, entity, entity_id, action, reason)
+     values ($1, $2, 'submission', $3, $4, $5)`,
+    [districtId, adminUserId, id, status, reason ?? null]
+  );
+
+  res.json(updated.rows[0]);
+});
+
+router.get('/incentive-applications', requireDistrictScope, async (req, res) => {
+  const { districtId } = getTenantScope(req);
+  const result = await safeQuery(
+    res,
+    `select id, partner_user_id, incentive_id, title, status, payout, created_at
+     from public.partner_incentive_applications
+     where district_id = $1
+     order by created_at desc
+     limit 500`,
+    [districtId]
+  );
+  if (!result) return;
+  res.json(result.rows);
+});
+
+router.patch('/incentive-applications/:id', requireDistrictScope, async (req, res) => {
+  const { districtId, adminUserId } = getTenantScope(req);
+  const id = asUuidOrNull(req.params.id);
+  if (!id) return res.status(400).json({ error: 'invalid id' });
+  const { status, payout } = req.body || {};
+  if (!status) return res.status(400).json({ error: 'status required' });
+
+  const updated = await safeQuery(
+    res,
+    `update public.partner_incentive_applications
+       set status = $2,
+           payout = $3
+     where id = $1 and district_id = $4
+     returning id, partner_user_id, incentive_id, title, status, payout, created_at`,
+    [id, status, payout ?? null, districtId]
+  );
+  if (!updated) return;
+  if (!updated.rows[0]) return res.status(404).json({ error: 'not_found' });
+
+  await safeQuery(
+    res,
+    `insert into public.partner_submission_audits (district_id, admin_user_id, entity, entity_id, action, reason)
+     values ($1, $2, 'incentiveApplication', $3, $4, $5)`,
+    [districtId, adminUserId, id, status, payout ?? null]
+  );
+
+  res.json(updated.rows[0]);
+});
+
+router.get('/contracts', requireDistrictScope, async (req, res) => {
+  const { districtId } = getTenantScope(req);
+  const result = await safeQuery(
+    res,
+    `select id, partner_user_id, title, status, metadata, created_at, updated_at
+     from public.partner_contracts
+     where district_id = $1
+     order by created_at desc
+     limit 500`,
+    [districtId]
+  );
+  if (!result) return;
+  res.json(result.rows);
+});
+
+router.patch('/contracts/:id', requireDistrictScope, async (req, res) => {
+  const { districtId, adminUserId } = getTenantScope(req);
+  const id = asUuidOrNull(req.params.id);
+  if (!id) return res.status(400).json({ error: 'invalid id' });
+  const { status } = req.body || {};
+  if (!status) return res.status(400).json({ error: 'status required' });
+
+  const updated = await safeQuery(
+    res,
+    `update public.partner_contracts
+       set status = $2,
+           updated_at = now()
+     where id = $1 and district_id = $3
+     returning id, partner_user_id, title, status, metadata, created_at, updated_at`,
+    [id, status, districtId]
+  );
+  if (!updated) return;
+  if (!updated.rows[0]) return res.status(404).json({ error: 'not_found' });
+
+  await safeQuery(
+    res,
+    `insert into public.partner_submission_audits (district_id, admin_user_id, entity, entity_id, action)
+     values ($1, $2, 'contract', $3, $4)`,
+    [districtId, adminUserId, id, status]
+  );
+
+  res.json(updated.rows[0]);
+});
+
+router.get('/audits', requireDistrictScope, async (req, res) => {
+  const { districtId } = getTenantScope(req);
+  const result = await safeQuery(
+    res,
+    `select id, entity, entity_id, action, reason, event_ts
+     from public.partner_submission_audits
+     where district_id = $1
+     order by event_ts desc
+     limit 200`,
+    [districtId]
+  );
+  if (!result) return;
+
+  res.json(
+    result.rows.map((row) => ({
+      id: row.id,
+      entity: row.entity,
+      entityId: row.entity_id,
+      action: row.action,
+      reason: row.reason,
+      timestamp: row.event_ts,
+    }))
+  );
 });
 
 export default router;

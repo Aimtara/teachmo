@@ -1,73 +1,85 @@
 /* eslint-env node */
 import { Router } from 'express';
 import { query } from '../db.js';
-import { requireTenant } from '../middleware/tenant.js';
-import { requireAuth } from '../middleware/auth.js';
-import { requireScopes } from '../middleware/scopes.js';
+import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
 
 const router = Router();
 
-router.use(requireAuth);
-router.use(requireTenant);
-
-router.get('/', requireScopes(['partner:submissions', 'partner:admin'], { any: true }), async (req, res) => {
-  const { organizationId } = req.tenant;
-  const role = req.auth?.role || '';
-  const params = [organizationId];
-  let where = 'organization_id = $1';
-  if (role === 'partner') {
-    where += ' and partner_id = $2';
-    params.push(req.auth?.userId || null);
+async function safeQuery(res, sql, params = []) {
+  try {
+    const result = await query(sql, params);
+    return result;
+  } catch (error) {
+    console.error('[submissions] db error', error);
+    res.status(500).json({ error: 'db_error', detail: error.message });
+    return null;
   }
+}
 
-  const r = await query(
-    `select id, partner_id, type, title, description, status, reason, created_at, updated_at
-     from partner_submissions
-     where ${where}
-     order by created_at desc`,
-    params
+// List partner submissions scoped to a tenant.
+// If x-user-id is provided, results are narrowed to that partner.
+router.get('/', requireDistrictScope, async (req, res) => {
+  const { districtId, userId } = getTenantScope(req);
+  const result = await safeQuery(
+    res,
+    `select id, type, title, description, status, reason, created_at, updated_at
+     from public.partner_submissions
+     where district_id = $1
+       and ($2::uuid is null or partner_user_id = $2::uuid)
+     order by created_at desc
+     limit 500`,
+    [districtId, userId]
   );
-  res.json(r.rows || []);
+  if (!result) return;
+  res.json(result.rows);
 });
 
-router.post('/', requireScopes('partner:submissions'), async (req, res) => {
-  const { organizationId } = req.tenant;
+// Create a submission (partner-scoped).
+router.post('/', requireDistrictScope, async (req, res) => {
+  const { districtId, userId } = getTenantScope(req);
+  if (!userId) return res.status(400).json({ error: 'user scope required (x-user-id)' });
+
   const { type, title, description } = req.body || {};
-  if (!type || !title) {
-    return res.status(400).json({ error: 'type and title are required' });
-  }
+  if (!type) return res.status(400).json({ error: 'type required' });
+  if (!title) return res.status(400).json({ error: 'title required' });
 
-  const r = await query(
-    `insert into partner_submissions (organization_id, partner_id, type, title, description)
-     values ($1,$2,$3,$4,$5)
-     returning id, partner_id, type, title, description, status, reason, created_at, updated_at`,
-    [organizationId, req.auth?.userId || null, type, title, description || null]
+  const result = await safeQuery(
+    res,
+    `insert into public.partner_submissions (partner_user_id, district_id, type, title, description)
+     values ($1::uuid, $2::uuid, $3, $4, $5)
+     returning id, type, title, description, status, reason, created_at, updated_at`,
+    [userId, districtId, type, title, description ?? null]
   );
-  res.status(201).json(r.rows?.[0]);
+  if (!result) return;
+  res.status(201).json(result.rows[0]);
 });
 
-router.put('/:id', requireScopes('partner:submissions'), async (req, res) => {
-  const { organizationId } = req.tenant;
-  const { id } = req.params;
+// Update pending submissions (title/description only), scoped to tenant + partner.
+router.put('/:id', requireDistrictScope, async (req, res) => {
+  const { districtId, userId } = getTenantScope(req);
+  if (!userId) return res.status(400).json({ error: 'user scope required (x-user-id)' });
+  const id = asUuidOrNull(req.params.id);
+  if (!id) return res.status(400).json({ error: 'invalid id' });
+
   const { title, description } = req.body || {};
+  if (!title && !description) return res.status(400).json({ error: 'no changes' });
 
-  const current = await query(
-    `select id, status from partner_submissions where id = $1 and organization_id = $2 and partner_id = $3`,
-    [id, organizationId, req.auth?.userId || null]
+  const result = await safeQuery(
+    res,
+    `update public.partner_submissions
+       set title = coalesce($2, title),
+           description = coalesce($3, description),
+           updated_at = now()
+     where id = $1
+       and district_id = $4
+       and partner_user_id = $5
+       and status = 'pending'
+     returning id, type, title, description, status, reason, created_at, updated_at`,
+    [id, title ?? null, description ?? null, districtId, userId]
   );
-  if (!current.rows?.length) return res.status(404).json({ error: 'not found' });
-  if (current.rows[0].status !== 'pending') return res.status(400).json({ error: 'only pending editable' });
-
-  const r = await query(
-    `update partner_submissions
-     set title = coalesce($4, title),
-         description = coalesce($5, description),
-         updated_at = now()
-     where id = $1 and organization_id = $2 and partner_id = $3
-     returning id, partner_id, type, title, description, status, reason, created_at, updated_at`,
-    [id, organizationId, req.auth?.userId || null, title || null, description || null]
-  );
-  res.json(r.rows?.[0]);
+  if (!result) return;
+  if (!result.rows[0]) return res.status(404).json({ error: 'not_found' });
+  res.json(result.rows[0]);
 });
 
 export default router;
