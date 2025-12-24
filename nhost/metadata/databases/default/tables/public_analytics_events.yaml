@@ -1,0 +1,35 @@
+table:
+  name: analytics_events
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      allow_aggregations: true
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      allow_aggregations: true
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      allow_aggregations: true
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+        _or:
+          - school_id:
+              _eq: X-Hasura-School-Id
+          - school_id:
+              _is_null: true
+      allow_aggregations: true

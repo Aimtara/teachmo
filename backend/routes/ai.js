@@ -21,15 +21,16 @@ router.post('/log', async (req, res) => {
     safetyFlags,
     model,
     metadata,
-    childId
+    childId,
+    latencyMs
   } = req.body || {};
 
   if (!prompt || !response) return res.status(400).json({ error: 'missing prompt/response' });
 
   const r = await query(
     `insert into ai_interactions
-      (organization_id, school_id, actor_id, actor_role, child_id, prompt, response, token_prompt, token_response, token_total, safety_risk_score, safety_flags, model, metadata)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14::jsonb)
+      (organization_id, school_id, actor_id, actor_role, child_id, prompt, response, token_prompt, token_response, token_total, safety_risk_score, safety_flags, model, metadata, latency_ms)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14::jsonb,$15)
      returning id`,
     [
       organizationId,
@@ -45,7 +46,8 @@ router.post('/log', async (req, res) => {
       safetyRiskScore ?? null,
       JSON.stringify(safetyFlags || []),
       model || null,
-      JSON.stringify(metadata || {})
+      JSON.stringify(metadata || {}),
+      latencyMs ?? null
     ]
   );
 

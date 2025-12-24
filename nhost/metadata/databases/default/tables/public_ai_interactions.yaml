@@ -1,0 +1,31 @@
+table:
+  name: ai_interactions
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+        _or:
+          - school_id:
+              _eq: X-Hasura-School-Id
+          - school_id:
+              _is_null: true

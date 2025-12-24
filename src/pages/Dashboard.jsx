@@ -3,23 +3,31 @@ import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { Navigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/config/api';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useTenant } from '@/contexts/TenantContext';
+import { nhost } from '@/lib/nhostClient';
 
 export default function Dashboard() {
   const { isAuthenticated } = useAuthenticationStatus();
   const user = useUserData();
   const role = useUserRole();
+  const tenant = useTenant();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ submissions: [], incentives: [], assignments: [] });
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || tenant.loading || !tenant.organizationId) return;
     const load = async () => {
       setLoading(true);
       try {
+        const token = await nhost.auth.getAccessToken();
+        const headers = {};
+        if (token) headers.authorization = `Bearer ${token}`;
+        headers['x-teachmo-org-id'] = tenant.organizationId;
+        if (tenant.schoolId) headers['x-teachmo-school-id'] = tenant.schoolId;
         const [submissions, incentives, assignments] = await Promise.all([
-          fetch(`${API_BASE_URL}/submissions`).then((res) => res.json()),
-          fetch(`${API_BASE_URL}/incentives`).then((res) => res.json()),
+          fetch(`${API_BASE_URL}/submissions`, { headers }).then((res) => res.json()),
+          fetch(`${API_BASE_URL}/incentives`, { headers }).then((res) => res.json()),
           fetch(`${API_BASE_URL}/assignments`).then((res) => res.json())
         ]);
         setData({ submissions, incentives, assignments });
@@ -31,7 +39,7 @@ export default function Dashboard() {
       }
     };
     load();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, tenant.loading, tenant.organizationId, tenant.schoolId]);
 
   const pendingSubmissions = useMemo(
     () => data.submissions.filter((item) => item.status === 'pending'),

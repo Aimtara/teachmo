@@ -2,28 +2,40 @@ import { graphqlRequest } from '@/lib/graphql';
 
 export async function fetchUserProfile(userId) {
   const query = `query GetProfile($userId: uuid!) {
-    profiles(where: { user_id: { _eq: $userId } }) {
-      id
+    user_profiles_by_pk(user_id: $userId) {
+      user_id
       full_name
-      app_role
-      organization_id
+      role
+      district_id
       school_id
+      first_name
+      last_name
+      phone
+      city
+      notes
+      children_count
     }
   }`;
   const data = await graphqlRequest({ query, variables: { userId } });
-  return data?.profiles?.[0] || null;
+  return data?.user_profiles_by_pk || null;
 }
 
 export async function createProfile(input) {
-  const query = `mutation InsertProfile($input: profiles_insert_input!) {
-    insert_profiles_one(object: $input) {
-      id
+  const query = `mutation InsertProfile($input: user_profiles_insert_input!) {
+    insert_user_profiles_one(object: $input) {
+      user_id
       full_name
-      app_role
-      organization_id
+      role
+      district_id
       school_id
+      first_name
+      last_name
+      phone
+      city
+      notes
+      children_count
     }
   }`;
   const data = await graphqlRequest({ query, variables: { input } });
-  return data?.insert_profiles_one;
+  return data?.insert_user_profiles_one;
 }

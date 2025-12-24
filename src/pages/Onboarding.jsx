@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { bootstrapOrganization, completeOnboarding } from '@/domains/onboarding';
+import { logAnalyticsEvent } from '@/observability/telemetry';
 
 export default function Onboarding() {
   const { isAuthenticated } = useAuthenticationStatus();
@@ -39,6 +40,20 @@ export default function Onboarding() {
         organizationId: org?.organization?.id,
         schoolId: org?.school?.id
       });
+
+      await logAnalyticsEvent(
+        { organizationId: org?.organization?.id, schoolId: org?.school?.id },
+        {
+          eventName: 'onboarding_complete',
+          actorId: user?.id,
+          actorRole: form.appRole,
+          metadata: {
+            organization_id: org?.organization?.id,
+            school_id: org?.school?.id
+          },
+          source: 'web'
+        }
+      );
 
       setStatus('Onboarding complete! You can continue to your dashboard.');
     } catch (err) {

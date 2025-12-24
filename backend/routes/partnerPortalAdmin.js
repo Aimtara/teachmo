@@ -1,129 +1,178 @@
 /* eslint-env node */
 import { Router } from 'express';
-import {
-  partnerSubmissions,
-  incentiveApplications,
-  partnerContracts,
-  onboardingTasks,
-  trainingCourses,
-  trainingModules,
-  partnerSubmissionAudits,
-  nextId,
-  userActivity,
-  messageLogs,
-  automationRuns,
-  aiLogs,
-} from '../models.js';
+import { query } from '../db.js';
+import { requireTenant } from '../middleware/tenant.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireScopes } from '../middleware/scopes.js';
 
 const router = Router();
 
-const logAudit = (entry) => {
-  partnerSubmissionAudits.push({ id: nextId('audit'), timestamp: new Date().toISOString(), ...entry });
+router.use(requireAuth);
+router.use(requireTenant);
+router.use(requireAdmin);
+router.use(requireScopes('partner:admin'));
+
+const logAudit = async ({ organizationId, submissionId, action, actorId, reason }) => {
+  if (!submissionId) return;
+  await query(
+    `insert into partner_submission_audits (organization_id, submission_id, actor_id, action, reason)
+     values ($1,$2,$3,$4,$5)`,
+    [organizationId, submissionId, actorId || null, action, reason || null]
+  );
 };
 
-router.get('/audits', (req, res) => {
-  res.json(partnerSubmissionAudits);
+router.get('/audits', async (req, res) => {
+  const { organizationId } = req.tenant;
+  const r = await query(
+    `select id, submission_id, actor_id, action, reason, created_at
+     from partner_submission_audits
+     where organization_id = $1
+     order by created_at desc
+     limit 200`,
+    [organizationId]
+  );
+  res.json(r.rows || []);
 });
 
-router.get('/audit-logs', (req, res) => {
-  res.json(partnerSubmissionAudits);
+router.get('/audit-logs', async (req, res) => {
+  const { organizationId } = req.tenant;
+  const r = await query(
+    `select id, submission_id, actor_id, action, reason, created_at
+     from partner_submission_audits
+     where organization_id = $1
+     order by created_at desc
+     limit 200`,
+    [organizationId]
+  );
+  res.json(r.rows || []);
 });
 
-router.get('/metrics', (req, res) => {
-  const sevenDaysAgo = getDaysAgo(7);
-  const oneDayAgo = getHoursAgo(24);
+router.get('/metrics', async (req, res) => {
+  const { organizationId } = req.tenant;
 
-  const activeParents = userActivity.filter((entry) => new Date(entry.lastActive) >= sevenDaysAgo);
-  const recentMessages = messageLogs.filter((entry) => new Date(entry.createdAt) >= oneDayAgo);
-  const workflowRuns = automationRuns.length;
-  const latencyAvg = aiLogs.length
-    ? aiLogs.reduce((sum, log) => sum + log.latencyMs, 0) / aiLogs.length
-    : 0;
+  const [activeParents, recentMessages, workflowRuns, latencyAvg] = await Promise.all([
+    query(
+      `select count(distinct actor_id) as count
+       from analytics_events
+       where organization_id = $1
+         and actor_role = 'parent'
+         and event_ts >= now() - interval '7 days'`,
+      [organizationId]
+    ),
+    query(
+      `select count(*) as count
+       from analytics_events
+       where organization_id = $1
+         and event_name = 'message_sent'
+         and event_ts >= now() - interval '24 hours'`,
+      [organizationId]
+    ),
+    query(
+      `select count(*) as count
+       from workflow_runs
+       where organization_id = $1`,
+      [organizationId]
+    ),
+    query(
+      `select avg(latency_ms) as avg_latency
+       from ai_interactions
+       where organization_id = $1`,
+      [organizationId]
+    )
+  ]);
 
   res.json({
-    active_parents: activeParents.length,
-    messages_sent: recentMessages.length,
-    workflows_run: workflowRuns,
-    ai_latency: Math.round(latencyAvg),
+    active_parents: Number(activeParents.rows?.[0]?.count || 0),
+    messages_sent: Number(recentMessages.rows?.[0]?.count || 0),
+    workflows_run: Number(workflowRuns.rows?.[0]?.count || 0),
+    ai_latency: Math.round(Number(latencyAvg.rows?.[0]?.avg_latency || 0))
   });
 });
 
-// approve/reject submission
-router.patch('/submissions/:id', (req, res) => {
+router.patch('/submissions/:id', async (req, res) => {
+  const { organizationId } = req.tenant;
   const { id } = req.params;
-  const { status, adminId, reason } = req.body;
-  const submission = partnerSubmissions.find((s) => s.id === Number(id));
-  if (!submission) return res.status(404).json({ error: 'not found' });
-  submission.status = status;
-  if (reason) submission.reason = reason;
-  logAudit({ entity: 'submission', entityId: submission.id, action: status, adminId });
-  res.json(submission);
+  const { status, reason } = req.body || {};
+  const r = await query(
+    `update partner_submissions
+     set status = $3, reason = $4, updated_at = now()
+     where id = $1 and organization_id = $2
+     returning id, partner_id, type, title, description, status, reason, created_at, updated_at`,
+    [id, organizationId, status, reason || null]
+  );
+  if (!r.rows?.length) return res.status(404).json({ error: 'not found' });
+  await logAudit({ organizationId, submissionId: id, action: status, actorId: req.auth?.userId, reason });
+  res.json(r.rows[0]);
 });
 
-// approve/reject incentive application
-router.patch('/incentive-applications/:id', (req, res) => {
+router.patch('/incentive-applications/:id', async (req, res) => {
+  const { organizationId } = req.tenant;
   const { id } = req.params;
-  const { status, adminId, payout } = req.body;
-  const application = incentiveApplications.find((a) => a.id === Number(id));
-  if (!application) return res.status(404).json({ error: 'not found' });
-  application.status = status;
-  if (payout) application.payout = payout;
-  logAudit({ entity: 'incentiveApplication', entityId: application.id, action: status, adminId });
-  res.json(application);
+  const { status, payout } = req.body || {};
+  const r = await query(
+    `update partner_incentive_applications
+     set status = coalesce($3, status), payout = coalesce($4, payout), updated_at = now()
+     where id = $1 and organization_id = $2
+     returning id, incentive_id, partner_id, status, payout, created_at, updated_at`,
+    [id, organizationId, status || null, payout || null]
+  );
+  if (!r.rows?.length) return res.status(404).json({ error: 'not found' });
+  await logAudit({ organizationId, submissionId: null, action: status || 'update', actorId: req.auth?.userId });
+  res.json(r.rows[0]);
 });
 
-// approve/reject contract
-router.patch('/contracts/:id', (req, res) => {
+router.patch('/contracts/:id', async (req, res) => {
+  const { organizationId } = req.tenant;
   const { id } = req.params;
-  const { status, adminId } = req.body;
-  const contract = partnerContracts.find((c) => c.id === Number(id));
-  if (!contract) return res.status(404).json({ error: 'not found' });
-  contract.status = status;
-  logAudit({ entity: 'contract', entityId: contract.id, action: status, adminId });
-  res.json(contract);
+  const { status } = req.body || {};
+  const r = await query(
+    `update partner_contracts
+     set status = $3, updated_at = now()
+     where id = $1 and organization_id = $2
+     returning id, partner_id, title, description, status, signed_at, created_at, updated_at`,
+    [id, organizationId, status]
+  );
+  if (!r.rows?.length) return res.status(404).json({ error: 'not found' });
+  await logAudit({ organizationId, submissionId: null, action: status || 'update', actorId: req.auth?.userId });
+  res.json(r.rows[0]);
 });
 
-// create onboarding task
-router.post('/onboarding-tasks', (req, res) => {
-  const { name, description } = req.body;
-  if (!name) return res.status(400).json({ error: 'name required' });
-  const task = { id: nextId('task'), name, description: description || '' };
-  onboardingTasks.push(task);
-  logAudit({ entity: 'onboardingTask', entityId: task.id, action: 'create' });
-  res.status(201).json(task);
+router.post('/onboarding-tasks', async (req, res) => {
+  const { organizationId } = req.tenant;
+  const { name, description, title } = req.body || {};
+  const resolvedTitle = title || name;
+  if (!resolvedTitle) return res.status(400).json({ error: 'name required' });
+  const r = await query(
+    `insert into partner_onboarding_tasks (organization_id, title, description)
+     values ($1,$2,$3)
+     returning id, title, description, created_at, updated_at`,
+    [organizationId, resolvedTitle, description || null]
+  );
+  res.status(201).json(r.rows?.[0]);
 });
 
-// create course with modules
-router.post('/courses', (req, res) => {
-  const { title, description, modules } = req.body;
+router.post('/courses', async (req, res) => {
+  const { organizationId } = req.tenant;
+  const { title, description, modules } = req.body || {};
   if (!title) return res.status(400).json({ error: 'title required' });
-  const course = { id: nextId('course'), title, description: description || '' };
-  trainingCourses.push(course);
-  if (Array.isArray(modules)) {
-    modules.forEach((m, idx) => {
-      trainingModules.push({
-        id: nextId('module'),
-        courseId: course.id,
-        title: m.title,
-        content: m.content || '',
-        order: idx,
-      });
-    });
+  const r = await query(
+    `insert into partner_courses (organization_id, title, description)
+     values ($1,$2,$3)
+     returning id, title, description`,
+    [organizationId, title, description || null]
+  );
+
+  const course = r.rows?.[0];
+  if (Array.isArray(modules) && course?.id) {
+    for (const [idx, mod] of modules.entries()) {
+      await query(
+        `insert into partner_course_modules (course_id, title, content, module_order)
+         values ($1,$2,$3,$4)`,
+        [course.id, mod.title, mod.content || null, idx]
+      );
+    }
   }
-  logAudit({ entity: 'course', entityId: course.id, action: 'create' });
   res.status(201).json({ course });
 });
 
 export default router;
-
-function getDaysAgo(days) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date;
-}
-
-function getHoursAgo(hours) {
-  const date = new Date();
-  date.setHours(date.getHours() - hours);
-  return date;
-}

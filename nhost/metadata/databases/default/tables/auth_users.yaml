@@ -10,3 +10,29 @@ object_relationships:
         remote_table:
           name: user_profiles
           schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        profile:
+          district_id:
+            _eq: X-Hasura-District-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        profile:
+          district_id:
+            _eq: X-Hasura-District-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        profile:
+          school_id:
+            _eq: X-Hasura-School-Id

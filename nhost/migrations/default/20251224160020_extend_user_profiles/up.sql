@@ -1,0 +1,11 @@
+ALTER TABLE public.user_profiles
+  ADD COLUMN IF NOT EXISTS full_name text NULL,
+  ADD COLUMN IF NOT EXISTS first_name text NULL,
+  ADD COLUMN IF NOT EXISTS last_name text NULL,
+  ADD COLUMN IF NOT EXISTS phone text NULL,
+  ADD COLUMN IF NOT EXISTS city text NULL,
+  ADD COLUMN IF NOT EXISTS subjects text NULL,
+  ADD COLUMN IF NOT EXISTS grades text NULL,
+  ADD COLUMN IF NOT EXISTS bio text NULL,
+  ADD COLUMN IF NOT EXISTS notes text NULL,
+  ADD COLUMN IF NOT EXISTS children_count integer NULL;

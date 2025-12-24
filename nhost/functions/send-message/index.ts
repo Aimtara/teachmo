@@ -284,6 +284,22 @@ export default async (req: any, res: any) => {
       });
     }
 
+    await hasura(
+      `mutation LogAnalytics($object: analytics_events_insert_input!) {\n        insert_analytics_events_one(object: $object) { id }\n      }`,
+      {
+        object: {
+          event_name: 'message_sent',
+          event_ts: nowIso,
+          organization_id: thread.district_id ?? actorScope.districtId,
+          school_id: thread.school_id ?? actorScope.schoolId,
+          actor_id: actorId,
+          actor_role: actorScope.role || null,
+          metadata: { thread_id: thread.id, message_id: message.id },
+          source: 'function',
+        },
+      }
+    );
+
     return res.status(200).json({ ok: true, messageId: message.id });
   } catch (error: any) {
     console.error('send-message failed', error);

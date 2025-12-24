@@ -4,6 +4,8 @@ import { createProfile } from '@/domains/auth';
 import { API_BASE_URL } from '@/config/api';
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
 import { useTelemetry } from '@/utils/useTelemetry';
+import { useTenant } from '@/contexts/TenantContext';
+import { nhost } from '@/lib/nhostClient';
 
 export default function AdminDashboard() {
   const [orgForm, setOrgForm] = useState({ organizationName: '', schoolName: '' });
@@ -11,13 +13,23 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState('');
   const [metrics, setMetrics] = useState({});
   const { log } = useTelemetry();
+  const tenant = useTenant();
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/admin/metrics`)
-      .then((res) => res.json())
-      .then(setMetrics)
-      .catch(() => setMetrics({}));
-  }, []);
+    if (tenant.loading || !tenant.organizationId) return;
+    const load = async () => {
+      const token = await nhost.auth.getAccessToken();
+      const headers = {};
+      if (token) headers.authorization = `Bearer ${token}`;
+      headers['x-teachmo-org-id'] = tenant.organizationId;
+      if (tenant.schoolId) headers['x-teachmo-school-id'] = tenant.schoolId;
+      fetch(`${API_BASE_URL}/admin/metrics`, { headers })
+        .then((res) => res.json())
+        .then(setMetrics)
+        .catch(() => setMetrics({}));
+    };
+    load();
+  }, [tenant.loading, tenant.organizationId, tenant.schoolId]);
 
   const handleOrgSubmit = async (evt) => {
     evt.preventDefault();
@@ -38,8 +50,8 @@ export default function AdminDashboard() {
     await createProfile({
       user_id: userForm.userId,
       full_name: userForm.fullName,
-      app_role: userForm.role,
-      organization_id: userForm.organizationId || null,
+      role: userForm.role,
+      district_id: userForm.organizationId || null,
       school_id: userForm.schoolId || null
     });
     log('admin_assign_role', {

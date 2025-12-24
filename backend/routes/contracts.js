@@ -1,27 +1,47 @@
 /* eslint-env node */
 import { Router } from 'express';
-import { partnerContracts, nextId } from '../models.js';
+import { query } from '../db.js';
+import { requireTenant } from '../middleware/tenant.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireScopes } from '../middleware/scopes.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  const { partnerId } = req.query;
-  const data = partnerId ? partnerContracts.filter((c) => c.partnerId === partnerId) : partnerContracts;
-  res.json(data);
+router.use(requireAuth);
+router.use(requireTenant);
+
+router.get('/', requireScopes(['partner:portal', 'partner:admin'], { any: true }), async (req, res) => {
+  const { organizationId } = req.tenant;
+  const role = req.auth?.role || '';
+  const params = [organizationId];
+  let where = 'organization_id = $1';
+  if (role === 'partner') {
+    where += ' and partner_id = $2';
+    params.push(req.auth?.userId || null);
+  }
+
+  const r = await query(
+    `select id, partner_id, title, description, status, signed_at, created_at, updated_at
+     from partner_contracts
+     where ${where}
+     order by created_at desc`,
+    params
+  );
+  res.json(r.rows || []);
 });
 
-router.post('/', (req, res) => {
-  const { partnerId, title, description } = req.body;
+router.post('/', requireAdmin, requireScopes('partner:admin'), async (req, res) => {
+  const { organizationId } = req.tenant;
+  const { partnerId, title, description } = req.body || {};
   if (!partnerId || !title) return res.status(400).json({ error: 'partnerId and title required' });
-  const contract = {
-    id: nextId('contract'),
-    partnerId,
-    title,
-    description: description || '',
-    status: 'pending',
-  };
-  partnerContracts.push(contract);
-  res.status(201).json(contract);
+
+  const r = await query(
+    `insert into partner_contracts (organization_id, partner_id, title, description)
+     values ($1,$2,$3,$4)
+     returning id, partner_id, title, description, status, signed_at, created_at, updated_at`,
+    [organizationId, partnerId, title, description || null]
+  );
+  res.status(201).json(r.rows?.[0]);
 });
 
 export default router;
