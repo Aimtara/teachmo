@@ -213,7 +213,7 @@ export default function Pages() {
         <Route
           path="/admin/workflows"
           element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['automation:manage']}>
               <AdminWorkflows />
             </ProtectedRoute>
           )}
@@ -221,7 +221,7 @@ export default function Pages() {
         <Route
           path="/admin/tenant-settings"
           element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['tenant:manage']}>
               <AdminTenantSettings />
             </ProtectedRoute>
           )}
@@ -229,7 +229,7 @@ export default function Pages() {
         <Route
           path="/admin/users"
           element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['users:manage']}>
               <AdminUsers />
             </ProtectedRoute>
           )}
@@ -237,7 +237,7 @@ export default function Pages() {
         <Route
           path="/admin/analytics"
           element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['analytics:view']}>
               <AdminAnalytics />
             </ProtectedRoute>
           )}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
+import { graphql } from '@/lib/graphql';
 import { trackEvent } from '@/observability/telemetry';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,12 +10,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 
 const DEFAULT_TRIGGER = { type: 'event', event_name: 'messaging.message_sent' };
-const DEFAULT_DEF = { version: 1, steps: [] };
+const DEFAULT_DEF = {
+  version: 2,
+  // v2 supports branching via condition steps with on_true/on_false edges.
+  // Steps may be a linear list (default next = next array item) or an explicit graph.
+  steps: [
+    // Example:
+    // { id: 'step_1', type: 'condition', config: { left: '{{event_name}}', op: 'eq', right: 'messaging.message_sent' }, on_true: 'step_2', on_false: 'step_3' },
+    // { id: 'step_2', type: 'notify', config: { user_id: '{{actor_user_id}}', channel: 'in_app', title: 'Message sent', body: 'A message was sent.' } },
+    // { id: 'step_3', type: 'noop', config: {} },
+  ],
+};
 
 const STEP_TYPES = [
   { value: 'create_entity', label: 'Create entity' },
   { value: 'update_entity', label: 'Update entity' },
-  { value: 'notify', label: 'Notify (stub)' },
+  { value: 'condition', label: 'Condition (branch)' },
+  { value: 'notify', label: 'Notify (in-app)' },
+  { value: 'noop', label: 'No-op' },
 ];
 
 function safeJson(str, fallback) {
@@ -52,6 +64,7 @@ export default function AdminWorkflows() {
           version
           trigger
           definition
+          created_by
           updated_at
         }
       }`;
@@ -67,6 +80,29 @@ export default function AdminWorkflows() {
   const selected = useMemo(() => {
     return workflows?.find((w) => w.id === selectedId) ?? workflows?.[0] ?? null;
   }, [workflows, selectedId]);
+
+  const { data: versions } = useQuery({
+    queryKey: ['workflow_definition_versions', selected?.id],
+    enabled: Boolean(selected?.id),
+    queryFn: async () => {
+      const query = `query Versions($workflowId: uuid!) {
+        workflow_definition_versions(
+          where: { workflow_id: { _eq: $workflowId } }
+          order_by: { version: desc }
+        ) {
+          id
+          version
+          created_at
+          created_by
+          trigger
+          definition
+        }
+      }`;
+      const { data, error } = await graphql.request(query, { workflowId: selected.id });
+      if (error) throw error;
+      return data.workflow_definition_versions;
+    },
+  });
 
   const [draftName, setDraftName] = useState('');
   const [draftStatus, setDraftStatus] = useState('active');
@@ -93,9 +129,10 @@ export default function AdminWorkflows() {
         }`;
         const { error } = await graphql.request(mutation, {
           id: selected.id,
-          patch: { name: draftName, status: draftStatus, trigger, definition, updated_at: new Date().toISOString() },
+          patch: { name: draftName, status: draftStatus, trigger, definition },
         });
         if (error) throw error;
+        await trackEvent({ eventName: 'workflow.updated', metadata: { workflow_id: selected.id } });
         return selected.id;
       }
 
@@ -114,11 +151,36 @@ export default function AdminWorkflows() {
         },
       });
       if (error) throw error;
+      await trackEvent({ eventName: 'workflow.created', metadata: { workflow_id: data.insert_workflow_definitions_one.id } });
       return data.insert_workflow_definitions_one.id;
     },
     onSuccess: async (id) => {
       await refetch();
       setSelectedId(id);
+    },
+  });
+
+  const rollbackMutation = useMutation({
+    mutationFn: async (versionRow) => {
+      if (!selected?.id) return;
+      const mutation = `mutation Rollback($id: uuid!, $patch: workflow_definitions_set_input!) {
+        update_workflow_definitions_by_pk(pk_columns: { id: $id }, _set: $patch) { id version }
+      }`;
+      const { error } = await graphql.request(mutation, {
+        id: selected.id,
+        patch: {
+          trigger: versionRow.trigger,
+          definition: versionRow.definition,
+        },
+      });
+      if (error) throw error;
+      await trackEvent({
+        eventName: 'workflow.rolled_back',
+        metadata: { workflow_id: selected.id, restored_version: versionRow.version },
+      });
+    },
+    onSuccess: async () => {
+      await refetch();
     },
   });
 
@@ -134,7 +196,13 @@ export default function AdminWorkflows() {
     const def = safeJson(draftDefinition, DEFAULT_DEF);
     const steps = Array.isArray(def.steps) ? def.steps : [];
     const id = `step_${steps.length + 1}`;
-    steps.push({ id, type, config: {} });
+    const base = { id, type, config: {} };
+    if (type === 'condition') {
+      base.config = { left: '{{event_name}}', op: 'eq', right: 'some.event' };
+      base.on_true = null;
+      base.on_false = null;
+    }
+    steps.push(base);
     setDraftDefinition(JSON.stringify({ ...def, steps }, null, 2));
   };
 
@@ -149,7 +217,9 @@ export default function AdminWorkflows() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Workflows</h1>
-          <p className="text-sm text-muted-foreground">Event-triggered automation (Phase 5). Actions are recorded as intended operations; real execution is the next milestone.</p>
+          <p className="text-sm text-muted-foreground">
+            Event-triggered automation. Phase 6 adds real action execution, branching, and rollback/version controls.
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={createNew}>New</Button>
@@ -158,7 +228,7 @@ export default function AdminWorkflows() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>Definitions</CardTitle>
@@ -210,10 +280,8 @@ export default function AdminWorkflows() {
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Trigger (JSON)</label>
-                </div>
-                <Textarea value={draftTrigger} onChange={(e) => setDraftTrigger(e.target.value)} rows={8} />
+                <label className="text-sm font-medium">Trigger (JSON)</label>
+                <Textarea value={draftTrigger} onChange={(e) => setDraftTrigger(e.target.value)} rows={10} />
                 <p className="text-xs text-muted-foreground">Use <code>{`{ "type": "event", "event_name": "messaging.message_sent" }`}</code>.</p>
               </div>
 
@@ -227,26 +295,54 @@ export default function AdminWorkflows() {
                       </SelectTrigger>
                       <SelectContent>
                         {STEP_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
-                          </SelectItem>
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <Textarea value={draftDefinition} onChange={(e) => setDraftDefinition(e.target.value)} rows={8} />
-                <p className="text-xs text-muted-foreground">Steps are recorded into workflow_runs/workflow_run_steps; action execution is stubbed for now.</p>
+                <Textarea value={draftDefinition} onChange={(e) => setDraftDefinition(e.target.value)} rows={10} />
+                <p className="text-xs text-muted-foreground">
+                  v2 supports condition steps with <code>on_true</code>/<code>on_false</code> edges. Templates like{' '}
+                  <code>{`{{event_metadata.thread_id}}`}</code> are resolved at runtime.
+                </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="mt-6">
-              <Button variant="outline" onClick={refetch}>Refresh list</Button>
-              {saveMutation.isError && (
-                <div className="mt-2 text-sm text-destructive">Save failed: {String(saveMutation.error?.message || saveMutation.error)}</div>
-              )}
-              {saveMutation.isSuccess && <div className="mt-2 text-sm text-muted-foreground">Saved.</div>}
+        <Card>
+          <CardHeader>
+            <CardTitle>Versions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!selected?.id && <div className="text-sm text-muted-foreground">Select a workflow.</div>}
+            {selected?.id && !versions?.length && <div className="text-sm text-muted-foreground">No versions yet.</div>}
+
+            <div className="space-y-2">
+              {(versions ?? []).slice(0, 10).map((v) => (
+                <div key={v.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">v{v.version}</div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => rollbackMutation.mutate(v)}
+                      disabled={rollbackMutation.isPending || !selected?.id}
+                    >
+                      Restore
+                    </Button>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {v.created_at ? new Date(v.created_at).toLocaleString() : ''}
+                  </div>
+                </div>
+              ))}
             </div>
+
+            <p className="mt-4 text-xs text-muted-foreground">
+              Restoring a version updates the live definition and auto-creates a new snapshot (audit-friendly).
+            </p>
           </CardContent>
         </Card>
       </div>
