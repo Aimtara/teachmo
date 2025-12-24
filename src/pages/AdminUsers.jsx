@@ -1,134 +1,226 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useAuthenticationStatus } from '@nhost/react';
-import { Navigate } from 'react-router-dom';
-import { nhost } from '@/lib/nhostClient';
-import { useTenant } from '@/contexts/TenantContext';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { graphql } from '@/lib/graphql';
+import { useTenantScope } from '@/hooks/useTenantScope';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const USER_QUERY = `query TenantUsers($districtId: uuid!) {
-  auth_users(where: { profile: { district_id: { _eq: $districtId } } }, order_by: { created_at: desc }) {
-    id
-    email
-    display_name
-    created_at
-    last_seen
-    profile {
-      user_id
-      role
-      district_id
-      school_id
-    }
-  }
-}`;
+const ROLES = ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'];
 
-const UPDATE_ROLE = `mutation UpdateRole($userId: uuid!, $role: String!) {
-  update_user_profiles_by_pk(pk_columns: { user_id: $userId }, _set: { role: $role }) {
+const QUERY = `
+query ListUserProfiles($where: user_profiles_bool_exp, $limit: Int!, $offset: Int!) {
+  user_profiles(where: $where, limit: $limit, offset: $offset, order_by: { created_at: desc }) {
     user_id
     role
+    district_id
+    school_id
+    full_name
+    created_at
   }
-}`;
+  user_profiles_aggregate(where: $where) { aggregate { count } }
+}
+`;
 
-const ROLE_OPTIONS = [
-  { value: 'parent', label: 'Parent' },
-  { value: 'teacher', label: 'Teacher' },
-  { value: 'school_admin', label: 'School admin' },
-  { value: 'district_admin', label: 'District admin' },
-  { value: 'partner', label: 'Partner' },
-  { value: 'system_admin', label: 'System admin' }
-];
+const UPDATE = `
+mutation UpdateUserProfile($userId: uuid!, $changes: user_profiles_set_input!) {
+  update_user_profiles_by_pk(pk_columns: { user_id: $userId }, _set: $changes) {
+    user_id
+    role
+    district_id
+    school_id
+    full_name
+  }
+}
+`;
 
 export default function AdminUsers() {
-  const { isAuthenticated } = useAuthenticationStatus();
-  const tenant = useTenant();
-  const [users, setUsers] = useState([]);
-  const [status, setStatus] = useState('');
+  const { data: scope } = useTenantScope();
+  const isSystem = scope?.role === 'system_admin' || scope?.role === 'admin';
 
-  const filteredUsers = useMemo(() => {
-    if (!tenant.schoolId) return users;
-    return users.filter((user) => user.profile?.school_id === tenant.schoolId);
-  }, [users, tenant.schoolId]);
+  const [q, setQ] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const limit = 25;
 
-  const loadUsers = async () => {
-    if (!tenant.organizationId) return;
-    const { data, error } = await nhost.graphql.request(USER_QUERY, {
-      districtId: tenant.organizationId
-    });
-    if (error) {
-      setStatus(`Failed to load users: ${error.message}`);
-      setUsers([]);
-      return;
+  const where = useMemo(() => {
+    const clauses = [];
+
+    if (q?.trim()) {
+      clauses.push({ full_name: { _ilike: `%${q.trim()}%` } });
     }
-    setUsers(data?.auth_users || []);
-    setStatus('');
-  };
 
-  useEffect(() => {
-    if (tenant.loading || !tenant.organizationId) return;
-    loadUsers();
-  }, [tenant.loading, tenant.organizationId, tenant.schoolId]);
-
-  const updateRole = async (userId, role) => {
-    setStatus('Updating role…');
-    const { error } = await nhost.graphql.request(UPDATE_ROLE, { userId, role });
-    if (error) {
-      setStatus(`Update failed: ${error.message}`);
-      return;
+    if (roleFilter !== 'all') {
+      clauses.push({ role: { _eq: roleFilter } });
     }
-    setStatus('Role updated.');
-    loadUsers();
-  };
 
-  if (!isAuthenticated) return <Navigate to="/" replace />;
-  if (tenant.loading) return <div className="p-6 text-center text-sm text-muted-foreground">Loading tenant…</div>;
-  if (!tenant.organizationId) return <div className="p-6 text-center text-sm text-destructive">Missing tenant scope.</div>;
+    if (!isSystem) {
+      if (scope?.schoolId) clauses.push({ school_id: { _eq: scope.schoolId } });
+      else if (scope?.districtId) clauses.push({ district_id: { _eq: scope.districtId } });
+    }
+
+    return clauses.length ? { _and: clauses } : {};
+  }, [q, roleFilter, isSystem, scope?.districtId, scope?.schoolId]);
+
+  const usersQuery = useQuery({
+    queryKey: ['admin_users', where, page],
+    enabled: Boolean(scope?.userId),
+    queryFn: async () => {
+      const res = await graphql(QUERY, { where, limit, offset: page * limit });
+      if (res.error) throw res.error;
+      return res.data;
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ userId, changes }) => {
+      const res = await graphql(UPDATE, { userId, changes });
+      if (res.error) throw res.error;
+      return res.data;
+    },
+    onSuccess: () => usersQuery.refetch(),
+  });
+
+  const total = usersQuery.data?.user_profiles_aggregate?.aggregate?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
     <div className="p-6 space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-gray-900">Tenant users</h1>
-        <p className="text-gray-600">Manage roles for users in your district or school.</p>
-      </header>
-
-      <div className="rounded-xl border bg-white p-4 shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted">
-            <tr>
-              <th className="px-3 py-2 text-left font-medium">Name</th>
-              <th className="px-3 py-2 text-left font-medium">Email</th>
-              <th className="px-3 py-2 text-left font-medium">Role</th>
-              <th className="px-3 py-2 text-left font-medium">Last seen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((user) => (
-              <tr key={user.id} className="border-t">
-                <td className="px-3 py-2">{user.display_name || '—'}</td>
-                <td className="px-3 py-2">{user.email}</td>
-                <td className="px-3 py-2">
-                  <select
-                    className="rounded border px-2 py-1"
-                    value={user.profile?.role || 'parent'}
-                    onChange={(e) => updateRole(user.id, e.target.value)}
-                  >
-                    {ROLE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-3 py-2">{user.last_seen ? new Date(user.last_seen).toLocaleString() : '—'}</td>
-              </tr>
-            ))}
-            {!filteredUsers.length && (
-              <tr>
-                <td colSpan={4} className="px-3 py-4 text-center text-sm text-muted-foreground">
-                  No users found for this tenant.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div>
+        <h1 className="text-2xl font-semibold">Users</h1>
+        <p className="text-sm text-muted-foreground">
+          Tenant-scoped user profile administration (backed by Hasura GraphQL, enforced by DB RLS).
+        </p>
       </div>
 
-      {status && <p className="text-sm text-muted-foreground">{status}</p>}
+      <Card>
+        <CardHeader>
+          <CardTitle>Search & Filter</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col md:flex-row gap-3">
+          <div className="flex-1">
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by full name" />
+          </div>
+          <div className="w-full md:w-56">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All roles</SelectItem>
+                {ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>User profiles</CardTitle>
+          <div className="text-xs text-muted-foreground">{total} total</div>
+        </CardHeader>
+        <CardContent>
+          {usersQuery.isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading users…</div>
+          ) : !usersQuery.data?.user_profiles?.length ? (
+            <div className="text-sm text-muted-foreground">No users match the current filters.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="p-2">Name</th>
+                    <th className="p-2">User ID</th>
+                    <th className="p-2">Role</th>
+                    <th className="p-2">District</th>
+                    <th className="p-2">School</th>
+                    <th className="p-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usersQuery.data.user_profiles.map((u) => (
+                    <UserRow
+                      key={u.user_id}
+                      user={u}
+                      isSystem={isSystem}
+                      onSave={(changes) => updateMutation.mutate({ userId: u.user_id, changes })}
+                      saving={updateMutation.isPending}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-xs text-muted-foreground">Page {page + 1} of {totalPages}</div>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                Prev
+              </Button>
+              <Button variant="secondary" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>
+                Next
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+function UserRow({ user, isSystem, onSave, saving }) {
+  const [role, setRole] = useState(user.role ?? 'parent');
+  const [districtId, setDistrictId] = useState(user.district_id ?? '');
+  const [schoolId, setSchoolId] = useState(user.school_id ?? '');
+  const [fullName, setFullName] = useState(user.full_name ?? '');
+
+  const dirty = role !== (user.role ?? 'parent') || districtId !== (user.district_id ?? '') || schoolId !== (user.school_id ?? '') || fullName !== (user.full_name ?? '');
+
+  return (
+    <tr className="border-b align-top">
+      <td className="p-2">
+        <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+      </td>
+      <td className="p-2 font-mono text-xs whitespace-nowrap">{user.user_id}</td>
+      <td className="p-2">
+        <Select value={role} onValueChange={setRole}>
+          <SelectTrigger>
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            {ROLES.map((r) => (
+              <SelectItem key={r} value={r}>{r}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </td>
+      <td className="p-2">
+        <Input value={districtId} onChange={(e) => setDistrictId(e.target.value)} disabled={!isSystem && Boolean(user.district_id)} placeholder="District UUID" />
+      </td>
+      <td className="p-2">
+        <Input value={schoolId} onChange={(e) => setSchoolId(e.target.value)} disabled={!isSystem && Boolean(user.school_id)} placeholder="School UUID" />
+      </td>
+      <td className="p-2">
+        <Button
+          size="sm"
+          disabled={!dirty || saving}
+          onClick={() =>
+            onSave({
+              role,
+              district_id: districtId || null,
+              school_id: schoolId || null,
+              full_name: fullName || null,
+            })
+          }
+        >
+          Save
+        </Button>
+      </td>
+    </tr>
   );
 }

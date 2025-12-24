@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { createPartnerSubmission, listPartnerSubmissions } from '@/domains/submissions';
 import { useUserData } from '@nhost/react';
+import { useTenantScope } from '@/hooks/useTenantScope';
 
 export default function PartnerDashboard() {
   const user = useUserData();
+  const { data: scope } = useTenantScope();
   const [submissions, setSubmissions] = useState([]);
   const [title, setTitle] = useState('');
   const [status, setStatus] = useState('');
@@ -19,7 +21,12 @@ export default function PartnerDashboard() {
     evt.preventDefault();
     if (!user) return;
     setStatus('Submitting…');
-    await createPartnerSubmission({ partner_id: user.id, title });
+    await createPartnerSubmission({
+      partner_user_id: user.id,
+      district_id: scope?.districtId ?? null,
+      type: 'resource',
+      title,
+    });
     const refreshed = await listPartnerSubmissions(user.id);
     setSubmissions(refreshed);
     setTitle('');

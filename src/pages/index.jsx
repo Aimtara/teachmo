@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
 import Dashboard from './Dashboard.jsx';
 import AdminAnalytics from './AdminAnalytics.jsx';
@@ -21,6 +21,7 @@ import ParentOnboardingPage from './onboarding/parent';
 import TeacherOnboardingPage from './onboarding/teacher';
 import { getDefaultPathForRole, useUserRole } from '@/hooks/useUserRole';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
+import { TelemetryBootstrap } from '@/observability/TelemetryBootstrap';
 
 // Base44 UI parity track (incremental)
 import UnifiedDiscover from './UnifiedDiscover.jsx';
@@ -46,11 +47,13 @@ function RoleRedirect() {
 
 export default function Pages() {
   return (
-    <Suspense fallback={<div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>}>
-      <Routes>
-        <Route index element={<RoleRedirect />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
+    <BrowserRouter>
+      <TelemetryBootstrap />
+      <Suspense fallback={<div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>}>
+        <Routes>
+          <Route index element={<RoleRedirect />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Base44 parity routes */}
           <Route path="/discover" element={<UnifiedDiscover />} />
@@ -240,8 +243,9 @@ export default function Pages() {
           )}
         />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
   );
 }
