@@ -17,7 +17,9 @@ select_permissions:
         - finished_at
         - stats
         - errors
-      filter: {}
+      filter:
+        district_id:
+          _eq: "X-Hasura-District-Id"
       limit: 20
       allow_aggregations: false
   - role: district_admin
@@ -35,7 +37,9 @@ select_permissions:
         - finished_at
         - stats
         - errors
-      filter: {}
+      filter:
+        district_id:
+          _eq: "X-Hasura-District-Id"
       limit: 20
       allow_aggregations: false
   - role: school_admin
@@ -53,6 +57,8 @@ select_permissions:
         - finished_at
         - stats
         - errors
-      filter: {}
+      filter:
+        school_id:
+          _eq: "X-Hasura-School-Id"
       limit: 20
       allow_aggregations: false

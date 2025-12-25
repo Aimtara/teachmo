@@ -29,7 +29,35 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Middleware
-app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
+// CORS:
+// - In production, never allow wildcard origins.
+// - Prefer a comma-separated allowlist via ALLOWED_ORIGINS.
+// - Fallback to localhost origins in dev.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const devFallbackOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://localhost:3000'
+];
+
+const corsOptions = {
+  origin(origin, cb) {
+    // Allow same-origin / server-to-server (no origin header).
+    if (!origin) return cb(null, true);
+
+    const env = (process.env.NODE_ENV || 'development').toLowerCase();
+    const list = allowedOrigins.length ? allowedOrigins : (env === 'production' ? [] : devFallbackOrigins);
+
+    if (list.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS blocked for origin: ${origin}`));
+  }
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(attachAuthContext);
 
@@ -56,8 +84,15 @@ app.get('/api', (req, res) => {
   res.send({ message: 'Welcome to the Teachmo API' });
 });
 
-// Seed demo data so the dashboards have content
-seedDemoData();
+// Seed demo data ONLY when explicitly enabled.
+// Never seed in production.
+const shouldSeedDemo =
+  String(process.env.ENABLE_DEMO_SEED || '').toLowerCase() === 'true' &&
+  (process.env.NODE_ENV || 'development').toLowerCase() !== 'production';
+
+if (shouldSeedDemo) {
+  seedDemoData();
+}
 // Start the server
 app.listen(PORT, () => {
   console.log(`Teachmo backend server running on port ${PORT}`);
