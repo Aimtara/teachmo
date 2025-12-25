@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { WorkflowGraphEditor } from '@/components/admin/workflows/WorkflowGraphEditor';
 
 const DEFAULT_TRIGGER = { type: 'event', event_name: 'messaging.message_sent' };
 const DEFAULT_DEF = {
@@ -62,6 +65,7 @@ export default function AdminWorkflows() {
           name
           status
           version
+          pinned_version
           trigger
           definition
           created_by
@@ -108,6 +112,9 @@ export default function AdminWorkflows() {
   const [draftStatus, setDraftStatus] = useState('active');
   const [draftTrigger, setDraftTrigger] = useState(JSON.stringify(DEFAULT_TRIGGER, null, 2));
   const [draftDefinition, setDraftDefinition] = useState(JSON.stringify(DEFAULT_DEF, null, 2));
+  const [draftPinnedVersion, setDraftPinnedVersion] = useState('');
+  const [activeTab, setActiveTab] = useState('visual');
+  const [runDialog, setRunDialog] = useState({ open: false, run: null, steps: [] });
 
   // keep editor in sync when selection changes
   useMemo(() => {
@@ -116,12 +123,61 @@ export default function AdminWorkflows() {
     setDraftStatus(selected.status ?? 'active');
     setDraftTrigger(JSON.stringify(selected.trigger ?? DEFAULT_TRIGGER, null, 2));
     setDraftDefinition(JSON.stringify(selected.definition ?? DEFAULT_DEF, null, 2));
+    setDraftPinnedVersion(selected.pinned_version != null ? String(selected.pinned_version) : '');
   }, [selected?.id]);
+
+  const { data: runs, refetch: refetchRuns } = useQuery({
+    queryKey: ['workflow_runs', selected?.id],
+    enabled: Boolean(selected?.id),
+    queryFn: async () => {
+      const query = `query Runs($workflowId: uuid!) {
+        workflow_runs(where: { workflow_id: { _eq: $workflowId } }, order_by: { started_at: desc }, limit: 25) {
+          id
+          status
+          started_at
+          finished_at
+          input
+          output
+        }
+      }`;
+      const { data, error } = await graphql.request(query, { workflowId: selected.id });
+      if (error) throw error;
+      return data.workflow_runs;
+    },
+  });
+
+  const openRun = async (run) => {
+    const query = `query RunSteps($runId: uuid!) {
+      workflow_run_steps(where: { run_id: { _eq: $runId } }, order_by: { created_at: asc }) {
+        id
+        step_key
+        status
+        input
+        output
+        created_at
+      }
+    }`;
+    const { data, error } = await graphql.request(query, { runId: run.id });
+    if (error) throw error;
+    setRunDialog({ open: true, run, steps: data.workflow_run_steps || [] });
+  };
+
+  const replayRun = async (run) => {
+    const eventName = run?.input?.event_name;
+    const meta = run?.input?.event_metadata || {};
+    if (!eventName) return;
+    await trackEvent({
+      eventName,
+      metadata: { ...meta, replayed_from_run_id: run.id, replayed: true },
+    });
+    await refetchRuns();
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const trigger = safeJson(draftTrigger, DEFAULT_TRIGGER);
       const definition = safeJson(draftDefinition, DEFAULT_DEF);
+      const pinned_version = draftPinnedVersion ? Number(draftPinnedVersion) : null;
 
       if (selected?.id) {
         const mutation = `mutation UpdateWorkflow($id: uuid!, $patch: workflow_definitions_set_input!) {
@@ -129,7 +185,7 @@ export default function AdminWorkflows() {
         }`;
         const { error } = await graphql.request(mutation, {
           id: selected.id,
-          patch: { name: draftName, status: draftStatus, trigger, definition },
+          patch: { name: draftName, status: draftStatus, trigger, definition, pinned_version },
         });
         if (error) throw error;
         await trackEvent({ eventName: 'workflow.updated', metadata: { workflow_id: selected.id } });
@@ -148,6 +204,7 @@ export default function AdminWorkflows() {
           district_id: districtId,
           school_id: schoolId,
           version: 1,
+          pinned_version: pinned_version,
         },
       });
       if (error) throw error;
@@ -190,6 +247,8 @@ export default function AdminWorkflows() {
     setDraftStatus('active');
     setDraftTrigger(JSON.stringify(DEFAULT_TRIGGER, null, 2));
     setDraftDefinition(JSON.stringify(DEFAULT_DEF, null, 2));
+    setDraftPinnedVersion('');
+    setActiveTab('visual');
   };
 
   const addStep = (type) => {
@@ -218,7 +277,7 @@ export default function AdminWorkflows() {
         <div>
           <h1 className="text-2xl font-semibold">Workflows</h1>
           <p className="text-sm text-muted-foreground">
-            Event-triggered automation. Phase 6 adds real action execution, branching, and rollback/version controls.
+            Event-triggered automation. This build supports real entity ops, branching, version pinning, and replay.
           </p>
         </div>
         <div className="flex gap-2">
@@ -278,35 +337,69 @@ export default function AdminWorkflows() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Trigger (JSON)</label>
-                <Textarea value={draftTrigger} onChange={(e) => setDraftTrigger(e.target.value)} rows={10} />
-                <p className="text-xs text-muted-foreground">Use <code>{`{ "type": "event", "event_name": "messaging.message_sent" }`}</code>.</p>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Definition (JSON)</label>
-                  <div className="flex gap-2">
-                    <Select onValueChange={addStep}>
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Add step" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STEP_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Textarea value={draftDefinition} onChange={(e) => setDraftDefinition(e.target.value)} rows={10} />
+                <label className="text-sm font-medium">Pinned version</label>
+                <Select value={draftPinnedVersion} onValueChange={setDraftPinnedVersion}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Use latest" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Use latest</SelectItem>
+                    {(versions ?? []).map((v) => (
+                      <SelectItem key={v.id} value={String(v.version)}>
+                        Pin v{v.version}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">
-                  v2 supports condition steps with <code>on_true</code>/<code>on_false</code> edges. Templates like{' '}
-                  <code>{`{{event_metadata.thread_id}}`}</code> are resolved at runtime.
+                  Pinning runs the selected historical snapshot (useful for safe rollouts).
                 </p>
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Trigger (JSON)</label>
+                <Textarea value={draftTrigger} onChange={(e) => setDraftTrigger(e.target.value)} rows={6} />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                  <TabsTrigger value="visual">Visual</TabsTrigger>
+                  <TabsTrigger value="json">JSON</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="visual" className="mt-4">
+                  <WorkflowGraphEditor
+                    definitionJson={draftDefinition}
+                    onChangeDefinitionJson={setDraftDefinition}
+                  />
+                </TabsContent>
+
+                <TabsContent value="json" className="mt-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Definition (JSON)</label>
+                      <Select onValueChange={addStep}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Quick add" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STEP_TYPES.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Textarea value={draftDefinition} onChange={(e) => setDraftDefinition(e.target.value)} rows={14} />
+                    <p className="text-xs text-muted-foreground">
+                      v2 supports condition steps with <code>on_true</code>/<code>on_false</code> edges. Templates like{' '}
+                      <code>{`{{event_metadata.thread_id}}`}</code> are resolved at runtime.
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           </CardContent>
         </Card>
@@ -345,7 +438,88 @@ export default function AdminWorkflows() {
             </p>
           </CardContent>
         </Card>
+
+        <Card className="lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Recent runs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!selected?.id && <div className="text-sm text-muted-foreground">Select a workflow to see runs.</div>}
+            {selected?.id && !runs?.length && <div className="text-sm text-muted-foreground">No runs yet.</div>}
+
+            <div className="space-y-2">
+              {(runs ?? []).map((r) => (
+                <div key={r.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="font-medium">{r.status}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.started_at ? new Date(r.started_at).toLocaleString() : ''}
+                        {r.finished_at ? ` → ${new Date(r.finished_at).toLocaleString()}` : ''}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openRun(r)}>View</Button>
+                      <Button size="sm" variant="secondary" onClick={() => replayRun(r)}>Replay</Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      <Dialog open={runDialog.open} onOpenChange={(open) => setRunDialog((d) => ({ ...d, open }))}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Workflow run</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {runDialog.run && (
+              <div className="rounded-md border p-3 text-sm">
+                <div className="font-medium">{runDialog.run.id}</div>
+                <div className="text-xs text-muted-foreground">Status: {runDialog.run.status}</div>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <div className="text-xs font-medium mb-1">Input</div>
+                    <Textarea value={JSON.stringify(runDialog.run.input || {}, null, 2)} readOnly rows={10} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium mb-1">Output</div>
+                    <Textarea value={JSON.stringify(runDialog.run.output || {}, null, 2)} readOnly rows={10} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <div className="text-sm font-medium mb-2">Steps</div>
+              {!runDialog.steps?.length && <div className="text-sm text-muted-foreground">No step rows.</div>}
+              <div className="space-y-2">
+                {(runDialog.steps || []).map((s) => (
+                  <div key={s.id} className="rounded-md border p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium">{s.step_key}</div>
+                      <div className="text-xs text-muted-foreground">{s.status}</div>
+                    </div>
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <div className="text-xs font-medium mb-1">Input</div>
+                        <Textarea value={JSON.stringify(s.input || {}, null, 2)} readOnly rows={6} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium mb-1">Output</div>
+                        <Textarea value={JSON.stringify(s.output || {}, null, 2)} readOnly rows={6} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

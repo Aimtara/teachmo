@@ -180,6 +180,7 @@ async function dispatchAndExecuteWorkflows(args: {
         trigger
         definition
         version
+        pinned_version
         district_id
         school_id
       }
@@ -212,12 +213,28 @@ async function dispatchAndExecuteWorkflows(args: {
     const districtId = wf.district_id || scope.districtId || null;
     const schoolId = wf.school_id || scope.schoolId || null;
 
+    // If the workflow is pinned to a historical version, fetch that snapshot.
+    let effectiveDefinition = wf.definition;
+    let effectiveVersion = wf.version;
+    if (wf.pinned_version != null) {
+      const pinned = await getWorkflowSnapshot({
+        hasuraUrl,
+        adminSecret,
+        workflowId: wf.id,
+        version: wf.pinned_version,
+      });
+      if (pinned?.definition) {
+        effectiveDefinition = pinned.definition;
+        effectiveVersion = pinned.version ?? wf.pinned_version;
+      }
+    }
+
     await runWorkflow({
       hasuraUrl,
       adminSecret,
       workflowId: wf.id,
       workflowName: wf.name,
-      workflowVersion: wf.version,
+      workflowVersion: effectiveVersion,
       districtId,
       schoolId,
       actorUserId,
@@ -230,9 +247,37 @@ async function dispatchAndExecuteWorkflows(args: {
         actor_district_id: districtId,
         actor_school_id: schoolId,
       },
-      definition: wf.definition,
+      definition: effectiveDefinition,
     });
   }
+}
+
+async function getWorkflowSnapshot(args: {
+  hasuraUrl: string;
+  adminSecret: string;
+  workflowId: string;
+  version: number;
+}): Promise<{ version: number; definition: any } | null> {
+  const q = `query Snapshot($workflowId: uuid!, $version: Int!) {
+    workflow_definition_versions(
+      where: { workflow_id: { _eq: $workflowId }, version: { _eq: $version } }
+      limit: 1
+    ) {
+      version
+      definition
+    }
+  }`;
+
+  const data = await hasuraRequest({
+    hasuraUrl: args.hasuraUrl,
+    adminSecret: args.adminSecret,
+    query: q,
+    variables: { workflowId: args.workflowId, version: args.version },
+  });
+
+  const row = (data?.workflow_definition_versions || [])[0];
+  if (!row) return null;
+  return { version: row.version, definition: row.definition };
 }
 
 type WorkflowStep = {
