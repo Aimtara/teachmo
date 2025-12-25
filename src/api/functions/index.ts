@@ -1,6 +1,8 @@
 // Client-side helpers for calling backend functions.
-// These wrappers either proxy to the Base44 function module
-// or provide lightweight fallbacks used throughout the UI.
+//
+// These wrappers proxy to the Nhost/Base44 function invokers.
+// IMPORTANT: Do not add placeholder stubs here—stubs make the UI look "working"
+// while silently dropping real behaviour.
 import * as base44Functions from '../base44/functions';
 
 // Re-export existing functions from the Base44 module to preserve behaviour.
@@ -18,57 +20,25 @@ export const {
   priorityNotifications,
   eventSubscriptions,
   realEventSearch,
+  // Additional function invokers
+  submitSchoolParticipationRequest,
+  searchSchools,
+  moderateContent,
+  submitReport,
+  shortsRecommendations,
+  shortsTelemetry,
+  logAuditEvent,
+  invokeAdvancedAI,
+  applyReferralCode,
+  manageSponsorships,
+  getUXAnalytics,
 } = base44Functions;
 
 // --- Additional helpers used across the app ---
 
 export type GenericPayload = Record<string, unknown>;
 
-export async function invokeAdvancedAI(payload: GenericPayload = {}): Promise<unknown> {
-  // Reuse the existing AI suggestion pipeline when available.
-  return base44Functions.aiActivitySuggestions(payload);
-}
-
-export async function applyReferralCode(code: string): Promise<{ success: boolean; code: string }> {
-  // Simulate a successful referral application.
-  return { success: true, code };
-}
-
-export async function manageSponsorships<T = GenericPayload>(data: T): Promise<{ status: string; data: T }> {
-  // Placeholder sponsorship handler.
-  return { status: 'queued', data };
-}
-
-export async function submitSchoolParticipationRequest<T = GenericPayload>(request: T): Promise<{ status: string; request: T }> {
-  return { status: 'received', request };
-}
-
-export async function searchSchools(query: string): Promise<{ results: unknown[]; query: string }> {
-  return { results: [], query };
-}
-
-export async function submitReport<T = GenericPayload>(report: T): Promise<{ status: string; report: T }> {
-  return { status: 'submitted', report };
-}
-
-export async function moderateContent<T = GenericPayload>(payload: T): Promise<{ data: { action: string; reason: string }; payload: T }> {
-  // Basic moderation stub that allows all content by default.
-  return { data: { action: 'allow', reason: 'stub' }, payload };
-}
-
-export async function shortsRecommendations<T = GenericPayload>(context: T): Promise<{ items: unknown[]; context: T }> {
-  return { items: [], context };
-}
-
-export async function shortsTelemetry<T = GenericPayload>(event: T): Promise<{ accepted: boolean; event: T }> {
-  return { accepted: true, event };
-}
-
-export async function logAuditEvent<T = GenericPayload>(event: T): Promise<{ recorded: boolean }> {
-  console.info('audit event', event);
-  return { recorded: true };
-}
-
-export async function getAdvancedAnalytics<TParams = GenericPayload>(params: TParams): Promise<{ metrics: unknown[]; params: TParams }> {
-  return { metrics: [], params };
+// Backwards compatible alias used in some screens.
+export async function getAdvancedAnalytics<TParams = GenericPayload>(params: TParams): Promise<unknown> {
+  return getUXAnalytics(params as GenericPayload);
 }

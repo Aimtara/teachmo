@@ -65,15 +65,24 @@ select_permissions:
   - role: school_admin
     permission:
       columns: "*"
-      filter: {}
+      filter:
+        thread:
+          school_id:
+            _eq: "X-Hasura-School-Id"
   - role: district_admin
     permission:
       columns: "*"
-      filter: {}
+      filter:
+        thread:
+          district_id:
+            _eq: "X-Hasura-District-Id"
   - role: admin
     permission:
       columns: "*"
-      filter: {}
+      filter:
+        thread:
+          district_id:
+            _eq: "X-Hasura-District-Id"
 insert_permissions:
   - role: parent
     permission:
@@ -136,7 +145,10 @@ update_permissions:
         - body
         - flagged
         - flag_reason
-      filter: {}
+      filter:
+        thread:
+          school_id:
+            _eq: "X-Hasura-School-Id"
       check: {}
       set:
         hidden_by: "X-Hasura-User-Id"
@@ -160,7 +172,10 @@ update_permissions:
         - body
         - flagged
         - flag_reason
-      filter: {}
+      filter:
+        thread:
+          district_id:
+            _eq: "X-Hasura-District-Id"
       check: {}
       set:
         hidden_by: "X-Hasura-User-Id"
@@ -184,7 +199,10 @@ update_permissions:
         - body
         - flagged
         - flag_reason
-      filter: {}
+      filter:
+        thread:
+          district_id:
+            _eq: "X-Hasura-District-Id"
       check: {}
       set:
         hidden_by: "X-Hasura-User-Id"
