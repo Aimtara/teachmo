@@ -10,36 +10,66 @@ array_relationships:
           name: directory_source_runs
           schema: public
 select_permissions:
+  - role: system_admin
+    permission:
+      columns: "*"
+      filter: {}
   - role: admin
     permission:
       columns: "*"
-      filter: {}
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
   - role: district_admin
     permission:
       columns: "*"
-      filter: {}
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
   - role: school_admin
     permission:
       columns: "*"
-      filter: {}
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
 insert_permissions:
-  - role: admin
+  - role: system_admin
     permission:
       check: {}
+      columns: "*"
+  - role: admin
+    permission:
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
       columns: "*"
   - role: district_admin
     permission:
-      check: {}
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
       columns: "*"
   - role: school_admin
     permission:
-      check: {}
+      check:
+        school_id:
+          _eq: X-Hasura-School-Id
       columns: "*"
 update_permissions:
-  - role: admin
+  - role: system_admin
     permission:
       columns: "*"
       filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: "*"
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
   - role: district_admin
     permission:
       columns:
@@ -55,7 +85,12 @@ update_permissions:
         - school_id
         - source_type
         - updated_at
-      filter: {}
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
   - role: school_admin
     permission:
       columns:
@@ -71,4 +106,9 @@ update_permissions:
         - school_id
         - source_type
         - updated_at
-      filter: {}
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+      check:
+        school_id:
+          _eq: X-Hasura-School-Id

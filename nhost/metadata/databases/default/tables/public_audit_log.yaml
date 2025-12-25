@@ -2,6 +2,10 @@ table:
   name: audit_log
   schema: public
 select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
   - role: admin
     permission:
       columns:
@@ -12,7 +16,11 @@ select_permissions:
         - entity_type
         - entity_id
         - metadata
-      filter: {}
+        - district_id
+        - school_id
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
   - role: district_admin
     permission:
       columns:
@@ -23,7 +31,11 @@ select_permissions:
         - entity_type
         - entity_id
         - metadata
-      filter: {}
+        - district_id
+        - school_id
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
   - role: school_admin
     permission:
       columns:
@@ -34,35 +46,51 @@ select_permissions:
         - entity_type
         - entity_id
         - metadata
-      filter: {}
+        - district_id
+        - school_id
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
 insert_permissions:
   - role: admin
     permission:
-      check: {}
-      set:
-        actor_id: "X-Hasura-User-Id"
       columns:
         - action
         - entity_type
         - entity_id
         - metadata
+      set:
+        actor_id: X-Hasura-User-Id
+        district_id: X-Hasura-District-Id
+        school_id: X-Hasura-School-Id
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
   - role: district_admin
     permission:
-      check: {}
-      set:
-        actor_id: "X-Hasura-User-Id"
       columns:
         - action
         - entity_type
         - entity_id
         - metadata
+      set:
+        actor_id: X-Hasura-User-Id
+        district_id: X-Hasura-District-Id
+        school_id: X-Hasura-School-Id
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
   - role: school_admin
     permission:
-      check: {}
-      set:
-        actor_id: "X-Hasura-User-Id"
       columns:
         - action
         - entity_type
         - entity_id
         - metadata
+      set:
+        actor_id: X-Hasura-User-Id
+        district_id: X-Hasura-District-Id
+        school_id: X-Hasura-School-Id
+      check:
+        school_id:
+          _eq: X-Hasura-School-Id
