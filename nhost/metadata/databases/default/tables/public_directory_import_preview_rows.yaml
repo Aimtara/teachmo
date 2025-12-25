@@ -6,7 +6,28 @@ object_relationships:
     using:
       foreign_key_constraint_on: preview_id
 select_permissions:
-  - role: admin
+  - role: system_admin
     permission:
       columns: "*"
       filter: {}
+  - role: admin
+    permission:
+      columns: "*"
+      filter:
+        preview:
+          district_id:
+            _eq: X-Hasura-District-Id
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter:
+        preview:
+          district_id:
+            _eq: X-Hasura-District-Id
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter:
+        preview:
+          school_id:
+            _eq: X-Hasura-School-Id
