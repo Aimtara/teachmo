@@ -17,6 +17,10 @@ export type Action =
   | 'directory:manage'
   | 'automation:manage'
   | 'automation:run'
+  | 'automation:request_review'
+  | 'automation:approve'
+  | 'automation:publish'
+  | 'automation:replay'
   | 'tenant:manage'
   | 'users:manage'
   | 'analytics:view'
@@ -41,6 +45,8 @@ const ROLE_PERMS: Record<Role, Set<Action>> = {
     'directory:manage',
     'automation:manage',
     'automation:run',
+    'automation:replay',
+    'automation:request_review',
     'tenant:manage',
     'users:manage',
     'analytics:view',
@@ -56,6 +62,10 @@ const ROLE_PERMS: Record<Role, Set<Action>> = {
     'directory:manage',
     'automation:manage',
     'automation:run',
+    'automation:replay',
+    'automation:request_review',
+    'automation:approve',
+    'automation:publish',
     'tenant:manage',
     'users:manage',
     'analytics:view',
@@ -73,6 +83,10 @@ const ROLE_PERMS: Record<Role, Set<Action>> = {
     'directory:manage',
     'automation:manage',
     'automation:run',
+    'automation:replay',
+    'automation:request_review',
+    'automation:approve',
+    'automation:publish',
     'tenant:manage',
     'users:manage',
     'analytics:view',
@@ -88,6 +102,10 @@ const ROLE_PERMS: Record<Role, Set<Action>> = {
     'directory:manage',
     'automation:manage',
     'automation:run',
+    'automation:replay',
+    'automation:request_review',
+    'automation:approve',
+    'automation:publish',
     'tenant:manage',
     'users:manage',
     'analytics:view',

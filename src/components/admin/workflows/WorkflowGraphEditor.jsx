@@ -38,6 +38,22 @@ const OPS = [
   { value: 'exists', label: 'Exists' },
 ];
 
+// Optional per-step permission gating. If set, the backend runner will deny the step
+// when the triggering actor lacks the specified action.
+const REQUIRED_ACTIONS = [
+  { value: '', label: '(none)' },
+  { value: 'automation:manage', label: 'automation:manage' },
+  { value: 'automation:run', label: 'automation:run' },
+  { value: 'automation:replay', label: 'automation:replay' },
+  { value: 'automation:request_review', label: 'automation:request_review' },
+  { value: 'automation:approve', label: 'automation:approve' },
+  { value: 'automation:publish', label: 'automation:publish' },
+  { value: 'tenant:manage', label: 'tenant:manage' },
+  { value: 'users:manage', label: 'users:manage' },
+  { value: 'analytics:view', label: 'analytics:view' },
+  { value: 'analytics:export', label: 'analytics:export' },
+];
+
 function normalize(definition) {
   const d = definition && typeof definition === 'object' ? definition : {};
   const steps = Array.isArray(d.steps) ? d.steps : [];
@@ -286,6 +302,30 @@ export function WorkflowGraphEditor({ definitionJson, onChangeDefinitionJson }) 
                         </Select>
                       </div>
                     )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Required action (optional)</label>
+                    <Select
+                      value={String(s.config?.required_action || '')}
+                      onValueChange={(v) =>
+                        updateStep(s.id, { config: { ...s.config, required_action: v || null } })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="(none)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REQUIRED_ACTIONS.map((a) => (
+                          <SelectItem key={a.value} value={a.value}>
+                            {a.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      If set, the runner denies this step unless the triggering actor has the given permission.
+                    </p>
                   </div>
 
                   {s.type === 'condition' && (

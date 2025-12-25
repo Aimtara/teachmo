@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import { graphql } from '@/lib/graphql';
+import { nhost } from '@/lib/nhostClient';
 import { trackEvent } from '@/observability/telemetry';
+import { can } from '@/security/permissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,6 +48,7 @@ export default function AdminWorkflows() {
   const { data: scope } = useTenantScope();
   const districtId = scope?.districtId ?? null;
   const schoolId = scope?.schoolId ?? null;
+  const role = scope?.role ?? null;
 
   const { data: workflows, refetch } = useQuery({
     queryKey: ['workflow_definitions', districtId, schoolId],
@@ -66,6 +69,10 @@ export default function AdminWorkflows() {
           status
           version
           pinned_version
+          published_version
+          review_requested_at
+          approved_at
+          published_at
           trigger
           definition
           created_by
@@ -108,8 +115,93 @@ export default function AdminWorkflows() {
     },
   });
 
+  const { data: tenantSettings } = useQuery({
+    queryKey: ['tenant_settings_min_approvals', districtId, schoolId],
+    enabled: Boolean(scope),
+    queryFn: async () => {
+      const query = `query TenantSettings($districtId: uuid, $schoolId: uuid) {
+        tenant_settings(
+          where: {
+            _or: [
+              { school_id: { _eq: $schoolId } }
+              { _and: [ { district_id: { _eq: $districtId } }, { school_id: { _is_null: true } } ] }
+            ]
+          }
+          limit: 5
+        ) {
+          district_id
+          school_id
+          settings
+        }
+      }`;
+      const { data, error } = await graphql.request(query, { districtId, schoolId });
+      if (error) throw error;
+      return data.tenant_settings;
+    },
+  });
+
+  const minApprovals = useMemo(() => {
+    const rows = tenantSettings ?? [];
+    const best = rows.find((r) => schoolId && r.school_id === schoolId) || rows.find((r) => districtId && r.district_id === districtId) || null;
+    const settings = best?.settings || {};
+    const v1 = Number(settings?.workflow_min_approvals);
+    if (Number.isFinite(v1) && v1 >= 1) return Math.min(5, Math.floor(v1));
+    const v2 = Number(settings?.workflow?.min_approvals);
+    if (Number.isFinite(v2) && v2 >= 1) return Math.min(5, Math.floor(v2));
+    return 1;
+  }, [tenantSettings, districtId, schoolId]);
+
+  const { data: approvals, refetch: refetchApprovals } = useQuery({
+    queryKey: ['workflow_approvals', selected?.id, selected?.version],
+    enabled: Boolean(selected?.id),
+    queryFn: async () => {
+      const query = `query Approvals($workflowId: uuid!, $version: Int!) {
+        workflow_approvals(
+          where: { workflow_id: { _eq: $workflowId }, version: { _eq: $version } }
+          order_by: { created_at: desc }
+        ) {
+          id
+          approver_user_id
+          reason
+          created_at
+        }
+      }`;
+      const { data, error } = await graphql.request(query, { workflowId: selected.id, version: selected.version });
+      if (error) throw error;
+      return data.workflow_approvals;
+    },
+  });
+
+  const approvalsCount = approvals?.length ?? 0;
+
+  const { data: deadLetters, refetch: refetchDeadLetters } = useQuery({
+    queryKey: ['workflow_dead_letters', selected?.id],
+    enabled: Boolean(selected?.id),
+    queryFn: async () => {
+      const query = `query DeadLetters($workflowId: uuid!) {
+        workflow_dead_letters(
+          where: { workflow_id: { _eq: $workflowId } }
+          order_by: { created_at: desc }
+          limit: 25
+        ) {
+          id
+          run_id
+          step_key
+          error
+          created_at
+          metadata
+        }
+      }`;
+      const { data, error } = await graphql.request(query, { workflowId: selected.id });
+      if (error) throw error;
+      return data.workflow_dead_letters;
+    },
+  });
+
+  const hasApprovalThreshold = approvalsCount >= minApprovals;
+  const bypassApproval = ['admin', 'system_admin'].includes(String(role));
+
   const [draftName, setDraftName] = useState('');
-  const [draftStatus, setDraftStatus] = useState('active');
   const [draftTrigger, setDraftTrigger] = useState(JSON.stringify(DEFAULT_TRIGGER, null, 2));
   const [draftDefinition, setDraftDefinition] = useState(JSON.stringify(DEFAULT_DEF, null, 2));
   const [draftPinnedVersion, setDraftPinnedVersion] = useState('');
@@ -120,11 +212,36 @@ export default function AdminWorkflows() {
   useMemo(() => {
     if (!selected) return;
     setDraftName(selected.name ?? '');
-    setDraftStatus(selected.status ?? 'active');
     setDraftTrigger(JSON.stringify(selected.trigger ?? DEFAULT_TRIGGER, null, 2));
     setDraftDefinition(JSON.stringify(selected.definition ?? DEFAULT_DEF, null, 2));
     setDraftPinnedVersion(selected.pinned_version != null ? String(selected.pinned_version) : '');
   }, [selected?.id]);
+
+  const { data: audits, refetch: refetchAudits } = useQuery({
+    queryKey: ['workflow_publication_audits', selected?.id],
+    enabled: Boolean(selected?.id),
+    queryFn: async () => {
+      const query = `query Audits($workflowId: uuid!) {
+        workflow_publication_audits(
+          where: { workflow_id: { _eq: $workflowId } }
+          order_by: { created_at: desc }
+          limit: 20
+        ) {
+          id
+          action
+          from_version
+          to_version
+          actor_user_id
+          signature
+          created_at
+          metadata
+        }
+      }`;
+      const { data, error } = await graphql.request(query, { workflowId: selected.id });
+      if (error) throw error;
+      return data.workflow_publication_audits;
+    },
+  });
 
   const { data: runs, refetch: refetchRuns } = useQuery({
     queryKey: ['workflow_runs', selected?.id],
@@ -163,6 +280,7 @@ export default function AdminWorkflows() {
   };
 
   const replayRun = async (run) => {
+    if (!can(role, 'automation:replay')) return;
     const eventName = run?.input?.event_name;
     const meta = run?.input?.event_metadata || {};
     if (!eventName) return;
@@ -171,6 +289,34 @@ export default function AdminWorkflows() {
       metadata: { ...meta, replayed_from_run_id: run.id, replayed: true },
     });
     await refetchRuns();
+  };
+
+  const requestReview = async () => {
+    if (!selected?.id) return;
+    const { error } = await nhost.functions.call('workflow-request-review', { workflowId: selected.id });
+    if (error) throw error;
+    await trackEvent({ eventName: 'workflow.request_review', metadata: { workflow_id: selected.id } });
+    await refetch();
+    await refetchAudits();
+  };
+
+  const approveWorkflow = async () => {
+    if (!selected?.id) return;
+    const { error } = await nhost.functions.call('workflow-approve', { workflowId: selected.id });
+    if (error) throw error;
+    await trackEvent({ eventName: 'workflow.approved', metadata: { workflow_id: selected.id } });
+    await refetch();
+    await refetchAudits();
+    await refetchApprovals();
+  };
+
+  const publishWorkflow = async () => {
+    if (!selected?.id) return;
+    const { error } = await nhost.functions.call('workflow-publish', { workflowId: selected.id });
+    if (error) throw error;
+    await trackEvent({ eventName: 'workflow.published', metadata: { workflow_id: selected.id } });
+    await refetch();
+    await refetchAudits();
   };
 
   const saveMutation = useMutation({
@@ -183,9 +329,29 @@ export default function AdminWorkflows() {
         const mutation = `mutation UpdateWorkflow($id: uuid!, $patch: workflow_definitions_set_input!) {
           update_workflow_definitions_by_pk(pk_columns: { id: $id }, _set: $patch) { id }
         }`;
+        // Governance: editing a published/in-review workflow moves it back to draft.
+        const forceDraft = ['published', 'approved', 'in_review'].includes(String(selected?.status ?? ''));
+        const patch = {
+          name: draftName,
+          trigger,
+          definition,
+          pinned_version,
+          status: forceDraft ? 'draft' : selected.status,
+          ...(forceDraft
+            ? {
+                review_requested_at: null,
+                review_requested_by: null,
+                approved_at: null,
+                approved_by: null,
+                published_at: null,
+                published_by: null,
+                published_version: null,
+              }
+            : {}),
+        };
         const { error } = await graphql.request(mutation, {
           id: selected.id,
-          patch: { name: draftName, status: draftStatus, trigger, definition, pinned_version },
+          patch,
         });
         if (error) throw error;
         await trackEvent({ eventName: 'workflow.updated', metadata: { workflow_id: selected.id } });
@@ -198,7 +364,7 @@ export default function AdminWorkflows() {
       const { data, error } = await graphql.request(insert, {
         object: {
           name: draftName || 'Untitled workflow',
-          status: draftStatus,
+          status: 'draft',
           trigger,
           definition,
           district_id: districtId,
@@ -244,7 +410,6 @@ export default function AdminWorkflows() {
   const createNew = () => {
     setSelectedId(null);
     setDraftName('');
-    setDraftStatus('active');
     setDraftTrigger(JSON.stringify(DEFAULT_TRIGGER, null, 2));
     setDraftDefinition(JSON.stringify(DEFAULT_DEF, null, 2));
     setDraftPinnedVersion('');
@@ -282,8 +447,8 @@ export default function AdminWorkflows() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={createNew}>New</Button>
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>Save</Button>
-          <Button variant="secondary" onClick={simulateTrigger}>Simulate trigger</Button>
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !can(role, 'automation:manage')}>Save</Button>
+          <Button variant="secondary" onClick={simulateTrigger} disabled={!can(role, 'automation:manage')}>Simulate trigger</Button>
         </div>
       </div>
 
@@ -323,17 +488,43 @@ export default function AdminWorkflows() {
                 <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="e.g., Auto-create follow-up task" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select value={draftStatus} onValueChange={setDraftStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="paused">Paused</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">Lifecycle</label>
+                <div className="rounded-md border px-3 py-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-medium capitalize">{String(selected?.status ?? 'draft')}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {selected?.published_version ? `published v${selected.published_version}` : `current v${selected?.version ?? 1}`}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={requestReview}
+                      disabled={!selected?.id || !can(role, 'automation:request_review') || String(selected?.status) !== 'draft'}
+                    >
+                      Request review
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={approveWorkflow}
+                      disabled={!selected?.id || !can(role, 'automation:approve') || !['in_review', 'approved'].includes(String(selected?.status))}
+                    >
+                      Approve ({approvalsCount}/{minApprovals})
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={publishWorkflow}
+                      disabled={!selected?.id || !can(role, 'automation:publish') || (!bypassApproval && (String(selected?.status) !== 'approved' || !hasApprovalThreshold))}
+                    >
+                      Publish
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Only <span className="font-medium">published</span> workflows execute. Editing a published/in-review workflow moves it back to <span className="font-medium">draft</span> on save.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -439,6 +630,65 @@ export default function AdminWorkflows() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Publication audit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!selected?.id && <div className="text-sm text-muted-foreground">Select a workflow.</div>}
+            {selected?.id && !audits?.length && <div className="text-sm text-muted-foreground">No audit events yet.</div>}
+
+            <div className="space-y-2">
+              {(audits ?? []).map((a) => (
+                <div key={a.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium capitalize">{String(a.action).replaceAll('_', ' ')}</div>
+                    <div className="text-xs text-muted-foreground">{a.created_at ? new Date(a.created_at).toLocaleString() : ''}</div>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    v{a.from_version ?? '?'} → v{a.to_version ?? '?'}
+                  </div>
+                  {a.signature && (
+                    <div className="mt-2 break-all text-xs text-muted-foreground">
+                      sig: {String(a.signature).slice(0, 24)}…
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Dead letters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!selected?.id && <div className="text-sm text-muted-foreground">Select a workflow to see dead letters.</div>}
+            {selected?.id && !deadLetters?.length && <div className="text-sm text-muted-foreground">No dead letters.</div>}
+
+            <div className="space-y-2">
+              {(deadLetters ?? []).map((d) => (
+                <div key={d.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="font-medium">{d.step_key}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {d.created_at ? new Date(d.created_at).toLocaleString() : ''}
+                        {d.run_id ? ` • run ${d.run_id}` : ''}
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {(d.metadata && d.metadata.attempts) ? `attempts: ${d.metadata.attempts}` : ''}
+                    </div>
+                  </div>
+                  {d.error && <div className="mt-2 text-xs">{d.error}</div>}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Recent runs</CardTitle>
@@ -460,7 +710,14 @@ export default function AdminWorkflows() {
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => openRun(r)}>View</Button>
-                      <Button size="sm" variant="secondary" onClick={() => replayRun(r)}>Replay</Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => replayRun(r)}
+                        disabled={!can(role, 'automation:replay')}
+                      >
+                        Replay
+                      </Button>
                     </div>
                   </div>
                 </div>
