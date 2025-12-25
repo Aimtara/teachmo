@@ -1,4 +1,5 @@
 import { getActorScope } from '../_shared/tenantScope';
+import { hasActionName } from '../_shared/rbac';
 
 /**
  * Future-grade workflow runner:
@@ -66,6 +67,18 @@ export default async function handler(req: Request) {
     actor_school_id: scope.schoolId || null,
     source: 'client',
   };
+
+  // Guard “power” meta flags so they aren't quietly abused by any authenticated user.
+  if (metadata?.replayed === true || metadata?.replayed_from_run_id) {
+    if (!hasActionName(scope.role, 'automation:replay')) {
+      return json(403, { ok: false, error: 'forbidden_replay' });
+    }
+  }
+  if (metadata?.simulated === true || metadata?.workflow_editor === true) {
+    if (!hasActionName(scope.role, 'automation:manage')) {
+      return json(403, { ok: false, error: 'forbidden_simulation' });
+    }
+  }
 
   // 1) Insert analytics event
   const insertedEventId = await insertAnalyticsEvent({
@@ -166,7 +179,7 @@ async function dispatchAndExecuteWorkflows(args: {
     query GetWorkflows($trigger: jsonb!, $districtId: uuid, $schoolId: uuid) {
       workflow_definitions(
         where: {
-          status: { _eq: "active" },
+          status: { _eq: "published" },
           trigger: { _contains: $trigger },
           _and: [
             { _or: [{ district_id: { _is_null: true } }, { district_id: { _eq: $districtId } }] },
@@ -181,6 +194,7 @@ async function dispatchAndExecuteWorkflows(args: {
         definition
         version
         pinned_version
+        published_version
         district_id
         school_id
       }
@@ -213,21 +227,24 @@ async function dispatchAndExecuteWorkflows(args: {
     const districtId = wf.district_id || scope.districtId || null;
     const schoolId = wf.school_id || scope.schoolId || null;
 
-    // If the workflow is pinned to a historical version, fetch that snapshot.
+    // If the workflow is pinned (or otherwise directed) to a historical version, fetch that snapshot.
     let effectiveDefinition = wf.definition;
     let effectiveVersion = wf.version;
-    if (wf.pinned_version != null) {
-      const pinned = await getWorkflowSnapshot({
+    const desiredVersion = wf.pinned_version ?? wf.published_version ?? wf.version;
+    if (desiredVersion != null && desiredVersion !== wf.version) {
+      const snap = await getWorkflowSnapshot({
         hasuraUrl,
         adminSecret,
         workflowId: wf.id,
-        version: wf.pinned_version,
+        version: desiredVersion,
       });
-      if (pinned?.definition) {
-        effectiveDefinition = pinned.definition;
-        effectiveVersion = pinned.version ?? wf.pinned_version;
+      if (snap?.definition) {
+        effectiveDefinition = snap.definition;
+        effectiveVersion = snap.version ?? desiredVersion;
       }
     }
+
+    const idempotencyKey = eventId ? `evt:${eventId}:wf:${wf.id}:v:${effectiveVersion}` : null;
 
     await runWorkflow({
       hasuraUrl,
@@ -238,6 +255,8 @@ async function dispatchAndExecuteWorkflows(args: {
       districtId,
       schoolId,
       actorUserId,
+      eventId: eventId || null,
+      idempotencyKey,
       input: {
         event_id: eventId || null,
         event_name: eventName,
@@ -349,11 +368,47 @@ async function runWorkflow(args: {
   districtId: string | null;
   schoolId: string | null;
   actorUserId: string;
+  eventId?: string | null;
+  idempotencyKey?: string | null;
   input: Record<string, unknown>;
   definition: any;
 }) {
-  const { hasuraUrl, adminSecret, workflowId, workflowName, workflowVersion, districtId, schoolId, actorUserId, input, definition } = args;
+  const {
+    hasuraUrl,
+    adminSecret,
+    workflowId,
+    workflowName,
+    workflowVersion,
+    districtId,
+    schoolId,
+    actorUserId,
+    eventId,
+    idempotencyKey,
+    input,
+    definition,
+  } = args;
   const startedAt = new Date().toISOString();
+
+  // Idempotency: if this event/workflow pair already produced a run, do not re-run.
+  if (idempotencyKey) {
+    const existing = await findExistingRunByIdempotency({ hasuraUrl, adminSecret, workflowId, idempotencyKey });
+    if (existing?.id) {
+      await insertAnalyticsEvent({
+        hasuraUrl,
+        adminSecret,
+        object: {
+          event_name: 'workflow.run_deduped',
+          actor_user_id: actorUserId,
+          district_id: districtId,
+          school_id: schoolId,
+          entity_type: 'workflow_run',
+          entity_id: existing.id,
+          metadata: { workflow_id: workflowId, idempotency_key: idempotencyKey, status: existing.status },
+        },
+      });
+      return;
+    }
+  }
 
   const runInsert = `mutation CreateRun($run: workflow_runs_insert_input!) {
     insert_workflow_runs_one(object: $run) { id }
@@ -369,6 +424,8 @@ async function runWorkflow(args: {
         district_id: districtId,
         school_id: schoolId,
         actor_user_id: actorUserId,
+        event_id: eventId || null,
+        idempotency_key: idempotencyKey || null,
         status: 'running',
         started_at: startedAt,
         input,
@@ -523,7 +580,7 @@ async function executeWorkflowDefinition(args: {
       };
     }
 
-    const { ok, out, next } = await executeStep({
+    const { ok, out, next } = await executeStepWithRetry({
       hasuraUrl,
       adminSecret,
       runId,
@@ -581,6 +638,124 @@ async function insertRunStep(args: {
   });
 }
 
+async function findExistingRunByIdempotency(args: {
+  hasuraUrl: string;
+  adminSecret: string;
+  workflowId: string;
+  idempotencyKey: string;
+}): Promise<{ id: string; status: string } | null> {
+  const q = `query ExistingRun($workflowId: uuid!, $key: String!) {
+    workflow_runs(where: { workflow_id: { _eq: $workflowId }, idempotency_key: { _eq: $key } }, order_by: { started_at: desc }, limit: 1) {
+      id
+      status
+    }
+  }`;
+
+  const data = await hasuraRequest({
+    hasuraUrl: args.hasuraUrl,
+    adminSecret: args.adminSecret,
+    query: q,
+    variables: { workflowId: args.workflowId, key: args.idempotencyKey },
+  });
+
+  const row = (data?.workflow_runs || [])[0];
+  if (!row) return null;
+  return { id: row.id, status: row.status };
+}
+
+async function insertDeadLetter(args: {
+  hasuraUrl: string;
+  adminSecret: string;
+  workflowId: string;
+  runId: string;
+  stepKey: string;
+  actorUserId: string;
+  districtId: string | null;
+  schoolId: string | null;
+  input: any;
+  error: string | null;
+  metadata?: any;
+}) {
+  const q = `mutation DeadLetter($obj: workflow_dead_letters_insert_input!) {
+    insert_workflow_dead_letters_one(object: $obj) { id }
+  }`;
+
+  await hasuraRequest({
+    hasuraUrl: args.hasuraUrl,
+    adminSecret: args.adminSecret,
+    query: q,
+    variables: {
+      obj: {
+        workflow_id: args.workflowId,
+        run_id: args.runId,
+        step_key: args.stepKey,
+        actor_user_id: args.actorUserId,
+        district_id: args.districtId,
+        school_id: args.schoolId,
+        input: args.input,
+        error: args.error,
+        metadata: args.metadata || {},
+      },
+    },
+  });
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function executeStepWithRetry(args: {
+  hasuraUrl: string;
+  adminSecret: string;
+  runId: string;
+  workflowId: string;
+  districtId: string | null;
+  schoolId: string | null;
+  actorUserId: string;
+  step: WorkflowStep;
+  ctx: any;
+  stepsList: WorkflowStep[];
+}) {
+  const cfg = (args.step.config || {}) as any;
+  const retry = cfg?.retry || {};
+  const maxAttempts = Math.max(1, Math.min(5, Number(retry.max_attempts ?? retry.maxAttempts ?? 1)));
+  const backoffMs = Math.max(0, Math.min(3000, Number(retry.backoff_ms ?? retry.backoffMs ?? 0)));
+  const allowRetry = Boolean(maxAttempts > 1);
+
+  let last: any = null;
+  for (let attempt = 1; attempt <= (allowRetry ? maxAttempts : 1); attempt++) {
+    const res = await executeStep({ ...args, attemptInfo: { attempt, maxAttempts } });
+    last = { ...res, attemptInfo: { attempt, maxAttempts } };
+    if (last.ok) return last;
+    const err = String(last?.out?.error || '');
+    // Don't retry permission failures / unsupported types.
+    if (err === 'insufficient_permissions' || err.startsWith('Unsupported step type')) break;
+    if (attempt < maxAttempts) {
+      await sleep(backoffMs * attempt);
+    }
+  }
+
+  // Final failure: capture dead letter (unless explicitly disabled)
+  const deadLetterEnabled = cfg?.dead_letter !== false;
+  if (deadLetterEnabled) {
+    await insertDeadLetter({
+      hasuraUrl: args.hasuraUrl,
+      adminSecret: args.adminSecret,
+      workflowId: args.workflowId,
+      runId: args.runId,
+      stepKey: String(args.step.id || args.step.key || ''),
+      actorUserId: args.actorUserId,
+      districtId: args.districtId,
+      schoolId: args.schoolId,
+      input: { step: args.step, attempt: last?.attemptInfo?.attempt ?? null, max_attempts: last?.attemptInfo?.maxAttempts ?? null },
+      error: String(last?.out?.error || 'step_failed'),
+      metadata: { attempts: maxAttempts, backoff_ms: backoffMs, last_output: last?.out || null },
+    });
+  }
+
+  return last;
+}
+
 async function executeStep(args: {
   hasuraUrl: string;
   adminSecret: string;
@@ -592,11 +767,13 @@ async function executeStep(args: {
   step: WorkflowStep;
   ctx: any;
   stepsList: WorkflowStep[];
+  attemptInfo?: { attempt: number; maxAttempts: number };
 }): Promise<{ ok: boolean; out: any; next: string | null }> {
   const { hasuraUrl, adminSecret, runId, workflowId, districtId, schoolId, actorUserId, step, ctx, stepsList } = args;
 
   const stepKey = String(step.id || step.key || 'step');
-  const stepInput = step;
+  const attemptInfo = args.attemptInfo || null;
+  const stepInput = attemptInfo ? { ...step, __attempt: attemptInfo.attempt, __max_attempts: attemptInfo.maxAttempts } : step;
 
   const defaultNext = () => {
     if (step.next) return String(step.next);
@@ -606,6 +783,31 @@ async function executeStep(args: {
   };
 
   const config = (step.config || {}) as Record<string, unknown>;
+
+  // Optional per-step permission gating: fail-closed.
+  // If you set config.required_action on a step, we only execute it when the triggering actor has that action.
+  const requiredAction = (config.required_action ?? config.requiredAction) as unknown;
+  if (requiredAction && step.type !== 'condition' && step.type !== 'noop') {
+    const actionName = String(requiredAction);
+    const allowed = hasActionName(ctx?.actor_role, actionName);
+    if (!allowed) {
+      const out = {
+        error: 'insufficient_permissions',
+        required_action: actionName,
+        actor_role: ctx?.actor_role ?? null,
+      };
+      await insertRunStep({
+        hasuraUrl,
+        adminSecret,
+        runId,
+        stepKey,
+        status: 'skipped',
+        input: stepInput,
+        output: out,
+      });
+      return { ok: false, out, next: null };
+    }
+  }
 
   try {
     if (step.type === 'condition') {
@@ -683,7 +885,7 @@ async function executeStep(args: {
     await insertRunStep({ hasuraUrl, adminSecret, runId, stepKey, status: 'failed', input: stepInput, output: out });
     return { ok: false, out, next: null };
   } catch (e: any) {
-    const out = { error: e?.message || String(e) };
+    const out = { error: e?.message || String(e), attempt: attemptInfo?.attempt ?? 1, max_attempts: attemptInfo?.maxAttempts ?? 1 };
     await insertRunStep({ hasuraUrl, adminSecret, runId, stepKey, status: 'failed', input: stepInput, output: out });
 
     await insertAnalyticsEvent({
@@ -709,6 +911,7 @@ function evaluateCondition(left: any, op: string, right: any): boolean {
     case 'eq':
       return left === right;
     case 'neq':
+    case 'ne':
       return left !== right;
     case 'gt':
       return Number(left) > Number(right);
@@ -720,6 +923,8 @@ function evaluateCondition(left: any, op: string, right: any): boolean {
       return Number(left) <= Number(right);
     case 'contains':
       return String(left || '').includes(String(right || ''));
+    case 'ncontains':
+      return !String(left || '').includes(String(right || ''));
     case 'in':
       return Array.isArray(right) ? right.includes(left) : false;
     case 'exists':

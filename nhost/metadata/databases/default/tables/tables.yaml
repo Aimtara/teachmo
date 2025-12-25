@@ -42,6 +42,9 @@ tables:
   - public_user_profiles.yaml
   - public_workflow_definition_versions.yaml
   - public_workflow_definitions.yaml
+  - public_workflow_approvals.yaml
+  - public_workflow_dead_letters.yaml
+  - public_workflow_publication_audits.yaml
   - public_workflow_run_steps.yaml
   - public_workflow_runs.yaml
   - tables.yaml

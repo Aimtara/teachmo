@@ -1,0 +1,33 @@
+table:
+  name: workflow_publication_audits
+  schema: public
+select_permissions:
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: district_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: system_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: admin
+    permission:
+      check: {}
+      columns: '*'
