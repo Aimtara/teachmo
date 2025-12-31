@@ -32,6 +32,7 @@ export const {
   applyReferralCode,
   manageSponsorships,
   getUXAnalytics,
+  weeklyBriefSummarize,
 } = base44Functions;
 
 // --- Additional helpers used across the app ---

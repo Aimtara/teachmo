@@ -24,6 +24,7 @@ tables:
   - public_message_thread_participants.yaml
   - public_message_threads.yaml
   - public_messages.yaml
+  - public_weekly_briefs.yaml
   - public_messaging_requests.yaml
   - public_notification_outbox.yaml
   - public_notification_preferences.yaml
