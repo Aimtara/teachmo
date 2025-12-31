@@ -21,19 +21,27 @@ select_permissions:
         - tiny_connection_idea
         - content_html
         - content_text
+        - addendums
+        - raw_inputs
         - generated_at
+        - opened_at
+        - last_opened_at
+        - open_count
         - created_at
         - updated_at
       filter:
         parent_user_id: { _eq: "X-Hasura-User-Id" }
+
   - role: school_admin
     permission:
       columns: "*"
       filter: {}
+
   - role: district_admin
     permission:
       columns: "*"
       filter: {}
+
   - role: admin
     permission:
       columns: "*"
