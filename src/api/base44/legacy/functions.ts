@@ -165,3 +165,5 @@ export const systemHealthMonitor = createFunctionInvoker('systemHealthMonitor');
 export const logAuditEvent = createFunctionInvoker('logAuditEvent');
 
 export const performanceMonitoring = createFunctionInvoker('performanceMonitoring');
+
+export const weeklyBriefSummarize = createFunctionInvoker('weeklyBriefSummarize');

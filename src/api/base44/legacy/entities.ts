@@ -197,6 +197,8 @@ export const Leaderboard = base44.entities.Leaderboard;
 
 export const AuditLog = base44.entities.AuditLog;
 
+export const WeeklyBrief = base44.entities.WeeklyBrief;
+
 
 
 // auth sdk:

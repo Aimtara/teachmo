@@ -1,0 +1,53 @@
+table:
+  name: weekly_briefs
+  schema: public
+
+select_permissions:
+  - role: parent
+    permission:
+      columns:
+        - id
+        - parent_user_id
+        - child_id
+        - week_start
+        - week_end
+        - week_range
+        - ux_state
+        - load_score
+        - shape_of_the_week
+        - school_things_to_know
+        - moment_to_protect
+        - gentle_heads_up
+        - tiny_connection_idea
+        - content_html
+        - content_text
+        - generated_at
+        - created_at
+        - updated_at
+      filter:
+        parent_user_id: { _eq: "X-Hasura-User-Id" }
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+
+insert_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      check: {}
+
+update_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      check: {}
