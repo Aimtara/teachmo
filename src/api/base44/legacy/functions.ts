@@ -167,3 +167,4 @@ export const logAuditEvent = createFunctionInvoker('logAuditEvent');
 export const performanceMonitoring = createFunctionInvoker('performanceMonitoring');
 
 export const weeklyBriefSummarize = createFunctionInvoker('weeklyBriefSummarize');
+export const weeklyBriefGenerate = createFunctionInvoker('weeklyBriefGenerate');

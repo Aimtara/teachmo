@@ -33,6 +33,7 @@ export const {
   manageSponsorships,
   getUXAnalytics,
   weeklyBriefSummarize,
+  weeklyBriefGenerate,
 } = base44Functions;
 
 // --- Additional helpers used across the app ---
