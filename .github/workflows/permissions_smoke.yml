@@ -16,9 +16,24 @@ jobs:
       - name: Install ts-node
         run: npm install --no-save ts-node typescript
       - name: Run permissions smoke tests
-        if: ${{ secrets.HASURA_GRAPHQL_ENDPOINT != '' && secrets.TEST_JWT_TEACHER != '' && secrets.TEST_JWT_DISTRICT_ADMIN != '' }}
         env:
           HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT }}
           TEST_JWT_TEACHER: ${{ secrets.TEST_JWT_TEACHER }}
           TEST_JWT_DISTRICT_ADMIN: ${{ secrets.TEST_JWT_DISTRICT_ADMIN }}
-        run: npx ts-node scripts/hasura-permissions-smoke.test.ts
+        run: |
+          if [ -z "$HASURA_GRAPHQL_ENDPOINT" ]; then
+            echo "HASURA_GRAPHQL_ENDPOINT secret is not set, skipping smoke tests"
+            exit 0
+          fi
+
+          if [ -z "$TEST_JWT_TEACHER" ]; then
+            echo "TEST_JWT_TEACHER secret is not set, skipping smoke tests"
+            exit 0
+          fi
+
+          if [ -z "$TEST_JWT_DISTRICT_ADMIN" ]; then
+            echo "TEST_JWT_DISTRICT_ADMIN secret is not set, skipping smoke tests"
+            exit 0
+          fi
+
+          npx ts-node scripts/hasura-permissions-smoke.test.ts
