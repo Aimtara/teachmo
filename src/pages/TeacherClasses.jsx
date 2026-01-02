@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '@/components/shared/InternationalizationProvider';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ export default function TeacherClasses() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState([]);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -70,8 +72,8 @@ export default function TeacherClasses() {
       <div className="min-h-screen bg-warm-cream p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           <header>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Classes</h1>
-            <p className="text-gray-600">View and manage your classes</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('teacher_classes.title')}</h1>
+            <p className="text-gray-600">{t('teacher_classes.description')}</p>
           </header>
 
           {/* Show loading state */}
@@ -83,26 +85,27 @@ export default function TeacherClasses() {
           {!loading && (!classes || classes.length === 0) && (
             <Card className="bg-blue-50 border-blue-200">
               <CardHeader>
-                <CardTitle className="text-xl font-bold text-gray-900">Need help getting started?</CardTitle>
+                <CardTitle className="text-xl font-bold text-gray-900">{t('teacher_classes.empty_title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-gray-700">
-                  Connect your Google Classroom account or learn more about managing classes in Teachmo.
+                  {t('teacher_classes.empty_description')}
                 </p>
                 <div className="flex gap-4 flex-wrap">
                   <Link to={createPageUrl('HelpCenter')}>
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="gap-2" aria-label={t('teacher_classes.setup_guide')}>
                       <BookOpen className="w-4 h-4" />
-                      Teacher Setup Guide
+                      {t('teacher_classes.setup_guide')}
                     </Button>
                   </Link>
                   <Button
                     variant="outline"
                     className="gap-2"
                     onClick={handleContactSupport}
+                    aria-label={t('teacher_classes.contact_support')}
                   >
                     <MessageCircle className="w-4 h-4" />
-                    Contact Support
+                    {t('teacher_classes.contact_support')}
                   </Button>
                 </div>
               </CardContent>
@@ -119,7 +122,9 @@ export default function TeacherClasses() {
                       <Users className="w-5 h-5 text-blue-600" />
                       <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{cls.name}</h3>
                     </div>
-                    <p className="text-sm text-gray-600">Students: {cls.studentCount}</p>
+                    <p className="text-sm text-gray-600">
+                      {t('teacher_classes.students')}: {cls.studentCount}
+                    </p>
                     <div className="flex gap-2">
                       <Link to={createPageUrl(`TeacherAssignments?course_id=${cls.id}`)}>
                         <Button size="sm" variant="outline">View Assignments</Button>

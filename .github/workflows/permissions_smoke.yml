@@ -16,6 +16,7 @@ jobs:
       - name: Install ts-node
         run: npm install --no-save ts-node typescript
       - name: Run permissions smoke tests
+        if: ${{ secrets.HASURA_GRAPHQL_ENDPOINT != '' && secrets.TEST_JWT_TEACHER != '' && secrets.TEST_JWT_DISTRICT_ADMIN != '' }}
         env:
           HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT }}
           TEST_JWT_TEACHER: ${{ secrets.TEST_JWT_TEACHER }}

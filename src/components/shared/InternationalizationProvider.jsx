@@ -76,11 +76,30 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
     loadLocale(locale);
   }, [locale, loadLocale]);
 
+  const resolveTranslation = (source, key) => {
+    if (!source) return undefined;
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      return source[key];
+    }
+    if (!key.includes('.')) {
+      return undefined;
+    }
+    return key.split('.').reduce((value, part) => {
+      if (value && typeof value === 'object' && part in value) {
+        return value[part];
+      }
+      return undefined;
+    }, source);
+  };
+
   const t = (key, params) => {
     const localeStrings = translations[locale] || translations[defaultLocale] || {};
     const defaultStrings = translations[defaultLocale] || {};
 
-    let translation = localeStrings[key] || defaultStrings[key] || key;
+    let translation =
+      resolveTranslation(localeStrings, key) ||
+      resolveTranslation(defaultStrings, key) ||
+      key;
     
     // Simple parameter replacement
     if (params) {
