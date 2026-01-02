@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderWithProviders, screen, axe } from '../TestUtils';
+import { renderWithProviders, screen, axe } from '../testUtils';
 import { I18nProvider } from '@/components/shared/InternationalizationProvider';
 import TeacherClasses from '@/pages/TeacherClasses';
 
