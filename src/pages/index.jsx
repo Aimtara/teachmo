@@ -7,6 +7,9 @@ import AdminDashboard from './AdminDashboard.jsx';
 import AdminWorkflows from './AdminWorkflows.jsx';
 import AdminTenantSettings from './AdminTenantSettings.jsx';
 import AdminUsers from './AdminUsers.jsx';
+import AdminAIGovernance from './AdminAIGovernance.jsx';
+import AIFineTuning from './AIFineTuning.jsx';
+import AIPromptLibrary from './AIPromptLibrary.jsx';
 import PartnerPortal from './PartnerPortal.jsx';
 import PartnerSubmissions from './PartnerSubmissions.jsx';
 import PartnerTraining from './PartnerTraining.jsx';
@@ -268,6 +271,9 @@ export default function Pages() {
               </ProtectedRoute>
             )}
           />
+          <Route path="/admin/ai-governance" element={<AdminAIGovernance />} />
+          <Route path="/admin/ai-fine-tuning" element={<AIFineTuning />} />
+          <Route path="/admin/ai-prompts" element={<AIPromptLibrary />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
