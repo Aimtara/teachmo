@@ -48,7 +48,7 @@ export const ROLE_DEFINITIONS = {
   },
   partner: {
     label: 'Partner',
-    defaultPage: 'PartnerDashboard'
+    defaultPage: 'PartnerPortal'
   }
 };
 
