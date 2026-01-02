@@ -37,6 +37,13 @@ const TeacherAssignments = React.lazy(() => import('@/pages/TeacherAssignments')
 const Notifications = React.lazy(() => import('@/pages/Notifications'));
 const Landing = React.lazy(() => import('@/pages/Landing'));
 const Onboarding = React.lazy(() => import('@/pages/Onboarding'));
+const PartnerPortal = React.lazy(() => import('@/pages/PartnerPortal'));
+const PartnerSubmissions = React.lazy(() => import('@/pages/PartnerSubmissions'));
+const PartnerTraining = React.lazy(() => import('@/pages/PartnerTraining'));
+const PartnerOffers = React.lazy(() => import('@/pages/PartnerOffers'));
+const PartnerBilling = React.lazy(() => import('@/pages/PartnerBilling'));
+const PartnerIncentives = React.lazy(() => import('@/pages/PartnerIncentives'));
+const PartnerDashboard = React.lazy(() => import('@/pages/PartnerDashboard'));
 
 const LazyRouteWrapper = ({ children }) => (
   <GlobalErrorBoundary>
@@ -76,7 +83,15 @@ const ROUTE_COMPONENTS = [
   { page: 'TeacherMessages', Component: TeacherMessages },
   { page: 'TeacherAssignments', Component: TeacherAssignments },
   { page: 'Landing', Component: Landing },
-  { page: 'Onboarding', Component: Onboarding }
+  { page: 'Onboarding', Component: Onboarding },
+  { page: 'PartnerPortal', Component: PartnerPortal },
+  { page: 'PartnerSubmissions', Component: PartnerSubmissions },
+  { page: 'PartnerTraining', Component: PartnerTraining },
+  { page: 'PartnerOffers', Component: PartnerOffers },
+  { page: 'PartnerBilling', Component: PartnerBilling },
+  { page: 'PartnerIncentives', Component: PartnerIncentives },
+  { page: 'PartnerDashboard', Component: PartnerDashboard },
+  { page: 'AdminPartners', Component: PartnerDashboard }
 ];
 
 export default function RouteBasedCodeSplitting() {

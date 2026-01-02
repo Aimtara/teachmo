@@ -17,7 +17,10 @@ import {
   FileText,
   Building2,
   UserCheck,
-  Compass
+  Compass,
+  BadgePercent,
+  CreditCard,
+  Handshake
 } from 'lucide-react';
 import { isRouteEnabled } from './routes';
 import { isFeatureEnabled } from './features';
@@ -108,6 +111,7 @@ export const NAV_STRUCTURE = [
     requiredScopes: ['org:manage'],
     children: [
       { name: 'Admin Dashboard', page: 'AdminDashboard', icon: Shield, requiredScopes: ['org:manage'] },
+      { name: 'Partner Dashboard', page: 'AdminPartners', icon: Users, requiredScopes: ['org:manage'] },
       { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
       { name: 'Users', page: 'AdminUsers', icon: UserCheck, requiredScopes: ['users:manage'] },
       { name: 'Tenant Settings', page: 'AdminTenantSettings', icon: Building2, requiredScopes: ['org:manage'] },
@@ -125,6 +129,20 @@ export const NAV_STRUCTURE = [
       { name: 'AI Coach', page: 'AIAssistant', icon: Bot, mobilePrimary: true, feature: 'AI_ASSISTANT' },
       { name: 'School Directory', page: 'SchoolDirectory', icon: School, feature: 'SCHOOL_DIRECTORY' },
       { name: 'Notifications', page: 'Notifications', icon: Bell }
+    ]
+  },
+  {
+    name: 'Partner Portal',
+    icon: Handshake,
+    roles: ['partner'],
+    requiredScopes: ['partner:portal'],
+    children: [
+      { name: 'Overview', page: 'PartnerPortal', icon: Home },
+      { name: 'Offers', page: 'PartnerOffers', icon: BadgePercent },
+      { name: 'Incentives', page: 'PartnerIncentives', icon: Award },
+      { name: 'Billing', page: 'PartnerBilling', icon: CreditCard },
+      { name: 'Submissions', page: 'PartnerSubmissions', icon: FileText },
+      { name: 'Training', page: 'PartnerTraining', icon: BookOpen }
     ]
   },
   {

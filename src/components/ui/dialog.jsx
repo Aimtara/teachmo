@@ -70,6 +70,18 @@ const DialogClose = React.forwardRef(({ className, children, ...props }, ref) =>
 ));
 DialogClose.displayName = "DialogClose";
 
+const DialogTrigger = ({ asChild, children, ...props }) => {
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, { ...props, ...children.props });
+  }
+
+  return (
+    <button type="button" {...props}>
+      {children}
+    </button>
+  );
+};
+
 export {
   Dialog,
   DialogContent,
@@ -78,4 +90,5 @@ export {
   DialogTitle,
   DialogDescription,
   DialogClose,
+  DialogTrigger,
 }

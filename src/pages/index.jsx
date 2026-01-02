@@ -11,6 +11,8 @@ import PartnerPortal from './PartnerPortal.jsx';
 import PartnerSubmissions from './PartnerSubmissions.jsx';
 import PartnerTraining from './PartnerTraining.jsx';
 import PartnerIncentives from './PartnerIncentives.jsx';
+import PartnerOffers from './PartnerOffers.jsx';
+import PartnerBilling from './PartnerBilling.jsx';
 import PartnerDashboard from './PartnerDashboard.jsx';
 import ParentDashboard from './ParentDashboard.jsx';
 import TeacherDashboard from './TeacherDashboard.jsx';
@@ -172,7 +174,7 @@ export default function Pages() {
           <Route
             path="/partners"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['partner', 'admin', 'system_admin']}>
                 <PartnerPortal />
               </ProtectedRoute>
             )}
@@ -180,7 +182,7 @@ export default function Pages() {
           <Route
             path="/partners/submissions"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['partner', 'admin', 'system_admin']}>
                 <PartnerSubmissions />
               </ProtectedRoute>
             )}
@@ -188,7 +190,7 @@ export default function Pages() {
           <Route
             path="/partners/training"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['partner', 'admin', 'system_admin']}>
                 <PartnerTraining />
               </ProtectedRoute>
             )}
@@ -196,8 +198,24 @@ export default function Pages() {
           <Route
             path="/partners/incentives"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['partner', 'admin', 'system_admin']}>
                 <PartnerIncentives />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/partners/offers"
+            element={(
+              <ProtectedRoute allowedRoles={['partner', 'admin', 'system_admin']}>
+                <PartnerOffers />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/partners/billing"
+            element={(
+              <ProtectedRoute allowedRoles={['partner', 'admin', 'system_admin']}>
+                <PartnerBilling />
               </ProtectedRoute>
             )}
           />
@@ -210,38 +228,46 @@ export default function Pages() {
               </ProtectedRoute>
             )}
           />
-        <Route
-          path="/admin/workflows"
-          element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['automation:manage']}>
-              <AdminWorkflows />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/admin/tenant-settings"
-          element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['tenant:manage']}>
-              <AdminTenantSettings />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/admin/users"
-          element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['users:manage']}>
-              <AdminUsers />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/admin/analytics"
-          element={(
-            <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['analytics:view']}>
-              <AdminAnalytics />
-            </ProtectedRoute>
-          )}
-        />
+          <Route
+            path="/admin/partners"
+            element={(
+              <ProtectedRoute allowedRoles={['admin', 'system_admin']}>
+                <PartnerDashboard />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/workflows"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['automation:manage']}>
+                <AdminWorkflows />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/tenant-settings"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['tenant:manage']}>
+                <AdminTenantSettings />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/users"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['users:manage']}>
+                <AdminUsers />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/analytics"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['analytics:view']}>
+                <AdminAnalytics />
+              </ProtectedRoute>
+            )}
+          />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
