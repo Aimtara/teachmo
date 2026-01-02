@@ -7,5 +7,11 @@
 //
 // The "legacy" invokers are the real fetch-based Nhost function callers.
 
+import * as legacyFunctions from './legacy/functions';
+
+export const base44FunctionsMap = {
+  ...legacyFunctions
+};
+
+export default base44FunctionsMap;
 export * from './legacy/functions';
-export { default } from './legacy/functions';

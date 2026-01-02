@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import CreateSponsorshipPartnerModal from '@/components/admin/CreateSponsorshipPartnerModal';
 import GenerateReferralCodeModal from '@/components/admin/GenerateReferralCodeModal';
+import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 
 const formatDate = (dateValue) => {
   if (!dateValue) return 'No expiration';
@@ -115,6 +116,49 @@ export default function PartnerDashboard() {
     } finally {
       setUpdatingPartnerId(null);
     }
+  };
+
+  const handleExportCodes = () => {
+    if (!referralCodes.length) {
+      ultraMinimalToast.show('No referral codes to export.');
+      return;
+    }
+
+    const escapeValue = (value) => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      if (/[",\n]/.test(stringValue)) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    const rows = [
+      ['Code', 'Partner', 'Active', 'Redemption Limit', 'Expires', 'Redeemed Count'],
+      ...referralCodes.map((code) => {
+        const partner = partnerLookup.get(code.partner_id);
+        return [
+          code.code_string,
+          partner?.name || 'Unknown',
+          code.is_active ? 'Active' : 'Inactive',
+          code.redemption_limit ?? 'Unlimited',
+          formatDate(code.expiration_date),
+          code.redeemed_count || 0,
+        ];
+      }),
+    ];
+
+    const csvContent = rows.map((row) => row.map(escapeValue).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateStamp = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `referral-codes-${dateStamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -265,11 +309,16 @@ export default function PartnerDashboard() {
 
         <TabsContent value="codes">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Referral codes</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Track code limits, expirations, and activation status.
-              </p>
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-xl">Referral codes</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Track code limits, expirations, and activation status.
+                </p>
+              </div>
+              <Button variant="outline" onClick={handleExportCodes}>
+                Export CSV
+              </Button>
             </CardHeader>
             <CardContent>
               {isLoading ? (

@@ -172,8 +172,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/partners',
     Component: lazy(() => import('@/pages/PartnerPortal.jsx')),
     requiresAuth: true,
-    allowedRoles: ['partner'],
-    requiredScopes: ['partner:portal'],
+    allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading partner portal...</p>
   },
@@ -182,8 +181,7 @@ export const ROUTE_DEFINITIONS = [
     path: '/partners/submissions',
     Component: lazy(() => import('@/pages/PartnerSubmissions.jsx')),
     requiresAuth: true,
-    allowedRoles: ['partner'],
-    requiredScopes: ['partner:submissions'],
+    allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading partner submissions...</p>
   },
@@ -192,20 +190,45 @@ export const ROUTE_DEFINITIONS = [
     path: '/partners/training',
     Component: lazy(() => import('@/pages/PartnerTraining.jsx')),
     requiresAuth: true,
-    allowedRoles: ['partner'],
-    requiredScopes: ['partner:resources'],
+    allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading partner training...</p>
+  },
+  {
+    name: 'PartnerOffers',
+    path: '/partners/offers',
+    Component: lazy(() => import('@/pages/PartnerOffers.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['partner', 'admin', 'system_admin'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading partner offers...</p>
+  },
+  {
+    name: 'PartnerBilling',
+    path: '/partners/billing',
+    Component: lazy(() => import('@/pages/PartnerBilling.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['partner', 'admin', 'system_admin'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading partner billing...</p>
   },
   {
     name: 'PartnerIncentives',
     path: '/partners/incentives',
     Component: lazy(() => import('@/pages/PartnerIncentives.jsx')),
     requiresAuth: true,
-    allowedRoles: ['partner'],
-    requiredScopes: ['partner:resources'],
+    allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading partner incentives...</p>
+  },
+  {
+    name: 'AdminPartners',
+    path: '/admin/partners',
+    Component: lazy(() => import('@/pages/PartnerDashboard.jsx')),
+    allowedRoles: ['system_admin', 'admin'],
+    requiredScopes: ['org:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading partner admin dashboard...</p>
   },
   {
     name: 'AdminDashboard',

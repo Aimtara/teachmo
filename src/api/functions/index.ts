@@ -44,3 +44,10 @@ export type GenericPayload = Record<string, unknown>;
 export async function getAdvancedAnalytics<TParams = GenericPayload>(params: TParams): Promise<unknown> {
   return getUXAnalytics(params as GenericPayload);
 }
+
+const functionsMap = {
+  ...base44Functions,
+  getAdvancedAnalytics
+};
+
+export default functionsMap;
