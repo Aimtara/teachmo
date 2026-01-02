@@ -164,9 +164,8 @@ export const ROUTE_DEFINITIONS = [
     name: 'PartnerDashboard',
     path: '/partners/dashboard',
     Component: lazy(() => import('@/pages/PartnerDashboard.jsx')),
-    allowedRoles: ['partner'],
-    requiredScopes: ['partner:portal'],
-    fallback: <p className="p-6 text-gray-600">Loading partner dashboard...</p>
+    allowedRoles: ['admin', 'system_admin'],
+    fallback: <p className="p-6 text-gray-600">Loading partner portal...</p>
   },
   {
     name: 'PartnerPortal',

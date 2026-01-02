@@ -163,7 +163,7 @@ export default function Pages() {
           <Route
             path="/partners/dashboard"
             element={(
-              <ProtectedRoute allowedRoles={['partner']}>
+              <ProtectedRoute allowedRoles={['admin', 'system_admin']}>
                 <PartnerDashboard />
               </ProtectedRoute>
             )}

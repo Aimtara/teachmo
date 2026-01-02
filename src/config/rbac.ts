@@ -56,7 +56,7 @@ export const ROLE_DEFINITIONS: Record<AppRole, RoleDefinition> = {
   partner: {
     id: 'partner',
     label: 'Partner',
-    defaultPath: '/partners/dashboard',
+    defaultPath: '/partners',
     scopes: ['core:dashboard', 'partner:portal', 'partner:resources', 'partner:submissions']
   }
 };
