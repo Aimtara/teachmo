@@ -2,6 +2,7 @@ import { NhostProvider, NhostReactProvider } from '@nhost/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster as HotToaster } from 'react-hot-toast';
+import { I18nextProvider } from 'react-i18next';
 import Pages from './pages/index.jsx';
 import { nhost } from './lib/nhostClient';
 import { queryClient } from './lib/queryClient.js';
@@ -11,9 +12,11 @@ import { TypingIndicatorProvider } from './providers/TypingIndicatorProvider';
 import { WebSocketProvider } from './providers/WebSocketProvider';
 import { TenantProvider } from './contexts/TenantContext';
 import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
+import i18n from './i18n';
+import { isFeatureEnabled } from './utils/featureFlags';
 
 function App() {
-  return (
+  const appContent = (
     <WebSocketProvider>
       <TypingIndicatorProvider>
         <NhostProvider nhost={nhost}>
@@ -36,6 +39,12 @@ function App() {
       </TypingIndicatorProvider>
     </WebSocketProvider>
   );
+
+  if (isFeatureEnabled('FEATURE_I18N')) {
+    return <I18nextProvider i18n={i18n}>{appContent}</I18nextProvider>;
+  }
+
+  return appContent;
 }
 
 export default App;
