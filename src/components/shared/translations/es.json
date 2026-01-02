@@ -17,5 +17,14 @@
   "save": "Guardar",
   "cancel": "Cancelar",
   "delete": "Eliminar",
-  "edit": "Editar"
+  "edit": "Editar",
+  "teacher_classes": {
+    "title": "Mis Clases",
+    "description": "Ver y gestionar tus clases",
+    "empty_title": "¿Necesitas ayuda para comenzar?",
+    "empty_description": "Conecta tu cuenta de Google Classroom o aprende más sobre cómo gestionar clases en Teachmo.",
+    "setup_guide": "Guía de Configuración del Profesor",
+    "contact_support": "Contactar Soporte",
+    "students": "Estudiantes"
+  }
 }
