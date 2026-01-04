@@ -266,6 +266,16 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading tenant settings...</p>
   },
   {
+    name: 'AdminSSOSettings',
+    path: '/admin/sso',
+    Component: lazy(() => import('@/pages/AdminSSOSettings.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['tenant:manage'],
+    feature: 'ENTERPRISE_SSO',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading SSO settings...</p>
+  },
+  {
     name: 'AdminUsers',
     path: '/admin/users',
     Component: lazy(() => import('@/pages/AdminUsers.jsx')),
@@ -273,6 +283,56 @@ export const ROUTE_DEFINITIONS = [
     requiredScopes: ['users:manage'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading admin users...</p>
+  },
+  {
+    name: 'AdminAuditLogs',
+    path: '/admin/audit-logs',
+    Component: lazy(() => import('@/pages/AdminAuditLogs.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['safety:review'],
+    feature: 'ENTERPRISE_AUDIT_LOGS',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading audit logs...</p>
+  },
+  {
+    name: 'AdminFeatureFlags',
+    path: '/admin/feature-flags',
+    Component: lazy(() => import('@/pages/AdminFeatureFlags.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['tenant:manage'],
+    feature: 'ENTERPRISE_FEATURE_FLAGS',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading feature flags...</p>
+  },
+  {
+    name: 'AdminAIReview',
+    path: '/admin/ai-review',
+    Component: lazy(() => import('@/pages/AdminAIReview.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['safety:review'],
+    feature: 'ENTERPRISE_AI_REVIEW',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading AI review queue...</p>
+  },
+  {
+    name: 'AdminAIGovernance',
+    path: '/admin/ai-governance',
+    Component: lazy(() => import('@/pages/AdminAIGovernance.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['safety:review'],
+    feature: 'ENTERPRISE_AI_GOVERNANCE',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading AI governance...</p>
+  },
+  {
+    name: 'AdminSISRoster',
+    path: '/admin/sis-roster',
+    Component: lazy(() => import('@/pages/AdminSISRoster.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['directory:manage'],
+    feature: 'ENTERPRISE_SIS_ROSTER',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading SIS roster...</p>
   },
   {
     name: 'AdminModerationQueue',
@@ -289,6 +349,14 @@ export const ROUTE_DEFINITIONS = [
     allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
     requiredScopes: ['safety:review'],
     fallback: <p className="p-6 text-gray-600">Loading messaging blocklist...</p>
+  },
+  {
+    name: 'AITransparency',
+    path: '/ai/transparency',
+    Component: lazy(() => import('@/pages/AITransparency.jsx')),
+    isPublic: true,
+    feature: 'ENTERPRISE_TRANSPARENCY',
+    fallback: <p className="p-6 text-gray-600">Loading AI transparency...</p>
   },
   {
     name: 'SchoolDirectory',

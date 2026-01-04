@@ -1,0 +1,69 @@
+table:
+  name: ai_usage_logs
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+insert_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      check:
+        school_id:
+          _eq: X-Hasura-School-Id
+update_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns:
+        - reviewer_id
+        - reviewed_at
+        - status
+        - flagged
+        - metadata
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id

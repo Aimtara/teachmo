@@ -8,8 +8,14 @@ import AdminWorkflows from './AdminWorkflows.jsx';
 import AdminTenantSettings from './AdminTenantSettings.jsx';
 import AdminUsers from './AdminUsers.jsx';
 import AdminAIGovernance from './AdminAIGovernance.jsx';
+import AdminAIReview from './AdminAIReview.jsx';
+import AdminAuditLogs from './AdminAuditLogs.jsx';
+import AdminFeatureFlags from './AdminFeatureFlags.jsx';
+import AdminSISRoster from './AdminSISRoster.jsx';
+import AdminSSOSettings from './AdminSSOSettings.jsx';
 import AIFineTuning from './AIFineTuning.jsx';
 import AIPromptLibrary from './AIPromptLibrary.jsx';
+import AITransparency from './AITransparency.jsx';
 import PartnerPortal from './PartnerPortal.jsx';
 import PartnerSubmissions from './PartnerSubmissions.jsx';
 import PartnerTraining from './PartnerTraining.jsx';
@@ -26,6 +32,7 @@ import ParentOnboardingPage from './onboarding/parent';
 import TeacherOnboardingPage from './onboarding/teacher';
 import { getDefaultPathForRole, useUserRole } from '@/hooks/useUserRole';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
+import FeatureGate from '@/components/shared/FeatureGate';
 import { TelemetryBootstrap } from '@/observability/TelemetryBootstrap';
 
 // Base44 UI parity track (incremental)
@@ -59,6 +66,14 @@ export default function Pages() {
           <Route index element={<RoleRedirect />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route
+            path="/ai/transparency"
+            element={(
+              <FeatureGate feature="ENTERPRISE_TRANSPARENCY">
+                <AITransparency />
+              </FeatureGate>
+            )}
+          />
 
           {/* Base44 parity routes */}
           <Route path="/discover" element={<UnifiedDiscover />} />
@@ -256,10 +271,40 @@ export default function Pages() {
             )}
           />
           <Route
+            path="/admin/sso"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']}>
+                <FeatureGate feature="ENTERPRISE_SSO">
+                  <AdminSSOSettings />
+                </FeatureGate>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
             path="/admin/users"
             element={(
               <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['users:manage']}>
                 <AdminUsers />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/audit-logs"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
+                <FeatureGate feature="ENTERPRISE_AUDIT_LOGS">
+                  <AdminAuditLogs />
+                </FeatureGate>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/feature-flags"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']}>
+                <FeatureGate feature="ENTERPRISE_FEATURE_FLAGS">
+                  <AdminFeatureFlags />
+                </FeatureGate>
               </ProtectedRoute>
             )}
           />
@@ -271,7 +316,36 @@ export default function Pages() {
               </ProtectedRoute>
             )}
           />
-          <Route path="/admin/ai-governance" element={<AdminAIGovernance />} />
+          <Route
+            path="/admin/ai-governance"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
+                <FeatureGate feature="ENTERPRISE_AI_GOVERNANCE">
+                  <AdminAIGovernance />
+                </FeatureGate>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/ai-review"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
+                <FeatureGate feature="ENTERPRISE_AI_REVIEW">
+                  <AdminAIReview />
+                </FeatureGate>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/sis-roster"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['directory:manage']}>
+                <FeatureGate feature="ENTERPRISE_SIS_ROSTER">
+                  <AdminSISRoster />
+                </FeatureGate>
+              </ProtectedRoute>
+            )}
+          />
           <Route path="/admin/ai-fine-tuning" element={<AIFineTuning />} />
           <Route path="/admin/ai-prompts" element={<AIPromptLibrary />} />
 

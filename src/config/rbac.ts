@@ -37,7 +37,15 @@ export const ROLE_DEFINITIONS: Record<AppRole, RoleDefinition> = {
     label: 'School Admin',
     defaultPath: '/admin',
     inherits: ['teacher'],
-    scopes: ['core:dashboard', 'org:manage', 'users:manage', 'reporting:view', 'safety:review']
+    scopes: [
+      'core:dashboard',
+      'org:manage',
+      'users:manage',
+      'reporting:view',
+      'safety:review',
+      'tenant:manage',
+      'directory:manage'
+    ]
   },
   district_admin: {
     id: 'district_admin',
