@@ -8,13 +8,16 @@ tables:
   - public_classrooms.yaml
   - public_classroom_students.yaml
   - public_events.yaml
+  - public_calendar_events.yaml
   - public_activities.yaml
   - public_library_items.yaml
   - public_thread_participants.yaml
   - public_ai_interactions.yaml
   - public_ai_policy_docs.yaml
+  - public_ai_prompts.yaml
   - public_ai_review_queue.yaml
   - public_ai_usage_logs.yaml
+  - public_knowledge_articles.yaml
   - public_analytics_event_rollups_daily.yaml
   - public_analytics_events.yaml
   - public_audit_log.yaml
@@ -57,10 +60,13 @@ tables:
   - public_sis_import_jobs.yaml
   - public_sis_roster_users.yaml
   - public_sis_roster_students.yaml
+  - public_sis_roster_teachers.yaml
   - public_sis_roster_classes.yaml
   - public_sis_roster_enrollments.yaml
   - public_feature_flags.yaml
   - public_enterprise_configs.yaml
+  - public_enterprise_sso_settings.yaml
+  - public_tenant_domains.yaml
   - public_tenant_sso_settings.yaml
   - public_tenant_settings.yaml
   - public_user_profiles.yaml
@@ -71,4 +77,3 @@ tables:
   - public_workflow_publication_audits.yaml
   - public_workflow_run_steps.yaml
   - public_workflow_runs.yaml
-  - tables.yaml

@@ -1,0 +1,82 @@
+table:
+  name: enterprise_sso_settings
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+insert_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+update_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
