@@ -43,21 +43,26 @@ export default function AdminSISRoster() {
     const mutation = `mutation InsertSisImport($object: sis_import_jobs_insert_input!) {
       insert_sis_import_jobs_one(object: $object) { id }
     }`;
-    await graphql(mutation, {
-      object: {
-        organization_id: organizationId,
-        school_id: schoolId,
-        roster_type: rosterType,
-        source,
-        status: 'uploaded',
-        metadata: {
-          file_name: file.name,
-          file_size: file.size,
+    try {
+      await graphql(mutation, {
+        object: {
+          organization_id: organizationId,
+          school_id: schoolId,
+          roster_type: rosterType,
+          source,
+          status: 'uploaded',
+          metadata: {
+            file_name: file.name,
+            file_size: file.size,
+          },
         },
-      },
-    });
-    setFile(null);
-    rosterQuery.refetch();
+      });
+      setFile(null);
+      rosterQuery.refetch();
+    } catch (error) {
+      console.error('Failed to upload roster:', error);
+      alert('Failed to upload roster. Please check permissions and try again.');
+    }
   };
 
   return (
