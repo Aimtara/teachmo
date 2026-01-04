@@ -36,7 +36,7 @@ select_permissions:
         - resolved_by
         - metadata
       filter:
-        reporter_user_id: {_eq: "X-Hasura-User-Id"}
+        reporter_user_id: {_eq: X-Hasura-User-Id}
   - role: teacher
     permission:
       columns:
@@ -57,4 +57,4 @@ select_permissions:
         - resolved_by
         - metadata
       filter:
-        reporter_user_id: {_eq: "X-Hasura-User-Id"}
+        reporter_user_id: {_eq: X-Hasura-User-Id}

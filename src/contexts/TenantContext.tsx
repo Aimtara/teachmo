@@ -72,7 +72,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       try {
         const profile = await fetchUserProfile(user.id);
         profileTenant = {
-          organizationId: profile?.district_id || null,
+          organizationId: profile?.organization_id || null,
           schoolId: profile?.school_id || null
         };
       } catch (err) {

@@ -5,12 +5,14 @@ insert_permissions:
   - role: partner
     permission:
       check:
-        partner_user_id:
-          _eq: X-Hasura-User-Id
+        partner_id:
+          _eq: X-Hasura-Profile-Id
+        organization_id:
+          _eq: X-Hasura-Organization-Id
       set:
-        partner_user_id: x-hasura-user-id
+        partner_id: x-hasura-profile-id
+        organization_id: x-hasura-organization-id
       columns:
-        - district_id
         - type
         - title
         - description
@@ -27,8 +29,8 @@ select_permissions:
     permission:
       columns: '*'
       filter:
-        partner_user_id:
-          _eq: X-Hasura-User-Id
+        partner_id:
+          _eq: X-Hasura-Profile-Id
 update_permissions:
   - role: partner
     permission:
@@ -36,8 +38,8 @@ update_permissions:
         - title
         - description
       filter:
-        partner_user_id:
-          _eq: X-Hasura-User-Id
+        partner_id:
+          _eq: X-Hasura-Profile-Id
         status:
           _eq: pending
       check: {}

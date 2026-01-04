@@ -97,6 +97,15 @@ function extractAuthContext(jwtClaims) {
     getClaim(hasuraClaims, 'x-hasura-user-id') ||
     getClaim(jwtClaims, 'user_id') ||
     getClaim(jwtClaims, 'sub');
+  const profileId =
+    getClaim(hasuraClaims, 'x-hasura-profile-id') ||
+    getClaim(jwtClaims, 'x-profile-id') ||
+    getClaim(jwtClaims, 'profile_id');
+  const organizationId =
+    getClaim(hasuraClaims, 'x-hasura-organization-id') ||
+    getClaim(hasuraClaims, 'x-hasura-org-id') ||
+    getClaim(jwtClaims, 'organization_id') ||
+    getClaim(jwtClaims, 'org_id');
   const districtId =
     getClaim(hasuraClaims, 'x-hasura-district-id') ||
     getClaim(jwtClaims, 'x-district-id') ||
@@ -115,6 +124,8 @@ function extractAuthContext(jwtClaims) {
   return {
     role: role ? String(role) : null,
     userId: userId ? String(userId) : null,
+    profileId: profileId ? String(profileId) : null,
+    organizationId: organizationId ? String(organizationId) : null,
     districtId: districtId ? String(districtId) : null,
     schoolId: schoolId ? String(schoolId) : null,
     scopes,
@@ -149,7 +160,15 @@ export async function attachAuthContext(req, res, next) {
     if (isProd) {
       return res.status(401).json({ error: 'invalid auth' });
     }
-    req.auth = { role: null, userId: null, districtId: null, schoolId: null, scopes: [] };
+    req.auth = {
+      role: null,
+      userId: null,
+      profileId: null,
+      organizationId: null,
+      districtId: null,
+      schoolId: null,
+      scopes: []
+    };
     next();
   }
 }

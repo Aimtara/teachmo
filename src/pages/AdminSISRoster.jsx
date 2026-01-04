@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { nhost } from '@/lib/nhostClient';
 import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import { Button } from '@/components/ui/button';
@@ -10,22 +9,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 export default function AdminSISRoster() {
   const { data: scope } = useTenantScope();
-  const districtId = scope?.districtId ?? null;
+  const organizationId = scope?.organizationId ?? null;
   const schoolId = scope?.schoolId ?? null;
   const [file, setFile] = useState(null);
   const [rosterType, setRosterType] = useState('users');
   const [source, setSource] = useState('csv');
 
   const rosterQuery = useQuery({
-    queryKey: ['sis-rosters', districtId, schoolId],
-    enabled: Boolean(districtId),
+    queryKey: ['sis-import-jobs', organizationId, schoolId],
+    enabled: Boolean(organizationId),
     queryFn: async () => {
-      const query = `query SisRosters($where: sis_rosters_bool_exp!) {
-        sis_rosters(where: $where, order_by: { created_at: desc }, limit: 50) {
+      const query = `query SisImportJobs($where: sis_import_jobs_bool_exp!) {
+        sis_import_jobs(where: $where, order_by: { created_at: desc }, limit: 50) {
           id
           roster_type
           source
-          external_id
           status
           created_at
         }
@@ -33,26 +31,31 @@ export default function AdminSISRoster() {
 
       const where = schoolId
         ? { school_id: { _eq: schoolId } }
-        : { district_id: { _eq: districtId } };
+        : { organization_id: { _eq: organizationId } };
 
       const res = await graphql(query, { where });
-      return res?.sis_rosters ?? [];
+      return res?.sis_import_jobs ?? [];
     },
   });
 
   const handleUpload = async () => {
-    if (!file) return;
-    const text = await file.text();
-    const { error } = await nhost.functions.call('sis-roster-import', {
-      csvText: text,
-      rosterType,
-      source,
-      schoolId,
+    if (!file || !organizationId) return;
+    const mutation = `mutation InsertSisImport($object: sis_import_jobs_insert_input!) {
+      insert_sis_import_jobs_one(object: $object) { id }
+    }`;
+    await graphql(mutation, {
+      object: {
+        organization_id: organizationId,
+        school_id: schoolId,
+        roster_type: rosterType,
+        source,
+        status: 'uploaded',
+        metadata: {
+          file_name: file.name,
+          file_size: file.size,
+        },
+      },
     });
-    if (error) {
-      console.error(error);
-      return;
-    }
     setFile(null);
     rosterQuery.refetch();
   };
@@ -86,7 +89,7 @@ export default function AdminSISRoster() {
             accept=".csv"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
-          <Button onClick={handleUpload} disabled={!file || !districtId}>
+          <Button onClick={handleUpload} disabled={!file || !organizationId}>
             Upload
           </Button>
         </CardContent>

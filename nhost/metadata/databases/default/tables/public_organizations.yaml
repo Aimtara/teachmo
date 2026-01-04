@@ -1,0 +1,84 @@
+table:
+  name: organizations
+  schema: public
+array_relationships:
+  - name: profiles
+    using:
+      foreign_key_constraint_on:
+        column: organization_id
+        table:
+          name: profiles
+          schema: public
+  - name: schools
+    using:
+      foreign_key_constraint_on:
+        column: organization_id
+        table:
+          name: schools
+          schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        id:
+          _eq: X-Hasura-Organization-Id
+  - role: teacher
+    permission:
+      columns: '*'
+      filter:
+        id:
+          _eq: X-Hasura-Organization-Id
+  - role: parent
+    permission:
+      columns: '*'
+      filter:
+        id:
+          _eq: X-Hasura-Organization-Id
+  - role: partner
+    permission:
+      columns: '*'
+      filter:
+        id:
+          _eq: X-Hasura-Organization-Id
+insert_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      check: {}
+update_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+delete_permissions:
+  - role: system_admin
+    permission:
+      filter: {}
+  - role: admin
+    permission:
+      filter: {}

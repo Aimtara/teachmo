@@ -1,0 +1,88 @@
+table:
+  name: events
+  schema: public
+object_relationships:
+  - name: school
+    using:
+      foreign_key_constraint_on: school_id
+  - name: classroom
+    using:
+      foreign_key_constraint_on: classroom_id
+  - name: creator
+    using:
+      foreign_key_constraint_on: created_by
+select_permissions:
+  - role: teacher
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - created_by:
+              _eq: X-Hasura-Profile-Id
+          - classroom:
+              teacher_id:
+                _eq: X-Hasura-Profile-Id
+  - role: parent
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: teacher
+    permission:
+      columns:
+        - title
+        - description
+        - starts_at
+        - ends_at
+        - school_id
+        - classroom_id
+      check:
+        created_by:
+          _eq: X-Hasura-Profile-Id
+      set:
+        created_by: x-hasura-profile-id
+update_permissions:
+  - role: teacher
+    permission:
+      columns:
+        - title
+        - description
+        - starts_at
+        - ends_at
+      filter:
+        created_by:
+          _eq: X-Hasura-Profile-Id
+      check:
+        created_by:
+          _eq: X-Hasura-Profile-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+      check:
+        school_id:
+          _eq: X-Hasura-School-Id

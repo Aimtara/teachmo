@@ -11,43 +11,43 @@ select_permissions:
       columns: "*"
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
   - role: district_admin
     permission:
       columns: "*"
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
   - role: school_admin
     permission:
       columns: "*"
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
   - role: system_admin
     permission:
       columns: "*"
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
   - role: teacher
     permission:
       columns: "*"
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
   - role: parent
     permission:
       columns: "*"
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
   - role: partner
     permission:
       columns: "*"
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
 update_permissions:
   - role: admin
     permission:
@@ -55,7 +55,7 @@ update_permissions:
         - read_at
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
       check: {}
   - role: district_admin
     permission:
@@ -63,7 +63,7 @@ update_permissions:
         - read_at
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
       check: {}
   - role: school_admin
     permission:
@@ -71,7 +71,7 @@ update_permissions:
         - read_at
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
       check: {}
   - role: system_admin
     permission:
@@ -79,7 +79,7 @@ update_permissions:
         - read_at
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
       check: {}
   - role: teacher
     permission:
@@ -87,7 +87,7 @@ update_permissions:
         - read_at
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
       check: {}
   - role: parent
     permission:
@@ -95,7 +95,7 @@ update_permissions:
         - read_at
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
       check: {}
   - role: partner
     permission:
@@ -103,5 +103,5 @@ update_permissions:
         - read_at
       filter:
         user_id:
-          _eq: "X-Hasura-User-Id"
+          _eq: X-Hasura-User-Id
       check: {}

@@ -9,6 +9,13 @@ array_relationships:
         table:
           name: message_thread_participants
           schema: public
+  - name: profile_participants
+    using:
+      foreign_key_constraint_on:
+        column: thread_id
+        table:
+          name: thread_participants
+          schema: public
   - name: messages
     using:
       foreign_key_constraint_on:
@@ -47,12 +54,16 @@ select_permissions:
         - moderation_status
         - last_reported_at
         - closed_reason
+        - subject
+        - updated_at
       filter:
         _or:
           - participants:
-              user_id: {_eq: "X-Hasura-User-Id"}
-          - requester_user_id: {_eq: "X-Hasura-User-Id"}
-          - target_user_id: {_eq: "X-Hasura-User-Id"}
+              user_id: {_eq: X-Hasura-User-Id}
+          - profile_participants:
+              profile_id: {_eq: X-Hasura-Profile-Id}
+          - requester_user_id: {_eq: X-Hasura-User-Id}
+          - target_user_id: {_eq: X-Hasura-User-Id}
   - role: teacher
     permission:
       columns:
@@ -72,31 +83,52 @@ select_permissions:
         - moderation_status
         - last_reported_at
         - closed_reason
+        - subject
+        - updated_at
       filter:
         _or:
           - participants:
-              user_id: {_eq: "X-Hasura-User-Id"}
-          - requester_user_id: {_eq: "X-Hasura-User-Id"}
-          - target_user_id: {_eq: "X-Hasura-User-Id"}
+              user_id: {_eq: X-Hasura-User-Id}
+          - profile_participants:
+              profile_id: {_eq: X-Hasura-Profile-Id}
+          - requester_user_id: {_eq: X-Hasura-User-Id}
+          - target_user_id: {_eq: X-Hasura-User-Id}
   - role: school_admin
     permission:
       columns: "*"
       filter:
         school_id:
-          _eq: "X-Hasura-School-Id"
+          _eq: X-Hasura-School-Id
   - role: district_admin
     permission:
       columns: "*"
       filter:
         district_id:
-          _eq: "X-Hasura-District-Id"
+          _eq: X-Hasura-District-Id
   - role: admin
     permission:
       columns: "*"
       filter:
         district_id:
-          _eq: "X-Hasura-District-Id"
+          _eq: X-Hasura-District-Id
   - role: system_admin
     permission:
       columns: "*"
       filter: {}
+insert_permissions:
+  - role: parent
+    permission:
+      columns:
+        - subject
+        - title
+      check: {}
+      set:
+        created_by: x-hasura-user-id
+  - role: teacher
+    permission:
+      columns:
+        - subject
+        - title
+      check: {}
+      set:
+        created_by: x-hasura-user-id

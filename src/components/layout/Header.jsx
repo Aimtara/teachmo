@@ -2,19 +2,19 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, Bell } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import { User } from '@/api/entities';
+import { nhost } from '@/lib/nhostClient';
 import { NotificationsAPI } from '@/api/adapters';
 
 export default function Header({ user, onLogout }) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [unreadCount, setUnreadCount] = React.useState(0);
 
-  const roleLabel = user?.user_type || user?.role || 'parent';
+  const roleLabel = user?.app_role || user?.role || 'parent';
   const streak = user?.login_streak ?? 0;
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
-    await User.logout?.();
+    await nhost.auth.signOut();
     onLogout?.();
   };
 

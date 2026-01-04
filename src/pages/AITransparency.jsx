@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import ReactMarkdown from 'react-markdown';
 import { graphql } from '@/lib/graphql';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -55,7 +56,9 @@ export default function AITransparency() {
                   {doc.summary ? <p className="text-sm text-muted-foreground">{doc.summary}</p> : null}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{doc.content}</p>
+                  <ReactMarkdown className="prose prose-sm max-w-none text-slate-700">
+                    {doc.content}
+                  </ReactMarkdown>
                   {Array.isArray(doc.links) && doc.links.length > 0 ? (
                     <div className="space-y-1">
                       <p className="text-xs uppercase tracking-wide text-slate-500">References</p>

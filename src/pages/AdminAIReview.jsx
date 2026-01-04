@@ -10,12 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 export default function AdminAIReview() {
   const userId = useUserId();
   const { data: scope } = useTenantScope();
-  const districtId = scope?.districtId ?? null;
+  const organizationId = scope?.organizationId ?? null;
   const schoolId = scope?.schoolId ?? null;
 
   const queueQuery = useQuery({
-    queryKey: ['ai-review-queue', districtId, schoolId],
-    enabled: Boolean(districtId),
+    queryKey: ['ai-review-queue', organizationId, schoolId],
+    enabled: Boolean(organizationId),
     queryFn: async () => {
       const query = `query ReviewQueue($where: ai_review_queue_bool_exp!) {
         ai_review_queue(where: $where, order_by: { created_at: desc }, limit: 50) {
@@ -31,7 +31,7 @@ export default function AdminAIReview() {
 
       const where = schoolId
         ? { school_id: { _eq: schoolId } }
-        : { district_id: { _eq: districtId } };
+        : { organization_id: { _eq: organizationId } };
 
       const res = await graphql(query, { where });
       return res?.ai_review_queue ?? [];

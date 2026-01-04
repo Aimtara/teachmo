@@ -1,0 +1,159 @@
+table:
+  name: profiles
+  schema: public
+object_relationships:
+  - name: organization
+    using:
+      foreign_key_constraint_on: organization_id
+  - name: school
+    using:
+      foreign_key_constraint_on: school_id
+array_relationships:
+  - name: children
+    using:
+      foreign_key_constraint_on:
+        column: profile_id
+        table:
+          name: children
+          schema: public
+  - name: thread_participants
+    using:
+      foreign_key_constraint_on:
+        column: profile_id
+        table:
+          name: thread_participants
+          schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: teacher
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - id:
+              _eq: X-Hasura-Profile-Id
+          - user_id:
+              _eq: X-Hasura-User-Id
+  - role: parent
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - id:
+              _eq: X-Hasura-Profile-Id
+          - user_id:
+              _eq: X-Hasura-User-Id
+  - role: partner
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - id:
+              _eq: X-Hasura-Profile-Id
+          - user_id:
+              _eq: X-Hasura-User-Id
+insert_permissions:
+  - role: parent
+    permission:
+      columns:
+        - full_name
+        - app_role
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-user-id
+        organization_id: x-hasura-organization-id
+        school_id: x-hasura-school-id
+  - role: teacher
+    permission:
+      columns:
+        - full_name
+        - app_role
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-user-id
+        organization_id: x-hasura-organization-id
+        school_id: x-hasura-school-id
+  - role: partner
+    permission:
+      columns:
+        - full_name
+        - app_role
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-user-id
+        organization_id: x-hasura-organization-id
+        school_id: x-hasura-school-id
+  - role: system_admin
+    permission:
+      columns: '*'
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      check: {}
+update_permissions:
+  - role: parent
+    permission:
+      columns:
+        - full_name
+      filter:
+        id:
+          _eq: X-Hasura-Profile-Id
+      check:
+        id:
+          _eq: X-Hasura-Profile-Id
+  - role: teacher
+    permission:
+      columns:
+        - full_name
+      filter:
+        id:
+          _eq: X-Hasura-Profile-Id
+      check:
+        id:
+          _eq: X-Hasura-Profile-Id
+  - role: partner
+    permission:
+      columns:
+        - full_name
+      filter:
+        id:
+          _eq: X-Hasura-Profile-Id
+      check:
+        id:
+          _eq: X-Hasura-Profile-Id
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}

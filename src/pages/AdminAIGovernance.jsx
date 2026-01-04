@@ -1,24 +1,45 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { graphql } from '@/lib/graphql';
+import { useTenantScope } from '@/hooks/useTenantScope';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AdminAIGovernance() {
+  const { data: scope } = useTenantScope();
+  const organizationId = scope?.organizationId ?? null;
+
   const policyQuery = useQuery({
-    queryKey: ['ai-policy-docs-admin'],
+    queryKey: ['ai-policy-docs-admin', organizationId],
     queryFn: async () => {
-      const query = `query AIPolicyDocsAdmin {\n        ai_policy_docs(order_by: { published_at: desc }) {\n          id\n          title\n          summary\n          published_at\n        }\n      }`;
-      const res = await graphql(query);
+      const query = `query AIPolicyDocsAdmin($where: ai_policy_docs_bool_exp) {
+        ai_policy_docs(where: $where, order_by: { published_at: desc }) {
+          id
+          title
+          summary
+          published_at
+        }
+      }`;
+      const where = organizationId
+        ? { _or: [{ organization_id: { _eq: organizationId } }, { organization_id: { _is_null: true } }] }
+        : { organization_id: { _is_null: true } };
+      const res = await graphql(query, { where });
       return res?.ai_policy_docs ?? [];
     },
   });
 
   const reviewCountQuery = useQuery({
-    queryKey: ['ai-review-counts'],
+    queryKey: ['ai-review-counts', organizationId],
     queryFn: async () => {
-      const query = `query ReviewCounts {\n        ai_review_queue_aggregate(where: { status: { _eq: \"pending\" } }) { aggregate { count } }\n        ai_usage_logs_aggregate { aggregate { count } }\n      }`;
-      const res = await graphql(query);
+      const query = `query ReviewCounts($queueWhere: ai_review_queue_bool_exp!, $usageWhere: ai_usage_logs_bool_exp) {
+        ai_review_queue_aggregate(where: $queueWhere) { aggregate { count } }
+        ai_usage_logs_aggregate(where: $usageWhere) { aggregate { count } }
+      }`;
+      const queueWhere = organizationId
+        ? { status: { _eq: "pending" }, organization_id: { _eq: organizationId } }
+        : { status: { _eq: "pending" } };
+      const usageWhere = organizationId ? { organization_id: { _eq: organizationId } } : {};
+      const res = await graphql(query, { queueWhere, usageWhere });
       return {
         pending: res?.ai_review_queue_aggregate?.aggregate?.count ?? 0,
         usage: res?.ai_usage_logs_aggregate?.aggregate?.count ?? 0,

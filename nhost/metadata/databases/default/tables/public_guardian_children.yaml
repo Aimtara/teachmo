@@ -1,0 +1,47 @@
+table:
+  name: guardian_children
+  schema: public
+object_relationships:
+  - name: guardian
+    using:
+      foreign_key_constraint_on: guardian_id
+  - name: child
+    using:
+      foreign_key_constraint_on: child_id
+select_permissions:
+  - role: parent
+    permission:
+      columns: '*'
+      filter:
+        guardian_id:
+          _eq: X-Hasura-Profile-Id
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: parent
+    permission:
+      columns:
+        - child_id
+        - relationship
+      check:
+        guardian_id:
+          _eq: X-Hasura-Profile-Id
+      set:
+        guardian_id: x-hasura-profile-id
+update_permissions:
+  - role: parent
+    permission:
+      columns:
+        - relationship
+      filter:
+        guardian_id:
+          _eq: X-Hasura-Profile-Id
+      check:
+        guardian_id:
+          _eq: X-Hasura-Profile-Id

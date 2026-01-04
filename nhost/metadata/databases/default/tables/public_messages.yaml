@@ -14,7 +14,9 @@ select_permissions:
         - sender_id
         - sender_user_id
         - created_at
+        - sent_at
         - body
+        - content
         - is_hidden
         - is_redacted
         - is_deleted
@@ -29,9 +31,11 @@ select_permissions:
                     - status: {_eq: "active"}
                 - _or:
                     - participants:
-                        user_id: {_eq: "X-Hasura-User-Id"}
-                    - requester_user_id: {_eq: "X-Hasura-User-Id"}
-                    - target_user_id: {_eq: "X-Hasura-User-Id"}
+                        user_id: {_eq: X-Hasura-User-Id}
+                    - profile_participants:
+                        profile_id: {_eq: X-Hasura-Profile-Id}
+                    - requester_user_id: {_eq: X-Hasura-User-Id}
+                    - target_user_id: {_eq: X-Hasura-User-Id}
           - is_hidden: {_eq: false}
           - is_deleted: {_eq: false}
   - role: teacher
@@ -42,7 +46,9 @@ select_permissions:
         - sender_id
         - sender_user_id
         - created_at
+        - sent_at
         - body
+        - content
         - is_hidden
         - is_redacted
         - is_deleted
@@ -57,9 +63,11 @@ select_permissions:
                     - status: {_eq: "active"}
                 - _or:
                     - participants:
-                        user_id: {_eq: "X-Hasura-User-Id"}
-                    - requester_user_id: {_eq: "X-Hasura-User-Id"}
-                    - target_user_id: {_eq: "X-Hasura-User-Id"}
+                        user_id: {_eq: X-Hasura-User-Id}
+                    - profile_participants:
+                        profile_id: {_eq: X-Hasura-Profile-Id}
+                    - requester_user_id: {_eq: X-Hasura-User-Id}
+                    - target_user_id: {_eq: X-Hasura-User-Id}
           - is_hidden: {_eq: false}
           - is_deleted: {_eq: false}
   - role: school_admin
@@ -68,30 +76,31 @@ select_permissions:
       filter:
         thread:
           school_id:
-            _eq: "X-Hasura-School-Id"
+            _eq: X-Hasura-School-Id
   - role: district_admin
     permission:
       columns: "*"
       filter:
         thread:
           district_id:
-            _eq: "X-Hasura-District-Id"
+            _eq: X-Hasura-District-Id
   - role: admin
     permission:
       columns: "*"
       filter:
         thread:
           district_id:
-            _eq: "X-Hasura-District-Id"
+            _eq: X-Hasura-District-Id
 insert_permissions:
   - role: parent
     permission:
       columns:
         - thread_id
         - body
+        - content
       check:
         _and:
-          - sender_id: {_eq: "X-Hasura-User-Id"}
+          - sender_id: {_eq: X-Hasura-Profile-Id}
           - thread:
               _and:
                 - _or:
@@ -99,20 +108,23 @@ insert_permissions:
                     - status: {_eq: "active"}
                 - _or:
                     - participants:
-                        user_id: {_eq: "X-Hasura-User-Id"}
-                    - requester_user_id: {_eq: "X-Hasura-User-Id"}
-                    - target_user_id: {_eq: "X-Hasura-User-Id"}
+                        user_id: {_eq: X-Hasura-User-Id}
+                    - profile_participants:
+                        profile_id: {_eq: X-Hasura-Profile-Id}
+                    - requester_user_id: {_eq: X-Hasura-User-Id}
+                    - target_user_id: {_eq: X-Hasura-User-Id}
       set:
-        sender_id: "X-Hasura-User-Id"
-        sender_user_id: "X-Hasura-User-Id"
+        sender_id: x-hasura-profile-id
+        sender_user_id: x-hasura-user-id
   - role: teacher
     permission:
       columns:
         - thread_id
         - body
+        - content
       check:
         _and:
-          - sender_id: {_eq: "X-Hasura-User-Id"}
+          - sender_id: {_eq: X-Hasura-Profile-Id}
           - thread:
               _and:
                 - _or:
@@ -120,12 +132,14 @@ insert_permissions:
                     - status: {_eq: "active"}
                 - _or:
                     - participants:
-                        user_id: {_eq: "X-Hasura-User-Id"}
-                    - requester_user_id: {_eq: "X-Hasura-User-Id"}
-                    - target_user_id: {_eq: "X-Hasura-User-Id"}
+                        user_id: {_eq: X-Hasura-User-Id}
+                    - profile_participants:
+                        profile_id: {_eq: X-Hasura-Profile-Id}
+                    - requester_user_id: {_eq: X-Hasura-User-Id}
+                    - target_user_id: {_eq: X-Hasura-User-Id}
       set:
-        sender_id: "X-Hasura-User-Id"
-        sender_user_id: "X-Hasura-User-Id"
+        sender_id: x-hasura-profile-id
+        sender_user_id: x-hasura-user-id
 update_permissions:
   - role: school_admin
     permission:
@@ -148,12 +162,12 @@ update_permissions:
       filter:
         thread:
           school_id:
-            _eq: "X-Hasura-School-Id"
+            _eq: X-Hasura-School-Id
       check: {}
       set:
-        hidden_by: "X-Hasura-User-Id"
-        redacted_by: "X-Hasura-User-Id"
-        deleted_by: "X-Hasura-User-Id"
+        hidden_by: x-hasura-user-id
+        redacted_by: x-hasura-user-id
+        deleted_by: x-hasura-user-id
   - role: district_admin
     permission:
       columns:
@@ -175,12 +189,12 @@ update_permissions:
       filter:
         thread:
           district_id:
-            _eq: "X-Hasura-District-Id"
+            _eq: X-Hasura-District-Id
       check: {}
       set:
-        hidden_by: "X-Hasura-User-Id"
-        redacted_by: "X-Hasura-User-Id"
-        deleted_by: "X-Hasura-User-Id"
+        hidden_by: x-hasura-user-id
+        redacted_by: x-hasura-user-id
+        deleted_by: x-hasura-user-id
   - role: admin
     permission:
       columns:
@@ -202,9 +216,9 @@ update_permissions:
       filter:
         thread:
           district_id:
-            _eq: "X-Hasura-District-Id"
+            _eq: X-Hasura-District-Id
       check: {}
       set:
-        hidden_by: "X-Hasura-User-Id"
-        redacted_by: "X-Hasura-User-Id"
-        deleted_by: "X-Hasura-User-Id"
+        hidden_by: x-hasura-user-id
+        redacted_by: x-hasura-user-id
+        deleted_by: x-hasura-user-id

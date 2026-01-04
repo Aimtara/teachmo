@@ -12,11 +12,11 @@ select_permissions:
       filter:
         thread:
           district_id:
-            _eq: "X-Hasura-District-Id"
+            _eq: X-Hasura-District-Id
   - role: district_admin
     permission:
       columns: "*"
       filter:
         thread:
           district_id:
-            _eq: "X-Hasura-District-Id"
+            _eq: X-Hasura-District-Id

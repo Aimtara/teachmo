@@ -18,24 +18,26 @@ export default async function auditExport(req, res) {
 
   const role = String(req.headers['x-hasura-role'] ?? '');
   const actorId = String(req.headers['x-hasura-user-id'] ?? '');
-  const districtIdHeader = req.headers['x-hasura-district-id'] ? String(req.headers['x-hasura-district-id']) : null;
+  const organizationIdHeader = req.headers['x-hasura-organization-id']
+    ? String(req.headers['x-hasura-organization-id'])
+    : null;
   const schoolIdHeader = req.headers['x-hasura-school-id'] ? String(req.headers['x-hasura-school-id']) : null;
 
   if (!actorId || !allowedRoles.has(role)) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
-  const { search, districtId, schoolId, limit = 500, offset = 0 } = req.body ?? {};
-  const effectiveDistrictId = districtId ?? districtIdHeader;
+  const { search, organizationId, schoolId, limit = 500, offset = 0 } = req.body ?? {};
+  const effectiveOrganizationId = organizationId ?? organizationIdHeader;
   const effectiveSchoolId = schoolId ?? schoolIdHeader;
 
-  if (!effectiveDistrictId && !effectiveSchoolId) {
+  if (!effectiveOrganizationId && !effectiveSchoolId) {
     return res.status(400).json({ error: 'Missing tenant scope' });
   }
 
   const where = effectiveSchoolId
     ? { school_id: { _eq: effectiveSchoolId } }
-    : { district_id: { _eq: effectiveDistrictId } };
+    : { organization_id: { _eq: effectiveOrganizationId } };
 
   if (search) {
     where._or = [
@@ -51,7 +53,7 @@ export default async function auditExport(req, res) {
       action
       entity_type
       entity_id
-      district_id
+      organization_id
       school_id
       metadata
     }
@@ -67,7 +69,16 @@ export default async function auditExport(req, res) {
   });
 
   const rows = data?.audit_log ?? [];
-  const headers = ['created_at', 'actor_id', 'action', 'entity_type', 'entity_id', 'district_id', 'school_id', 'metadata'];
+  const headers = [
+    'created_at',
+    'actor_id',
+    'action',
+    'entity_type',
+    'entity_id',
+    'organization_id',
+    'school_id',
+    'metadata'
+  ];
 
   const csv = [
     headers.join(','),

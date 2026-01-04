@@ -13,6 +13,8 @@ select_permissions:
         - links
         - published_at
         - updated_at
+        - organization_id
+        - school_id
       filter: {}
   - role: parent
     permission:
@@ -25,6 +27,8 @@ select_permissions:
         - links
         - published_at
         - updated_at
+        - organization_id
+        - school_id
       filter: {}
   - role: teacher
     permission:
@@ -37,6 +41,8 @@ select_permissions:
         - links
         - published_at
         - updated_at
+        - organization_id
+        - school_id
       filter: {}
   - role: partner
     permission:
@@ -49,6 +55,8 @@ select_permissions:
         - links
         - published_at
         - updated_at
+        - organization_id
+        - school_id
       filter: {}
   - role: system_admin
     permission:
@@ -61,11 +69,15 @@ select_permissions:
   - role: district_admin
     permission:
       columns: '*'
-      filter: {}
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
   - role: school_admin
     permission:
       columns: '*'
-      filter: {}
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
 insert_permissions:
   - role: system_admin
     permission:
@@ -74,7 +86,9 @@ insert_permissions:
   - role: admin
     permission:
       columns: '*'
-      check: {}
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
 update_permissions:
   - role: system_admin
     permission:
@@ -84,5 +98,9 @@ update_permissions:
   - role: admin
     permission:
       columns: '*'
-      filter: {}
-      check: {}
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id

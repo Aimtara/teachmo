@@ -23,18 +23,18 @@ function normalizeFlags(rows = []) {
 
 export default function FeatureFlagProvider({ children }) {
   const { data: scope } = useTenantScope();
-  const districtId = scope?.districtId ?? null;
+  const organizationId = scope?.organizationId ?? null;
   const schoolId = scope?.schoolId ?? null;
   const setFeatureFlags = useStore((state) => state.setFeatureFlags);
 
   const { data } = useQuery({
-    queryKey: ['feature-flags', districtId, schoolId],
-    enabled: Boolean(districtId),
+    queryKey: ['feature-flags', organizationId, schoolId],
+    enabled: Boolean(organizationId),
     queryFn: async () => {
-      const query = `query FeatureFlags($districtId: uuid!, $schoolId: uuid) {
+      const query = `query FeatureFlags($organizationId: uuid!, $schoolId: uuid) {
         feature_flags(
           where: {
-            district_id: { _eq: $districtId },
+            organization_id: { _eq: $organizationId },
             _or: [
               { school_id: { _is_null: true } },
               { school_id: { _eq: $schoolId } }
@@ -49,19 +49,19 @@ export default function FeatureFlagProvider({ children }) {
         }
       }`;
 
-      const res = await graphql(query, { districtId, schoolId });
+      const res = await graphql(query, { organizationId, schoolId });
       return res?.feature_flags ?? [];
     },
   });
 
   useEffect(() => {
-    if (!districtId) {
+    if (!organizationId) {
       setFeatureFlags(EMPTY_FLAGS);
       return;
     }
     const normalized = normalizeFlags(data || []);
     setFeatureFlags(normalized);
-  }, [data, districtId, setFeatureFlags]);
+  }, [data, organizationId, setFeatureFlags]);
 
   return children;
 }

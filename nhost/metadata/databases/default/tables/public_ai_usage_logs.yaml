@@ -10,20 +10,26 @@ select_permissions:
     permission:
       columns: '*'
       filter:
-        district_id:
-          _eq: X-Hasura-District-Id
+        organization_id:
+          _eq: X-Hasura-Organization-Id
   - role: district_admin
     permission:
       columns: '*'
       filter:
-        district_id:
-          _eq: X-Hasura-District-Id
+        organization_id:
+          _eq: X-Hasura-Organization-Id
   - role: school_admin
     permission:
       columns: '*'
       filter:
-        school_id:
-          _eq: X-Hasura-School-Id
+        _and:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - _or:
+              - school_id:
+                  _eq: X-Hasura-School-Id
+              - school_id:
+                  _is_null: true
 insert_permissions:
   - role: system_admin
     permission:
@@ -33,20 +39,20 @@ insert_permissions:
     permission:
       columns: '*'
       check:
-        district_id:
-          _eq: X-Hasura-District-Id
+        organization_id:
+          _eq: X-Hasura-Organization-Id
   - role: district_admin
     permission:
       columns: '*'
       check:
-        district_id:
-          _eq: X-Hasura-District-Id
+        organization_id:
+          _eq: X-Hasura-Organization-Id
   - role: school_admin
     permission:
       columns: '*'
       check:
-        school_id:
-          _eq: X-Hasura-School-Id
+        organization_id:
+          _eq: X-Hasura-Organization-Id
 update_permissions:
   - role: system_admin
     permission:
@@ -62,8 +68,8 @@ update_permissions:
         - flagged
         - metadata
       filter:
-        district_id:
-          _eq: X-Hasura-District-Id
+        organization_id:
+          _eq: X-Hasura-Organization-Id
       check:
-        district_id:
-          _eq: X-Hasura-District-Id
+        organization_id:
+          _eq: X-Hasura-Organization-Id
