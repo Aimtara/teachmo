@@ -35,8 +35,17 @@ insert_permissions:
       columns:
         - thread_id
       check:
-        profile_id:
-          _eq: X-Hasura-Profile-Id
+        _and:
+          - profile_id:
+              _eq: X-Hasura-Profile-Id
+          - thread:
+              _or:
+                - requester_user_id:
+                    _eq: X-Hasura-User-Id
+                - target_user_id:
+                    _eq: X-Hasura-User-Id
+                - school_id:
+                    _eq: X-Hasura-School-Id
       set:
         profile_id: x-hasura-profile-id
   - role: teacher
@@ -44,8 +53,17 @@ insert_permissions:
       columns:
         - thread_id
       check:
-        profile_id:
-          _eq: X-Hasura-Profile-Id
+        _and:
+          - profile_id:
+              _eq: X-Hasura-Profile-Id
+          - thread:
+              _or:
+                - requester_user_id:
+                    _eq: X-Hasura-User-Id
+                - target_user_id:
+                    _eq: X-Hasura-User-Id
+                - school_id:
+                    _eq: X-Hasura-School-Id
       set:
         profile_id: x-hasura-profile-id
 update_permissions:

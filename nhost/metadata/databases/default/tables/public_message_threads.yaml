@@ -121,14 +121,20 @@ insert_permissions:
       columns:
         - subject
         - title
-      check: {}
+      check:
+        school_id:
+          _eq: X-Hasura-School-Id
       set:
         created_by: x-hasura-user-id
+        school_id: x-hasura-school-id
   - role: teacher
     permission:
       columns:
         - subject
         - title
-      check: {}
+      check:
+        school_id:
+          _eq: X-Hasura-School-Id
       set:
         created_by: x-hasura-user-id
+        school_id: x-hasura-school-id

@@ -18,6 +18,10 @@ WHERE p.user_id = al.actor_id
 CREATE INDEX IF NOT EXISTS audit_log_organization_id_idx ON public.audit_log(organization_id);
 CREATE INDEX IF NOT EXISTS audit_log_school_id_idx ON public.audit_log(school_id);
 
+-- Enforce audit log immutability to maintain compliance and audit trail integrity.
+-- Note: In extraordinary circumstances requiring data correction (e.g., GDPR requests,
+-- data breach remediation), authorized system maintenance should be performed by
+-- superusers with proper documentation and approval, outside normal application flow.
 CREATE OR REPLACE FUNCTION public.prevent_audit_log_mutation()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -219,9 +223,9 @@ AS $$
         ELSE ARRAY[COALESCE(p.app_role, 'parent')]::text[]
       END,
     'x-hasura-user-id', u.id::text,
-    'x-hasura-profile-id', p.id::text,
-    'x-hasura-organization-id', p.organization_id::text,
-    'x-hasura-school-id', p.school_id::text
+    'x-hasura-profile-id', COALESCE(p.id::text, ''),
+    'x-hasura-organization-id', COALESCE(p.organization_id::text, ''),
+    'x-hasura-school-id', COALESCE(p.school_id::text, '')
   )
   FROM auth.users u
   LEFT JOIN public.profiles p ON p.user_id = u.id
