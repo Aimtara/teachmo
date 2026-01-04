@@ -18,7 +18,7 @@ select_permissions:
         - expires_at
         - metadata
       filter:
-        requester_user_id: {_eq: "X-Hasura-User-Id"}
+        requester_user_id: {_eq: X-Hasura-User-Id}
   - role: teacher
     permission:
       columns:
@@ -36,8 +36,8 @@ select_permissions:
         - metadata
       filter:
         _or:
-          - target_user_id: {_eq: "X-Hasura-User-Id"}
-          - requester_user_id: {_eq: "X-Hasura-User-Id"}
+          - target_user_id: {_eq: X-Hasura-User-Id}
+          - requester_user_id: {_eq: X-Hasura-User-Id}
   - role: school_admin
     permission:
       columns: "*"

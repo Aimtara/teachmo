@@ -10,19 +10,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 export default function AdminFeatureFlags() {
   const { data: scope } = useTenantScope();
-  const districtId = scope?.districtId ?? null;
+  const organizationId = scope?.organizationId ?? null;
   const schoolId = scope?.schoolId ?? null;
   const [newKey, setNewKey] = useState('');
   const [newDescription, setNewDescription] = useState('');
 
   const flagsQuery = useQuery({
-    queryKey: ['feature-flags-admin', districtId, schoolId],
-    enabled: Boolean(districtId),
+    queryKey: ['feature-flags-admin', organizationId, schoolId],
+    enabled: Boolean(organizationId),
     queryFn: async () => {
-      const query = `query FeatureFlagsAdmin($districtId: uuid!, $schoolId: uuid) {
+      const query = `query FeatureFlagsAdmin($organizationId: uuid!, $schoolId: uuid) {
         feature_flags(
           where: {
-            district_id: { _eq: $districtId },
+            organization_id: { _eq: $organizationId },
             _or: [
               { school_id: { _eq: $schoolId } },
               { school_id: { _is_null: true } }
@@ -38,7 +38,7 @@ export default function AdminFeatureFlags() {
         }
       }`;
 
-      const res = await graphql(query, { districtId, schoolId });
+      const res = await graphql(query, { organizationId, schoolId });
       return res?.feature_flags ?? [];
     },
   });
@@ -63,7 +63,7 @@ export default function AdminFeatureFlags() {
       }`;
       await graphql(mutation, {
         object: {
-          district_id: districtId,
+          organization_id: organizationId,
           school_id: schoolId,
           key: newKey.trim(),
           description: newDescription.trim() || null,
@@ -85,7 +85,7 @@ export default function AdminFeatureFlags() {
       <div>
         <h1 className="text-2xl font-semibold">Feature Flags</h1>
         <p className="text-sm text-muted-foreground">
-          Toggle enterprise capabilities per tenant. School-specific flags override district defaults.
+          Toggle enterprise capabilities per tenant. School-specific flags override organization defaults.
         </p>
       </div>
 
@@ -106,7 +106,7 @@ export default function AdminFeatureFlags() {
           />
           <Button
             onClick={() => createMutation.mutate()}
-            disabled={!newKey.trim() || createMutation.isLoading || !districtId}
+            disabled={!newKey.trim() || createMutation.isLoading || !organizationId}
           >
             Add
           </Button>
@@ -139,7 +139,7 @@ export default function AdminFeatureFlags() {
                   <TableRow key={flag.id}>
                     <TableCell className="font-mono text-xs">{flag.key}</TableCell>
                     <TableCell>{flag.description ?? '—'}</TableCell>
-                    <TableCell>{flag.school_id ? 'School' : 'District'}</TableCell>
+                    <TableCell>{flag.school_id ? 'School' : 'Organization'}</TableCell>
                     <TableCell>
                       <Switch
                         checked={Boolean(flag.enabled)}

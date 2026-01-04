@@ -1,0 +1,70 @@
+table:
+  name: library_items
+  schema: public
+object_relationships:
+  - name: activity
+    using:
+      foreign_key_constraint_on: activity_id
+select_permissions:
+  - role: parent
+    permission:
+      columns: '*'
+      filter: {}
+  - role: teacher
+    permission:
+      columns: '*'
+      filter: {}
+  - role: partner
+    permission:
+      columns: '*'
+      filter: {}
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: teacher
+    permission:
+      columns:
+        - activity_id
+        - url
+        - format
+      check: {}
+  - role: system_admin
+    permission:
+      columns: '*'
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      check: {}
+update_permissions:
+  - role: teacher
+    permission:
+      columns:
+        - url
+        - format
+      filter: {}
+      check: {}
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}

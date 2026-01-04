@@ -1,37 +1,28 @@
-# Teachmo AI Transparency
+# AI Transparency
 
-## AI Purpose & Ethical Framework
-Teachmo uses AI to reduce administrative burden, surface insights, and support learning outcomes. AI outputs are advisory and must not replace professional judgment.
+Teachmo uses AI to support educators and caregivers with human oversight. This document summarizes how AI is used, what data is logged, and how human review is enforced.
 
-Guiding principles:
-- **Transparency**: clearly describe where AI is used.
-- **Human oversight**: humans review high-impact decisions.
-- **Fairness**: monitor bias and disparate impact.
-- **Privacy**: minimize data exposure and apply anonymization.
+## Purpose and scope
 
-## Data Flow Diagram (Narrative)
-1. **Inputs**: user prompts, operational context, and approved datasets.
-2. **Model**: dynamic model selection based on risk and workload.
-3. **Review Queue**: flagged outputs are routed for human review.
-4. **User Delivery**: approved content is delivered with audit logging.
+- **Purpose**: reduce administrative burden, surface insights, and support communication workflows.
+- **Scope**: AI assistance is advisory and not used for high-impact decisions without human review.
 
-## Human-in-the-Loop Moderation
-- Flagged AI outputs enter the review queue.
-- Reviewers can approve, reject, or request changes.
-- Decisions are logged with reviewer identity and timestamps.
+## Data usage
 
-## Bias Detection Methodology
-Teachmo applies a two-stage approach:
-- **Statistical checks**: monitor distributions and outcome parity.
-- **Qualitative review**: sampled outputs reviewed by educators.
+When AI features are used, Teachmo stores metadata and governance artifacts:
 
-## Model Provenance & Dynamic Selection
-- Models are sourced from vetted providers (e.g., OpenAI, Anthropic).
-- Model choice is determined by risk level, latency, and cost thresholds.
+- **Usage logs**: model name, timestamps, status, and metadata for every AI call.
+- **Payloads**: prompts and responses are captured in secure audit tables for transparency and review.
+- **Tenant context**: each record is scoped to an organization and optional school.
 
-## Reviewer Accountability
-All AI review decisions are stored in `ai_review_queue` and linked to `ai_usage_logs` to create a full audit trail.
+## Human review
 
-## Privacy, Anonymization, and Feedback Loops
-- Sensitive identifiers are hashed for logging.
-- Feedback from reviewers and users improves future prompts and guardrails.
+Teachmo maintains an AI review queue for items flagged by policy or staff review. Reviewers can approve or reject content, and all decisions are logged.
+
+## Governance policies
+
+Policies are stored in the `ai_policy_docs` table and surfaced on `/ai/transparency`. Organizations can publish tenant-scoped guidance in addition to the global policy.
+
+## Contact
+
+Questions about AI governance can be sent to **ai-governance@teachmo.com**.

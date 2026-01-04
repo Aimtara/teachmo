@@ -50,8 +50,8 @@ export default function AdminDashboard() {
     await createProfile({
       user_id: userForm.userId,
       full_name: userForm.fullName,
-      role: userForm.role,
-      district_id: userForm.organizationId || null,
+      app_role: userForm.role,
+      organization_id: userForm.organizationId || null,
       school_id: userForm.schoolId || null
     });
     log('admin_assign_role', {

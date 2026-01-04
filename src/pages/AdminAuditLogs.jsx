@@ -11,13 +11,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 export default function AdminAuditLogs() {
   const { data: scope } = useTenantScope();
-  const districtId = scope?.districtId ?? null;
+  const organizationId = scope?.organizationId ?? null;
   const schoolId = scope?.schoolId ?? null;
   const [search, setSearch] = useState('');
 
   const auditQuery = useQuery({
-    queryKey: ['audit-log', districtId, schoolId],
-    enabled: Boolean(districtId),
+    queryKey: ['audit-log', organizationId, schoolId],
+    enabled: Boolean(organizationId),
     queryFn: async () => {
       const query = `query AuditLog($where: audit_log_bool_exp!, $limit: Int!) {
         audit_log(where: $where, order_by: { created_at: desc }, limit: $limit) {
@@ -28,14 +28,14 @@ export default function AdminAuditLogs() {
           entity_type
           entity_id
           metadata
-          district_id
+          organization_id
           school_id
         }
       }`;
 
       const where = schoolId
         ? { school_id: { _eq: schoolId } }
-        : { district_id: { _eq: districtId } };
+        : { organization_id: { _eq: organizationId } };
 
       const res = await graphql(query, { where, limit: 200 });
       return res?.audit_log ?? [];
@@ -56,7 +56,7 @@ export default function AdminAuditLogs() {
   const exportCsv = async () => {
     const { res, error } = await nhost.functions.call('audit-export', {
       search,
-      districtId,
+      organizationId,
       schoolId,
     });
 
@@ -96,7 +96,7 @@ export default function AdminAuditLogs() {
             placeholder="Filter by action or entity"
             className="md:max-w-sm"
           />
-          <Button onClick={exportCsv} disabled={!districtId}>
+          <Button onClick={exportCsv} disabled={!organizationId}>
             Export CSV
           </Button>
         </CardContent>

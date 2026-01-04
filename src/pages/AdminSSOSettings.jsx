@@ -5,12 +5,11 @@ import { useTenantScope } from '@/hooks/useTenantScope';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 const PROVIDERS = [
   { id: 'google', label: 'Google Workspace' },
-  { id: 'azure_ad', label: 'Azure AD' },
+  { id: 'azuread', label: 'Azure AD' },
   { id: 'clever', label: 'Clever' },
   { id: 'classlink', label: 'ClassLink' }
 ];
@@ -25,17 +24,17 @@ function safeJsonParse(value) {
 
 export default function AdminSSOSettings() {
   const { data: scope } = useTenantScope();
-  const districtId = scope?.districtId ?? null;
+  const organizationId = scope?.organizationId ?? null;
   const schoolId = scope?.schoolId ?? null;
 
   const ssoQuery = useQuery({
-    queryKey: ['tenant_sso_settings', districtId, schoolId],
-    enabled: Boolean(districtId),
+    queryKey: ['enterprise_configs', organizationId, schoolId],
+    enabled: Boolean(organizationId),
     queryFn: async () => {
-      const query = `query TenantSsoSettings($districtId: uuid!, $schoolId: uuid) {
-        tenant_sso_settings(
+      const query = `query EnterpriseConfig($organizationId: uuid!, $schoolId: uuid) {
+        enterprise_configs(
           where: {
-            district_id: { _eq: $districtId },
+            organization_id: { _eq: $organizationId },
             _or: [
               { school_id: { _eq: $schoolId } },
               { school_id: { _is_null: true } }
@@ -45,75 +44,70 @@ export default function AdminSSOSettings() {
           limit: 1
         ) {
           id
-          allowed_providers
-          allowed_domains
+          allowed_oauth_providers
+          allowed_email_domains
           require_sso
-          enforcement_mode
-          metadata
+          security_policy
           updated_at
         }
       }`;
 
-      const res = await graphql(query, { districtId, schoolId });
-      return res?.tenant_sso_settings?.[0] ?? null;
+      const res = await graphql(query, { organizationId, schoolId });
+      return res?.enterprise_configs?.[0] ?? null;
     },
   });
 
   const [selectedProviders, setSelectedProviders] = useState([]);
   const [domains, setDomains] = useState('');
   const [requireSso, setRequireSso] = useState(false);
-  const [enforcementMode, setEnforcementMode] = useState('optional');
   const [notes, setNotes] = useState('');
 
   useMemo(() => {
     const row = ssoQuery.data;
     if (!row) return;
-    setSelectedProviders(row.allowed_providers ?? []);
-    setDomains((row.allowed_domains ?? []).join('\n'));
+    setSelectedProviders(row.allowed_oauth_providers ?? []);
+    setDomains((row.allowed_email_domains ?? []).join('\n'));
     setRequireSso(Boolean(row.require_sso));
-    setEnforcementMode(row.enforcement_mode ?? 'optional');
-    setNotes(JSON.stringify(row.metadata ?? {}, null, 2));
+    setNotes(JSON.stringify(row.security_policy ?? {}, null, 2));
   }, [ssoQuery.data]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!districtId) throw new Error('Missing district scope');
+      if (!organizationId) throw new Error('Missing organization scope');
 
       const allowedDomains = domains
         .split(/\n|,/)
         .map((value) => value.trim())
         .filter(Boolean);
-      const metadata = safeJsonParse(notes);
+      const securityPolicy = safeJsonParse(notes);
 
       if (ssoQuery.data?.id) {
-        const mutation = `mutation UpdateSso($id: uuid!, $changes: tenant_sso_settings_set_input!) {
-          update_tenant_sso_settings_by_pk(pk_columns: { id: $id }, _set: $changes) { id updated_at }
+        const mutation = `mutation UpdateSso($id: uuid!, $changes: enterprise_configs_set_input!) {
+          update_enterprise_configs_by_pk(pk_columns: { id: $id }, _set: $changes) { id updated_at }
         }`;
 
         await graphql(mutation, {
           id: ssoQuery.data.id,
           changes: {
-            allowed_providers: selectedProviders,
-            allowed_domains: allowedDomains,
+            allowed_oauth_providers: selectedProviders,
+            allowed_email_domains: allowedDomains,
             require_sso: requireSso,
-            enforcement_mode: enforcementMode,
-            metadata,
+            security_policy: securityPolicy,
           }
         });
       } else {
-        const mutation = `mutation InsertSso($object: tenant_sso_settings_insert_input!) {
-          insert_tenant_sso_settings_one(object: $object) { id }
+        const mutation = `mutation InsertSso($object: enterprise_configs_insert_input!) {
+          insert_enterprise_configs_one(object: $object) { id }
         }`;
 
         await graphql(mutation, {
           object: {
-            district_id: districtId,
+            organization_id: organizationId,
             school_id: schoolId,
-            allowed_providers: selectedProviders,
-            allowed_domains: allowedDomains,
+            allowed_oauth_providers: selectedProviders,
+            allowed_email_domains: allowedDomains,
             require_sso: requireSso,
-            enforcement_mode: enforcementMode,
-            metadata,
+            security_policy: securityPolicy,
           }
         });
       }
@@ -165,16 +159,8 @@ export default function AdminSSOSettings() {
             <Checkbox checked={requireSso} onCheckedChange={() => setRequireSso((v) => !v)} />
             <div>
               <div className="text-sm font-medium">Require SSO for staff</div>
-              <p className="text-xs text-muted-foreground">All district users must authenticate through approved providers.</p>
+              <p className="text-xs text-muted-foreground">All organization users must authenticate through approved providers.</p>
             </div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Enforcement mode</div>
-            <Input
-              value={enforcementMode}
-              onChange={(e) => setEnforcementMode(e.target.value)}
-              placeholder="optional | strict | phased"
-            />
           </div>
           <div>
             <div className="text-xs text-muted-foreground mb-1">Allowed domains (one per line)</div>
@@ -182,7 +168,7 @@ export default function AdminSSOSettings() {
               value={domains}
               onChange={(e) => setDomains(e.target.value)}
               rows={4}
-              placeholder="district.edu\nsubdomain.district.edu"
+              placeholder="organization.edu\nsubdomain.organization.edu"
             />
           </div>
         </CardContent>
@@ -205,7 +191,7 @@ export default function AdminSSOSettings() {
       <div className="flex justify-end">
         <Button
           onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isLoading || !districtId}
+          disabled={saveMutation.isLoading || !organizationId}
         >
           {saveMutation.isLoading ? 'Saving…' : 'Save policy'}
         </Button>

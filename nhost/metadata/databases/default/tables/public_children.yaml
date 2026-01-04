@@ -1,0 +1,90 @@
+table:
+  name: children
+  schema: public
+object_relationships:
+  - name: profile
+    using:
+      foreign_key_constraint_on: profile_id
+array_relationships:
+  - name: guardians
+    using:
+      foreign_key_constraint_on:
+        column: child_id
+        table:
+          name: guardian_children
+          schema: public
+  - name: classroom_students
+    using:
+      foreign_key_constraint_on:
+        column: child_id
+        table:
+          name: classroom_students
+          schema: public
+select_permissions:
+  - role: parent
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - profile_id:
+              _eq: X-Hasura-Profile-Id
+          - guardians:
+              guardian_id:
+                _eq: X-Hasura-Profile-Id
+  - role: teacher
+    permission:
+      columns: '*'
+      filter:
+        classroom_students:
+          classroom:
+            teacher_id:
+              _eq: X-Hasura-Profile-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        classroom_students:
+          classroom:
+            school_id:
+              _eq: X-Hasura-School-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        classroom_students:
+          classroom:
+            school_id:
+              _eq: X-Hasura-School-Id
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: parent
+    permission:
+      columns:
+        - first_name
+        - last_name
+        - birthdate
+      check:
+        profile_id:
+          _eq: X-Hasura-Profile-Id
+      set:
+        profile_id: x-hasura-profile-id
+update_permissions:
+  - role: parent
+    permission:
+      columns:
+        - first_name
+        - last_name
+        - birthdate
+      filter:
+        profile_id:
+          _eq: X-Hasura-Profile-Id
+      check:
+        profile_id:
+          _eq: X-Hasura-Profile-Id

@@ -1,44 +1,30 @@
-# Teachmo Security Overview
+# Security Policy
 
-## Tenant Isolation Model
-Teachmo enforces tenant isolation across the application stack:
+## Reporting a vulnerability
 
-- **Hasura session variables** determine district and school scope.
-- **Row-level filtering** (Hasura permissions) ensures data is scoped by `district_id` or `school_id`.
-- **Immutable audit logs** provide an append-only record of security-sensitive activity.
+If you believe you have found a security issue in Teachmo, please report it privately.
 
-## SSO Setup (Google Workspace & Azure AD)
-1. Enable Google Workspace or Azure AD in the Nhost dashboard.
-2. Configure the tenant policy in **Admin → SSO Policy**.
-3. Set allowed domains and enforcement mode before rollout.
+- Email: security@teachmo.com
+- Include: a description of the issue, steps to reproduce, impacted endpoints or pages, and any proof-of-concept artifacts.
 
-## Role-Based Access Matrix
-| Role | Scope | Example Capabilities |
-| --- | --- | --- |
-| `system_admin` | Global | Platform configuration, incident response, full audit access |
-| `district_admin` | District | Tenant settings, feature flags, audit exports |
-| `school_admin` | School | School-scoped governance, SIS roster review |
-| `teacher` / `parent` | Self | Access to their own data only |
+We will acknowledge reports within 2 business days and provide a remediation timeline once we validate the issue.
 
-## Audit Log Immutability
-Audit logs are append-only. Updates and deletes are blocked at the database layer to prevent tampering.
+## Security controls
 
-To export audit logs:
-1. Navigate to **Admin → Audit Logs**.
-2. Apply optional filters.
-3. Click **Export CSV**.
+Teachmo applies layered controls to protect user data and tenant boundaries:
 
-## Data Retention & Deletion
-- **Retention** defaults to district policy. Records can be archived after the configured duration.
-- **Deletion** requests are processed with tenant admin approval and logged in the audit trail.
+- **Authentication & authorization**: Nhost authentication with Hasura role-based access control (RBAC).
+- **Tenant isolation**: organization- and school-scoped claims used in Hasura permissions and backend APIs.
+- **Audit logging**: append-only audit logs for security-sensitive actions.
+- **Secrets management**: environment variables and managed secrets for keys and admin access.
+- **Least privilege**: role-scoped permissions for teachers, parents, partners, and administrators.
 
-## Encryption & Token Rotation
-- **In transit**: TLS for all traffic.
-- **At rest**: Postgres-managed encryption.
-- **Token rotation**: Access tokens are short-lived, refresh tokens are rotated per Nhost settings.
+## Data protection
 
-## Incident Response
-1. Detect incident via monitoring or audit log alerts.
-2. Contain and rotate credentials.
-3. Notify affected tenants with an impact summary.
-4. Perform post-incident review and remediation steps.
+- **Encryption**: TLS in transit and database-level protections at rest.
+- **PII handling**: restricted to authorized roles and scoped to tenant boundaries.
+- **Incident response**: internal runbooks for detection, triage, and customer communication.
+
+## Supported versions
+
+Teachmo maintains security fixes on the latest production release. Please upgrade to the newest version when patches are published.
