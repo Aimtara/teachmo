@@ -1,6 +1,9 @@
 tables:
   - auth_users.yaml
   - public_ai_interactions.yaml
+  - public_ai_policy_docs.yaml
+  - public_ai_review_queue.yaml
+  - public_ai_usage_logs.yaml
   - public_analytics_event_rollups_daily.yaml
   - public_analytics_events.yaml
   - public_audit_log.yaml
@@ -39,6 +42,9 @@ tables:
   - public_rate_limits.yaml
   - public_school_contact_directory.yaml
   - public_school_data_scopes.yaml
+  - public_sis_rosters.yaml
+  - public_feature_flags.yaml
+  - public_tenant_sso_settings.yaml
   - public_tenant_settings.yaml
   - public_user_profiles.yaml
   - public_workflow_definition_versions.yaml

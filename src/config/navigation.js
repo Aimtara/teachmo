@@ -115,6 +115,12 @@ export const NAV_STRUCTURE = [
       { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
       { name: 'Users', page: 'AdminUsers', icon: UserCheck, requiredScopes: ['users:manage'] },
       { name: 'Tenant Settings', page: 'AdminTenantSettings', icon: Building2, requiredScopes: ['org:manage'] },
+      { name: 'SSO Policy', page: 'AdminSSOSettings', icon: Shield, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_SSO' },
+      { name: 'Audit Logs', page: 'AdminAuditLogs', icon: FileText, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AUDIT_LOGS' },
+      { name: 'Feature Flags', page: 'AdminFeatureFlags', icon: BadgePercent, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_FEATURE_FLAGS' },
+      { name: 'AI Governance', page: 'AdminAIGovernance', icon: Bot, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_GOVERNANCE' },
+      { name: 'AI Review Queue', page: 'AdminAIReview', icon: Shield, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_REVIEW' },
+      { name: 'SIS Roster', page: 'AdminSISRoster', icon: School, requiredScopes: ['directory:manage'], feature: 'ENTERPRISE_SIS_ROSTER' },
       { name: 'Workflows', page: 'AdminWorkflows', icon: Compass, requiredScopes: ['automation:manage'] },
       { name: 'Message Reports', page: 'AdminModerationQueue', icon: Shield, requiredScopes: ['safety:review'] },
       { name: 'Messaging Blocks', page: 'AdminMessagingBlocklist', icon: Shield, requiredScopes: ['safety:review'] }

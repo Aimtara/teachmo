@@ -12,6 +12,7 @@ import { TypingIndicatorProvider } from './providers/TypingIndicatorProvider';
 import { WebSocketProvider } from './providers/WebSocketProvider';
 import { TenantProvider } from './contexts/TenantContext';
 import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
+import FeatureFlagProvider from './providers/FeatureFlagProvider.jsx';
 import i18n from './i18n';
 import { isFeatureEnabled } from './utils/featureFlags';
 
@@ -24,7 +25,9 @@ function App() {
             <QueryClientProvider client={queryClient}>
               <TenantProvider>
                 <TenantBrandingProvider>
-                  <Pages />
+                  <FeatureFlagProvider>
+                    <Pages />
+                  </FeatureFlagProvider>
                 </TenantBrandingProvider>
               </TenantProvider>
               {/* Required for legacy Base44 UI components that call ultraMinimalToast() */}
