@@ -1,5 +1,12 @@
 import { nhost } from './nhostClient';
 
+export function gql(strings, ...values) {
+  if (typeof strings === 'string') {
+    return strings;
+  }
+  return strings.reduce((acc, str, idx) => acc + str + (values[idx] ?? ''), '');
+}
+
 export async function graphqlRequest({ query, variables, headers = {} }) {
   const { data, error } = await nhost.graphql.request(query, variables, headers);
   if (error) {
@@ -21,4 +28,9 @@ export function buildMutation(operationName, fields) {
 // (i.e., { data, error } without throwing). Keep this for now to avoid churn.
 graphql.request = function request(query, variables, headers = {}) {
   return nhost.graphql.request(query, variables, headers);
+};
+
+gql.request = function request(strings, ...values) {
+  const query = gql(strings, ...values);
+  return graphql.request(query);
 };
