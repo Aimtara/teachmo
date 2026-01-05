@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { nhost } from '@/lib/nhostClient';
 import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,29 @@ export default function AdminFeatureFlags() {
 
   const groupedFlags = useMemo(() => flagsQuery.data ?? [], [flagsQuery.data]);
 
+  const exportCsv = async () => {
+    if (!organizationId) return;
+    const { res, error } = await nhost.functions.call('feature-flags-export', {
+      organizationId,
+      schoolId,
+    });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `feature-flags-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -117,7 +141,12 @@ export default function AdminFeatureFlags() {
         <CardHeader>
           <CardTitle>Flags</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={exportCsv} disabled={!organizationId}>
+              Export CSV
+            </Button>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>

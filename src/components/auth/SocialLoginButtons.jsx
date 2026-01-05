@@ -3,6 +3,7 @@ import { nhost } from '@/lib/nhostClient';
 
 const providers = [
   { id: 'google', label: 'Continue with Google' },
+  { id: 'azuread', label: 'Continue with Microsoft' },
   { id: 'github', label: 'Continue with GitHub' },
   { id: 'facebook', label: 'Continue with Facebook' }
 ];

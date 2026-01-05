@@ -133,6 +133,7 @@ export const NAV_STRUCTURE = [
     requiredScopes: ['core:dashboard'],
     children: [
       { name: 'AI Coach', page: 'AIAssistant', icon: Bot, mobilePrimary: true, feature: 'AI_ASSISTANT' },
+      { name: 'AI Transparency', page: 'AITransparency', icon: FileText, mobileSecondary: true, feature: 'ENTERPRISE_TRANSPARENCY' },
       { name: 'School Directory', page: 'SchoolDirectory', icon: School, feature: 'SCHOOL_DIRECTORY' },
       { name: 'Notifications', page: 'Notifications', icon: Bell }
     ]

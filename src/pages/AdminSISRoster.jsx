@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { nhost } from '@/lib/nhostClient';
 import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import { Button } from '@/components/ui/button';
@@ -40,22 +41,19 @@ export default function AdminSISRoster() {
 
   const handleUpload = async () => {
     if (!file || !organizationId) return;
-    const mutation = `mutation InsertSisImport($object: sis_import_jobs_insert_input!) {
-      insert_sis_import_jobs_one(object: $object) { id }
-    }`;
-    await graphql(mutation, {
-      object: {
-        organization_id: organizationId,
-        school_id: schoolId,
-        roster_type: rosterType,
-        source,
-        status: 'uploaded',
-        metadata: {
-          file_name: file.name,
-          file_size: file.size,
-        },
-      },
+    const csvText = await file.text();
+    const { error } = await nhost.functions.call('sis-roster-import', {
+      csvText,
+      rosterType,
+      source,
+      schoolId,
+      fileName: file.name,
+      fileSize: file.size,
     });
+    if (error) {
+      console.error(error);
+      return;
+    }
     setFile(null);
     rosterQuery.refetch();
   };
