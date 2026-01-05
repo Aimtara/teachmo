@@ -4,6 +4,9 @@
 - Monorepo using Vite + React + Deno deploy functions
 - WebSocket for real-time; react-flow for visual builder
 
+## Product Roadmaps
+- Phase 1: Procurement-Ready MVP (`phase1-procurement-ready-mvp.md`)
+
 ## Component Patterns
 - All UI uses `cn()` utility
 - Component folders = feature-based (e.g., `/messaging`, `/workflows`)
