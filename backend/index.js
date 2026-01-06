@@ -5,6 +5,7 @@ import app from './app.js';
 import { seedDemoData } from './seed.js';
 import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
+import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +23,7 @@ if (shouldSeedDemo) {
 }
 startRetentionPurgeScheduler();
 startNotificationQueueScheduler();
+startRosterSyncScheduler();
 // Start the server
 app.listen(PORT, () => {
   console.log(`Teachmo backend server running on port ${PORT}`);
