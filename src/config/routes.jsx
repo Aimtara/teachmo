@@ -10,6 +10,13 @@ export const ROUTE_DEFINITIONS = [
     isPublic: true
   },
   {
+    name: 'Login',
+    path: '/login',
+    Component: lazy(() => import('@/pages/Login.jsx')),
+    isPublic: true,
+    fallback: <p className="p-6 text-gray-600">Loading login...</p>
+  },
+  {
     name: 'Onboarding',
     path: '/onboarding',
     Component: lazy(() => import('@/pages/Onboarding.jsx')),
@@ -276,6 +283,16 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading SSO settings...</p>
   },
   {
+    name: 'AdminTenantDomains',
+    path: '/admin/tenant-domains',
+    Component: lazy(() => import('@/pages/AdminTenantDomains.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['tenant:manage'],
+    feature: 'ENTERPRISE_SSO',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading tenant domains...</p>
+  },
+  {
     name: 'AdminUsers',
     path: '/admin/users',
     Component: lazy(() => import('@/pages/AdminUsers.jsx')),
@@ -308,6 +325,16 @@ export const ROUTE_DEFINITIONS = [
     name: 'AdminAIReview',
     path: '/admin/ai-review',
     Component: lazy(() => import('@/pages/AdminAIReview.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['safety:review'],
+    feature: 'ENTERPRISE_AI_REVIEW',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading AI review queue...</p>
+  },
+  {
+    name: 'AdminAIReviewQueue',
+    path: '/admin/ai-review-queue',
+    Component: lazy(() => import('@/pages/AdminAIReviewQueue.jsx')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['safety:review'],
     feature: 'ENTERPRISE_AI_REVIEW',

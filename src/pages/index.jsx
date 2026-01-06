@@ -9,10 +9,12 @@ import AdminTenantSettings from './AdminTenantSettings.jsx';
 import AdminUsers from './AdminUsers.jsx';
 import AdminAIGovernance from './AdminAIGovernance.jsx';
 import AdminAIReview from './AdminAIReview.jsx';
+import AdminAIReviewQueue from './AdminAIReviewQueue.jsx';
 import AdminAuditLogs from './AdminAuditLogs.jsx';
 import AdminFeatureFlags from './AdminFeatureFlags.jsx';
 import AdminSISRoster from './AdminSISRoster.jsx';
 import AdminSSOSettings from './AdminSSOSettings.jsx';
+import AdminTenantDomains from './AdminTenantDomains.jsx';
 import AIFineTuning from './AIFineTuning.jsx';
 import AIPromptLibrary from './AIPromptLibrary.jsx';
 import AITransparency from './AITransparency.jsx';
@@ -26,6 +28,7 @@ import PartnerDashboard from './PartnerDashboard.jsx';
 import ParentDashboard from './ParentDashboard.jsx';
 import TeacherDashboard from './TeacherDashboard.jsx';
 import Landing from './Landing.jsx';
+import Login from './Login.jsx';
 import Onboarding from './Onboarding.jsx';
 import AuthCallback from './AuthCallback.jsx';
 import ParentOnboardingPage from './onboarding/parent';
@@ -65,6 +68,7 @@ export default function Pages() {
         <Routes>
           <Route index element={<RoleRedirect />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route
             path="/ai/transparency"
@@ -332,6 +336,26 @@ export default function Pages() {
               <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
                 <FeatureGate feature="ENTERPRISE_AI_REVIEW">
                   <AdminAIReview />
+                </FeatureGate>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/ai-review-queue"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
+                <FeatureGate feature="ENTERPRISE_AI_REVIEW">
+                  <AdminAIReviewQueue />
+                </FeatureGate>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/tenant-domains"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']}>
+                <FeatureGate feature="ENTERPRISE_SSO">
+                  <AdminTenantDomains />
                 </FeatureGate>
               </ProtectedRoute>
             )}

@@ -6,14 +6,16 @@ import MobileNavigation from './MobileNavigation';
 import { AuthGuardState, useAuthGuard } from './AuthGuard';
 import { createPageUrl } from '@/utils';
 import { ROLE_DEFINITIONS } from '@/config/navigation';
+import { useSignOut } from '@nhost/react';
 
 export default function Layout({ currentPageName = 'Dashboard', children }) {
   const { user, status, refresh } = useAuthGuard();
   const role = user?.app_role || user?.role || 'parent';
+  const { signOut } = useSignOut();
 
   React.useEffect(() => {
     if (status === 'unauthorized') {
-      window.location.pathname = createPageUrl('Landing');
+      window.location.pathname = createPageUrl('Login');
     }
   }, [status]);
 
@@ -23,7 +25,8 @@ export default function Layout({ currentPageName = 'Dashboard', children }) {
   const currentMobilePath = createPageUrl(currentPageName || defaultPage);
 
   const handleLogout = () => {
-    window.location.pathname = createPageUrl('Landing');
+    signOut().catch(() => {});
+    window.location.pathname = createPageUrl('Login');
   };
 
   return (
