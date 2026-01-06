@@ -101,4 +101,40 @@ describe('SCIM tenant isolation', () => {
 
     expect(res.status).toBe(404);
   });
+
+  test('allows deprovisioning for matching tenant', async () => {
+    mockQueryForOrg();
+    const token = buildToken({
+      sub: 'admin-user',
+      'https://hasura.io/jwt/claims': {
+        'x-hasura-user-id': 'admin-user',
+        'x-hasura-organization-id': orgA,
+        'x-hasura-role': 'system_admin',
+      },
+    });
+
+    const res = await request(app)
+      .delete(`/scim/v2/Users/${userId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(204);
+  });
+
+  test('denies deprovisioning across tenants', async () => {
+    mockQueryForOrg();
+    const token = buildToken({
+      sub: 'admin-user',
+      'https://hasura.io/jwt/claims': {
+        'x-hasura-user-id': 'admin-user',
+        'x-hasura-organization-id': orgB,
+        'x-hasura-role': 'system_admin',
+      },
+    });
+
+    const res = await request(app)
+      .delete(`/scim/v2/Users/${userId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+  });
 });
