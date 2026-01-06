@@ -6,6 +6,7 @@
 
 ## Product Roadmaps
 - Phase 1: Procurement-Ready MVP (`phase1-procurement-ready-mvp.md`)
+- District Insights Plan (`district-insights-plan.md`)
 
 ## Component Patterns
 - All UI uses `cn()` utility
