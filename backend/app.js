@@ -29,6 +29,10 @@ import notificationsRouter from './routes/notifications.js';
 import { featureFlagsAdminRouter, featureFlagsRouter } from './routes/featureFlags.js';
 import billingRouter from './routes/billing.js';
 import fraudRouter from './routes/fraud.js';
+import observabilityRouter from './routes/observability.js';
+import { captureApiMetrics } from './middleware/metrics.js';
+import integrationsRouter from './routes/integrations.js';
+import ltiRouter from './routes/lti.js';
 
 // Load environment variables
 dotenv.config();
@@ -67,6 +71,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(attachAuthContext);
+app.use(captureApiMetrics);
 
 // Mount routes
 app.use('/api/assignments', assignmentsRouter);
@@ -95,6 +100,9 @@ app.use('/api/feature-flags', featureFlagsRouter);
 app.use('/api/admin/feature-flags', featureFlagsAdminRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/fraud', fraudRouter);
+app.use('/api/admin', observabilityRouter);
+app.use('/api/integrations', integrationsRouter);
+app.use('/api/lti', ltiRouter);
 
 // Root endpoint to verify API is running
 app.get('/api', (req, res) => {

@@ -255,6 +255,24 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading admin analytics...</p>
   },
   {
+    name: 'AdminObservability',
+    path: '/admin/observability',
+    Component: lazy(() => import('@/pages/AdminObservability.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+    requiredScopes: ['org:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading observability dashboard...</p>
+  },
+  {
+    name: 'AdminSystemHealth',
+    path: '/admin/system-health',
+    Component: lazy(() => import('@/pages/AdminSystemHealth.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+    requiredScopes: ['org:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading system health...</p>
+  },
+  {
     name: 'AdminNotifications',
     path: '/admin/notifications',
     Component: lazy(() => import('@/pages/AdminNotifications.jsx')),
@@ -378,6 +396,15 @@ export const ROUTE_DEFINITIONS = [
     feature: 'ENTERPRISE_SIS_ROSTER',
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading SIS roster...</p>
+  },
+  {
+    name: 'AdminIntegrationHealth',
+    path: '/admin/integration-health',
+    Component: lazy(() => import('@/pages/AdminIntegrationHealth.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['directory:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading integration health...</p>
   },
   {
     name: 'AdminModerationQueue',
