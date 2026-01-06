@@ -24,6 +24,7 @@ import scimRouter from './routes/scim.js';
 import impersonationRouter from './routes/impersonation.js';
 import complianceRouter from './routes/compliance.js';
 import notificationsRouter from './routes/notifications.js';
+import { featureFlagsAdminRouter, featureFlagsRouter } from './routes/featureFlags.js';
 
 // Load environment variables
 dotenv.config();
@@ -84,6 +85,8 @@ app.use('/api/ai', aiRouter);
 app.use('/api/workflows', workflowsRouter);
 app.use('/scim/v2', scimRouter);
 app.use('/api/admin', notificationsRouter);
+app.use('/api/feature-flags', featureFlagsRouter);
+app.use('/api/admin/feature-flags', featureFlagsAdminRouter);
 
 // Root endpoint to verify API is running
 app.get('/api', (req, res) => {

@@ -23,6 +23,7 @@ export const FEATURES = {
   ENTERPRISE_SIS_ROSTER: false,
   ENTERPRISE_TRANSPARENCY: true,
   ENTERPRISE_MODE: false,
+  FEATURE_I18N: false,
 
   // Keep anything “imported but not verified” OFF by default.
 } as const;

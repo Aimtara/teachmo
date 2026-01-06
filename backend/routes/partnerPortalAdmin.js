@@ -5,11 +5,13 @@ import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/ten
 import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAnyScope } from '../middleware/permissions.js';
+import { requireFeatureFlag } from '../middleware/featureFlags.js';
 
 const router = Router();
 
 router.use(requireAuth);
 router.use(requireTenant);
+router.use(requireFeatureFlag('PARTNER_PORTAL'));
 router.use(requireAnyScope(['partner:admin', 'partner:portal', 'partner:submissions']));
 
 // Tenant-scoped admin endpoints backing the Partner Portal.
