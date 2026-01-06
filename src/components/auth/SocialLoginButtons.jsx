@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { nhost } from '@/lib/nhostClient';
 
-const providers = [
+const BASE_PROVIDERS = [
   { id: 'google', label: 'Continue with Google' },
   { id: 'azuread', label: 'Continue with Microsoft' },
-  { id: 'github', label: 'Continue with GitHub' },
-  { id: 'facebook', label: 'Continue with Facebook' }
 ];
 
-export function SocialLoginButtons({ onError }) {
+const OPTIONAL_PROVIDERS = [
+  { id: 'github', label: 'Continue with GitHub' },
+  { id: 'facebook', label: 'Continue with Facebook' },
+];
+
+export function SocialLoginButtons({ onError, includeOptional = false }) {
   const [activeProvider, setActiveProvider] = useState(null);
 
   const handleLogin = async (provider) => {
@@ -27,6 +30,8 @@ export function SocialLoginButtons({ onError }) {
     }
   };
 
+  const providers = includeOptional ? [...BASE_PROVIDERS, ...OPTIONAL_PROVIDERS] : BASE_PROVIDERS;
+
   return (
     <div className="space-y-3">
       {providers.map(({ id, label }) => (
@@ -34,7 +39,8 @@ export function SocialLoginButtons({ onError }) {
           key={id}
           type="button"
           onClick={() => handleLogin(id)}
-          className="w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          aria-label={label}
+          className="w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           disabled={Boolean(activeProvider)}
         >
           {activeProvider === id ? 'Redirecting…' : label}

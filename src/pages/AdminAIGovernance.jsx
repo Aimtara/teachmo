@@ -67,7 +67,7 @@ export default function AdminAIGovernance() {
                 <span>Pending reviews</span>
                 <span className="font-semibold">{reviewCountQuery.data?.pending ?? 0}</span>
               </div>
-              <Link className="text-blue-600 hover:underline" to="/admin/ai-review">
+              <Link className="text-blue-600 hover:underline" to="/admin/ai-review-queue">
                 Open AI review queue →
               </Link>
             </CardContent>

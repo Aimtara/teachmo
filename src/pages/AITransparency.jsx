@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
-import { graphql } from '@/lib/graphql';
+import { graphqlRequest } from '@/lib/graphql';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AITransparency() {
@@ -8,18 +8,18 @@ export default function AITransparency() {
     queryKey: ['ai-policy-docs'],
     queryFn: async () => {
       const query = `query AIPolicyDocs {
-        ai_policy_docs(order_by: { published_at: desc }) {
+        ai_policy_docs(where: { organization_id: { _is_null: true } }, order_by: { published_at: desc }) {
           id
           slug
           title
           summary
-          content
+          body_markdown
           links
           published_at
         }
       }`;
 
-      const res = await graphql(query);
+      const res = await graphqlRequest({ query });
       return res?.ai_policy_docs ?? [];
     },
   });
@@ -57,7 +57,7 @@ export default function AITransparency() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ReactMarkdown className="prose prose-sm max-w-none text-slate-700">
-                    {doc.content}
+                    {doc.body_markdown}
                   </ReactMarkdown>
                   {Array.isArray(doc.links) && doc.links.length > 0 ? (
                     <div className="space-y-1">

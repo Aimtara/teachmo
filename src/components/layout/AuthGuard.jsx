@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
-import { graphql } from '@/lib/graphql';
+import { graphqlRequest } from '@/lib/graphql';
+import { useTenantFeatureFlags } from '@/hooks/useTenantFeatureFlags';
 
 export function useAuthGuard() {
   const [user, setUser] = React.useState(null);
@@ -8,6 +9,8 @@ export function useAuthGuard() {
   const [error, setError] = React.useState(null);
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const authUser = useUserData();
+
+  useTenantFeatureFlags();
 
   const loadUser = React.useCallback(async () => {
     if (!authUser?.id) return;
@@ -24,7 +27,7 @@ export function useAuthGuard() {
           school_id
         }
       }`;
-      const data = await graphql(query, { userId: authUser.id });
+      const data = await graphqlRequest({ query, variables: { userId: authUser.id } });
       const profile = data?.profiles?.[0] ?? null;
       setUser({
         ...(profile ?? {}),
