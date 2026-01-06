@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { API_BASE_URL } from '@/config/api';
+import { nhost } from '@/lib/nhostClient';
 
 function toDateOnly(isoString) {
   if (!isoString) return null;
@@ -39,6 +41,27 @@ export default function AdminAnalytics() {
   const [eventName, setEventName] = useState('all');
   const [actorRole, setActorRole] = useState('all');
   const [drillEventName, setDrillEventName] = useState(null);
+
+  const headersQuery = useQuery({
+    queryKey: ['analytics-ai-token'],
+    queryFn: async () => {
+      const token = await nhost.auth.getAccessToken();
+      return {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+    },
+  });
+
+  const aiUsageQuery = useQuery({
+    queryKey: ['analytics-ai-usage-summary'],
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/admin/ai/usage-summary`, { headers: headersQuery.data });
+      if (!response.ok) throw new Error('Failed to load AI usage summary');
+      return response.json();
+    },
+  });
 
   const rollupWhere = useMemo(() => {
     const where = {
@@ -324,6 +347,52 @@ export default function AdminAnalytics() {
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">No events in this range yet.</div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Usage Summary</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {aiUsageQuery.isLoading ? (
+            <div className="text-muted-foreground">Loading AI usage…</div>
+          ) : aiUsageQuery.data?.byModel?.length ? (
+            <div className="space-y-2">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Total calls</span>
+                <span>{aiUsageQuery.data?.totals?.calls ?? 0}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Estimated spend</span>
+                <span>${Number(aiUsageQuery.data?.totals?.cost_usd || 0).toFixed(2)}</span>
+              </div>
+              <div className="overflow-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b">
+                      <th className="p-2">Model</th>
+                      <th className="p-2">Calls</th>
+                      <th className="p-2">Tokens</th>
+                      <th className="p-2">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiUsageQuery.data.byModel.map((row) => (
+                      <tr key={row.model} className="border-b">
+                        <td className="p-2 font-mono text-xs">{row.model || '—'}</td>
+                        <td className="p-2">{row.calls}</td>
+                        <td className="p-2">{row.tokens ?? 0}</td>
+                        <td className="p-2">${Number(row.cost_usd || 0).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">No AI usage recorded yet.</div>
           )}
         </CardContent>
       </Card>
