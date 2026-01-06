@@ -8,6 +8,8 @@ const locales = {
   zh: zhCN
 };
 
+const supportedLocales = Object.keys(locales);
+
 const preloadLocale = async (locale) => {
   try {
     const module = await import(`./translations/${locale}.json`);
@@ -31,10 +33,13 @@ export const useTranslation = () => {
 
 const rtlLanguages = new Set(['ar', 'he', 'fa', 'ur']);
 
-export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
+export const I18nProvider = ({ children, defaultLocale = 'en', enabled = true }) => {
   const [translations, setTranslations] = useState({});
   const loadedLocales = useRef(new Set());
   const [locale, setLocaleState] = useState(() => {
+    if (!enabled) {
+      return defaultLocale;
+    }
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('teachmo-locale');
       if (stored) {
@@ -59,6 +64,8 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
   }, []);
 
   const setLocale = (newLocale) => {
+    if (!enabled) return;
+    if (!supportedLocales.includes(newLocale)) return;
     setLocaleState(newLocale);
     loadLocale(newLocale);
     if (typeof window !== 'undefined') {
@@ -75,6 +82,15 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
   useEffect(() => {
     loadLocale(locale);
   }, [locale, loadLocale]);
+
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const urlLocale = params.get('lang');
+    if (urlLocale && supportedLocales.includes(urlLocale) && urlLocale !== locale) {
+      setLocale(urlLocale);
+    }
+  }, [enabled, locale]);
 
   const resolveTranslation = (source, key) => {
     if (!source) return undefined;
@@ -139,6 +155,7 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
   const contextValue = {
     locale,
     setLocale,
+    availableLocales: supportedLocales,
     t,
     formatDate,
     formatNumber,

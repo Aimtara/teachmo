@@ -2,7 +2,6 @@ import { NhostProvider, NhostReactProvider } from '@nhost/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster as HotToaster } from 'react-hot-toast';
-import { I18nextProvider } from 'react-i18next';
 import Pages from './pages/index.jsx';
 import { nhost } from './lib/nhostClient';
 import { queryClient } from './lib/queryClient.js';
@@ -13,10 +12,18 @@ import { WebSocketProvider } from './providers/WebSocketProvider';
 import { TenantProvider } from './contexts/TenantContext';
 import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
 import FeatureFlagProvider from './providers/FeatureFlagProvider.jsx';
-import i18n from './i18n';
+import { I18nProvider } from './components/shared/InternationalizationProvider';
+import { useStore } from './components/hooks/useStore';
 import { isFeatureEnabled } from './utils/featureFlags';
 
 function App() {
+  const featureI18nEnabled = useStore((state) => {
+    const flags = state.featureFlags ?? {};
+    if (Object.prototype.hasOwnProperty.call(flags, 'FEATURE_I18N')) {
+      return Boolean(flags.FEATURE_I18N);
+    }
+    return isFeatureEnabled('FEATURE_I18N');
+  });
   const appContent = (
     <WebSocketProvider>
       <TypingIndicatorProvider>
@@ -43,11 +50,11 @@ function App() {
     </WebSocketProvider>
   );
 
-  if (isFeatureEnabled('FEATURE_I18N')) {
-    return <I18nextProvider i18n={i18n}>{appContent}</I18nextProvider>;
-  }
-
-  return appContent;
+  return (
+    <I18nProvider enabled={featureI18nEnabled}>
+      {appContent}
+    </I18nProvider>
+  );
 }
 
 export default App;

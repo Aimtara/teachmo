@@ -4,10 +4,13 @@ import { ChevronDown, Bell } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { nhost } from '@/lib/nhostClient';
 import { NotificationsAPI } from '@/api/adapters';
+import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
 
 export default function Header({ user, onLogout }) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [unreadCount, setUnreadCount] = React.useState(0);
+  const menuId = React.useId();
+  const menuRef = React.useRef(null);
 
   const roleLabel = user?.app_role || user?.role || 'parent';
   const streak = user?.login_streak ?? 0;
@@ -42,15 +45,39 @@ export default function Header({ user, onLogout }) {
     };
   }, [user]);
 
+  React.useEffect(() => {
+    if (!isMenuOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
   return (
     <header className="border-b border-gray-100 bg-white sticky top-0 z-10">
       <div className="px-4 py-3 flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-500">Welcome back</p>
+          <p className="text-xs text-gray-600">Welcome back</p>
           <p className="text-lg font-semibold text-gray-900">{user?.full_name || 'User'}</p>
         </div>
 
         <div className="flex items-center gap-4">
+          <LanguageSwitcher />
           <Link
             to={createPageUrl('Notifications')}
             className="relative inline-flex items-center justify-center rounded-full border border-gray-200 bg-white p-2 text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
@@ -64,16 +91,20 @@ export default function Header({ user, onLogout }) {
             )}
           </Link>
 
-          <div className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-sm font-semibold" aria-label="login streak">
+          <div
+            className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-sm font-semibold"
+            aria-label={`Login streak ${streak} days`}
+          >
             🔥 {streak}
           </div>
 
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
               type="button"
               aria-label="User menu"
               aria-expanded={isMenuOpen}
               aria-haspopup="true"
+              aria-controls={menuId}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
             >
@@ -82,13 +113,18 @@ export default function Header({ user, onLogout }) {
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900">{user?.full_name || 'User'}</p>
-                <p className="text-xs text-gray-500 capitalize">{roleLabel}</p>
+                <p className="text-xs text-gray-600 capitalize">{roleLabel}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-500" />
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-100 shadow-lg bg-white z-20" role="menu" aria-label="User menu">
+              <div
+                id={menuId}
+                className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-100 shadow-lg bg-white z-20"
+                role="menu"
+                aria-label="User menu"
+              >
                 <div className="px-4 py-3 border-b border-gray-50">
                   <p className="text-sm font-semibold text-gray-900">{user?.full_name}</p>
                   <p className="text-xs text-gray-500">{user?.email}</p>

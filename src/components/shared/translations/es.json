@@ -14,6 +14,14 @@
   "welcome_back": "Bienvenido de vuelta",
   "activities_completed": "Actividades completadas",
   "weekly_streak": "{{count}} días seguidos",
+  "language_switcher": {
+    "label": "Idioma",
+    "options": {
+      "en": "Inglés",
+      "es": "Español",
+      "zh": "Chino"
+    }
+  },
   "save": "Guardar",
   "cancel": "Cancelar",
   "delete": "Eliminar",
