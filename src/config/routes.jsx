@@ -312,6 +312,15 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading audit logs...</p>
   },
   {
+    name: 'AdminCompliance',
+    path: '/admin/compliance',
+    Component: lazy(() => import('@/pages/AdminCompliance.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['safety:review'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading compliance center...</p>
+  },
+  {
     name: 'AdminFeatureFlags',
     path: '/admin/feature-flags',
     Component: lazy(() => import('@/pages/AdminFeatureFlags.jsx')),

@@ -69,6 +69,7 @@ app.use('/api/incentives', incentivesRouter);
 app.use('/api/courses', coursesRouter);
 app.use('/api/admin', partnerPortalAdminRouter);
 app.use('/api/admin', impersonationRouter);
+app.use('/api/admin', complianceRouter);
 app.use('/api/contracts', contractsRouter);
 app.use('/api/onboarding', onboardingRouter);
 app.use('/api/programs', programsRouter);

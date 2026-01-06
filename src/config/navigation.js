@@ -21,7 +21,8 @@ import {
   BadgePercent,
   CreditCard,
   Handshake,
-  Globe
+  Globe,
+  ShieldCheck
 } from 'lucide-react';
 import { isRouteEnabled } from './routes';
 import { isFeatureEnabled } from './features';
@@ -119,6 +120,7 @@ export const NAV_STRUCTURE = [
       { name: 'SSO Policy', page: 'AdminSSOSettings', icon: Shield, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_SSO' },
       { name: 'Tenant Domains', page: 'AdminTenantDomains', icon: Globe, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_SSO' },
       { name: 'Audit Logs', page: 'AdminAuditLogs', icon: FileText, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AUDIT_LOGS' },
+      { name: 'Compliance Center', page: 'AdminCompliance', icon: ShieldCheck, requiredScopes: ['safety:review'] },
       { name: 'Feature Flags', page: 'AdminFeatureFlags', icon: BadgePercent, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_FEATURE_FLAGS' },
       { name: 'AI Governance', page: 'AdminAIGovernance', icon: Bot, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_GOVERNANCE' },
       { name: 'AI Review Queue', page: 'AdminAIReviewQueue', icon: Shield, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_REVIEW' },
