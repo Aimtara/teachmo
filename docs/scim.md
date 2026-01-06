@@ -37,6 +37,12 @@ Updates profile fields, activation status, and group memberships.
 
 Supports SCIM Patch with `path: "active"` or a direct `active` boolean.
 
+### Deprovision
+
+`DELETE /scim/v2/Users/:id`
+
+Removes tenant-scoped SCIM identity + group memberships and disables the user login.
+
 ## Groups
 
 ### Create (idempotent)

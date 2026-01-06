@@ -45,7 +45,7 @@ export default function AdminUsers() {
   const role = useUserRole();
   const { toast } = useToast();
   const canManageUsers = canAll(role, ['users:manage']);
-  const canImpersonate = ['system_admin', 'admin'].includes(role || '');
+  const canImpersonate = canManageUsers;
 
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');

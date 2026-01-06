@@ -429,6 +429,43 @@ router.patch('/Users/:id', async (req, res) => {
   return res.json(scimUserResource(scoped.user, scoped.user, scoped.identity, scoped.groups));
 });
 
+router.delete('/Users/:id', async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const userId = req.params.id;
+  const userRecord = await findUserById({ organizationId, schoolId, userId });
+  if (!userRecord) return res.status(404).json({ status: 404, scimType: 'notFound' });
+
+  await safeQuery(
+    res,
+    `delete from public.scim_group_members gm
+     using public.scim_groups g
+     where gm.group_id = g.id
+       and gm.user_id = $1
+       and g.organization_id = $2
+       and g.school_id is not distinct from $3`,
+    [userId, organizationId, schoolId ?? null]
+  );
+
+  await safeQuery(
+    res,
+    `delete from public.scim_identities
+     where user_id = $1
+       and organization_id = $2
+       and school_id is not distinct from $3`,
+    [userId, organizationId, schoolId ?? null]
+  );
+
+  await safeQuery(
+    res,
+    `update auth.users
+     set disabled = true
+     where id = $1`,
+    [userId]
+  );
+
+  return res.status(204).send();
+});
+
 router.get('/Groups/:id', async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const groupResult = await safeQuery(

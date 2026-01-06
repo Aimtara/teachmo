@@ -39,6 +39,11 @@ A district IT admin can answer **“yes”** to:
 - Support impersonation exists with full audit logging.
 - Automated tests verify cross-tenant access is impossible.
 
+**Current Gaps**
+- No UI/API to configure SAML/OIDC SSO (Okta, Azure, etc.).
+- Cross-tenant isolation tests are not automated.
+- Role policies still rely on static role arrays rather than a unified policy engine.
+
 ### 2) Audit Logging, Compliance & Data Governance
 **Purpose:** Make Teachmo defensible during audits, incidents, and procurement reviews.
 
@@ -64,6 +69,11 @@ A district IT admin can answer **“yes”** to:
   - Permanently delete user data
 - AI data usage respects privacy rules automatically.
 - Compliance documentation is surfaced in admin UI.
+
+**Current Gaps**
+- Audit logs do not capture before/after state for sensitive actions.
+- Retention policies are editable but not enforced per data category.
+- Automated user-data deletion across all tables is missing.
 
 ### 3) Observability, Reliability & Incident Readiness
 **Purpose:** Know what’s broken, before customers do.
@@ -92,6 +102,11 @@ A district IT admin can answer **“yes”** to:
 - Admins can view system health inside Teachmo.
 - Backup & restore tested and documented.
 
+**Current Gaps**
+- No unified log viewer.
+- No health-status indicator in the UI.
+- Backup/restore process is not tested.
+
 ### 4) Enterprise Integrations (SIS / LMS / Identity)
 **Purpose:** Fit into existing school infrastructure without manual work.
 
@@ -109,6 +124,12 @@ A district IT admin can answer **“yes”** to:
 - LMS/LTI integration launches Teachmo contextually.
 - IAM rules determine what AI and exports can access.
 - All integrations are tenant-scoped and revocable.
+
+**Current Gaps**
+- Scheduled SIS roster refreshes are not implemented.
+- Automated role assignment from SIS data is missing.
+- LMS/LTI integration is not implemented.
+- IAM-based data governance rules are not implemented.
 
 ### 5) Scalable Notifications & Communication
 **Purpose:** Reach thousands of families without chaos or spam.
@@ -129,6 +150,11 @@ A district IT admin can answer **“yes”** to:
 - SMS opt-in/out enforced automatically.
 - Delivery metrics visible in admin analytics.
 - Notifications are accessible (screen reader + keyboard).
+
+**Current Gaps**
+- No UI for tenant-wide announcements or segmented campaigns.
+- No scheduling support for messages.
+- No deliverability metrics page.
 
 ### 6) AI Governance, Explainability & Cost Control
 **Purpose:** Make AI safe, auditable, explainable, and affordable.
@@ -155,6 +181,12 @@ A district IT admin can answer **“yes”** to:
 - Per-tenant AI budgets and alerts.
 - AI features are feature-flagged per tenant.
 
+**Current Gaps**
+- Dynamic model selection is missing.
+- Cost-threshold alerts are not implemented.
+- Reviewer annotations are limited.
+- End-user explainability is not available.
+
 ### 7) Partner & Enterprise Marketplace Readiness
 **Purpose:** Enable external partners without operational overhead.
 
@@ -179,6 +211,13 @@ A district IT admin can answer **“yes”** to:
   - Revenue attribution
 - Fraud and abuse protections exist.
 
+**Current Gaps**
+- Self-service onboarding is missing.
+- Billing/payout integrations are not implemented.
+- Referral codes are not available.
+- CSV exports are missing.
+- Fraud protections are not implemented.
+
 ### 8) Accessibility & Internationalization Compliance
 **Purpose:** Meet legal and ethical requirements for inclusive access.
 
@@ -195,6 +234,11 @@ A district IT admin can answer **“yes”** to:
 - Playwright covers keyboard flows.
 - Language switching persists per user.
 - i18n rollout gated by feature flags.
+
+**Current Gaps**
+- No automated accessibility tests.
+- No systematic color-contrast checks.
+- No language-switching or translation infrastructure.
 
 ### 9) Quality, Testing & Release Discipline
 **Purpose:** Ship safely without regressions.
@@ -216,6 +260,11 @@ A district IT admin can answer **“yes”** to:
 - Canary/staged rollout supported.
 - Rollback plan documented and tested.
 
+**Current Gaps**
+- Minimal unit and E2E coverage for new features.
+- Canary/staged rollout tooling is missing.
+- Rollback procedures are not implemented.
+
 ### 10) Enterprise Support, Onboarding & Trust
 **Purpose:** Make districts feel supported, not abandoned.
 
@@ -230,3 +279,7 @@ A district IT admin can answer **“yes”** to:
 - Knowledge base available.
 - Support escalation flow documented.
 - SLA targets defined and visible.
+
+**Current Gaps**
+- No guided onboarding experience.
+- No knowledge base or support ticketing/SLA dashboard.
