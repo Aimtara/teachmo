@@ -1,13 +1,30 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { nhost } from '@/lib/nhostClient';
-import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  fetchAdminFeatureFlags,
+  joinList,
+  splitList,
+  updateAdminFeatureFlag,
+} from '@/utils/featureFlagClient';
+
+const EMPTY_FLAGS = [];
+
+function buildDraft(flag) {
+  return {
+    enabled: Boolean(flag.enabled ?? flag.defaultEnabled ?? false),
+    description: flag.description ?? '',
+    rolloutPercentage: flag.rolloutPercentage ?? '',
+    canaryPercentage: flag.canaryPercentage ?? '',
+    allowlistText: joinList(flag.allowlist),
+    denylistText: joinList(flag.denylist),
+  };
+}
 
 export default function AdminFeatureFlags() {
   const { data: scope } = useTenantScope();
@@ -15,93 +32,73 @@ export default function AdminFeatureFlags() {
   const schoolId = scope?.schoolId ?? null;
   const [newKey, setNewKey] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [drafts, setDrafts] = useState({});
 
   const flagsQuery = useQuery({
     queryKey: ['feature-flags-admin', organizationId, schoolId],
     enabled: Boolean(organizationId),
-    queryFn: async () => {
-      const query = `query FeatureFlagsAdmin($organizationId: uuid!, $schoolId: uuid) {
-        feature_flags(
-          where: {
-            organization_id: { _eq: $organizationId },
-            _or: [
-              { school_id: { _eq: $schoolId } },
-              { school_id: { _is_null: true } }
-            ]
-          },
-          order_by: { key: asc }
-        ) {
-          id
-          key
-          enabled
-          description
-          school_id
-        }
-      }`;
-
-      const res = await graphql(query, { organizationId, schoolId });
-      return res?.feature_flags ?? [];
-    },
+    queryFn: () => fetchAdminFeatureFlags({ organizationId, schoolId }),
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, enabled }) => {
-      const mutation = `mutation ToggleFeatureFlag($id: uuid!, $enabled: Boolean!) {
-        update_feature_flags_by_pk(pk_columns: { id: $id }, _set: { enabled: $enabled }) {
-          id
-          enabled
-        }
-      }`;
-      await graphql(mutation, { id, enabled });
-    },
+  const updateMutation = useMutation({
+    mutationFn: updateAdminFeatureFlag,
     onSuccess: () => flagsQuery.refetch(),
   });
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const mutation = `mutation InsertFeatureFlag($object: feature_flags_insert_input!) {
-        insert_feature_flags_one(object: $object) { id }
-      }`;
-      await graphql(mutation, {
-        object: {
-          organization_id: organizationId,
-          school_id: schoolId,
-          key: newKey.trim(),
-          description: newDescription.trim() || null,
-          enabled: false,
-        },
+  useEffect(() => {
+    if (!flagsQuery.data?.flags) return;
+    setDrafts(() => {
+      const next = {};
+      flagsQuery.data.flags.forEach((flag) => {
+        next[flag.key] = buildDraft(flag);
       });
-    },
-    onSuccess: () => {
-      setNewKey('');
-      setNewDescription('');
-      flagsQuery.refetch();
-    },
-  });
+      return next;
+    });
+  }, [flagsQuery.data]);
 
-  const groupedFlags = useMemo(() => flagsQuery.data ?? [], [flagsQuery.data]);
+  const groupedFlags = useMemo(() => flagsQuery.data?.flags ?? EMPTY_FLAGS, [flagsQuery.data]);
 
-  const exportCsv = async () => {
-    if (!organizationId) return;
-    const { res, error } = await nhost.functions.call('feature-flags-export', {
+  const updateDraft = (key, field, value) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [key]: {
+        ...(prev[key] ?? buildDraft(groupedFlags.find((flag) => flag.key === key) || {})),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSave = (key) => {
+    const draft = drafts[key];
+    if (!draft) return;
+    updateMutation.mutate({
+      key,
       organizationId,
       schoolId,
+      enabled: Boolean(draft.enabled),
+      description: draft.description?.trim() || null,
+      rolloutPercentage: draft.rolloutPercentage === '' ? null : Number(draft.rolloutPercentage),
+      canaryPercentage: draft.canaryPercentage === '' ? null : Number(draft.canaryPercentage),
+      allowlist: splitList(draft.allowlistText || ''),
+      denylist: splitList(draft.denylistText || ''),
     });
+  };
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `feature-flags-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+  const handleCreate = () => {
+    if (!newKey.trim()) return;
+    updateMutation.mutate({
+      key: newKey.trim(),
+      organizationId,
+      schoolId,
+      description: newDescription.trim() || null,
+      enabled: false,
+      rolloutPercentage: null,
+      canaryPercentage: null,
+      allowlist: [],
+      denylist: [],
+    });
+    setNewKey('');
+    setNewDescription('');
   };
 
   return (
@@ -109,7 +106,8 @@ export default function AdminFeatureFlags() {
       <div>
         <h1 className="text-2xl font-semibold">Feature Flags</h1>
         <p className="text-sm text-muted-foreground">
-          Toggle enterprise capabilities per tenant. School-specific flags override organization defaults.
+          Toggle enterprise capabilities per tenant. Percentage rollouts apply to user-based hashing, with allowlists
+          and denylists overriding staged rollouts. Updates are audited in the backend.
         </p>
       </div>
 
@@ -118,20 +116,13 @@ export default function AdminFeatureFlags() {
           <CardTitle>Create Flag</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-[2fr,3fr,auto]">
-          <Input
-            value={newKey}
-            onChange={(event) => setNewKey(event.target.value)}
-            placeholder="ENTERPRISE_SSO"
-          />
+          <Input value={newKey} onChange={(event) => setNewKey(event.target.value)} placeholder="ENTERPRISE_SSO" />
           <Input
             value={newDescription}
             onChange={(event) => setNewDescription(event.target.value)}
             placeholder="Description"
           />
-          <Button
-            onClick={() => createMutation.mutate()}
-            disabled={!newKey.trim() || createMutation.isLoading || !organizationId}
-          >
+          <Button onClick={handleCreate} disabled={!newKey.trim() || updateMutation.isLoading || !organizationId}>
             Add
           </Button>
         </CardContent>
@@ -142,42 +133,95 @@ export default function AdminFeatureFlags() {
           <CardTitle>Flags</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={exportCsv} disabled={!organizationId}>
-              Export CSV
-            </Button>
-          </div>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Key</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Default</TableHead>
+                <TableHead>Enabled</TableHead>
+                <TableHead>Rollout %</TableHead>
+                <TableHead>Canary %</TableHead>
+                <TableHead>Allowlist</TableHead>
+                <TableHead>Denylist</TableHead>
                 <TableHead>Scope</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {groupedFlags.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-sm text-muted-foreground">
+                  <TableCell colSpan={10} className="text-sm text-muted-foreground">
                     No flags configured.
                   </TableCell>
                 </TableRow>
               ) : (
-                groupedFlags.map((flag) => (
-                  <TableRow key={flag.id}>
-                    <TableCell className="font-mono text-xs">{flag.key}</TableCell>
-                    <TableCell>{flag.description ?? '—'}</TableCell>
-                    <TableCell>{flag.school_id ? 'School' : 'Organization'}</TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={Boolean(flag.enabled)}
-                        onCheckedChange={(checked) => toggleMutation.mutate({ id: flag.id, enabled: checked })}
-                        aria-label={`Toggle ${flag.key}`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))
+                groupedFlags.map((flag) => {
+                  const draft = drafts[flag.key] ?? buildDraft(flag);
+                  return (
+                    <TableRow key={flag.key}>
+                      <TableCell className="font-mono text-xs">{flag.key}</TableCell>
+                      <TableCell>
+                        <Input
+                          value={draft.description}
+                          onChange={(event) => updateDraft(flag.key, 'description', event.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell>{flag.defaultEnabled ? 'On' : 'Off'}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={Boolean(draft.enabled)}
+                          onCheckedChange={(checked) => updateDraft(flag.key, 'enabled', checked)}
+                          aria-label={`Toggle ${flag.key}`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={draft.rolloutPercentage}
+                          onChange={(event) => updateDraft(flag.key, 'rolloutPercentage', event.target.value)}
+                          placeholder="0-100"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={draft.canaryPercentage}
+                          onChange={(event) => updateDraft(flag.key, 'canaryPercentage', event.target.value)}
+                          placeholder="0-100"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          value={draft.allowlistText}
+                          onChange={(event) => updateDraft(flag.key, 'allowlistText', event.target.value)}
+                          placeholder="tenant ids"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          value={draft.denylistText}
+                          onChange={(event) => updateDraft(flag.key, 'denylistText', event.target.value)}
+                          placeholder="tenant ids"
+                        />
+                      </TableCell>
+                      <TableCell>{flag.scope ?? (schoolId ? 'school' : 'organization')}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleSave(flag.key)}
+                          disabled={updateMutation.isLoading || !organizationId}
+                        >
+                          Save
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
