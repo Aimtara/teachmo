@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useUserId } from '@nhost/react';
-import { graphql } from '@/lib/graphql';
+import { graphqlRequest } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +33,7 @@ export default function AdminAIReview() {
         ? { school_id: { _eq: schoolId } }
         : { organization_id: { _eq: organizationId } };
 
-      const res = await graphql(query, { where });
+      const res = await graphqlRequest({ query, variables: { where } });
       return res?.ai_review_queue ?? [];
     },
   });
@@ -53,7 +53,7 @@ export default function AdminAIReview() {
           metadata
         }
       }`;
-      const res = await graphql(query, { ids });
+      const res = await graphqlRequest({ query, variables: { ids } });
       return res?.ai_usage_logs ?? [];
     },
   });
@@ -72,11 +72,14 @@ export default function AdminAIReview() {
           _set: { status: $status, reviewer_id: $reviewer, reviewed_at: $reviewedAt }
         ) { id status }
       }`;
-      await graphql(mutation, {
-        id,
-        status,
-        reviewer: userId || null,
-        reviewedAt: new Date().toISOString(),
+      await graphqlRequest({
+        query: mutation,
+        variables: {
+          id,
+          status,
+          reviewer: userId || null,
+          reviewedAt: new Date().toISOString(),
+        },
       });
     },
     onSuccess: () => queueQuery.refetch(),
