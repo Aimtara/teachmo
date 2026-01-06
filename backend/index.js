@@ -5,6 +5,7 @@ import app from './app.js';
 import { seedDemoData } from './seed.js';
 import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
+import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
 import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
 
 // Load environment variables
@@ -23,6 +24,7 @@ if (shouldSeedDemo) {
 }
 startRetentionPurgeScheduler();
 startNotificationQueueScheduler();
+startObservabilitySchedulers();
 startRosterSyncScheduler();
 // Start the server
 app.listen(PORT, () => {
