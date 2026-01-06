@@ -187,7 +187,7 @@ export default function Pages() {
           <Route
             path="/partners/dashboard"
             element={(
-              <ProtectedRoute allowedRoles={['admin', 'system_admin']}>
+              <ProtectedRoute allowedRoles={['admin', 'system_admin']} requiredScopes={['org:manage']}>
                 <PartnerDashboard />
               </ProtectedRoute>
             )}
@@ -245,7 +245,7 @@ export default function Pages() {
           <Route
             path="/admin"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredScopes={['org:manage']}>
                 <AdminDashboard />
               </ProtectedRoute>
             )}
@@ -253,7 +253,7 @@ export default function Pages() {
           <Route
             path="/admin/partners"
             element={(
-              <ProtectedRoute allowedRoles={['admin', 'system_admin']}>
+              <ProtectedRoute allowedRoles={['admin', 'system_admin']} requiredScopes={['org:manage']}>
                 <PartnerDashboard />
               </ProtectedRoute>
             )}
@@ -261,7 +261,7 @@ export default function Pages() {
           <Route
             path="/admin/workflows"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['automation:manage']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['automation:manage']} requiredScopes={['automation:manage']}>
                 <AdminWorkflows />
               </ProtectedRoute>
             )}
@@ -269,7 +269,7 @@ export default function Pages() {
           <Route
             path="/admin/tenant-settings"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['tenant:manage']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['tenant:manage']} requiredScopes={['org:manage']}>
                 <AdminTenantSettings />
               </ProtectedRoute>
             )}
@@ -277,7 +277,7 @@ export default function Pages() {
           <Route
             path="/admin/sso"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']} requiredScopes={['tenant:manage']}>
                 <FeatureGate feature="ENTERPRISE_SSO">
                   <AdminSSOSettings />
                 </FeatureGate>
@@ -287,7 +287,7 @@ export default function Pages() {
           <Route
             path="/admin/users"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['users:manage']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['users:manage']} requiredScopes={['users:manage']}>
                 <AdminUsers />
               </ProtectedRoute>
             )}
@@ -295,7 +295,7 @@ export default function Pages() {
           <Route
             path="/admin/audit-logs"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']} requiredScopes={['safety:review']}>
                 <FeatureGate feature="ENTERPRISE_AUDIT_LOGS">
                   <AdminAuditLogs />
                 </FeatureGate>
@@ -305,7 +305,7 @@ export default function Pages() {
           <Route
             path="/admin/feature-flags"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']} requiredScopes={['tenant:manage']}>
                 <FeatureGate feature="ENTERPRISE_FEATURE_FLAGS">
                   <AdminFeatureFlags />
                 </FeatureGate>
@@ -315,7 +315,7 @@ export default function Pages() {
           <Route
             path="/admin/analytics"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['analytics:view']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['analytics:view']} requiredScopes={['reporting:view']}>
                 <AdminAnalytics />
               </ProtectedRoute>
             )}
@@ -323,7 +323,7 @@ export default function Pages() {
           <Route
             path="/admin/ai-governance"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']} requiredScopes={['safety:review']}>
                 <FeatureGate feature="ENTERPRISE_AI_GOVERNANCE">
                   <AdminAIGovernance />
                 </FeatureGate>
@@ -333,7 +333,7 @@ export default function Pages() {
           <Route
             path="/admin/ai-review"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']} requiredScopes={['safety:review']}>
                 <FeatureGate feature="ENTERPRISE_AI_REVIEW">
                   <AdminAIReview />
                 </FeatureGate>
@@ -343,7 +343,7 @@ export default function Pages() {
           <Route
             path="/admin/ai-review-queue"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['safety:review']} requiredScopes={['safety:review']}>
                 <FeatureGate feature="ENTERPRISE_AI_REVIEW">
                   <AdminAIReviewQueue />
                 </FeatureGate>
@@ -353,7 +353,7 @@ export default function Pages() {
           <Route
             path="/admin/tenant-domains"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['tenant:manage']} requiredScopes={['tenant:manage']}>
                 <FeatureGate feature="ENTERPRISE_SSO">
                   <AdminTenantDomains />
                 </FeatureGate>
@@ -363,7 +363,7 @@ export default function Pages() {
           <Route
             path="/admin/sis-roster"
             element={(
-              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['directory:manage']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['directory:manage']} requiredScopes={['directory:manage']}>
                 <FeatureGate feature="ENTERPRISE_SIS_ROSTER">
                   <AdminSISRoster />
                 </FeatureGate>

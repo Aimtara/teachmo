@@ -2,8 +2,15 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
+import { requireAuth } from '../middleware/auth.js';
+import { requireTenant } from '../middleware/tenant.js';
+import { requireAnyScope } from '../middleware/permissions.js';
 
 const router = Router();
+
+router.use(requireAuth);
+router.use(requireTenant);
+router.use(requireAnyScope(['partner:admin', 'partner:portal', 'partner:submissions']));
 
 // Tenant-scoped admin endpoints backing the Partner Portal.
 // These endpoints previously used in-memory demo models; we now persist to Postgres

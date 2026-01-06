@@ -14,6 +14,7 @@
 ## APIs
 - See `src/services/*.ts` for orgService, contentService, etc.
 - WebSocket events: `new_message`, `status_update`, `typing`
+- SCIM provisioning: `scim.md`
 
 ## Storybook
 - Run Storybook to document Button, Card, and Tag components.
