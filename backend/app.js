@@ -22,6 +22,7 @@ import aiRouter from './routes/ai.js';
 import workflowsRouter from './routes/workflows.js';
 import scimRouter from './routes/scim.js';
 import impersonationRouter from './routes/impersonation.js';
+import complianceRouter from './routes/compliance.js';
 
 // Load environment variables
 dotenv.config();
@@ -68,6 +69,7 @@ app.use('/api/incentives', incentivesRouter);
 app.use('/api/courses', coursesRouter);
 app.use('/api/admin', partnerPortalAdminRouter);
 app.use('/api/admin', impersonationRouter);
+app.use('/api/admin', complianceRouter);
 app.use('/api/contracts', contractsRouter);
 app.use('/api/onboarding', onboardingRouter);
 app.use('/api/programs', programsRouter);

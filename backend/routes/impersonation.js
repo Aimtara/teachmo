@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAnyScope } from '../middleware/permissions.js';
+import { recordAuditLog } from '../utils/audit.js';
 
 const router = Router();
 
@@ -15,14 +16,6 @@ async function safeQuery(res, sql, params = []) {
     res.status(500).json({ error: 'db_error', detail: error.message });
     return null;
   }
-}
-
-async function recordAudit({ actorId, action, entityId, metadata }) {
-  await query(
-    `insert into public.audit_log (actor_id, action, entity_type, entity_id, metadata)
-     values ($1, $2, 'user', $3, $4::jsonb)`,
-    [actorId, action, entityId, JSON.stringify(metadata || {})]
-  );
 }
 
 router.use(requireAuth);
@@ -58,11 +51,14 @@ router.post('/impersonations', async (req, res) => {
   );
   if (!created) return;
 
-  await recordAudit({
+  await recordAuditLog({
     actorId: adminUserId,
     action: 'impersonation.start',
+    entityType: 'user',
     entityId: userId,
     metadata: { reason, impersonationId: created.rows?.[0]?.id, organizationId, schoolId },
+    organizationId,
+    schoolId,
   });
 
   res.json({
@@ -89,11 +85,14 @@ router.delete('/impersonations/:id', async (req, res) => {
   if (!ended) return;
   if (!ended.rows?.[0]) return res.status(404).json({ error: 'session_not_found' });
 
-  await recordAudit({
+  await recordAuditLog({
     actorId: adminUserId,
     action: 'impersonation.end',
+    entityType: 'user',
     entityId: ended.rows?.[0]?.target_user_id,
     metadata: { impersonationId: sessionId, organizationId, schoolId },
+    organizationId,
+    schoolId,
   });
 
   res.json({ status: 'revoked' });
