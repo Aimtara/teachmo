@@ -14,6 +14,7 @@ import AdminAIReviewQueue from './AdminAIReviewQueue.jsx';
 import AdminAuditLogs from './AdminAuditLogs.jsx';
 import AdminFeatureFlags from './AdminFeatureFlags.jsx';
 import AdminSISRoster from './AdminSISRoster.jsx';
+import AdminIntegrationHealth from './AdminIntegrationHealth.jsx';
 import AdminSSOSettings from './AdminSSOSettings.jsx';
 import AdminTenantDomains from './AdminTenantDomains.jsx';
 import AIFineTuning from './AIFineTuning.jsx';
@@ -376,6 +377,14 @@ export default function Pages() {
                 <FeatureGate feature="ENTERPRISE_SIS_ROSTER">
                   <AdminSISRoster />
                 </FeatureGate>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/integration-health"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin', 'admin']} requiredActions={['directory:manage']} requiredScopes={['directory:manage']}>
+                <AdminIntegrationHealth />
               </ProtectedRoute>
             )}
           />
