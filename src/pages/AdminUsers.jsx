@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import { nhost } from '@/lib/nhostClient';
+import { useUserRole } from '@/hooks/useUserRole';
+import { canAll } from '@/security/permissions';
 
 const ROLES = ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'];
 
@@ -38,6 +42,10 @@ mutation UpdateUserProfile($userId: uuid!, $changes: user_profiles_set_input!) {
 export default function AdminUsers() {
   const { data: scope } = useTenantScope();
   const isSystem = scope?.role === 'system_admin' || scope?.role === 'admin';
+  const role = useUserRole();
+  const { toast } = useToast();
+  const canManageUsers = canAll(role, ['users:manage']);
+  const canImpersonate = ['system_admin', 'admin'].includes(role || '');
 
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -80,6 +88,38 @@ export default function AdminUsers() {
       return res.data;
     },
     onSuccess: () => usersQuery.refetch(),
+  });
+
+  const impersonateMutation = useMutation({
+    mutationFn: async (userId) => {
+      const token = await nhost.auth.getAccessToken();
+      const response = await fetch('/api/admin/impersonations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ userId }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to start impersonation');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Impersonation ready',
+        description: `Token created (expires ${data?.expiresAt || 'soon'}).`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Impersonation failed',
+        description: error instanceof Error ? error.message : 'Unable to start impersonation.',
+      });
+    },
   });
 
   const total = usersQuery.data?.user_profiles_aggregate?.aggregate?.count ?? 0;
@@ -148,7 +188,10 @@ export default function AdminUsers() {
                       user={u}
                       isSystem={isSystem}
                       onSave={(changes) => updateMutation.mutate({ userId: u.user_id, changes })}
+                      onImpersonate={() => impersonateMutation.mutate(u.user_id)}
                       saving={updateMutation.isPending}
+                      canManageUsers={canManageUsers}
+                      canImpersonate={canImpersonate}
                     />
                   ))}
                 </tbody>
@@ -173,7 +216,7 @@ export default function AdminUsers() {
   );
 }
 
-function UserRow({ user, isSystem, onSave, saving }) {
+function UserRow({ user, isSystem, onSave, onImpersonate, saving, canManageUsers, canImpersonate }) {
   const [role, setRole] = useState(user.role ?? 'parent');
   const [districtId, setDistrictId] = useState(user.district_id ?? '');
   const [schoolId, setSchoolId] = useState(user.school_id ?? '');
@@ -184,11 +227,11 @@ function UserRow({ user, isSystem, onSave, saving }) {
   return (
     <tr className="border-b align-top">
       <td className="p-2">
-        <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <Input value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={!canManageUsers} />
       </td>
       <td className="p-2 font-mono text-xs whitespace-nowrap">{user.user_id}</td>
       <td className="p-2">
-        <Select value={role} onValueChange={setRole}>
+        <Select value={role} onValueChange={setRole} disabled={!canManageUsers}>
           <SelectTrigger>
             <SelectValue placeholder="Role" />
           </SelectTrigger>
@@ -200,26 +243,33 @@ function UserRow({ user, isSystem, onSave, saving }) {
         </Select>
       </td>
       <td className="p-2">
-        <Input value={districtId} onChange={(e) => setDistrictId(e.target.value)} disabled={!isSystem && Boolean(user.district_id)} placeholder="District UUID" />
+        <Input value={districtId} onChange={(e) => setDistrictId(e.target.value)} disabled={!canManageUsers || (!isSystem && Boolean(user.district_id))} placeholder="District UUID" />
       </td>
       <td className="p-2">
-        <Input value={schoolId} onChange={(e) => setSchoolId(e.target.value)} disabled={!isSystem && Boolean(user.school_id)} placeholder="School UUID" />
+        <Input value={schoolId} onChange={(e) => setSchoolId(e.target.value)} disabled={!canManageUsers || (!isSystem && Boolean(user.school_id))} placeholder="School UUID" />
       </td>
       <td className="p-2">
-        <Button
-          size="sm"
-          disabled={!dirty || saving}
-          onClick={() =>
-            onSave({
-              role,
-              district_id: districtId || null,
-              school_id: schoolId || null,
-              full_name: fullName || null,
-            })
-          }
-        >
-          Save
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            disabled={!dirty || saving || !canManageUsers}
+            onClick={() =>
+              onSave({
+                role,
+                district_id: districtId || null,
+                school_id: schoolId || null,
+                full_name: fullName || null,
+              })
+            }
+          >
+            Save
+          </Button>
+          {canImpersonate ? (
+            <Button size="sm" variant="secondary" onClick={onImpersonate}>
+              Impersonate
+            </Button>
+          ) : null}
+        </div>
       </td>
     </tr>
   );

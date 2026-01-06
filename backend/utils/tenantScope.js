@@ -13,13 +13,21 @@ export function asUuidOrNull(value) {
 
 export function getTenantScope(req) {
   const districtId = asUuidOrNull(
-    req.get('x-district-id') || req.get('x-tenant-district-id') || req.query.district_id || req.query.districtId
+    req.tenant?.organizationId ||
+      req.get('x-district-id') ||
+      req.get('x-tenant-district-id') ||
+      req.query.district_id ||
+      req.query.districtId
   );
   const schoolId = asUuidOrNull(
-    req.get('x-school-id') || req.get('x-tenant-school-id') || req.query.school_id || req.query.schoolId
+    req.tenant?.schoolId ||
+      req.get('x-school-id') ||
+      req.get('x-tenant-school-id') ||
+      req.query.school_id ||
+      req.query.schoolId
   );
-  const userId = asUuidOrNull(req.get('x-user-id') || req.query.user_id || req.query.userId);
-  const adminUserId = asUuidOrNull(req.get('x-admin-user-id') || req.get('x-user-id'));
+  const userId = asUuidOrNull(req.auth?.userId || req.get('x-user-id') || req.query.user_id || req.query.userId);
+  const adminUserId = asUuidOrNull(req.get('x-admin-user-id') || req.get('x-user-id') || req.auth?.userId);
 
   return { districtId, schoolId, userId, adminUserId };
 }

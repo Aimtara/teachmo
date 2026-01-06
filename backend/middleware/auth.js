@@ -7,6 +7,7 @@
 //   (Only enable TRUST_HASURA_HEADERS if this server is behind Hasura in a private network.)
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { resolveRoleScopes } from '../rbac.js';
 function getClaim(obj, key) {
   if (!obj) return null;
   if (obj[key] !== undefined) return obj[key];
@@ -119,7 +120,9 @@ function extractAuthContext(jwtClaims) {
     getClaim(hasuraClaims, 'x-hasura-scopes') ||
     getClaim(jwtClaims, 'x-hasura-scopes') ||
     getClaim(jwtClaims, 'scopes');
-  const scopes = normalizeScopes(scopesRaw);
+  const scopes = Array.from(
+    new Set([...normalizeScopes(scopesRaw), ...resolveRoleScopes(role ? String(role) : null)])
+  );
 
   return {
     role: role ? String(role) : null,

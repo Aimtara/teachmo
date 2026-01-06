@@ -14,6 +14,7 @@ type Props = {
    * This is additive with requiredRole / allowedRoles.
    */
   requiredActions?: Action | Action[];
+  requiredScopes?: string[];
   redirectTo?: string;
   unauthorizedTo?: string;
   loadingFallback?: React.ReactNode;
@@ -26,6 +27,7 @@ export default function ProtectedRoute({
   requiredRole,
   allowedRoles,
   requiredActions,
+  requiredScopes,
   redirectTo = '/login',
   unauthorizedTo = '/unauthorized',
   loadingFallback,
@@ -64,7 +66,11 @@ export default function ProtectedRoute({
     return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
   }
 
-  if (roleWhitelist.length && !canAccess({ role, allowedRoles: roleWhitelist })) {
+  if (roleWhitelist.length && !canAccess({ role, allowedRoles: roleWhitelist, requiredScopes })) {
+    return <Navigate to={unauthorizedTo} replace />;
+  }
+
+  if (requiredScopes?.length && !canAccess({ role, requiredScopes })) {
     return <Navigate to={unauthorizedTo} replace />;
   }
 
