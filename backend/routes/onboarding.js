@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { requireScopes } from '../middleware/scopes.js';
+import { getTenantScope } from '../utils/tenantScope.js';
 
 const router = Router();
 
@@ -75,6 +76,68 @@ router.post('/progress/:taskId', requireScopes('partner:portal'), async (req, re
   );
 
   res.json(r.rows?.[0]);
+});
+
+router.get('/status/me', requireScopes('partner:portal'), async (req, res) => {
+  const { organizationId } = req.tenant;
+  const { districtId, userId } = getTenantScope(req);
+  const partnerId = userId;
+  const effectiveDistrictId = districtId || organizationId;
+
+  const [tasksRes, progressRes, profileRes, agreementRes, payoutRes] = await Promise.all([
+    query(
+      `select id, title, description from partner_onboarding_tasks where organization_id = $1`,
+      [organizationId]
+    ),
+    query(
+      `select task_id, status from partner_onboarding_progress
+       where organization_id = $1 and partner_id = $2`,
+      [organizationId, partnerId]
+    ),
+    query(
+      `select id, status from public.partner_profiles
+       where district_id = $1 and partner_user_id = $2`,
+      [effectiveDistrictId, partnerId]
+    ),
+    query(
+      `select id, status from public.partner_agreements
+       where district_id = $1 and partner_user_id = $2
+       order by created_at desc
+       limit 1`,
+      [effectiveDistrictId, partnerId]
+    ),
+    query(
+      `select id, status from public.partner_payout_settings
+       where district_id = $1 and partner_user_id = $2`,
+      [effectiveDistrictId, partnerId]
+    )
+  ]);
+
+  const progressMap = new Map(progressRes.rows.map((row) => [row.task_id, row.status]));
+  const tasks = tasksRes.rows.map((task) => ({
+    ...task,
+    completed: progressMap.get(task.id) === 'completed',
+  }));
+
+  const profile = profileRes.rows?.[0] || null;
+  const agreement = agreementRes.rows?.[0] || null;
+  const payout = payoutRes.rows?.[0] || null;
+
+  const steps = [
+    { key: 'profile', status: profile?.status || 'missing', completed: Boolean(profile) },
+    { key: 'agreement', status: agreement?.status || 'missing', completed: agreement?.status === 'signed' },
+    { key: 'payout', status: payout?.status || 'missing', completed: payout?.status === 'active' },
+    { key: 'tasks', completed: tasks.every((task) => task.completed) },
+  ];
+
+  res.json({
+    partnerId,
+    tasks,
+    profile,
+    agreement,
+    payout,
+    steps,
+  });
 });
 
 export default router;

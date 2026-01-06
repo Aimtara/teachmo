@@ -10,6 +10,7 @@ import coursesRouter from './routes/courses.js';
 import partnerPortalAdminRouter from './routes/partnerPortalAdmin.js';
 import contractsRouter from './routes/contracts.js';
 import onboardingRouter from './routes/onboarding.js';
+import partnersRouter from './routes/partners.js';
 import programsRouter from './routes/programs.js';
 import faqsRouter from './routes/faqs.js';
 import quizzesRouter from './routes/quizzes.js';
@@ -26,6 +27,8 @@ import impersonationRouter from './routes/impersonation.js';
 import complianceRouter from './routes/compliance.js';
 import notificationsRouter from './routes/notifications.js';
 import { featureFlagsAdminRouter, featureFlagsRouter } from './routes/featureFlags.js';
+import billingRouter from './routes/billing.js';
+import fraudRouter from './routes/fraud.js';
 
 // Load environment variables
 dotenv.config();
@@ -75,6 +78,7 @@ app.use('/api/admin', impersonationRouter);
 app.use('/api/admin', complianceRouter);
 app.use('/api/contracts', contractsRouter);
 app.use('/api/onboarding', onboardingRouter);
+app.use('/api/partners', partnersRouter);
 app.use('/api/programs', programsRouter);
 app.use('/api/faqs', faqsRouter);
 app.use('/api/quizzes', quizzesRouter);
@@ -89,6 +93,8 @@ app.use('/scim/v2', scimRouter);
 app.use('/api/admin', notificationsRouter);
 app.use('/api/feature-flags', featureFlagsRouter);
 app.use('/api/admin/feature-flags', featureFlagsAdminRouter);
+app.use('/api/billing', billingRouter);
+app.use('/api/fraud', fraudRouter);
 
 // Root endpoint to verify API is running
 app.get('/api', (req, res) => {
