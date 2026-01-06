@@ -3,6 +3,7 @@
 import dotenv from 'dotenv';
 import app from './app.js';
 import { seedDemoData } from './seed.js';
+import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 
 // Load environment variables
 dotenv.config();
@@ -18,6 +19,7 @@ const shouldSeedDemo =
 if (shouldSeedDemo) {
   seedDemoData();
 }
+startRetentionPurgeScheduler();
 // Start the server
 app.listen(PORT, () => {
   console.log(`Teachmo backend server running on port ${PORT}`);
