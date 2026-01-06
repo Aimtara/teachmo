@@ -50,6 +50,13 @@ export default function AdminCompliance() {
     queryFn: async () => fetchJson(`${API_BASE_URL}/admin/dsar-exports`, { headers: headersQuery.data }),
   });
 
+  const aiUsageQuery = useQuery({
+    queryKey: ['ai-usage-compliance', scope?.districtId, scope?.schoolId],
+    enabled: Boolean(scope?.districtId && headersQuery.data),
+    queryFn: async () =>
+      fetchJson(`${API_BASE_URL}/admin/ai/usage?limit=20`, { headers: headersQuery.data }),
+  });
+
   const dsarMutation = useMutation({
     mutationFn: async () => {
       return fetchJson(`${API_BASE_URL}/admin/dsar-exports`, {
@@ -221,6 +228,47 @@ export default function AdminCompliance() {
           >
             {deleteMutation.isPending ? 'Deleting…' : 'Permanently delete user'}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Usage Compliance</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Recent AI usage logs are retained for compliance and audit review.
+          </p>
+          {aiUsageQuery.isLoading ? (
+            <div className="text-muted-foreground">Loading AI usage…</div>
+          ) : aiUsageQuery.data?.usage?.length ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="p-2">Timestamp</th>
+                    <th className="p-2">Model</th>
+                    <th className="p-2">Tokens</th>
+                    <th className="p-2">Cost</th>
+                    <th className="p-2">Risk</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aiUsageQuery.data.usage.map((row) => (
+                    <tr key={row.id} className="border-b">
+                      <td className="p-2">{row.created_at ? new Date(row.created_at).toLocaleString() : '—'}</td>
+                      <td className="p-2">{row.model ?? '—'}</td>
+                      <td className="p-2">{row.token_total ?? '—'}</td>
+                      <td className="p-2">${Number(row.cost_usd || 0).toFixed(2)}</td>
+                      <td className="p-2">{row.safety_risk_score ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">No AI usage logged yet.</div>
+          )}
         </CardContent>
       </Card>
 

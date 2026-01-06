@@ -19,9 +19,11 @@ import { attachAuthContext } from './middleware/auth.js';
 import analyticsRouter from './routes/analytics.js';
 import tenantsRouter from './routes/tenants.js';
 import aiRouter from './routes/ai.js';
+import aiAdminRouter from './routes/aiAdmin.js';
 import workflowsRouter from './routes/workflows.js';
 import scimRouter from './routes/scim.js';
 import impersonationRouter from './routes/impersonation.js';
+import complianceRouter from './routes/compliance.js';
 import { featureFlagsAdminRouter, featureFlagsRouter } from './routes/featureFlags.js';
 
 // Load environment variables
@@ -80,6 +82,7 @@ app.use('/api/log', telemetryRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/tenants', tenantsRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/admin/ai', aiAdminRouter);
 app.use('/api/workflows', workflowsRouter);
 app.use('/scim/v2', scimRouter);
 app.use('/api/feature-flags', featureFlagsRouter);

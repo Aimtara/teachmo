@@ -1,13 +1,39 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { API_BASE_URL } from '@/config/api';
+import { nhost } from '@/lib/nhostClient';
+
+async function fetchJson(url, opts = {}) {
+  const response = await fetch(url, opts);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || 'Request failed');
+  }
+  return response.json();
+}
 
 export default function AdminAIGovernance() {
   const { data: scope } = useTenantScope();
   const organizationId = scope?.organizationId ?? null;
+
+  const headersQuery = useQuery({
+    queryKey: ['ai-governance-token'],
+    queryFn: async () => {
+      const token = await nhost.auth.getAccessToken();
+      return {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+    },
+  });
 
   const policyQuery = useQuery({
     queryKey: ['ai-policy-docs-admin', organizationId],
@@ -28,24 +54,97 @@ export default function AdminAIGovernance() {
     },
   });
 
-  const reviewCountQuery = useQuery({
-    queryKey: ['ai-review-counts', organizationId],
-    queryFn: async () => {
-      const query = `query ReviewCounts($queueWhere: ai_review_queue_bool_exp!, $usageWhere: ai_usage_logs_bool_exp) {
-        ai_review_queue_aggregate(where: $queueWhere) { aggregate { count } }
-        ai_usage_logs_aggregate(where: $usageWhere) { aggregate { count } }
-      }`;
-      const queueWhere = organizationId
-        ? { status: { _eq: "pending" }, organization_id: { _eq: organizationId } }
-        : { status: { _eq: "pending" } };
-      const usageWhere = organizationId ? { organization_id: { _eq: organizationId } } : {};
-      const res = await graphql(query, { queueWhere, usageWhere });
-      return {
-        pending: res?.ai_review_queue_aggregate?.aggregate?.count ?? 0,
-        usage: res?.ai_usage_logs_aggregate?.aggregate?.count ?? 0,
-      };
-    },
+  const usageSummaryQuery = useQuery({
+    queryKey: ['ai-usage-summary'],
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/usage-summary`, { headers: headersQuery.data }),
   });
+
+  const reviewQueueQuery = useQuery({
+    queryKey: ['ai-review-queue-admin'],
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/review-queue`, { headers: headersQuery.data }),
+  });
+
+  const budgetQuery = useQuery({
+    queryKey: ['ai-budget-admin'],
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/budget`, { headers: headersQuery.data }),
+  });
+
+  const modelPolicyQuery = useQuery({
+    queryKey: ['ai-model-policy-admin'],
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/model-policy`, { headers: headersQuery.data }),
+  });
+
+  const [budgetForm, setBudgetForm] = useState({ monthlyLimitUsd: '', fallbackPolicy: 'block' });
+  const [modelForm, setModelForm] = useState({
+    defaultModel: 'gpt-4o-mini',
+    fallbackModel: 'gpt-4o-mini',
+    allowedModels: 'gpt-4o-mini, gpt-4o',
+    featureFlags: '',
+  });
+
+  useMemo(() => {
+    if (budgetQuery.data?.budget) {
+      setBudgetForm({
+        monthlyLimitUsd: budgetQuery.data.budget.monthly_limit_usd ?? '',
+        fallbackPolicy: budgetQuery.data.budget.fallback_policy ?? 'block',
+      });
+    }
+  }, [budgetQuery.data]);
+
+  useMemo(() => {
+    if (modelPolicyQuery.data?.policy) {
+      const policy = modelPolicyQuery.data.policy;
+      setModelForm({
+        defaultModel: policy.default_model ?? 'gpt-4o-mini',
+        fallbackModel: policy.fallback_model ?? 'gpt-4o-mini',
+        allowedModels: (policy.allowed_models || []).join(', '),
+        featureFlags: (policy.feature_flags || []).join(', '),
+      });
+    }
+  }, [modelPolicyQuery.data]);
+
+  const budgetMutation = useMutation({
+    mutationFn: async () => {
+      return fetchJson(`${API_BASE_URL}/admin/ai/budget`, {
+        method: 'PUT',
+        headers: headersQuery.data,
+        body: JSON.stringify({
+          monthlyLimitUsd: budgetForm.monthlyLimitUsd ? Number(budgetForm.monthlyLimitUsd) : null,
+          fallbackPolicy: budgetForm.fallbackPolicy,
+        }),
+      });
+    },
+    onSuccess: () => budgetQuery.refetch(),
+  });
+
+  const modelPolicyMutation = useMutation({
+    mutationFn: async () => {
+      return fetchJson(`${API_BASE_URL}/admin/ai/model-policy`, {
+        method: 'PUT',
+        headers: headersQuery.data,
+        body: JSON.stringify({
+          defaultModel: modelForm.defaultModel,
+          fallbackModel: modelForm.fallbackModel,
+          allowedModels: modelForm.allowedModels
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+          featureFlags: modelForm.featureFlags
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+        }),
+      });
+    },
+    onSuccess: () => modelPolicyQuery.refetch(),
+  });
+
+  const pendingCount = reviewQueueQuery.data?.queue?.length ?? 0;
+  const usageTotals = usageSummaryQuery.data?.totals;
 
   return (
     <ProtectedRoute allowedRoles={['system_admin', 'district_admin', 'school_admin', 'admin']}>
@@ -65,7 +164,7 @@ export default function AdminAIGovernance() {
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Pending reviews</span>
-                <span className="font-semibold">{reviewCountQuery.data?.pending ?? 0}</span>
+                <span className="font-semibold">{pendingCount}</span>
               </div>
               <Link className="text-blue-600 hover:underline" to="/admin/ai-review-queue">
                 Open AI review queue →
@@ -79,11 +178,98 @@ export default function AdminAIGovernance() {
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Total AI requests logged</span>
-                <span className="font-semibold">{reviewCountQuery.data?.usage ?? 0}</span>
+                <span className="font-semibold">{usageTotals?.calls ?? 0}</span>
               </div>
-              <Link className="text-blue-600 hover:underline" to="/admin/audit-logs">
-                Export audit logs →
+              <div className="flex justify-between">
+                <span>Estimated spend</span>
+                <span className="font-semibold">${usageTotals?.cost_usd?.toFixed?.(2) ?? '0.00'}</span>
+              </div>
+              <Link className="text-blue-600 hover:underline" to="/admin/analytics">
+                Explore analytics →
               </Link>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Budget &amp; Fallbacks</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Monthly budget (USD)</div>
+                <Input
+                  value={budgetForm.monthlyLimitUsd}
+                  onChange={(e) => setBudgetForm((prev) => ({ ...prev, monthlyLimitUsd: e.target.value }))}
+                  placeholder="250"
+                />
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Fallback policy</div>
+                <Select
+                  value={budgetForm.fallbackPolicy}
+                  onValueChange={(value) => setBudgetForm((prev) => ({ ...prev, fallbackPolicy: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select fallback" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="block">Block requests</SelectItem>
+                    <SelectItem value="degrade">Degrade model</SelectItem>
+                    <SelectItem value="allow">Allow overage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={() => budgetMutation.mutate()} disabled={budgetMutation.isPending}>
+                {budgetMutation.isPending ? 'Saving…' : 'Save budget settings'}
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                Current spend: ${budgetQuery.data?.budget?.spent_usd ?? 0} · Reset at{' '}
+                {budgetQuery.data?.budget?.reset_at
+                  ? new Date(budgetQuery.data.budget.reset_at).toLocaleDateString()
+                  : '—'}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Model Policy</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Default model</div>
+                <Input
+                  value={modelForm.defaultModel}
+                  onChange={(e) => setModelForm((prev) => ({ ...prev, defaultModel: e.target.value }))}
+                />
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Fallback model</div>
+                <Input
+                  value={modelForm.fallbackModel}
+                  onChange={(e) => setModelForm((prev) => ({ ...prev, fallbackModel: e.target.value }))}
+                />
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Allowed models (comma-separated)</div>
+                <Input
+                  value={modelForm.allowedModels}
+                  onChange={(e) => setModelForm((prev) => ({ ...prev, allowedModels: e.target.value }))}
+                />
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Required feature flags</div>
+                <Input
+                  value={modelForm.featureFlags}
+                  onChange={(e) => setModelForm((prev) => ({ ...prev, featureFlags: e.target.value }))}
+                  placeholder="ENTERPRISE_AI_GOVERNANCE"
+                />
+              </div>
+              <Button onClick={() => modelPolicyMutation.mutate()} disabled={modelPolicyMutation.isPending}>
+                {modelPolicyMutation.isPending ? 'Saving…' : 'Save model policy'}
+              </Button>
             </CardContent>
           </Card>
         </div>
