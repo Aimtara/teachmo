@@ -129,6 +129,7 @@ export const NAV_STRUCTURE = [
       { name: 'AI Governance', page: 'AdminAIGovernance', icon: Bot, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_GOVERNANCE' },
       { name: 'AI Review Queue', page: 'AdminAIReviewQueue', icon: Shield, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_REVIEW' },
       { name: 'SIS Roster', page: 'AdminSISRoster', icon: School, requiredScopes: ['directory:manage'], feature: 'ENTERPRISE_SIS_ROSTER' },
+      { name: 'Integration Health', page: 'AdminIntegrationHealth', icon: Globe, requiredScopes: ['directory:manage'] },
       { name: 'Workflows', page: 'AdminWorkflows', icon: Compass, requiredScopes: ['automation:manage'] },
       { name: 'Message Reports', page: 'AdminModerationQueue', icon: Shield, requiredScopes: ['safety:review'] },
       { name: 'Messaging Blocks', page: 'AdminMessagingBlocklist', icon: Shield, requiredScopes: ['safety:review'] }

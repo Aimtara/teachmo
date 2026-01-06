@@ -28,6 +28,8 @@ import notificationsRouter from './routes/notifications.js';
 import { featureFlagsAdminRouter, featureFlagsRouter } from './routes/featureFlags.js';
 import observabilityRouter from './routes/observability.js';
 import { captureApiMetrics } from './middleware/metrics.js';
+import integrationsRouter from './routes/integrations.js';
+import ltiRouter from './routes/lti.js';
 
 // Load environment variables
 dotenv.config();
@@ -93,6 +95,8 @@ app.use('/api/admin', notificationsRouter);
 app.use('/api/feature-flags', featureFlagsRouter);
 app.use('/api/admin/feature-flags', featureFlagsAdminRouter);
 app.use('/api/admin', observabilityRouter);
+app.use('/api/integrations', integrationsRouter);
+app.use('/api/lti', ltiRouter);
 
 // Root endpoint to verify API is running
 app.get('/api', (req, res) => {

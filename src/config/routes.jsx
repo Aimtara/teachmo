@@ -398,6 +398,15 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading SIS roster...</p>
   },
   {
+    name: 'AdminIntegrationHealth',
+    path: '/admin/integration-health',
+    Component: lazy(() => import('@/pages/AdminIntegrationHealth.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['directory:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading integration health...</p>
+  },
+  {
     name: 'AdminModerationQueue',
     path: '/admin/moderation/messages',
     Component: lazy(() => import('@/pages/AdminModerationQueue.jsx')),
