@@ -3,11 +3,13 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireFeatureFlag } from '../middleware/featureFlags.js';
 
 const router = Router();
 
 router.use(requireAuth);
 router.use(requireTenant);
+router.use(requireFeatureFlag('AI_ASSISTANT'));
 
 router.post('/log', async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
