@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
 import Dashboard from './Dashboard.jsx';
 import AdminAnalytics from './AdminAnalytics.jsx';
+import AdminNotifications from './AdminNotifications.jsx';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminWorkflows from './AdminWorkflows.jsx';
 import AdminTenantSettings from './AdminTenantSettings.jsx';
@@ -317,6 +318,14 @@ export default function Pages() {
             element={(
               <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['analytics:view']} requiredScopes={['reporting:view']}>
                 <AdminAnalytics />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/notifications"
+            element={(
+              <ProtectedRoute allowedRoles={['system_admin', 'school_admin', 'district_admin']} requiredActions={['org:manage']} requiredScopes={['org:manage']}>
+                <AdminNotifications />
               </ProtectedRoute>
             )}
           />
