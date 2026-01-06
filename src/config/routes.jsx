@@ -255,6 +255,15 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading admin analytics...</p>
   },
   {
+    name: 'AdminNotifications',
+    path: '/admin/notifications',
+    Component: lazy(() => import('@/pages/AdminNotifications.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+    requiredScopes: ['org:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading notifications...</p>
+  },
+  {
     name: 'AdminWorkflows',
     path: '/admin/workflows',
     Component: lazy(() => import('@/pages/AdminWorkflows.jsx')),

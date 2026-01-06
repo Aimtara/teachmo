@@ -115,6 +115,7 @@ export const NAV_STRUCTURE = [
       { name: 'Admin Dashboard', page: 'AdminDashboard', icon: Shield, requiredScopes: ['org:manage'] },
       { name: 'Partner Dashboard', page: 'AdminPartners', icon: Users, requiredScopes: ['org:manage'] },
       { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
+      { name: 'Notifications', page: 'AdminNotifications', icon: Bell, requiredScopes: ['org:manage'] },
       { name: 'Users', page: 'AdminUsers', icon: UserCheck, requiredScopes: ['users:manage'] },
       { name: 'Tenant Settings', page: 'AdminTenantSettings', icon: Building2, requiredScopes: ['org:manage'] },
       { name: 'SSO Policy', page: 'AdminSSOSettings', icon: Shield, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_SSO' },
