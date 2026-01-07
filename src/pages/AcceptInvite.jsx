@@ -3,12 +3,13 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { InvitesAPI } from '@/api/adapters';
 import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('AcceptInvite');
+
 export default function AcceptInvite() {
   const [params] = useSearchParams();
   const nav = useNavigate();
   const token = params.get('token') || '';
   const [status, setStatus] = useState('accepting');
-  const logger = createLogger('AcceptInvite');
 
   useEffect(() => {
     (async () => {
