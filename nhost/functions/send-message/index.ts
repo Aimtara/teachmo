@@ -25,9 +25,16 @@ function windowStart(seconds: number): string {
   return new Date(Math.floor(now / windowMs) * windowMs).toISOString();
 }
 
+type HasuraError = {
+  message: string;
+  extensions?: Record<string, unknown>;
+  path?: (string | number)[];
+  locations?: { line: number; column: number }[];
+};
+
 type HasuraResponse<T> = {
   data?: T;
-  errors?: unknown;
+  errors?: HasuraError[];
 };
 
 type HasuraClient = <T>(query: string, variables?: Record<string, unknown>) => Promise<HasuraResponse<T>>;
@@ -50,9 +57,9 @@ function makeHasuraClient(): HasuraClient {
     });
 
     const json = (await response.json()) as HasuraResponse<unknown>;
-    if (json.errors) {
+    if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
-      throw new Error(json.errors[0]?.message ?? 'hasura_error');
+      throw new Error(json.errors[0].message ?? 'hasura_error');
     }
     return json;
   };
