@@ -89,6 +89,16 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading AI assistant...</p>
   },
   {
+    name: 'AIExplainability',
+    path: '/ai/explainability/:id',
+    Component: lazy(() => import('@/pages/AIExplainability.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'admin', 'system_admin'],
+    requiredScopes: ['core:dashboard'],
+    feature: 'AI_ASSISTANT',
+    fallback: <p className="p-6 text-gray-600">Loading AI explainability...</p>
+  },
+  {
     name: 'Settings',
     path: '/settings',
     Component: lazy(() => import('@/pages/Settings.jsx')),
