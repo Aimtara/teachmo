@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 
 function safeJsonParse(txt) {
   try {
@@ -57,6 +58,7 @@ export default function AdminTenantSettings() {
   const [settingsJson, setSettingsJson] = useState('{}');
   const [auditLogRetentionDays, setAuditLogRetentionDays] = useState('365');
   const [dsarRetentionDays, setDsarRetentionDays] = useState('30');
+  const [requireSso, setRequireSso] = useState(false);
 
   useMemo(() => {
     const row = settingsQuery.data;
@@ -70,6 +72,13 @@ export default function AdminTenantSettings() {
     setAuditLogRetentionDays(String(retention.audit_log_days ?? retention.auditLogDays ?? '365'));
     setDsarRetentionDays(String(retention.dsar_export_days ?? retention.dsarExportDays ?? '30'));
     setSettingsJson(JSON.stringify(settings, null, 2));
+    const requireFlag =
+      settings.require_sso !== undefined
+        ? settings.require_sso
+        : settings.requireSso !== undefined
+        ? settings.requireSso
+        : false;
+    setRequireSso(Boolean(requireFlag));
   }, [settingsQuery.data]);
 
   const saveMutation = useMutation({
@@ -86,6 +95,8 @@ export default function AdminTenantSettings() {
         audit_log_days: Number(auditLogRetentionDays) || 365,
         dsar_export_days: Number(dsarRetentionDays) || 30,
       };
+      // Persist the require_sso flag (use snake_case for consistency)
+      settings.require_sso = Boolean(requireSso);
 
       if (settingsQuery.data?.id) {
         const m = `mutation UpdateTenantSettings($id: uuid!, $changes: tenant_settings_set_input!) {
@@ -147,6 +158,27 @@ export default function AdminTenantSettings() {
             <div className="text-xs text-muted-foreground mb-1">Accent color</div>
             <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Identity & SSO</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="require-sso"
+              checked={requireSso}
+              onCheckedChange={(checked) => setRequireSso(checked)}
+            />
+            <label htmlFor="require-sso" className="text-sm">
+              Require users to sign in via single sign-on
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            When enabled, all users will be redirected to an enabled SSO provider and email/password login will be disabled.
+          </p>
         </CardContent>
       </Card>
 

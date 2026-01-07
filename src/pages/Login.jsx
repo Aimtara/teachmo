@@ -1,11 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { nhost } from '@/lib/nhostClient';
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
+import useTenantSSOSettings from '@/hooks/useTenantSSOSettings';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Fetch tenant SSO settings (enabled providers and requireSso flag)
+  const { data: ssoSettings } = useTenantSSOSettings();
+  const requireSso = ssoSettings?.requireSso || false;
+  const enabledProviders = ssoSettings?.providers || [];
 
   const handleEmailLogin = async (event) => {
     event.preventDefault();
@@ -33,7 +40,25 @@ export default function Login() {
             {error}
           </p>
         )}
-        <SocialLoginButtons onError={(err) => setError(err?.message || 'Login failed')} />
+        {/* Automatically redirect to the only enabled SSO provider when required */}
+        {requireSso && enabledProviders.length === 1 && (
+          <AutoSSORedirect
+            provider={enabledProviders[0]}
+            onError={(err) => setError(err?.message || 'Login failed')}
+            onStart={() => setRedirecting(true)}
+          />
+        )}
+        {/* If multiple providers or SSO optional, show provider buttons */}
+        {(!requireSso || enabledProviders.length !== 1) && (
+          <SocialLoginButtons
+            onError={(err) => setError(err?.message || 'Login failed')}
+            providers={enabledProviders.length ? enabledProviders : null}
+          />
+        )}
+        {/* Show redirect message when auto-redirecting */}
+        {redirecting && (
+          <p className="text-center text-sm text-gray-500">Redirecting to your single sign-on provider…</p>
+        )}
         <div className="relative">
           <div className="absolute inset-0 flex items-center" aria-hidden="true">
             <div className="w-full border-t border-gray-200" />
@@ -42,45 +67,75 @@ export default function Login() {
             <span className="bg-gray-50 px-2 text-gray-500">or</span>
           </div>
         </div>
-        <form className="mt-8 space-y-4" onSubmit={handleEmailLogin}>
-          <div>
-            <label htmlFor="email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="sr-only">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full flex justify-center rounded-md bg-emerald-600 py-2 px-4 text-sm font-semibold text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-          >
-            Sign in
-          </button>
-        </form>
+        {!requireSso && (
+          <form className="mt-8 space-y-4" onSubmit={handleEmailLogin}>
+            <div>
+              <label htmlFor="email" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full flex justify-center rounded-md bg-emerald-600 py-2 px-4 text-sm font-semibold text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              Sign in
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
+}
+
+/**
+ * AutoSSORedirect triggers an immediate signIn with the given provider when mounted.
+ * It calls onStart before initiating the redirect and onError if the call fails.
+ */
+function AutoSSORedirect({ provider, onStart, onError }) {
+  useEffect(() => {
+    async function go() {
+      try {
+        onStart?.();
+        await nhost.auth.signIn({
+          provider,
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+      } catch (err) {
+        console.error('SSO redirect failed', err);
+        onError?.(err);
+      }
+    }
+    if (provider) {
+      go();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]);
+  return null;
 }
