@@ -1,5 +1,6 @@
-import { nhost } from '@/lib/nhostClient';
 import { enqueueRequest } from '@/offline/OfflineStorageManager';
+import { API_BASE_URL } from '@/config/api';
+import { fetchAiJson, getAiHeaders } from './client';
 
 export type TenantScope = {
   organizationId: string;
@@ -17,25 +18,28 @@ export type AiLogPayload = {
   model?: string;
   metadata?: Record<string, unknown>;
   childId?: string | null;
+  inputs?: Record<string, unknown>;
+  outputs?: Record<string, unknown>;
+  promptId?: string | null;
+  promptVersionId?: string | null;
+  userId?: string | null;
+  reviewRequired?: boolean;
+  reviewReason?: string | null;
+  costUsd?: number | null;
+  latencyMs?: number | null;
 };
 
-async function authHeaders() {
-  const token = await nhost.auth.getAccessToken();
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (token) headers.authorization = `Bearer ${token}`;
-  return headers;
-}
-
 export async function logAiInteraction(_tenant: TenantScope, payload: AiLogPayload) {
-  const headers = await authHeaders();
   try {
-    const { data, error } = await nhost.functions.call('aiUsageLogger', payload);
-    if (error) throw error;
-    return data;
+    return await fetchAiJson('/ai/log', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   } catch (err) {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      const headers = await getAiHeaders();
       await enqueueRequest({
-        url: '/functions/aiUsageLogger',
+        url: `${API_BASE_URL}/ai/log`,
         method: 'POST',
         headers,
         body: JSON.stringify(payload)

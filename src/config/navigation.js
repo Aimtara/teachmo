@@ -127,6 +127,14 @@ export const NAV_STRUCTURE = [
       { name: 'Compliance Center', page: 'AdminCompliance', icon: ShieldCheck, requiredScopes: ['safety:review'] },
       { name: 'Feature Flags', page: 'AdminFeatureFlags', icon: BadgePercent, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_FEATURE_FLAGS' },
       { name: 'AI Governance', page: 'AdminAIGovernance', icon: Bot, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_GOVERNANCE' },
+      {
+        name: 'AI Prompts',
+        page: 'AdminAIPrompts',
+        icon: FileText,
+        roles: ['system_admin', 'admin'],
+        requiredScopes: ['safety:review'],
+        feature: 'ENTERPRISE_AI_GOVERNANCE'
+      },
       { name: 'AI Review Queue', page: 'AdminAIReviewQueue', icon: Shield, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_REVIEW' },
       { name: 'SIS Roster', page: 'AdminSISRoster', icon: School, requiredScopes: ['directory:manage'], feature: 'ENTERPRISE_SIS_ROSTER' },
       { name: 'Integration Health', page: 'AdminIntegrationHealth', icon: Globe, requiredScopes: ['directory:manage'] },
