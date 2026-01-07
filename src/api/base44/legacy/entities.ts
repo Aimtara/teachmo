@@ -1,6 +1,10 @@
 import { base44 as base44Client } from '../client';
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const base44 = base44Client as any;
+
+type Base44Client = {
+  entities: Record<string, unknown>;
+};
+
+const base44 = base44Client as Base44Client;
 
 
 export const Child = base44.entities.Child;

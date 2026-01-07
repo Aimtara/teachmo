@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 type FetchRequestInit = globalThis.RequestInit;
 type FetchHeadersInit = globalThis.HeadersInit;
 
@@ -18,7 +17,7 @@ const getFunctionsBaseUrl = (): string => {
 
 const functionsBaseUrl = getFunctionsBaseUrl();
 
-type FunctionPayload = Record<string, any> | FormData | undefined;
+type FunctionPayload = Record<string, unknown> | FormData | undefined;
 
 type InvokeOverrides = FetchRequestInit & { headers?: FetchHeadersInit };
 
