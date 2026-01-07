@@ -4,8 +4,10 @@ import { query } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
 import { logPartnerAction } from '../utils/partnerAudit.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = Router();
+const logger = createLogger('routes.billing');
 
 router.use(requireAuth);
 router.use(requireDistrictScope);
@@ -14,7 +16,7 @@ async function safeQuery(res, sql, params = []) {
   try {
     return await query(sql, params);
   } catch (error) {
-    console.error('[billing] db error', error);
+    logger.error('Database error', error);
     res.status(500).json({ error: 'db_error', detail: error.message });
     return null;
   }

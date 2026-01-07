@@ -1,5 +1,8 @@
 /* eslint-env node */
 import { query } from '../db.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('metrics');
 
 export function captureApiMetrics(req, res, next) {
   const start = Date.now();
@@ -28,7 +31,7 @@ export function captureApiMetrics(req, res, next) {
         error
       ]
     ).catch((err) => {
-      console.warn('[metrics] failed to log api request', err?.message || err);
+      logger.warn('Failed to log api request', err?.message || err);
     });
   });
 

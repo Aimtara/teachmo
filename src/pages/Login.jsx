@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { nhost } from '@/lib/nhostClient';
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
 import useTenantSSOSettings from '@/hooks/useTenantSSOSettings';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('login');
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -23,7 +26,7 @@ export default function Login() {
         password,
       });
     } catch (err) {
-      console.error('Email login failed', err);
+      logger.error('Email login failed', err);
       setError(err?.message || 'Login failed');
     }
   };
@@ -128,14 +131,13 @@ function AutoSSORedirect({ provider, onStart, onError }) {
           },
         });
       } catch (err) {
-        console.error('SSO redirect failed', err);
+        logger.error('SSO redirect failed', err);
         onError?.(err);
       }
     }
     if (provider) {
       go();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider]);
+  }, [onError, onStart, provider]);
   return null;
 }

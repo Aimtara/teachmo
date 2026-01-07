@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useWebSocket } from '../providers/WebSocketProvider';
 import { sendMessageStatusUpdate } from './MessageStatusUpdater';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('realtime-sync');
 
 type StatusUpdatePayload = { messageId: string; status: 'delivered' | 'read' };
 
@@ -36,7 +39,7 @@ export const useRealTimeSync = (
           onMessage(data);
         }
       } catch (error) {
-        console.error('Invalid WebSocket message', error);
+        logger.warn('Invalid WebSocket message', error);
       }
     };
 

@@ -1,6 +1,9 @@
 /* eslint-env node */
 import { query } from '../db.js';
 import { DEFAULT_RETENTION, normalizeRetention } from '../utils/tenantSettings.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('retention-purge');
 
 function tenantKey(organizationId, schoolId) {
   return `${organizationId || 'unknown'}::${schoolId || 'none'}`;
@@ -85,7 +88,7 @@ export function startRetentionPurgeScheduler() {
 
   const timer = setInterval(() => {
     runRetentionPurge().catch((error) => {
-      console.error('[retentionPurge] failed', error);
+      logger.error('Retention purge failed', error);
     });
   }, intervalMs);
 
