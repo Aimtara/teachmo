@@ -230,17 +230,19 @@ export const useEntityCache = (entityName) => {
   return {
     list: (fetchFn, options = {}) => 
       cacheManager.cachedFetch(getEntityKey('list'), fetchFn, options),
-    
+
     get: (id, fetchFn, options = {}) => 
       cacheManager.cachedFetch(getEntityKey('get', id), fetchFn, options),
-    
+
     invalidateList: () => cacheManager.invalidate(getEntityKey('list')),
     invalidateItem: (id) => cacheManager.invalidate(getEntityKey('get', id)),
+    /**
+     * Invalidate all cached entries for this entity. Uses cacheManager.getCacheKeys()
+     * to find keys matching this entity prefix instead of assuming a fixed size.
+     */
     invalidateAll: () => {
-      cacheManager.batchInvalidate([
-        getEntityKey('list'),
-        ...Array.from({ length: 100 }, (_, i) => getEntityKey('get', i))
-      ]);
+      const keys = cacheManager.getCacheKeys().filter((k) => k.startsWith(`${entityName}_`));
+      cacheManager.batchInvalidate(keys);
     },
   };
 };
