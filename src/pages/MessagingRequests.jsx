@@ -5,6 +5,7 @@ import { MessagingAPI } from '@/api/adapters';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/utils';
+import { createLogger } from '@/utils/logger';
 
 function RequestRow({ request, onApprove, onDeny, onReasonChange, isProcessing, reasonValue }) {
   const created = useMemo(() => {
@@ -74,6 +75,7 @@ export default function MessagingRequests() {
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState({});
   const [reasons, setReasons] = useState({});
+  const logger = createLogger('MessagingRequests');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,7 +84,7 @@ export default function MessagingRequests() {
       setRequests(Array.isArray(list) ? list : []);
       setError('');
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to load messaging requests', err);
       setError(err?.message ?? 'Unable to load requests');
     } finally {
       setLoading(false);
@@ -108,7 +110,7 @@ export default function MessagingRequests() {
       });
       await load();
     } catch (err) {
-      console.error(err);
+      logger.error('Error saving messaging decision', err);
       setError(err?.message ?? 'Unable to save decision');
     } finally {
       setProcessing((prev) => ({ ...prev, [id]: false }));

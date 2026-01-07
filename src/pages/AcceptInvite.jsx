@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { InvitesAPI } from '@/api/adapters';
+import { createLogger } from '@/utils/logger';
 
 export default function AcceptInvite() {
   const [params] = useSearchParams();
   const nav = useNavigate();
   const token = params.get('token') || '';
   const [status, setStatus] = useState('accepting');
+  const logger = createLogger('AcceptInvite');
 
   useEffect(() => {
     (async () => {
@@ -19,7 +21,7 @@ export default function AcceptInvite() {
           setStatus('invalid');
         }
       } catch (error) {
-        console.error('accept-thread-invite failed', error);
+        logger.error('accept-thread-invite failed', error);
         setStatus('error');
       }
     })();
