@@ -111,24 +111,56 @@ function resolveModel({ policy, preferredModel, featureFlags = {} }) {
 
 router.post('/resolve-model', async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
-  const { preferredModel, estimatedTokens, featureFlags, promptId } = req.body || {};
+  const { preferredModel, estimatedTokens, featureFlags, promptId, max_tokens: maxTokens } = req.body || {};
 
   const policy = await loadModelPolicy(organizationId, schoolId);
   const budget = await loadBudget(organizationId, schoolId);
   const resolved = resolveModel({ policy, preferredModel, featureFlags });
-  const estimatedCost = estimateCost({ tokenTotal: estimatedTokens, model: resolved.model });
+
+  const allowedModels = Array.isArray(policy?.allowed_models) && policy.allowed_models.length
+    ? policy.allowed_models
+    : [policy?.default_model].filter(Boolean);
+  const sortedAllowed = [...allowedModels].sort(
+    (a, b) => (MODEL_COSTS[a] ?? Infinity) - (MODEL_COSTS[b] ?? Infinity)
+  );
+
+  let selectedModel = resolved.model;
+  let selectionReason = resolved.reason;
+  let remainingFraction = null;
+
   const limit = budget?.monthly_limit_usd ? Number(budget.monthly_limit_usd) : null;
   const spent = budget?.spent_usd ? Number(budget.spent_usd) : 0;
+  if (limit !== null && limit > 0) {
+    remainingFraction = (limit - spent) / limit;
+  }
+
+  const tokenEstimate = Number(estimatedTokens ?? maxTokens ?? 0);
+  if (tokenEstimate && tokenEstimate < 1000 && sortedAllowed.length) {
+    selectedModel = sortedAllowed[0];
+    selectionReason = 'low_complexity';
+  }
+
+  if (remainingFraction !== null && remainingFraction <= 0.1 && sortedAllowed.length) {
+    selectedModel = sortedAllowed[0];
+    selectionReason = 'budget_low';
+  }
+
+  if (remainingFraction !== null && remainingFraction < 0) {
+    selectedModel = policy?.fallback_model || sortedAllowed[0] || selectedModel;
+    selectionReason = 'budget_exceeded';
+  }
+
+  const estimatedCost = estimateCost({ tokenTotal: tokenEstimate, model: selectedModel });
   const budgetExceeded = limit !== null && spent + estimatedCost > limit;
 
-  let finalModel = resolved.model;
+  let finalModel = selectedModel;
   let blocked = false;
   let fallbackReason = null;
 
   if (budgetExceeded) {
     const policyFallback = budget?.fallback_policy || 'block';
     if (policyFallback === 'degrade') {
-      finalModel = policy?.fallback_model || policy?.default_model || resolved.model;
+      finalModel = policy?.fallback_model || policy?.default_model || selectedModel;
       fallbackReason = 'budget_degraded';
     } else if (policyFallback === 'allow') {
       fallbackReason = 'budget_allow';
@@ -164,7 +196,8 @@ router.post('/resolve-model', async (req, res) => {
       : null,
     estimatedCost,
     budgetExceeded,
-    reason: fallbackReason || resolved.reason,
+    reason: fallbackReason || selectionReason,
+    budgetRemaining: remainingFraction,
     prompt,
   });
 });

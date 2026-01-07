@@ -11,13 +11,18 @@ export function gql(strings, ...values) {
 }
 
 export async function graphqlRequest({ query, variables, headers = {} }) {
-  const { data, error } = await nhost.graphql.request(query, variables, headers);
-  if (error) {
-    const message = error.message || 'We could not complete your request. Please try again.';
-    logger.error('GraphQL request failed', error);
-    throw new Error(message, { cause: error });
+  try {
+    const { data, error } = await nhost.graphql.request(query, variables, headers);
+    if (error) {
+      const message = error.message || 'We could not complete your request. Please try again.';
+      logger.error('GraphQL request failed', error);
+      throw new Error(message, { cause: error });
+    }
+    return data;
+  } catch (err) {
+    logger.error('GraphQL request exception', err);
+    throw err;
   }
-  return data;
 }
 
 export async function graphql(query, variables, headers = {}) {

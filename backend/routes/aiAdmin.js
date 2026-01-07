@@ -378,7 +378,7 @@ router.get('/review-queue', requireFeatureFlag('ENTERPRISE_AI_REVIEW'), async (r
 router.post('/review-queue/:id/decision', requireFeatureFlag('ENTERPRISE_AI_REVIEW'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const { id } = req.params;
-  const { status, notes } = req.body || {};
+  const { status, reason, notes } = req.body || {};
 
   if (!['approved', 'rejected'].includes(status)) {
     return res.status(400).json({ error: 'invalid status' });
@@ -386,9 +386,9 @@ router.post('/review-queue/:id/decision', requireFeatureFlag('ENTERPRISE_AI_REVI
 
   await query(
     `update ai_review_queue
-     set status = $3, reviewer_id = $4, reviewed_at = now()
+     set status = $3, reviewer_id = $4, reviewed_at = now(), reason = $5
      where id = $1 and organization_id = $2`,
-    [id, organizationId, status, req.auth?.userId || null]
+    [id, organizationId, status, req.auth?.userId || null, reason ?? null]
   );
 
   await query(
@@ -409,7 +409,7 @@ router.post('/review-queue/:id/decision', requireFeatureFlag('ENTERPRISE_AI_REVI
     action: `ai_review.${status}`,
     entityType: 'ai_review',
     entityId: id,
-    metadata: { notes },
+    metadata: { reason, notes },
     organizationId,
     schoolId,
   });

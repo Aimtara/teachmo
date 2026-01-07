@@ -7,13 +7,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/utils';
 import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('MessagingRequests');
+
 function RequestRow({ request, onApprove, onDeny, onReasonChange, isProcessing, reasonValue }) {
   const created = useMemo(() => {
     if (!request?.created_at) return 'just now';
     try {
       return formatDistanceToNow(new Date(request.created_at), { addSuffix: true });
     } catch (error) {
-      console.error(error);
+      logger.error('Invalid date in messaging request', error);
       return request.created_at;
     }
   }, [request?.created_at]);
@@ -75,8 +77,6 @@ export default function MessagingRequests() {
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState({});
   const [reasons, setReasons] = useState({});
-  const logger = createLogger('MessagingRequests');
-
   const load = useCallback(async () => {
     setLoading(true);
     try {

@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 
 async function fetchJson(url, opts = {}) {
   const response = await fetch(url, opts);
@@ -33,16 +35,17 @@ export default function AdminAIReview() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, status }) => {
+    mutationFn: async ({ id, status, reason, notes }) => {
       return fetchJson(`${API_BASE_URL}/admin/ai/review-queue/${id}/decision`, {
         method: 'POST',
         headers: headersQuery.data,
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reason, notes }),
       });
     },
     onSuccess: () => queueQuery.refetch(),
   });
 
+  const [decisionData, setDecisionData] = useState({});
   const queue = queueQuery.data?.queue || [];
 
   return (
@@ -61,18 +64,19 @@ export default function AdminAIReview() {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Created</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead>Risk</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
+                <TableRow>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Model</TableHead>
+                  <TableHead>Risk</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Decision details</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
             </TableHeader>
             <TableBody>
               {queue.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-sm text-muted-foreground">
+                  <TableCell colSpan={6} className="text-sm text-muted-foreground">
                     No items awaiting review.
                   </TableCell>
                 </TableRow>
@@ -83,11 +87,56 @@ export default function AdminAIReview() {
                     <TableCell>{item.model ?? '—'}</TableCell>
                     <TableCell>{item.safety_risk_score ?? '—'}</TableCell>
                     <TableCell>{item.reason ?? '—'}</TableCell>
+                    <TableCell>
+                      <div className="space-y-2 min-w-[220px]">
+                        <label className="block text-xs font-medium text-muted-foreground" htmlFor={`reason-${item.id}`}>
+                          Decision reason
+                        </label>
+                        <select
+                          id={`reason-${item.id}`}
+                          value={decisionData[item.id]?.reason ?? ''}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setDecisionData((prev) => ({
+                              ...prev,
+                              [item.id]: { ...(prev[item.id] || {}), reason: value },
+                            }));
+                          }}
+                          className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
+                        >
+                          <option value="">Select reason</option>
+                          <option value="accurate">Accurate</option>
+                          <option value="inaccurate">Inaccurate</option>
+                          <option value="bias">Bias</option>
+                          <option value="sensitive">Sensitive content</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <Textarea
+                          value={decisionData[item.id]?.notes ?? ''}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setDecisionData((prev) => ({
+                              ...prev,
+                              [item.id]: { ...(prev[item.id] || {}), notes: value },
+                            }));
+                          }}
+                          placeholder="Add notes for this decision"
+                          className="min-h-[80px]"
+                        />
+                      </div>
+                    </TableCell>
                     <TableCell className="flex gap-2">
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => updateMutation.mutate({ id: item.id, status: 'approved' })}
+                        onClick={() =>
+                          updateMutation.mutate({
+                            id: item.id,
+                            status: 'approved',
+                            reason: decisionData[item.id]?.reason ?? '',
+                            notes: decisionData[item.id]?.notes ?? '',
+                          })
+                        }
                         disabled={updateMutation.isPending}
                       >
                         Approve
@@ -95,7 +144,14 @@ export default function AdminAIReview() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => updateMutation.mutate({ id: item.id, status: 'rejected' })}
+                        onClick={() =>
+                          updateMutation.mutate({
+                            id: item.id,
+                            status: 'rejected',
+                            reason: decisionData[item.id]?.reason ?? '',
+                            notes: decisionData[item.id]?.notes ?? '',
+                          })
+                        }
                         disabled={updateMutation.isPending}
                       >
                         Reject
