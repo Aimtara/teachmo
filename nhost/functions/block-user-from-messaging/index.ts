@@ -6,9 +6,16 @@ import { getActorScope } from '../_shared/tenantScope';
 
 const logger = createLogger('block-user-from-messaging');
 
+type GraphQLError = {
+  message: string;
+  extensions?: Record<string, unknown>;
+  locations?: Array<{ line: number; column: number }>;
+  path?: Array<string | number>;
+};
+
 type HasuraResponse<T> = {
   data?: T;
-  errors?: unknown;
+  errors?: GraphQLError[];
 };
 
 type HasuraClient = <T>(query: string, variables?: Record<string, unknown>) => Promise<HasuraResponse<T>>;
@@ -31,9 +38,9 @@ function makeHasuraClient(): HasuraClient {
     });
 
     const json = (await response.json()) as HasuraResponse<unknown>;
-    if (json.errors) {
+    if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
-      throw new Error(json.errors[0]?.message ?? 'hasura_error');
+      throw new Error(json.errors[0].message ?? 'hasura_error');
     }
     return json;
   };
