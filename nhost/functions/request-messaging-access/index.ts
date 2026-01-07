@@ -4,6 +4,18 @@ import { notifyUserEvent } from '../_shared/notifier';
 
 const ALLOWED_TARGET_ROLES = new Set(['teacher', 'school_admin', 'district_admin', 'admin', 'system_admin', 'staff']);
 
+type GraphQLError = {
+  message: string;
+  extensions?: Record<string, unknown>;
+  path?: Array<string | number>;
+  locations?: Array<{ line: number; column: number }>;
+};
+
+type HasuraResponse<T> = {
+  data?: T;
+  errors?: GraphQLError[];
+};
+
 function makeHasuraClient() {
   const HASURA_URL = process.env.HASURA_GRAPHQL_ENDPOINT;
   const ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
@@ -21,10 +33,10 @@ function makeHasuraClient() {
       body: JSON.stringify({ query, variables }),
     });
 
-    const json = await response.json();
-    if (json.errors) {
+    const json = await response.json() as HasuraResponse<unknown>;
+    if (json.errors && json.errors.length > 0) {
       console.error('Hasura error', json.errors);
-      throw new Error(json.errors[0]?.message ?? 'hasura_error');
+      throw new Error(json.errors[0].message);
     }
     return json;
   };
