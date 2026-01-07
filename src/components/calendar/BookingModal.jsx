@@ -8,6 +8,9 @@ import { X, Calendar, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User } from '@/api/entities';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('booking-modal');
 
 export default function BookingModal({ slot, onConfirm, onCancel }) {
   const [formData, setFormData] = useState({
@@ -29,7 +32,7 @@ export default function BookingModal({ slot, onConfirm, onCancel }) {
           email: userData.email || ''
         }));
       } catch (error) {
-        console.error('Failed to load user:', error);
+        logger.error('Failed to load user', error);
       }
     };
     loadUser();
@@ -48,7 +51,7 @@ export default function BookingModal({ slot, onConfirm, onCancel }) {
         notes: formData.notes
       });
     } catch (error) {
-      console.error('Failed to book slot:', error);
+      logger.error('Failed to book slot', error);
     } finally {
       setIsSubmitting(false);
     }

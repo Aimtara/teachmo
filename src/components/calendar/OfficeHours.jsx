@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,9 @@ import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSupabase } from '@/components/shared/SupabaseProvider';
 import BookingModal from './BookingModal';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('office-hours');
 
 export default function OfficeHours({ userRole = 'parent' }) {
   const [slots, setSlots] = useState([]);
@@ -62,7 +65,7 @@ export default function OfficeHours({ userRole = 'parent' }) {
       setSlots(slotsData || []);
       setBookings(bookingsData || []);
     } catch (error) {
-      console.error('Failed to load office hours:', error);
+      logger.error('Failed to load office hours', error);
     } finally {
       setIsLoading(false);
     }
@@ -92,27 +95,34 @@ export default function OfficeHours({ userRole = 'parent' }) {
       setSelectedSlot(null);
       await loadOfficeHours();
     } catch (error) {
-      console.error('Failed to book slot:', error);
+      logger.error('Failed to book slot', error);
     }
   };
 
-  const getWeekDays = () => {
+  const weekDays = useMemo(() => {
     const days = [];
     for (let i = 0; i < 7; i++) {
       days.push(addDays(selectedWeek, i));
     }
     return days;
-  };
+  }, [selectedWeek]);
 
-  const getSlotsForDay = (day) => {
-    return slots.filter(slot => 
-      isSameDay(new Date(slot.start_time), day)
-    );
-  };
+  const slotsByDay = useMemo(() => {
+    return slots.reduce((acc, slot) => {
+      const slotDay = new Date(slot.start_time);
+      const key = slotDay.toDateString();
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(slot);
+      return acc;
+    }, {});
+  }, [slots]);
 
-  const getBookingForSlot = (slotId) => {
-    return bookings.find(booking => booking.slot_id === slotId);
-  };
+  const bookingBySlotId = useMemo(() => {
+    return bookings.reduce((acc, booking) => {
+      acc[booking.slot_id] = booking;
+      return acc;
+    }, {});
+  }, [bookings]);
 
   const navigateWeek = (direction) => {
     setSelectedWeek(prev => addDays(prev, direction * 7));
@@ -164,8 +174,8 @@ export default function OfficeHours({ userRole = 'parent' }) {
 
       {/* Week View */}
       <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-        {getWeekDays().map((day, index) => {
-          const daySlots = getSlotsForDay(day);
+        {weekDays.map((day, index) => {
+          const daySlots = slotsByDay[day.toDateString()] || [];
           const isToday = isSameDay(day, new Date());
 
           return (
@@ -179,7 +189,7 @@ export default function OfficeHours({ userRole = 'parent' }) {
               <CardContent className="space-y-2">
                 <AnimatePresence>
                   {daySlots.map(slot => {
-                    const booking = getBookingForSlot(slot.id);
+                    const booking = bookingBySlotId[slot.id];
                     const isBooked = !!booking;
 
                     return (

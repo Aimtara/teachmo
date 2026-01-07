@@ -7,6 +7,9 @@ import { Heart, Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import OfferCard from './OfferCard';
 import { EmptyState } from '../shared/LoadingStates';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('saved-offers');
 
 export default function SavedOffers() {
   const [savedOffers, setSavedOffers] = useState([]);
@@ -50,7 +53,7 @@ export default function SavedOffers() {
         setPartners(validPartners);
       }
     } catch (error) {
-      console.error('Failed to load saved offers:', error);
+      logger.error('Failed to load saved offers', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -73,7 +76,7 @@ export default function SavedOffers() {
         loadSavedOffers();
       }
     } catch (error) {
-      console.error('Failed to remove saved offer:', error);
+      logger.error('Failed to remove saved offer', error);
       toast({
         variant: 'destructive',
         title: 'Error',
