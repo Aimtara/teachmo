@@ -22,6 +22,10 @@ export async function logEvent(input: {
   entityType: string;
   entityId?: string | null;
   metadata?: Record<string, unknown>;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  changes?: Record<string, unknown> | null;
+  containsPii?: boolean;
 }) {
   // Avoid throwing hard if audit logging fails; we don’t want to block UX.
   try {

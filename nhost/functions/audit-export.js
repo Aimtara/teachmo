@@ -56,6 +56,9 @@ export default async function auditExport(req, res) {
       organization_id
       school_id
       metadata
+      before_snapshot
+      after_snapshot
+      contains_pii
     }
   }`;
 
@@ -77,7 +80,10 @@ export default async function auditExport(req, res) {
     'entity_id',
     'organization_id',
     'school_id',
-    'metadata'
+    'metadata',
+    'before_snapshot',
+    'after_snapshot',
+    'contains_pii'
   ];
 
   const csv = [
@@ -85,7 +91,9 @@ export default async function auditExport(req, res) {
     ...rows.map((row) =>
       headers
         .map((header) => {
-          const value = header === 'metadata' ? JSON.stringify(row[header] ?? {}) : row[header];
+          const value = ['metadata', 'before_snapshot', 'after_snapshot'].includes(header)
+            ? JSON.stringify(row[header] ?? {})
+            : row[header];
           return escapeCsv(value);
         })
         .join(',')
