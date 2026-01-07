@@ -3,22 +3,9 @@ import { createLogger } from '../_shared/logger';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
+import type { HasuraResponse, HasuraClient } from '../_shared/hasuraTypes';
 
 const logger = createLogger('block-user-from-messaging');
-
-type GraphQLError = {
-  message: string;
-  extensions?: Record<string, unknown>;
-  locations?: Array<{ line: number; column: number }>;
-  path?: Array<string | number>;
-};
-
-type HasuraResponse<T> = {
-  data?: T;
-  errors?: GraphQLError[];
-};
-
-type HasuraClient = <T>(query: string, variables?: Record<string, unknown>) => Promise<HasuraResponse<T>>;
 
 function makeHasuraClient(): HasuraClient {
   const HASURA_URL = process.env.HASURA_GRAPHQL_ENDPOINT;
