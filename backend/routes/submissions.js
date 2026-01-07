@@ -2,15 +2,17 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = Router();
+const logger = createLogger('routes.submissions');
 
 async function safeQuery(res, sql, params = []) {
   try {
     const result = await query(sql, params);
     return result;
   } catch (error) {
-    console.error('[submissions] db error', error);
+    logger.error('Database error', error);
     res.status(500).json({ error: 'db_error', detail: error.message });
     return null;
   }

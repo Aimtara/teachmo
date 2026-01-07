@@ -4,8 +4,10 @@ import { query } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAnyScope } from '../middleware/permissions.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = Router();
+const logger = createLogger('routes.scim');
 
 const SCIM_USER_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User';
 const SCIM_GROUP_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:Group';
@@ -89,7 +91,7 @@ async function safeQuery(res, sql, params = []) {
   try {
     return await query(sql, params);
   } catch (error) {
-    console.error('[scim] db error', error);
+    logger.error('Database error', error);
     res.status(500).json({ detail: error.message, status: 500, scimType: 'serverError' });
     return null;
   }

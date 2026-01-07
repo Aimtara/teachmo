@@ -1,4 +1,7 @@
 import { nhost } from './nhostClient';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('graphql');
 
 export function gql(strings, ...values) {
   if (typeof strings === 'string') {
@@ -10,8 +13,9 @@ export function gql(strings, ...values) {
 export async function graphqlRequest({ query, variables, headers = {} }) {
   const { data, error } = await nhost.graphql.request(query, variables, headers);
   if (error) {
-    console.error('GraphQL error', error);
-    throw new Error(error.message || 'GraphQL request failed');
+    const message = error.message || 'We could not complete your request. Please try again.';
+    logger.error('GraphQL request failed', error);
+    throw new Error(message);
   }
   return data;
 }

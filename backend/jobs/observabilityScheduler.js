@@ -6,6 +6,9 @@ import {
   getNextRunAt
 } from '../utils/observability.js';
 import { enqueueMessage } from './notificationQueue.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('observability-scheduler');
 
 async function runScheduledReports() {
   const now = new Date();
@@ -90,13 +93,13 @@ export function startObservabilitySchedulers({
         }
       })
       .catch((error) => {
-        console.error('[observability] alert scheduler failed', error);
+        logger.error('Alert scheduler failed', error);
       });
   }, alertIntervalMs);
 
   const reportTimer = setInterval(() => {
     runScheduledReports().catch((error) => {
-      console.error('[observability] report scheduler failed', error);
+      logger.error('Report scheduler failed', error);
     });
   }, reportIntervalMs);
 

@@ -7,11 +7,13 @@ import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
 import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
 import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
+import { createLogger } from './utils/logger.js';
 
 // Load environment variables
 dotenv.config();
 
 const PORT = process.env.PORT || 4000;
+const logger = createLogger('server');
 
 // Seed demo data ONLY when explicitly enabled.
 // Never seed in production.
@@ -28,5 +30,5 @@ startObservabilitySchedulers();
 startRosterSyncScheduler();
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Teachmo backend server running on port ${PORT}`);
+  logger.info(`Teachmo backend server running on port ${PORT}`);
 });

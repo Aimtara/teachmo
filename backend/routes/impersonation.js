@@ -5,14 +5,16 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAnyScope } from '../middleware/permissions.js';
 import { recordAuditLog } from '../utils/audit.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = Router();
+const logger = createLogger('routes.impersonation');
 
 async function safeQuery(res, sql, params = []) {
   try {
     return await query(sql, params);
   } catch (error) {
-    console.error('[impersonation] db error', error);
+    logger.error('Database error', error);
     res.status(500).json({ error: 'db_error', detail: error.message });
     return null;
   }

@@ -2,6 +2,12 @@ import React, { Suspense, useEffect, useMemo, useCallback } from 'react';
 import { PerformanceMonitor } from '../testing/performance/PerformanceMonitor';
 import GlobalErrorBoundary from '@/components/shared/GlobalErrorBoundary';
 import { LazyLoadError } from '@/components/shared/LazyPageWrapper';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('performance-optimizer');
+const isDevelopment =
+  (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'development') ||
+  (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
 
 // Bundle size analyzer
 export const analyzeBundleSize = () => {
@@ -14,6 +20,7 @@ export const analyzeBundleSize = () => {
   };
 
   const analyzeBundle = () => {
+    if (!isDevelopment) return {};
     const components = {};
     
     // This would need to be integrated with webpack-bundle-analyzer
@@ -154,8 +161,8 @@ export const PerformanceAware = ({
       componentName={componentName}
       threshold={threshold}
       onMetric={(metric) => {
-        if (metric.type === 'slowRender') {
-          console.warn(`Slow render detected in ${metric.componentName}: ${metric.duration}ms`);
+        if (metric.type === 'slowRender' && isDevelopment) {
+          logger.warn(`Slow render detected in ${metric.componentName}: ${metric.duration}ms`);
         }
       }}
     >
@@ -214,10 +221,11 @@ export const usePerformanceMonitoring = (componentName) => {
 
   useEffect(() => {
     return () => {
+      if (!isDevelopment) return;
       const unmountTime = performance.now();
       const totalTime = unmountTime - mountTime.current;
-      
-      console.log(`${componentName} performance:`, {
+
+      logger.debug(`${componentName} performance:`, {
         totalLifetime: totalTime,
         totalRenders: renderCount.current,
         avgRenderTime: totalTime / renderCount.current,
@@ -230,7 +238,9 @@ export const usePerformanceMonitoring = (componentName) => {
     const result = operation();
     const end = performance.now();
     
-    console.log(`${componentName} - ${operationName}: ${end - start}ms`);
+    if (isDevelopment) {
+      logger.debug(`${componentName} - ${operationName}: ${end - start}ms`);
+    }
     return result;
   }, [componentName]);
 
@@ -257,7 +267,9 @@ export const useMemoryLeakDetection = (componentName) => {
         try {
           cleanup();
         } catch (error) {
-          console.warn(`Cleanup error in ${componentName}:`, error);
+          if (isDevelopment) {
+            logger.warn(`Cleanup error in ${componentName}:`, error);
+          }
         }
       });
 
@@ -268,8 +280,8 @@ export const useMemoryLeakDetection = (componentName) => {
       });
 
       // Log potential memory leak indicators
-      if (subscriptions.current.length > 10) {
-        console.warn(`${componentName} had ${subscriptions.current.length} subscriptions - potential memory leak`);
+      if (isDevelopment && subscriptions.current.length > 10) {
+        logger.warn(`${componentName} had ${subscriptions.current.length} subscriptions - potential memory leak`);
       }
     };
   }, [componentName]);

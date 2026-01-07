@@ -1,5 +1,8 @@
 /* eslint-env node */
 import { query as defaultQuery } from '../db.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('notification-queue');
 
 export const DEFAULT_QUEUE_OPTIONS = {
   batchSize: 25,
@@ -461,13 +464,13 @@ export function startNotificationQueueScheduler({
 
   const processTimer = setInterval(() => {
     processQueueBatch({}).catch((error) => {
-      console.error('[notificationQueue] process failed', error);
+      logger.error('Process failed', error);
     });
   }, processIntervalMs);
 
   const scheduleTimer = setInterval(() => {
     enqueueDueMessages({}).catch((error) => {
-      console.error('[notificationQueue] schedule failed', error);
+      logger.error('Schedule failed', error);
     });
   }, scheduleIntervalMs);
 
