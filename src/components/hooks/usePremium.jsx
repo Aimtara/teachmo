@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { User } from "@/api/entities";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('use-premium');
 
 export function usePremium() {
   const [user, setUser] = useState(null);
@@ -14,7 +17,7 @@ export function usePremium() {
         setUser(currentUser);
         setIsPremium(currentUser?.subscription_tier === 'premium');
       } catch (error) {
-        console.warn("Could not fetch user for premium check, assuming not premium.", error);
+        logger.warn('Could not fetch user for premium check, assuming not premium.', error);
         setIsPremium(false);
       } finally {
         setIsLoading(false);

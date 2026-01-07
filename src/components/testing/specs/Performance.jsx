@@ -165,11 +165,13 @@ describe('Performance Tests', () => {
       expect(bundleAnalysis.styleCount).toBeLessThan(10);
       
       // Log bundle info for manual review
-      console.log('Bundle Analysis:', {
-        scripts: bundleAnalysis.scriptCount,
-        styles: bundleAnalysis.styleCount,
-        total: bundleAnalysis.totalResources
-      });
+      if (isDevelopment) {
+        logger.debug('Bundle Analysis:', {
+          scripts: bundleAnalysis.scriptCount,
+          styles: bundleAnalysis.styleCount,
+          total: bundleAnalysis.totalResources
+        });
+      }
     });
   });
 
