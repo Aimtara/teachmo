@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Heart, Clock, ExternalLink, Building2, Calendar, MapPin } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { format, isAfter, differenceInDays } from 'date-fns';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('offer-card');
 
 export default function OfferCard({ offer, partner, onUpdate, compact = false }) {
   const [isSaved, setIsSaved] = useState(false);
@@ -30,7 +33,7 @@ export default function OfferCard({ offer, partner, onUpdate, compact = false })
       });
       setIsSaved(saves.length > 0);
     } catch (error) {
-      console.error('Failed to load user save status:', error);
+      logger.error('Failed to load user save status', error);
     }
   };
 
@@ -73,7 +76,7 @@ export default function OfferCard({ offer, partner, onUpdate, compact = false })
       }
       onUpdate?.();
     } catch (error) {
-      console.error('Failed to save offer:', error);
+      logger.error('Failed to save offer', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -96,7 +99,7 @@ export default function OfferCard({ offer, partner, onUpdate, compact = false })
         window.open(offer.redemption_url, '_blank');
       }
     } catch (error) {
-      console.error('Failed to track click:', error);
+      logger.error('Failed to track click', error);
     }
   };
 

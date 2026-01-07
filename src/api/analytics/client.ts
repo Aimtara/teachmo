@@ -15,6 +15,8 @@ export type AnalyticsFilters = {
   schoolId?: string | null;
 };
 
+export type AnalyticsDefinition = Record<string, unknown>;
+
 async function authHeaders(tenant?: TenantScope) {
   const token = await nhost.auth.getAccessToken();
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -87,11 +89,11 @@ export async function exportAnalyticsPdf(tenant: TenantScope, filters: Analytics
   return res.blob();
 }
 
-export async function runReport(tenant: TenantScope, definition: any, filters: AnalyticsFilters = {}) {
+export async function runReport(tenant: TenantScope, definition: AnalyticsDefinition, filters: AnalyticsFilters = {}) {
   return request('/analytics/report', { method: 'POST', body: JSON.stringify({ definition, filters }) }, tenant);
 }
 
-export async function exportReportCsv(tenant: TenantScope, definition: any, filters: AnalyticsFilters = {}) {
+export async function exportReportCsv(tenant: TenantScope, definition: AnalyticsDefinition, filters: AnalyticsFilters = {}) {
   const base = getApiBaseUrl();
   const url = `${base}/analytics/report/export.csv`;
   const headers = await authHeaders(tenant);
@@ -104,7 +106,7 @@ export async function exportReportCsv(tenant: TenantScope, definition: any, filt
   return res.blob();
 }
 
-export async function exportReportPdf(tenant: TenantScope, definition: any, filters: AnalyticsFilters = {}) {
+export async function exportReportPdf(tenant: TenantScope, definition: AnalyticsDefinition, filters: AnalyticsFilters = {}) {
   const base = getApiBaseUrl();
   const url = `${base}/analytics/report/export.pdf`;
   const headers = await authHeaders(tenant);

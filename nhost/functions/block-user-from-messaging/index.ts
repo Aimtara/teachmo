@@ -1,15 +1,26 @@
+import type { Request, Response } from 'express';
+import { createLogger } from '../_shared/logger';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
 
-function makeHasuraClient() {
+const logger = createLogger('block-user-from-messaging');
+
+type HasuraResponse<T> = {
+  data?: T;
+  errors?: unknown;
+};
+
+type HasuraClient = <T>(query: string, variables?: Record<string, unknown>) => Promise<HasuraResponse<T>>;
+
+function makeHasuraClient(): HasuraClient {
   const HASURA_URL = process.env.HASURA_GRAPHQL_ENDPOINT;
   const ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
   if (!HASURA_URL || !ADMIN_SECRET) {
     throw new Error('Missing Hasura configuration');
   }
 
-  return async (query: string, variables?: Record<string, any>) => {
+  return async (query: string, variables?: Record<string, unknown>) => {
     const response = await fetch(HASURA_URL, {
       method: 'POST',
       headers: {
@@ -19,9 +30,9 @@ function makeHasuraClient() {
       body: JSON.stringify({ query, variables }),
     });
 
-    const json = await response.json();
+    const json = (await response.json()) as HasuraResponse<unknown>;
     if (json.errors) {
-      console.error('Hasura error', json.errors);
+      logger.error('Hasura error', json.errors);
       throw new Error(json.errors[0]?.message ?? 'hasura_error');
     }
     return json;
@@ -32,7 +43,7 @@ function isModeratorRole(role: string) {
   return ['admin', 'district_admin', 'school_admin', 'system_admin', 'teacher'].includes(String(role || '').toLowerCase());
 }
 
-export default async (req: any, res: any) => {
+export default async (req: Request, res: Response) => {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 
   const actorId = String(req.headers['x-hasura-user-id'] ?? '').trim();
@@ -61,7 +72,7 @@ export default async (req: any, res: any) => {
     });
     assertScope(scopes, 'messaging.enabled', true);
 
-    const schoolResp = await hasura(
+    const schoolResp = await hasura<{ school: { id: string; district_id?: string | null } | null }>(
       `query School($id: uuid!) {
         school: schools_by_pk(id: $id) { id district_id }
       }`,
@@ -121,9 +132,9 @@ export default async (req: any, res: any) => {
     });
 
     return res.status(200).json({ ok: true });
-  } catch (error: any) {
-    console.error('block-user-from-messaging failed', error);
-    const message = error?.message ?? 'unexpected_error';
+  } catch (error) {
+    logger.error('block-user-from-messaging failed', error);
+    const message = error instanceof Error ? error.message : 'unexpected_error';
     return res.status(500).json({ ok: false, error: message });
   }
 };
