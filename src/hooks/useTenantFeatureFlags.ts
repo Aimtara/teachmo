@@ -53,14 +53,6 @@ export function useTenantFeatureFlags() {
         acc[flag.key] = Boolean(flag.enabled);
         return acc;
       }, {} as FeatureFlags);
-      if (typeof globalThis !== 'undefined') {
-        // @ts-ignore
-        globalThis.__teachmoFeatureFlags = {
-          // @ts-ignore
-          ...(globalThis.__teachmoFeatureFlags || {}),
-          ...flags,
-        };
-      }
       return flags;
     },
   });

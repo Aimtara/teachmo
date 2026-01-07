@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DirectoryPreviewAdminAPI } from '@/api/adapters';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('admin-directory-import-preview');
 
 function formatDate(value) {
   if (!value) return '—';
@@ -56,7 +59,7 @@ export default function AdminDirectoryImportPreview() {
   const diffSamples = preview?.diff?.samples ?? {};
   const stats = preview?.stats ?? {};
 
-  const loadPreview = async () => {
+  const loadPreview = useCallback(async () => {
     if (!previewId) return;
     setLoading(true);
     setError('');
@@ -67,28 +70,28 @@ export default function AdminDirectoryImportPreview() {
       }
       setPreview(resp);
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to load directory preview', err);
       setError(err?.message ?? 'Failed to load preview');
     } finally {
       setLoading(false);
     }
-  };
+  }, [previewId]);
 
   useEffect(() => {
     loadPreview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewId]);
+  }, [loadPreview]);
 
   const handleApply = async () => {
     if (!previewId) return;
     setApplying(true);
     setError('');
+    setApplyResult(null);
     try {
       const resp = await DirectoryPreviewAdminAPI.applyPreview(previewId);
       setApplyResult(resp);
       await loadPreview();
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to apply directory import preview', err);
       setError(err?.message ?? 'Apply failed');
     } finally {
       setApplying(false);

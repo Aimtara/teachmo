@@ -1,10 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, isSupabaseConfigured } from '@/components/utils/supabase';
+import { createLogger } from '@/utils/logger';
+import { getSupabaseInitError, supabase, isSupabaseConfigured } from '@/components/utils/supabase';
+
+const logger = createLogger('supabase-provider');
 
 const SupabaseContext = createContext({
   supabase: null,
   isConfigured: false,
   user: null,
+  initError: null,
   loading: true,
 });
 
@@ -20,6 +24,7 @@ export function SupabaseProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const isConfigured = isSupabaseConfigured();
+  const initError = getSupabaseInitError();
 
   useEffect(() => {
     if (!isConfigured) {
@@ -33,7 +38,7 @@ export function SupabaseProvider({ children }) {
         const { data: { session } } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
       } catch (error) {
-        console.error('Failed to get initial session:', error);
+        logger.error('Failed to get initial session', error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -57,6 +62,7 @@ export function SupabaseProvider({ children }) {
     supabase: isConfigured ? supabase : null,
     isConfigured,
     user,
+    initError,
     loading,
   };
 
