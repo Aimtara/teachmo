@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { format as dateFnsFormat } from 'date-fns';
 import { es, zhCN, enUS } from 'date-fns/locale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('i18n');
 
 const locales = {
   en: enUS,
@@ -15,7 +18,7 @@ const preloadLocale = async (locale) => {
     const module = await import(`./translations/${locale}.json`);
     return module.default;
   } catch (error) {
-    console.warn(`Falling back to English translations; failed to load ${locale}`, error);
+    logger.warn(`Falling back to English translations; failed to load ${locale}`, error);
     const fallback = await import('./translations/en.json');
     return fallback.default;
   }

@@ -9,6 +9,9 @@ import { createPageUrl } from '@/utils';
 import { useApi } from '@/components/hooks/useApi';
 import { User as UserEntity, Activity, ParentingTip, CalendarEvent, UserMessage } from '@/api/entities';
 import { useDebounce } from './useDebounce';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('smart-search');
 
 // Search result categories with icons and colors
 const SEARCH_CATEGORIES = {
@@ -192,7 +195,7 @@ export default function SmartSearch({ className = '', placeholder = 'Search ever
       try {
         setRecentSearches(JSON.parse(stored));
       } catch (e) {
-        console.warn('Failed to parse recent searches');
+        logger.warn('Failed to parse recent searches', e);
       }
     }
   }, []);
@@ -351,7 +354,7 @@ export default function SmartSearch({ className = '', placeholder = 'Search ever
       setSelectedIndex(-1);
 
     } catch (error) {
-      console.warn('Search failed:', error);
+      logger.warn('Search failed', error);
       setResults([]);
     }
   };

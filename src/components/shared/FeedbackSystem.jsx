@@ -11,6 +11,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MessageSquare, Bug, Lightbulb, AlertTriangle, Star, Send, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('feedback-system');
 
 const FeedbackTypeCard = ({ type, icon: Icon, title, description, selected, onClick }) => (
   <Card 
@@ -126,7 +129,7 @@ export default function FeedbackSystem({
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      console.log('Feedback submitted:', feedbackData);
+      logger.info('Feedback submitted', feedbackData);
       
       setStep(3);
       
@@ -142,7 +145,7 @@ export default function FeedbackSystem({
       }, 2000);
 
     } catch (error) {
-      console.error('Error submitting feedback:', error);
+      logger.error('Error submitting feedback', error);
       toast({
         variant: "destructive",
         title: "Submission Failed",

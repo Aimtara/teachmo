@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('use-error-handler');
 
 export const useErrorHandler = () => {
   const [error, setError] = useState(null);
@@ -7,7 +10,7 @@ export const useErrorHandler = () => {
   const { toast } = useToast();
 
   const handleError = (error, customMessage) => {
-    console.error('Error occurred:', error);
+    logger.error('Error occurred', error);
     setError(error);
 
     let errorMessage = customMessage || 'Something went wrong. Please try again.';

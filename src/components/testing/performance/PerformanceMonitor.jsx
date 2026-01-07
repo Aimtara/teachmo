@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { render } from '@testing-library/react';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('performance-monitor');
+const isDevelopment = typeof process !== 'undefined' ? process.env.NODE_ENV !== 'production' : true;
 
 export const PerformanceMonitor = ({ 
   children, 
@@ -80,7 +84,9 @@ export const performanceTestUtils = {
       const module = await import(componentPath);
       return JSON.stringify(module).length;
     } catch (error) {
-      console.warn(`Could not measure bundle size for ${componentPath}`, error);
+      if (isDevelopment) {
+        logger.warn(`Could not measure bundle size for ${componentPath}`, error);
+      }
       return null;
     }
   },

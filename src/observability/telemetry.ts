@@ -1,4 +1,7 @@
 import { nhost } from '@/lib/nhostClient';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('telemetry');
 
 export type TelemetryEventInput = {
   eventName: string;
@@ -19,9 +22,9 @@ export type TelemetryContext = {
 export async function trackEvent(input: TelemetryEventInput): Promise<void> {
   try {
     const { error } = await nhost.functions.call('track-event', input);
-    if (error) console.warn('track-event failed', error);
+    if (error) logger.warn('track-event failed', error);
   } catch (e) {
-    console.warn('track-event exception', e);
+    logger.warn('track-event exception', e);
   }
 }
 

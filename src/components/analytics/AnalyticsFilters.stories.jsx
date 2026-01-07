@@ -1,5 +1,11 @@
 import { useState } from 'react';
 import { AnalyticsFilters } from './AnalyticsFilters';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('analytics-filters-story');
+const isDevelopment =
+  (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'development') ||
+  (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
 
 export default {
   title: 'Analytics/AnalyticsFilters',
@@ -20,9 +26,15 @@ function Demo() {
       <AnalyticsFilters
         value={value}
         onChange={setValue}
-        onRefresh={() => console.log('refresh')}
-        onExportCsv={() => console.log('export csv')}
-        onExportPdf={() => console.log('export pdf')}
+        onRefresh={() => {
+          if (isDevelopment) logger.debug('refresh');
+        }}
+        onExportCsv={() => {
+          if (isDevelopment) logger.debug('export csv');
+        }}
+        onExportPdf={() => {
+          if (isDevelopment) logger.debug('export pdf');
+        }}
       />
     </div>
   );

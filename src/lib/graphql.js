@@ -15,7 +15,7 @@ export async function graphqlRequest({ query, variables, headers = {} }) {
   if (error) {
     const message = error.message || 'We could not complete your request. Please try again.';
     logger.error('GraphQL request failed', error);
-    throw new Error(message);
+    throw new Error(message, { cause: error });
   }
   return data;
 }

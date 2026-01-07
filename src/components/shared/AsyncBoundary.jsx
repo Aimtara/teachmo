@@ -2,6 +2,9 @@ import React, { Component } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('async-boundary');
 
 // Higher-order component for handling async errors
 export const withAsyncErrorBoundary = (WrappedComponent, fallbackComponent) => {
@@ -19,7 +22,7 @@ export const withAsyncErrorBoundary = (WrappedComponent, fallbackComponent) => {
     }
 
     componentDidCatch(error, errorInfo) {
-      console.error('Async error caught:', error, errorInfo);
+      logger.error('Async error caught', error, errorInfo);
       
       // Report to error tracking service if available
       if (window.reportError) {

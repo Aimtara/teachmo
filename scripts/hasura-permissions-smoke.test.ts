@@ -2,6 +2,9 @@
  * Minimal smoke tests to ensure Hasura role permissions do not drift silently.
  */
 import assert from 'node:assert';
+import { createLogger } from '../backend/utils/logger.js';
+
+const logger = createLogger('scripts.hasura-permissions-smoke');
 
 const endpoint = process.env.HASURA_GRAPHQL_ENDPOINT;
 const teacherToken = process.env.TEST_JWT_TEACHER;
@@ -34,7 +37,7 @@ function userIdFromJwt(token: string): string | null {
     const claims = payload['https://hasura.io/jwt/claims'] || {};
     return claims['x-hasura-user-id'] || payload.sub || null;
   } catch (error) {
-    console.warn('decode token failed', error);
+    logger.warn('decode token failed', error);
     return null;
   }
 }
@@ -109,10 +112,10 @@ async function main() {
   await testDistrictAdminCanSelectSources();
   await testDistrictAdminCanSelectRuns();
   await testDistrictAdminCanUpdatePreferences();
-  console.log('permissions smoke tests passed');
+  logger.info('permissions smoke tests passed');
 }
 
 main().catch((err) => {
-  console.error(err);
+  logger.error('permissions smoke tests failed', err);
   process.exit(1);
 });

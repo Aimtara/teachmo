@@ -1,4 +1,7 @@
 import { writeAuditLog } from '@/domains/auditLog';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('audit-log');
 
 export type AuditAction =
   | 'messages:send'
@@ -24,6 +27,6 @@ export async function logEvent(input: {
   try {
     await writeAuditLog(input);
   } catch (e) {
-    console.warn('Audit log write failed', e);
+    logger.warn('Audit log write failed', e);
   }
 }
