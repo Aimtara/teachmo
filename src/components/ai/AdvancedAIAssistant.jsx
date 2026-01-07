@@ -30,6 +30,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { AIConversation } from '@/api/entities';
 import { User } from '@/api/entities';
 import { invokeAdvancedAI } from '@/api/functions';
+import { logAiInteraction } from '@/api/ai/log';
+import { resolveAiModel } from '@/api/ai/resolveModel';
+import { estimateTokens, scoreHallucinationRisk } from '@/observability/aiSafety';
+import { useTenantScope } from '@/hooks/useTenantScope';
+import { useTenantFeatureFlags } from '@/hooks/useTenantFeatureFlags';
 
 const MessageTypeIcons = {
   crisis: AlertTriangle,
@@ -40,6 +45,8 @@ const MessageTypeIcons = {
 };
 
 export function AdvancedAIAssistant({ onIntent }) {
+  const { data: tenantScope } = useTenantScope();
+  const featureFlagsQuery = useTenantFeatureFlags();
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -209,6 +216,7 @@ export function AdvancedAIAssistant({ onIntent }) {
     setShowSuggestions(true); // Ensure suggestions are visible if new ones come
 
     try {
+      const startTime = Date.now();
       // Detect conversation type for specialized responses
       const detectedType = detectConversationType(userMessageObj.content);
       if (detectedType !== conversationType) {
@@ -223,12 +231,36 @@ export function AdvancedAIAssistant({ onIntent }) {
         recent_messages: newMessages.slice(-10) // Last 10 messages for context
       };
 
+      const tokenPrompt = estimateTokens(userMessageObj.content);
+      const featureFlags = featureFlagsQuery.data ?? {};
+      let resolvedModel = { allowed: true, model: 'gpt-4o-mini', reason: 'default' };
+      try {
+        resolvedModel = await resolveAiModel({
+          preferredModel: tokenPrompt > 300 ? 'gpt-4o' : 'gpt-4o-mini',
+          estimatedTokens: tokenPrompt,
+          featureFlags,
+        });
+      } catch (error) {
+        console.warn('AI model resolution failed, using default model.', error);
+      }
+
+      if (!resolvedModel.allowed) {
+        toast({
+          variant: 'destructive',
+          title: 'AI budget reached',
+          description: "Your organization's AI budget has been reached. Please try again later."
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Call advanced AI service
       const aiResponse = await invokeAdvancedAI({
         message: userMessageObj.content, // Updated
         context,
         conversation_type: detectedType,
-        user_id: user?.id
+        user_id: user?.id,
+        model: resolvedModel.model
       });
 
       const assistantMessage = {
@@ -243,6 +275,52 @@ export function AdvancedAIAssistant({ onIntent }) {
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
       setSuggestedActions(aiResponse.suggested_actions || []); // Set current suggested actions
+
+      if (tenantScope?.organizationId) {
+        const tokenResponse = estimateTokens(aiResponse.response);
+        const tokenTotal = tokenPrompt + tokenResponse;
+        const risk = scoreHallucinationRisk(aiResponse.response);
+        const reviewRequired = risk.score >= 0.7;
+        const reviewReason = reviewRequired
+          ? `Risk score ${risk.score}${risk.flags.length ? ` (${risk.flags.join(', ')})` : ''}`
+          : null;
+
+        Promise.allSettled([
+          logAiInteraction(
+            { organizationId: tenantScope.organizationId, schoolId: tenantScope.schoolId },
+            {
+              prompt: userMessageObj.content,
+              response: aiResponse.response,
+              tokenPrompt,
+              tokenResponse,
+              tokenTotal,
+              safetyRiskScore: risk.score,
+              safetyFlags: risk.flags,
+              model: aiResponse.model || resolvedModel.model || 'unknown',
+              metadata: {
+                modelReason: resolvedModel.reason,
+                budgetExceeded: resolvedModel.budgetExceeded,
+                confidence: aiResponse.confidence,
+                suggestedActions: aiResponse.suggested_actions || []
+              },
+              inputs: {
+                message: userMessageObj.content,
+                context,
+                conversationType: detectedType,
+                userId: user?.id
+              },
+              outputs: {
+                response: aiResponse.response,
+                suggestedActions: aiResponse.suggested_actions || [],
+                confidence: aiResponse.confidence
+              },
+              reviewRequired,
+              reviewReason,
+              latencyMs: Date.now() - startTime
+            }
+          )
+        ]).catch(() => {});
+      }
 
       // Update or create conversation
       if (activeConversation) {

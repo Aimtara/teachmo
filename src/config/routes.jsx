@@ -388,6 +388,16 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading AI governance...</p>
   },
   {
+    name: 'AdminAIPrompts',
+    path: '/admin/ai-prompts',
+    Component: lazy(() => import('@/pages/AIPromptLibrary.jsx')),
+    allowedRoles: ['system_admin', 'admin'],
+    requiredScopes: ['safety:review'],
+    feature: 'ENTERPRISE_AI_GOVERNANCE',
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading AI prompt library...</p>
+  },
+  {
     name: 'AdminSISRoster',
     path: '/admin/sis-roster',
     Component: lazy(() => import('@/pages/AdminSISRoster.jsx')),

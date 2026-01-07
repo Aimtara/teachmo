@@ -66,6 +66,12 @@ export default function AdminAIGovernance() {
     queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/review-queue`, { headers: headersQuery.data }),
   });
 
+  const promptLibraryQuery = useQuery({
+    queryKey: ['ai-prompt-library-admin'],
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/prompts`, { headers: headersQuery.data }),
+  });
+
   const budgetQuery = useQuery({
     queryKey: ['ai-budget-admin'],
     enabled: Boolean(headersQuery.data),
@@ -144,6 +150,7 @@ export default function AdminAIGovernance() {
   });
 
   const pendingCount = reviewQueueQuery.data?.queue?.length ?? 0;
+  const promptCount = promptLibraryQuery.data?.prompts?.length ?? 0;
   const usageTotals = usageSummaryQuery.data?.totals;
 
   return (
@@ -156,7 +163,7 @@ export default function AdminAIGovernance() {
           </p>
         </header>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>Review Queue</CardTitle>
@@ -186,6 +193,23 @@ export default function AdminAIGovernance() {
               </div>
               <Link className="text-blue-600 hover:underline" to="/admin/analytics">
                 Explore analytics →
+              </Link>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Prompt Management</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Active prompts</span>
+                <span className="font-semibold">{promptCount}</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Manage versions, approvals, and rollout metadata for AI prompt templates.
+              </div>
+              <Link className="text-blue-600 hover:underline" to="/admin/ai-prompts">
+                Open prompt library →
               </Link>
             </CardContent>
           </Card>
