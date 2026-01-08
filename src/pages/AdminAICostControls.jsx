@@ -165,8 +165,20 @@ export default function AdminAICostControls() {
         <CardBody>
           {data?.ai_usage_summary ? (
             <Box>
-              <Text><strong>Current Spend:</strong> ${data.ai_usage_summary.spend_usd.toFixed(2)}</Text>
-              <Text><strong>Forecast Spend:</strong> ${data.ai_usage_summary.forecast_usd.toFixed(2)}</Text>
+              <Text>
+                <strong>Current Spend:</strong>{' '}
+                $
+                {typeof data.ai_usage_summary.spend_usd === 'number'
+                  ? data.ai_usage_summary.spend_usd.toFixed(2)
+                  : 'N/A'}
+              </Text>
+              <Text>
+                <strong>Forecast Spend:</strong>{' '}
+                $
+                {typeof data.ai_usage_summary.forecast_usd === 'number'
+                  ? data.ai_usage_summary.forecast_usd.toFixed(2)
+                  : 'N/A'}
+              </Text>
               <Text><strong>Month:</strong> {data.ai_usage_summary.month}</Text>
             </Box>
           ) : <Text>No usage data available.</Text>}
