@@ -87,7 +87,11 @@ export default function AdminDSARManager() {
             Cell: ({ row }: any) => (
               <div className="space-x-2">
                 <Button
-                  onClick={() => nhost.functions.call('admin-compliance-download-export', { id: row.original.id })}
+                  onClick={() =>
+                    nhost.functions.call('admin-compliance-download-export', {
+                      id: row.original.id,
+                    })
+                  }
                 >
                   Download
                 </Button>
