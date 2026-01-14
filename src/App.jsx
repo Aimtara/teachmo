@@ -13,6 +13,7 @@ import { TenantProvider } from './contexts/TenantContext';
 import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
 import FeatureFlagProvider from './providers/FeatureFlagProvider.jsx';
 import { I18nProvider } from './components/shared/InternationalizationProvider';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 import { useStore } from './components/hooks/useStore';
 import { isFeatureEnabled } from './utils/featureFlags';
 
@@ -51,9 +52,9 @@ function App() {
   );
 
   return (
-    <I18nProvider enabled={featureI18nEnabled}>
-      {appContent}
-    </I18nProvider>
+    <ErrorBoundary>
+      <I18nProvider enabled={featureI18nEnabled}>{appContent}</I18nProvider>
+    </ErrorBoundary>
   );
 }
 
