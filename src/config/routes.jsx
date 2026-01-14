@@ -124,6 +124,15 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading parent dashboard...</p>
   },
   {
+    name: 'WeeklyBriefDetail',
+    path: '/briefs/:id',
+    Component: lazy(() => import('@/pages/WeeklyBriefDetail.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['parent'],
+    requiredScopes: ['content:read'],
+    fallback: <p className="p-6 text-gray-600">Loading weekly brief...</p>
+  },
+  {
     name: 'ParentOnboarding',
     path: '/onboarding/parent',
     Component: lazy(() => import('@/pages/onboarding/parent')),
