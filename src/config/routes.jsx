@@ -265,6 +265,15 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading admin dashboard...</p>
   },
   {
+    name: 'AdminWeeklyBriefs',
+    path: '/admin/weekly-briefs',
+    Component: lazy(() => import('@/pages/AdminWeeklyBriefs.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
+    requiredScopes: ['org:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading weekly briefs...</p>
+  },
+  {
     name: 'AdminAnalytics',
     path: '/admin/analytics',
     Component: lazy(() => import('@/pages/AdminAnalytics.jsx')),
