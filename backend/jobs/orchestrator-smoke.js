@@ -7,7 +7,7 @@ const sampleRequests = [
     actor: { userId: '00000000-0000-0000-0000-000000000001', role: 'PARENT' },
     channel: 'CHAT',
     text: "Can you message her teacher that she'll be absent tomorrow?",
-    selected: { childId: 'c1', schoolId: 's1' },
+    selected: { childId: 'c1', schoolId: 's1', recipientUserId: 'teacher-local' },
     metadata: { locale: 'en-US', timezone: 'America/New_York' }
   },
   {

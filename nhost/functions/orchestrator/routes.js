@@ -15,7 +15,7 @@ export const ROUTE_CONFIG = {
     allowedRoles: ['PARENT', 'TEACHER', 'ADMIN']
   },
   [ROUTES.HUB_THREAD_SUMMARIZE]: {
-    requiredContext: ['threadId'],
+    requiredContext: [],
     allowedRoles: ['PARENT', 'TEACHER', 'ADMIN']
   },
   [ROUTES.WEEKLY_BRIEF_GENERATE]: {

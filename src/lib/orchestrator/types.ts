@@ -24,6 +24,7 @@ export interface OrchestratorSelectedContext {
   schoolId?: string;
   teacherId?: string;
   threadId?: string;
+  recipientUserId?: string;
 }
 
 export interface OrchestratorMetadata {

@@ -62,7 +62,8 @@ export const orchestratorRequestSchema = z.object({
       childId: z.string().optional(),
       schoolId: z.string().optional(),
       teacherId: z.string().optional(),
-      threadId: z.string().optional()
+      threadId: z.string().optional(),
+      recipientUserId: z.string().optional()
     })
     .optional(),
   metadata: z
