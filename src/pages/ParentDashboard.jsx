@@ -3,6 +3,7 @@ import { listEvents } from '@/domains/events';
 import { listActivities } from '@/domains/activities';
 import { listThreads } from '@/domains/messaging';
 import { useUserData } from '@nhost/react';
+import WeeklyBriefCard from '@/components/dashboard/WeeklyBriefCard.jsx';
 
 export default function ParentDashboard() {
   const user = useUserData();
@@ -33,6 +34,10 @@ export default function ParentDashboard() {
       </header>
 
       <section className="grid md:grid-cols-3 gap-4">
+        <div className="md:col-span-3">
+          <WeeklyBriefCard />
+        </div>
+
         <div className="bg-white shadow rounded p-4">
           <h2 className="font-medium mb-2">Upcoming events</h2>
           <ul className="space-y-2 text-sm">
