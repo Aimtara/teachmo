@@ -1,5 +1,7 @@
 /* eslint-env node */
 
+import type { WeeklyBriefDraft, WeeklyBriefScenario, WeeklyBriefSummary } from '../_shared/weeklyBriefTypes';
+
 // Weekly Family Brief utilities
 // - summarizeWeeklyInputs: normalizes raw inputs into a stable schema
 // - determineUxState: selects A/B/C/D
@@ -8,7 +10,7 @@
 
 const DEFAULT_HIGH_LOAD_THRESHOLD = 6;
 
-const DEFAULT_SCENARIOS = [
+const DEFAULT_SCENARIOS: WeeklyBriefScenario[] = [
   {
     id: 's1',
     title: 'Two Highs + One Low',
@@ -48,29 +50,55 @@ const BANNED_PHRASES = [
   'you must'
 ];
 
-function safeString(value) {
+type WeeklyBriefPayload = {
+  week_start?: string;
+  week_end?: string;
+  weekStart?: string;
+  weekEnd?: string;
+  child?: {
+    id?: string;
+    first_name?: string;
+    firstName?: string;
+    birthdate?: string;
+    birth_date?: string;
+    dob?: string;
+    accommodations?: string | null;
+  };
+  child_id?: string;
+  accommodations?: string | null;
+  school_events?: Array<Record<string, any>>;
+  schoolEvents?: Array<Record<string, any>>;
+  announcements?: Array<Record<string, any>>;
+  messages?: Array<Record<string, any>>;
+  scenario_pool?: WeeklyBriefScenario[];
+  scenarios?: WeeklyBriefScenario[];
+  family_anchors?: WeeklyBriefSummary['family_anchors'];
+  familyAnchors?: WeeklyBriefSummary['family_anchors'];
+};
+
+function safeString(value: unknown) {
   if (value == null) return '';
   return String(value);
 }
 
-function truncate(value, max = 280) {
+function truncate(value: unknown, max = 280) {
   const s = safeString(value).trim();
   if (s.length <= max) return s;
   return `${s.slice(0, max - 1)}…`;
 }
 
-function parseDate(value) {
+function parseDate(value: string | null | undefined) {
   if (!value) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function inRange(date, start, end) {
+function inRange(date: Date | null, start: Date | null, end: Date | null) {
   if (!date || !start || !end) return false;
   return date.getTime() >= start.getTime() && date.getTime() < end.getTime();
 }
 
-function computeAgeYears(birthdate) {
+function computeAgeYears(birthdate: string | null | undefined) {
   const dob = parseDate(birthdate);
   if (!dob) return null;
   const now = new Date();
@@ -80,7 +108,7 @@ function computeAgeYears(birthdate) {
   return Math.max(0, years);
 }
 
-function classifyDisruption(text) {
+function classifyDisruption(text: string) {
   const t = text.toLowerCase();
   if (/\b(early dismissal|half[- ]day)\b/.test(t)) return 'early_dismissal';
   if (/\b(late start|delayed start)\b/.test(t)) return 'late_start';
@@ -93,17 +121,17 @@ function classifyDisruption(text) {
 const NEWSLETTER_HINTS = ['newsletter', 'weekly update', 'this week at', "principal's note", 'news and notes', 'flyer'];
 const DISALLOWED_HINTS = ['grade', 'graded', 'score', 'homework', 'worksheet'];
 
-function looksLikeNewsletter(text) {
+function looksLikeNewsletter(text: string) {
   const t = text.toLowerCase();
   return NEWSLETTER_HINTS.some((hint) => t.includes(hint));
 }
 
-function containsDisallowed(text) {
+function containsDisallowed(text: string) {
   const t = text.toLowerCase();
   return DISALLOWED_HINTS.some((hint) => t.includes(hint));
 }
 
-function communicationImportance(text) {
+function communicationImportance(text: string) {
   const t = text.toLowerCase();
   if (/\b(lockdown|safety|security|threat|emergency)\b/.test(t)) return 3;
   if (/\b(urgent|immediately|asap|required|permission slip|permission form)\b/.test(t)) return 2;
@@ -112,7 +140,7 @@ function communicationImportance(text) {
   return 1;
 }
 
-export function summarizeWeeklyInputs(payload = {}) {
+export function summarizeWeeklyInputs(payload: WeeklyBriefPayload = {}): WeeklyBriefSummary {
   const weekStart = parseDate(payload.week_start || payload.weekStart);
   const weekEndInclusive = parseDate(payload.week_end || payload.weekEnd);
   const weekEnd = weekEndInclusive ? new Date(weekEndInclusive.getTime() + 24 * 60 * 60 * 1000) : null;
@@ -262,7 +290,15 @@ export function summarizeWeeklyInputs(payload = {}) {
   };
 }
 
-export function determineUxState({ hasHistory, missedLastWeek, loadScore }) {
+export function determineUxState({
+  hasHistory,
+  missedLastWeek,
+  loadScore
+}: {
+  hasHistory: boolean;
+  missedLastWeek: boolean;
+  loadScore: number;
+}) {
   if (!hasHistory) return 'A';
   if (missedLastWeek) return 'D';
 
@@ -271,12 +307,12 @@ export function determineUxState({ hasHistory, missedLastWeek, loadScore }) {
   return 'B';
 }
 
-function hasBannedPhrases(text) {
+function hasBannedPhrases(text: unknown) {
   const t = safeString(text).toLowerCase();
   return BANNED_PHRASES.some((p) => t.includes(p));
 }
 
-export function validateBriefDraft(draft = {}) {
+export function validateBriefDraft(draft: Partial<WeeklyBriefDraft> = {}) {
   const errors = [];
 
   const shape = safeString(draft.shape_of_the_week).trim();
@@ -315,7 +351,7 @@ export function validateBriefDraft(draft = {}) {
   return { ok: errors.length === 0, errors };
 }
 
-function escapeHtml(s) {
+function escapeHtml(s: unknown) {
   return safeString(s)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -324,7 +360,7 @@ function escapeHtml(s) {
     .replaceAll("'", '&#39;');
 }
 
-export function renderBriefHtml({ weekRange, draft }) {
+export function renderBriefHtml({ weekRange, draft }: { weekRange: string; draft: WeeklyBriefDraft }) {
   const items = Array.isArray(draft.school_things_to_know) ? draft.school_things_to_know : [];
 
   const itemsHtml = items
@@ -370,7 +406,7 @@ export function renderBriefHtml({ weekRange, draft }) {
   `.trim();
 }
 
-export function renderBriefText({ weekRange, draft }) {
+export function renderBriefText({ weekRange, draft }: { weekRange: string; draft: WeeklyBriefDraft }) {
   const items = Array.isArray(draft.school_things_to_know) ? draft.school_things_to_know : [];
   const firstItem = items[0]?.label ? ` • ${items[0].label}` : '';
 
@@ -388,7 +424,15 @@ function buildSystemPrompt() {
   ].join('\n');
 }
 
-function buildUserPrompt({ weekRange, uxState, summary }) {
+function buildUserPrompt({
+  weekRange,
+  uxState,
+  summary
+}: {
+  weekRange: string;
+  uxState: string;
+  summary: WeeklyBriefSummary;
+}) {
   const constraints = [
     'Output must be valid JSON only (no markdown).',
     'Use this JSON schema exactly:',
@@ -424,7 +468,7 @@ function buildUserPrompt({ weekRange, uxState, summary }) {
   return `${stateHint[uxState] || ''}\n\n${constraints}`;
 }
 
-async function invokeOpenAI({ systemPrompt, userPrompt }) {
+async function invokeOpenAI({ systemPrompt, userPrompt }: { systemPrompt: string; userPrompt: string }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not configured.');
@@ -460,7 +504,7 @@ async function invokeOpenAI({ systemPrompt, userPrompt }) {
   return content;
 }
 
-function safeJsonParse(text) {
+function safeJsonParse(text: string) {
   try {
     return JSON.parse(text);
   } catch {
@@ -468,7 +512,7 @@ function safeJsonParse(text) {
   }
 }
 
-function buildFallbackDraft({ weekRange, summary }) {
+function buildFallbackDraft({ summary }: { weekRange: string; summary: WeeklyBriefSummary }): WeeklyBriefDraft {
   const disruptions = summary?.school_signals?.disruptions || [];
   const important = summary?.communications?.important || [];
 
@@ -504,7 +548,15 @@ function buildFallbackDraft({ weekRange, summary }) {
   };
 }
 
-export async function generateBriefWithLLM({ weekRange, uxState, summary }) {
+export async function generateBriefWithLLM({
+  weekRange,
+  uxState,
+  summary
+}: {
+  weekRange: string;
+  uxState: string;
+  summary: WeeklyBriefSummary;
+}): Promise<{ draft: WeeklyBriefDraft; used_fallback: boolean; fallback_reason?: string | string[] }> {
   const systemPrompt = buildSystemPrompt();
   const userPrompt = buildUserPrompt({ weekRange, uxState, summary });
 

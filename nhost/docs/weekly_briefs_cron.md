@@ -28,7 +28,7 @@ Send:
 
 Example:
 ```bash
-curl -X POST "$NHOST_FUNCTION_URL/generate-weekly-briefs" \
+curl -X POST "$NHOST_FUNCTION_URL/v1/functions/generate-weekly-briefs" \
   -H "Authorization: Bearer $ADMIN_JWT" \
   -H "Content-Type: application/json" \
   -d '{"trigger":"cron"}'
@@ -36,10 +36,10 @@ curl -X POST "$NHOST_FUNCTION_URL/generate-weekly-briefs" \
 
 ## GitHub Actions Example (Cron)
 
-Create `.github/workflows/weekly-briefs-cron.yml`:
+Create `.github/workflows/weekly_briefs.yml`:
 
 ```yaml
-name: Weekly Briefs Cron
+name: Generate weekly briefs
 on:
   schedule:
     - cron: "0 10 * * 1" # Mondays 10:00 UTC (adjust)
@@ -49,8 +49,8 @@ jobs:
     steps:
       - name: Call generate-weekly-briefs
         run: |
-          curl -sS -X POST "${{ secrets.NHOST_FUNCTION_URL }}/generate-weekly-briefs" \
-            -H "Authorization: Bearer ${{ secrets.ADMIN_JWT }}" \
+          curl -sS -X POST "${{ secrets.WEEKLY_BRIEF_FUNCTIONS_URL }}/v1/functions/generate-weekly-briefs" \
+            -H "Authorization: Bearer ${{ secrets.WEEKLY_BRIEF_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"trigger":"cron"}'
 ```

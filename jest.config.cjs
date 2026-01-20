@@ -5,6 +5,8 @@ module.exports = {
   testMatch: [
     '<rootDir>/src/**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
     '<rootDir>/src/**/*.(test|spec).(js|jsx|ts|tsx)',
+    '<rootDir>/nhost/functions/**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
+    '<rootDir>/nhost/functions/**/*.(test|spec).(js|jsx|ts|tsx)',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
