@@ -7,32 +7,19 @@ import {
   generateBriefWithLLM,
   renderBriefHtml,
   renderBriefText
-} from './lib/weeklyBrief.js';
+} from './lib/weeklyBrief';
+import { formatWeekRange, toISODate } from './lib/weekRange';
+import { notifyUserEvent } from './_shared/notifier';
+import { createHasuraClient } from './_shared/hasuraClient';
+import type { WeeklyBriefHistoryResponse, WeeklyBriefUpsertResponse } from './_shared/weeklyBriefTypes';
 
-function parseDate(value) {
+function parseDate(value: string | null | undefined) {
   if (!value) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function formatWeekRange({ weekStart, weekEnd }) {
-  // weekEnd is inclusive
-  const end = new Date(weekEnd.getTime());
-
-  const opts = { month: 'long', day: 'numeric' };
-  const yearOpt = { year: 'numeric' };
-  const sameYear = weekStart.getFullYear() === end.getFullYear();
-
-  const s = weekStart.toLocaleDateString('en-US', { ...opts, ...yearOpt });
-  const e = end.toLocaleDateString('en-US', sameYear ? opts : { ...opts, ...yearOpt });
-  return `${s}–${e}`;
-}
-
-function toISODate(d) {
-  return d.toISOString().slice(0, 10);
-}
-
-export default async (req, res) => {
+export default async (req: any, res: any) => {
   try {
     const payload = req.body || {};
 
@@ -69,10 +56,10 @@ export default async (req, res) => {
       }
     `;
 
-    const history = await hasuraRequest({
+    const history = (await hasuraRequest({
       query: historyQuery,
       variables: { parent: parentUserId, child: childId, prevStart: toISODate(prevWeekStart) }
-    });
+    })) as WeeklyBriefHistoryResponse;
 
     const hasHistory = Number(history?.history?.aggregate?.count || 0) > 0;
     const missedLastWeek = !!(history?.prev?.[0] && !history.prev[0].opened_at);
@@ -135,7 +122,24 @@ export default async (req, res) => {
       generated_at: new Date().toISOString()
     };
 
-    const saved = await hasuraRequest({ query: mutation, variables: { object } });
+    const saved = (await hasuraRequest({ query: mutation, variables: { object } })) as WeeklyBriefUpsertResponse;
+    const sendNotification = payload.notify !== false;
+    if (sendNotification && saved?.insert_weekly_briefs_one?.id) {
+      const hasura = await createHasuraClient();
+      await notifyUserEvent({
+        hasura,
+        userId: parentUserId,
+        type: 'weekly_brief_ready',
+        title: 'Your weekly brief is ready',
+        body: `Your weekly brief for ${weekRange} is ready to view.`,
+        metadata: {
+          week_start: toISODate(weekStart),
+          week_end: toISODate(weekEnd),
+          child_id: childId,
+          brief_id: saved.insert_weekly_briefs_one.id
+        }
+      });
+    }
 
     return res.status(200).json({
       success: true,

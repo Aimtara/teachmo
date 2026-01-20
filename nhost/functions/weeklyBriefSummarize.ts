@@ -1,11 +1,11 @@
 /* eslint-env node */
-import { summarizeWeeklyInputs } from './lib/weeklyBrief.js';
+import { summarizeWeeklyInputs } from './lib/weeklyBrief';
 
 // Nhost function: weeklyBriefSummarize
 // Normalizes week-ahead inputs (events, announcements, messages, child context, scenarios)
 // into a stable schema that the Weekly Family Brief generator can consume.
 
-export default async (req, res) => {
+export default async (req: any, res: any) => {
   try {
     const payload = req.body || {};
     const summary = summarizeWeeklyInputs(payload);
