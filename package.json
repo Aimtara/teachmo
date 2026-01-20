@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:dev": "vite build --mode development"
     "lint": "eslint src/backend src/observability src/api/base44Client.js src/hooks/useUserRole.ts src/components/shared/ProtectedRoute.tsx src/components/shared/AdminRoleGuard.tsx src/components/hooks/useStore.ts src/components/hooks/useUser.jsx src/components/hooks/useDashboardData.jsx src/components/messages/ChatWindow.jsx src/lib/utils.ts src/main.jsx src/pages/index.jsx --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "jest",
