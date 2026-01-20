@@ -2,6 +2,7 @@
 
 import { hasuraRequest } from './lib/hasura.js';
 import { assertAdminRole } from './lib/roles.js';
+import type { WeeklyBriefRunsResponse } from './_shared/weeklyBriefTypes';
 
 /**
  * weekly-brief-runs-get
@@ -10,7 +11,7 @@ import { assertAdminRole } from './lib/roles.js';
  *
  * POST body: { weekStart?: 'YYYY-MM-DD', limit?: number }
  */
-export default async (req, res) => {
+export default async (req: any, res: any) => {
   try {
     if (req.method && req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
@@ -50,13 +51,13 @@ export default async (req, res) => {
       }
     `;
 
-    const data = await hasuraRequest({
+    const data = (await hasuraRequest({
       query,
       variables: {
         limit: safeLimit,
         weekStart: weekStart || null
       }
-    });
+    })) as WeeklyBriefRunsResponse;
 
     return res.status(200).json({ ok: true, runs: data?.weekly_brief_runs ?? [] });
   } catch (err) {

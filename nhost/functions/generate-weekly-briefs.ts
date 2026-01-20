@@ -6,56 +6,21 @@ import {
   generateBriefWithLLM,
   renderBriefHtml,
   renderBriefText
-} from './lib/weeklyBrief.js';
+} from './lib/weeklyBrief';
 import { hasuraRequest } from './lib/hasura.js';
 import { assertAdminRole, getHasuraUserId } from './lib/roles.js';
+import { formatWeekRange, resolveWeekRange, toISODate } from './lib/weekRange';
+import { notifyUserEvent } from './_shared/notifier';
+import { createHasuraClient } from './_shared/hasuraClient';
+import type {
+  WeeklyBriefEventsResponse,
+  WeeklyBriefHistoryResponse,
+  WeeklyBriefParentsResponse,
+  WeeklyBriefRunInsertResponse,
+  WeeklyBriefUpsertResponse
+} from './_shared/weeklyBriefTypes';
 
-function parseDate(value) {
-  if (!value) return null;
-  const d = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function toISODate(date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function resolveWeekRange(weekStartInput) {
-  const baseDate = weekStartInput ? parseDate(weekStartInput) : new Date();
-  if (!baseDate) {
-    const err = new Error('Invalid weekStart date');
-    // @ts-ignore
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const weekStart = new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), baseDate.getUTCDate()));
-  const day = weekStart.getUTCDay() || 7;
-  if (day !== 1) weekStart.setUTCDate(weekStart.getUTCDate() - (day - 1));
-
-  const weekEnd = new Date(weekStart.getTime());
-  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
-
-  return {
-    week_start_date: toISODate(weekStart),
-    week_end_date: toISODate(weekEnd),
-    weekStart,
-    weekEnd
-  };
-}
-
-function formatWeekRange({ weekStart, weekEnd }) {
-  const end = new Date(weekEnd.getTime());
-  const opts = { month: 'long', day: 'numeric' };
-  const yearOpt = { year: 'numeric' };
-  const sameYear = weekStart.getFullYear() === end.getFullYear();
-
-  const s = weekStart.toLocaleDateString('en-US', { ...opts, ...yearOpt });
-  const e = end.toLocaleDateString('en-US', sameYear ? opts : { ...opts, ...yearOpt });
-  return `${s}–${e}`;
-}
-
-async function loadSchoolEvents({ schoolId, weekStart, weekEnd }) {
+async function loadSchoolEvents({ schoolId, weekStart, weekEnd }: { schoolId: string | null; weekStart: Date; weekEnd: Date }) {
   if (!schoolId) return [];
 
   const query = `query WeeklyBriefEvents($schoolId: uuid!, $start: timestamptz!, $end: timestamptz!) {
@@ -71,19 +36,19 @@ async function loadSchoolEvents({ schoolId, weekStart, weekEnd }) {
     }
   }`;
 
-  const data = await hasuraRequest({
+  const data = (await hasuraRequest({
     query,
     variables: {
       schoolId,
       start: weekStart.toISOString(),
       end: new Date(weekEnd.getTime() + 24 * 60 * 60 * 1000).toISOString()
     }
-  });
+  })) as WeeklyBriefEventsResponse;
 
   return data?.calendar_events ?? [];
 }
 
-export default async (req, res) => {
+export default async (req: any, res: any) => {
   let runId = null;
   try {
     if (req.method && req.method !== 'POST') {
@@ -94,6 +59,7 @@ export default async (req, res) => {
 
     const { weekStart, dryRun = false, limit } = req.body || {};
     const { week_start_date, week_end_date, weekStart: weekStartDate, weekEnd: weekEndDate } = resolveWeekRange(weekStart);
+    const hasura = await createHasuraClient();
 
     const organizationId = req.headers['x-hasura-organization-id']
       ? String(req.headers['x-hasura-organization-id'])
@@ -110,7 +76,7 @@ export default async (req, res) => {
       }
     `;
 
-    const runData = await hasuraRequest({
+    const runData = (await hasuraRequest({
       query: runInsert,
       variables: {
         object: {
@@ -127,7 +93,7 @@ export default async (req, res) => {
           metadata: {}
         }
       }
-    });
+    })) as WeeklyBriefRunInsertResponse;
 
     runId = runData?.insert_weekly_brief_runs_one?.id ?? null;
 
@@ -156,13 +122,13 @@ export default async (req, res) => {
       }
     }`;
 
-    const data = await hasuraRequest({
+    const data = (await hasuraRequest({
       query,
       variables: {
         where,
         limit: Number.isFinite(limit) ? Number(limit) : null
       }
-    });
+    })) as WeeklyBriefParentsResponse;
 
     const rows = data?.guardian_children ?? [];
     const results = [];
@@ -213,10 +179,10 @@ export default async (req, res) => {
           }
         `;
 
-        const history = await hasuraRequest({
+        const history = (await hasuraRequest({
           query: historyQuery,
           variables: { parent: parentUserId, child: childId, prevStart: toISODate(prevWeekStart) }
-        });
+        })) as WeeklyBriefHistoryResponse;
 
         const hasHistory = Number(history?.history?.aggregate?.count || 0) > 0;
         const missedLastWeek = !!(history?.prev?.[0] && !history.prev[0].opened_at);
@@ -251,7 +217,7 @@ export default async (req, res) => {
           generated_at: new Date().toISOString()
         };
 
-        let saved = null;
+        let saved: WeeklyBriefUpsertResponse | null = null;
         if (!dryRun) {
           const mutation = `
             mutation UpsertWeeklyBrief($object: weekly_briefs_insert_input!) {
@@ -281,7 +247,22 @@ export default async (req, res) => {
             }
           `;
 
-          saved = await hasuraRequest({ query: mutation, variables: { object } });
+          saved = (await hasuraRequest({ query: mutation, variables: { object } })) as WeeklyBriefUpsertResponse;
+          if (saved?.insert_weekly_briefs_one?.id) {
+            await notifyUserEvent({
+              hasura,
+              userId: parentUserId,
+              type: 'weekly_brief_ready',
+              title: 'Your weekly brief is ready',
+              body: `Your weekly brief for ${weekRange} is ready to view.`,
+              metadata: {
+                week_start: week_start_date,
+                week_end: week_end_date,
+                child_id: childId,
+                brief_id: saved.insert_weekly_briefs_one.id
+              }
+            });
+          }
         }
 
         results.push({
@@ -337,13 +318,13 @@ export default async (req, res) => {
     console.error('generate-weekly-briefs error', err);
     if (runId) {
       try {
-        const runUpdate = `
-          mutation UpdateWeeklyBriefRun($id: uuid!, $changes: weekly_brief_runs_set_input!) {
-            update_weekly_brief_runs_by_pk(pk_columns: { id: $id }, _set: $changes) {
-              id
-            }
+    const runUpdate = `
+        mutation UpdateWeeklyBriefRun($id: uuid!, $changes: weekly_brief_runs_set_input!) {
+          update_weekly_brief_runs_by_pk(pk_columns: { id: $id }, _set: $changes) {
+            id
           }
-        `;
+        }
+      `;
 
         await hasuraRequest({
           query: runUpdate,

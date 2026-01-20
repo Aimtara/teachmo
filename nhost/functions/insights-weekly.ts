@@ -2,40 +2,9 @@
 
 import { hasuraRequest } from './lib/hasura.js';
 import { assertAdminRole } from './lib/roles.js';
+import { resolveWeekRange } from './lib/weekRange';
 
-function parseDate(value) {
-  if (!value) return null;
-  const d = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function toISODate(date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function resolveWeekRange(weekStartInput) {
-  const baseDate = weekStartInput ? parseDate(weekStartInput) : new Date();
-  if (!baseDate) {
-    const err = new Error('Invalid weekStart date');
-    // @ts-ignore
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const weekStart = new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), baseDate.getUTCDate()));
-  const day = weekStart.getUTCDay() || 7;
-  if (day !== 1) weekStart.setUTCDate(weekStart.getUTCDate() - (day - 1));
-
-  const weekEnd = new Date(weekStart.getTime());
-  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
-
-  return {
-    week_start_date: toISODate(weekStart),
-    week_end_date: toISODate(weekEnd)
-  };
-}
-
-export default async (req, res) => {
+export default async (req: any, res: any) => {
   try {
     if (req.method && req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
