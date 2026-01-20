@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { nhost } from '@/lib/nhostClient';
 
@@ -16,6 +16,25 @@ export default function AdminWeeklyBriefs() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [runs, setRuns] = useState([]);
+  const [runsLoading, setRunsLoading] = useState(false);
+
+  const fetchRuns = async () => {
+    setRunsLoading(true);
+    try {
+      const res = await nhost.functions.call('weekly-brief-runs-get', { limit: 10 });
+      if (res.error) throw res.error;
+      setRuns(res.data?.runs || []);
+    } catch (e) {
+      // Run history isn't critical for generation.
+    } finally {
+      setRunsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRuns();
+  }, []);
 
   const runGenerator = async () => {
     setLoading(true);
@@ -29,6 +48,7 @@ export default function AdminWeeklyBriefs() {
       });
       if (res.error) throw res.error;
       setResult(res.data);
+      fetchRuns();
     } catch (e) {
       setError(e?.message || 'Failed to run generator');
     } finally {
@@ -67,6 +87,43 @@ export default function AdminWeeklyBriefs() {
           Pilot tool: generate weekly briefs on demand (dry-run first), then publish.
         </p>
       </header>
+
+      {runs.length > 0 && (
+        <section className="bg-white rounded shadow p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-medium">Last generation run</h2>
+            <span className="text-xs text-gray-500">{runsLoading ? 'Refreshing…' : ''}</span>
+          </div>
+          <div className="mt-2 text-sm text-gray-700 space-y-1">
+            <div>
+              <span className="font-medium">Status:</span> {runs[0].status}
+              {runs[0].dry_run ? ' (dry run)' : ''}
+            </div>
+            <div>
+              <span className="font-medium">Week:</span> {String(runs[0].week_start_date)} →{' '}
+              {String(runs[0].week_end_date)}
+            </div>
+            <div>
+              <span className="font-medium">Generated:</span> {runs[0].generated_count}
+            </div>
+            <div>
+              <span className="font-medium">Started:</span>{' '}
+              {new Date(runs[0].started_at).toLocaleString()}
+            </div>
+            {runs[0].finished_at && (
+              <div>
+                <span className="font-medium">Finished:</span>{' '}
+                {new Date(runs[0].finished_at).toLocaleString()}
+              </div>
+            )}
+            {runs[0].error && (
+              <div className="text-red-700">
+                <span className="font-medium">Error:</span> {runs[0].error}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="bg-white rounded shadow p-4 space-y-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

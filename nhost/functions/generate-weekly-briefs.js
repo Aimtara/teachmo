@@ -8,7 +8,7 @@ import {
   renderBriefText
 } from './lib/weeklyBrief.js';
 import { hasuraRequest } from './lib/hasura.js';
-import { assertAdminRole } from './lib/roles.js';
+import { assertAdminRole, getHasuraUserId } from './lib/roles.js';
 
 function parseDate(value) {
   if (!value) return null;
@@ -84,12 +84,13 @@ async function loadSchoolEvents({ schoolId, weekStart, weekEnd }) {
 }
 
 export default async (req, res) => {
+  let runId = null;
   try {
     if (req.method && req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    assertAdminRole(req);
+    const createdByRole = assertAdminRole(req);
 
     const { weekStart, dryRun = false, limit } = req.body || {};
     const { week_start_date, week_end_date, weekStart: weekStartDate, weekEnd: weekEndDate } = resolveWeekRange(weekStart);
@@ -98,6 +99,37 @@ export default async (req, res) => {
       ? String(req.headers['x-hasura-organization-id'])
       : null;
     const schoolId = req.headers['x-hasura-school-id'] ? String(req.headers['x-hasura-school-id']) : null;
+    const trigger = req.body?.trigger || 'manual';
+    const createdByUserId = getHasuraUserId(req);
+
+    const runInsert = `
+      mutation InsertWeeklyBriefRun($object: weekly_brief_runs_insert_input!) {
+        insert_weekly_brief_runs_one(object: $object) {
+          id
+        }
+      }
+    `;
+
+    const runData = await hasuraRequest({
+      query: runInsert,
+      variables: {
+        object: {
+          organization_id: organizationId,
+          school_id: schoolId,
+          week_start_date,
+          week_end_date,
+          trigger,
+          dry_run: Boolean(dryRun),
+          status: 'STARTED',
+          started_at: new Date().toISOString(),
+          created_by_user_id: createdByUserId,
+          created_by_role: createdByRole,
+          metadata: {}
+        }
+      }
+    });
+
+    runId = runData?.insert_weekly_brief_runs_one?.id ?? null;
 
     const where = {
       guardian: {
@@ -270,8 +302,31 @@ export default async (req, res) => {
       }
     }
 
+    if (runId) {
+      const runUpdate = `
+        mutation UpdateWeeklyBriefRun($id: uuid!, $changes: weekly_brief_runs_set_input!) {
+          update_weekly_brief_runs_by_pk(pk_columns: { id: $id }, _set: $changes) {
+            id
+          }
+        }
+      `;
+
+      await hasuraRequest({
+        query: runUpdate,
+        variables: {
+          id: runId,
+          changes: {
+            status: 'SUCCEEDED',
+            finished_at: new Date().toISOString(),
+            generated_count: results.length
+          }
+        }
+      });
+    }
+
     return res.status(200).json({
       ok: true,
+      runId,
       week_start_date,
       week_end_date,
       dryRun,
@@ -280,6 +335,31 @@ export default async (req, res) => {
     });
   } catch (err) {
     console.error('generate-weekly-briefs error', err);
+    if (runId) {
+      try {
+        const runUpdate = `
+          mutation UpdateWeeklyBriefRun($id: uuid!, $changes: weekly_brief_runs_set_input!) {
+            update_weekly_brief_runs_by_pk(pk_columns: { id: $id }, _set: $changes) {
+              id
+            }
+          }
+        `;
+
+        await hasuraRequest({
+          query: runUpdate,
+          variables: {
+            id: runId,
+            changes: {
+              status: 'FAILED',
+              finished_at: new Date().toISOString(),
+              error: err?.message || 'Unexpected error'
+            }
+          }
+        });
+      } catch (updateError) {
+        console.error('Failed to update weekly_brief_runs', updateError);
+      }
+    }
     const status = err.statusCode || 500;
     return res.status(status).json({ error: err.message || 'Unexpected error' });
   }
