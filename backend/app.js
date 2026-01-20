@@ -34,6 +34,7 @@ import observabilityRouter from './routes/observability.js';
 import { captureApiMetrics } from './middleware/metrics.js';
 import integrationsRouter from './routes/integrations.js';
 import ltiRouter from './routes/lti.js';
+import orchestratorRouter from './routes/orchestrator.js';
 
 // Load environment variables
 dotenv.config();
@@ -105,6 +106,7 @@ app.use('/api/fraud', fraudRouter);
 app.use('/api/admin', observabilityRouter);
 app.use('/api/integrations', integrationsRouter);
 app.use('/api/lti', ltiRouter);
+app.use('/api/orchestrator', orchestratorRouter);
 
 // Root endpoint to verify API is running
 app.get('/api', (req, res) => {
