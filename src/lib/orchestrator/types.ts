@@ -12,7 +12,9 @@ export type OrchestratorRoute =
 
 export type OrchestratorSafetyLevel = 'NONE' | 'SENSITIVE' | 'URGENT' | 'BLOCKED';
 
-export type OrchestratorUiType = 'CARD' | 'DEEPLINK' | 'CHOICE' | 'FOLLOWUP_QUESTION' | 'ERROR';
+export type OrchestratorArtifactType = 'MESSAGE_DRAFT' | 'BRIEF' | 'SUMMARY' | 'DEEPLINK' | 'OTHER';
+
+export type OrchestratorUiType = 'CARD' | 'DEEPLINK' | 'CHOICE' | 'ERROR';
 
 export interface OrchestratorActor {
   userId: string;
@@ -22,9 +24,6 @@ export interface OrchestratorActor {
 export interface OrchestratorSelectedContext {
   childId?: string;
   schoolId?: string;
-  teacherId?: string;
-  threadId?: string;
-  recipientUserId?: string;
 }
 
 export interface OrchestratorMetadata {
@@ -39,7 +38,6 @@ export interface OrchestratorRequestInput {
   text?: string;
   selected?: OrchestratorSelectedContext;
   metadata?: OrchestratorMetadata;
-  recent?: { summary?: string };
 }
 
 export interface OrchestratorSafety {
@@ -47,19 +45,13 @@ export interface OrchestratorSafety {
   reasons: string[];
 }
 
-export interface OrchestratorPromptChoice {
-  type: 'CHOICE';
-  title: string;
-  options: Array<{ label: string; value: string }>;
-}
-
 export interface OrchestratorPromptQuestion {
   type: 'FOLLOWUP_QUESTION';
-  title: string;
+  question: string;
   placeholder?: string;
 }
 
-export type OrchestratorPromptUser = OrchestratorPromptChoice | OrchestratorPromptQuestion;
+export type OrchestratorPromptUser = OrchestratorPromptQuestion;
 
 export interface OrchestratorNeeds {
   missing: string[];
@@ -69,14 +61,36 @@ export interface OrchestratorNeeds {
 export interface OrchestratorUiAction {
   label: string;
   action: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface OrchestratorUiOption {
+  label: string;
+  value: string;
+  description?: string;
 }
 
 export interface OrchestratorUi {
   type: OrchestratorUiType;
   title: string;
+  subtitle?: string;
   body?: string;
+  message?: string;
   deepLink?: string;
+  options?: OrchestratorUiOption[];
   primaryAction?: OrchestratorUiAction;
+  secondaryAction?: OrchestratorUiAction;
+}
+
+export interface OrchestratorArtifact {
+  id?: string;
+  type: OrchestratorArtifactType;
+  payload: Record<string, unknown>;
+  expiresAt?: string | null;
+}
+
+export interface OrchestratorResponseDebug {
+  extractedEntities: Record<string, unknown>;
 }
 
 export interface OrchestratorResponse {
@@ -85,7 +99,6 @@ export interface OrchestratorResponse {
   safety: OrchestratorSafety;
   needs?: OrchestratorNeeds;
   ui: OrchestratorUi;
-  result?: Record<string, unknown>;
-  sideEffects?: string[];
-  success?: boolean;
+  artifact?: OrchestratorArtifact;
+  debug?: OrchestratorResponseDebug;
 }

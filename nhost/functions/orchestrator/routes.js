@@ -1,3 +1,4 @@
+// Phase 1 route map (keep in sync with src/lib/orchestrator/types.ts)
 export const ROUTES = {
   HUB_MESSAGE_SEND: 'HUB_MESSAGE_SEND',
   HUB_THREAD_SUMMARIZE: 'HUB_THREAD_SUMMARIZE',
@@ -9,37 +10,17 @@ export const ROUTES = {
   UNKNOWN_CLARIFY: 'UNKNOWN_CLARIFY'
 };
 
-export const ROUTE_CONFIG = {
-  [ROUTES.HUB_MESSAGE_SEND]: {
-    requiredContext: ['childId', 'schoolId'],
-    allowedRoles: ['PARENT', 'TEACHER', 'ADMIN']
-  },
-  [ROUTES.HUB_THREAD_SUMMARIZE]: {
-    requiredContext: [],
-    allowedRoles: ['PARENT', 'TEACHER', 'ADMIN']
-  },
-  [ROUTES.WEEKLY_BRIEF_GENERATE]: {
-    requiredContext: ['childId'],
-    allowedRoles: ['PARENT', 'ADMIN']
-  },
-  [ROUTES.OFFICE_HOURS_BOOK]: {
-    requiredContext: ['childId', 'schoolId'],
-    allowedRoles: ['PARENT', 'ADMIN']
-  },
-  [ROUTES.HOMEWORK_HELP]: {
-    requiredContext: ['childId'],
-    allowedRoles: ['PARENT', 'TEACHER', 'ADMIN']
-  },
-  [ROUTES.EXPLORE_DEEP_LINK]: {
-    requiredContext: ['schoolId'],
-    allowedRoles: ['PARENT', 'TEACHER', 'ADMIN']
-  },
-  [ROUTES.SAFETY_ESCALATE]: {
-    requiredContext: [],
-    allowedRoles: ['PARENT', 'TEACHER', 'ADMIN']
-  },
-  [ROUTES.UNKNOWN_CLARIFY]: {
-    requiredContext: [],
-    allowedRoles: ['PARENT', 'TEACHER', 'ADMIN']
-  }
+export const ARTIFACT_TYPES = {
+  MESSAGE_DRAFT: 'MESSAGE_DRAFT',
+  BRIEF: 'BRIEF',
+  SUMMARY: 'SUMMARY',
+  DEEPLINK: 'DEEPLINK',
+  OTHER: 'OTHER'
+};
+
+export const SAFETY_LEVELS = {
+  NONE: 'NONE',
+  SENSITIVE: 'SENSITIVE',
+  URGENT: 'URGENT',
+  BLOCKED: 'BLOCKED'
 };

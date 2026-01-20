@@ -1,33 +1,55 @@
 /* eslint-env node */
-import { orchestrateRequest } from '../../nhost/functions/orchestrator/orchestrateRequest.js';
+// Simple job script to smoke-test the orchestrator locally.
+//
+// Run:
+//   node backend/jobs/orchestrator-smoke.js
+//
+// This does NOT call the network; it directly imports the classifier + handlers.
 
-const sampleRequests = [
-  {
-    requestId: 'demo-1',
-    actor: { userId: '00000000-0000-0000-0000-000000000001', role: 'PARENT' },
-    channel: 'CHAT',
-    text: "Can you message her teacher that she'll be absent tomorrow?",
-    selected: { childId: 'c1', schoolId: 's1', recipientUserId: 'teacher-local' },
-    metadata: { locale: 'en-US', timezone: 'America/New_York' }
-  },
-  {
-    requestId: 'demo-2',
-    actor: { userId: '00000000-0000-0000-0000-000000000002', role: 'PARENT' },
-    channel: 'CHAT',
-    text: 'Show me tutoring options for math',
-    selected: { schoolId: 's1' }
-  }
+import { classify } from '../../nhost/functions/orchestrator/classify.js';
+import { getHandler } from '../../nhost/functions/orchestrator/registry.js';
+
+const SAMPLES = [
+  { text: 'Can you message her teacher that she’ll be absent tomorrow?', channel: 'CHAT' },
+  { text: 'What did I miss this week?', channel: 'CHAT' },
+  { text: 'Find chess classes near me', channel: 'CHAT' },
+  { text: 'Summarize this thread for me', channel: 'CHAT' },
+  { text: 'I need to book office hours with his math teacher', channel: 'CHAT' },
+  { text: 'Homework help: solve 2x+5=17', channel: 'CHAT' }
 ];
 
 async function run() {
-  for (const request of sampleRequests) {
-    const response = await orchestrateRequest(request);
-    console.log('\n--- Orchestrator Response ---');
-    console.log(JSON.stringify(response, null, 2));
+  for (const sample of SAMPLES) {
+    const c = classify(sample);
+    const handler = getHandler(c.route);
+    const out = await handler({
+      requestId: '00000000-0000-0000-0000-000000000000',
+      actor: { userId: 'local', role: 'parent' },
+      channel: sample.channel,
+      text: sample.text,
+      selected: { childId: 'child_local', schoolId: 'school_local' },
+      metadata: { locale: 'en-US', timezone: 'America/New_York' }
+    });
+
+    console.log(
+      JSON.stringify(
+        {
+          input: sample.text,
+          route: c.route,
+          confidence: c.confidence,
+          ui: out.ui,
+          needs: out.needs,
+          artifactType: out.artifact?.type
+        },
+        null,
+        2
+      )
+    );
+    console.log('---');
   }
 }
 
-run().catch((error) => {
-  console.error('orchestrator smoke test failed', error);
+run().catch((e) => {
+  console.error(e);
   process.exit(1);
 });

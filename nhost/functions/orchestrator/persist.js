@@ -1,84 +1,92 @@
-import { Client } from 'pg';
+import pg from 'pg';
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { Pool } = pg;
 
-function resolveConnectionString() {
-  return (
-    process.env.DATABASE_URL ||
-    process.env.PG_CONNECTION_STRING ||
-    process.env.NHOST_DATABASE_URL ||
-    process.env.PG_URI ||
-    null
-  );
-}
+const connectionString =
+  process.env.DATABASE_URL ||
+  process.env.PG_CONNECTION_STRING ||
+  process.env.NHOST_POSTGRES_CONNECTION_STRING ||
+  process.env.NHOST_DATABASE_URL ||
+  '';
 
-function normalizeUuid(value) {
-  if (!value) return null;
-  if (UUID_REGEX.test(value)) return value;
-  return null;
-}
+let pool;
 
-export async function persistOrchestratorRun({ request, response, latencyMs }) {
-  const connectionString = resolveConnectionString();
+function getPool() {
   if (!connectionString) return null;
-
-  const client = new Client({ connectionString });
-  try {
-    await client.connect();
-
-    const result = await client.query(
-      `insert into public.orchestrator_runs
-        (request_id, user_id, role, channel, route, confidence, missing_context, safety_level, safety_reasons, success, latency_ms)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       returning id`,
-      [
-        request.requestId,
-        normalizeUuid(request.actor?.userId),
-        request.actor?.role || null,
-        request.channel || null,
-        response.route || null,
-        response.confidence ?? null,
-        response.needs?.missing ? JSON.stringify(response.needs.missing) : null,
-        response.safety?.level || null,
-        response.safety?.reasons ? JSON.stringify(response.safety.reasons) : null,
-        Boolean(response.success ?? (response.needs?.missing?.length ? false : true)),
-        latencyMs ?? null
-      ]
-    );
-
-    return result.rows?.[0]?.id || null;
-  } catch (error) {
-    console.warn('orchestrator persist failed', error);
-    return null;
-  } finally {
-    await client.end().catch(() => null);
+  if (!pool) {
+    pool = new Pool({ connectionString });
   }
+  return pool;
 }
 
-export async function persistArtifacts({ runId, artifacts }) {
-  if (!runId || !Array.isArray(artifacts) || artifacts.length === 0) return;
-  const connectionString = resolveConnectionString();
-  if (!connectionString) return;
+export async function insertOrchestratorRun(run) {
+  const p = getPool();
+  if (!p) return { persisted: false, reason: 'no_connection_string' };
 
-  const client = new Client({ connectionString });
-  try {
-    await client.connect();
-    for (const artifact of artifacts) {
-      await client.query(
-        `insert into public.orchestrator_artifacts (run_id, type, payload, expires_at)
-         values ($1, $2, $3, $4)`,
-        [
-          runId,
-          artifact.type,
-          JSON.stringify(artifact.payload ?? {}),
-          artifact.expiresAt || null
-        ]
-      );
-    }
-  } catch (error) {
-    console.warn('orchestrator artifact persist failed', error);
-  } finally {
-    await client.end().catch(() => null);
-  }
+  const {
+    requestId,
+    profileId,
+    appRole,
+    channel,
+    route,
+    confidence,
+    safetyLevel,
+    missingContext = [],
+    extractedEntities = {},
+    success = false,
+    latencyMs,
+    errorCode,
+    errorMessage
+  } = run;
+
+  const q = `
+    INSERT INTO orchestrator_runs
+      (request_id, profile_id, app_role, channel, route, confidence, safety_level, missing_context, extracted_entities, success, latency_ms, error_code, error_message)
+    VALUES
+      ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10,$11,$12,$13)
+    RETURNING id;
+  `;
+
+  const values = [
+    requestId || null,
+    profileId || null,
+    appRole,
+    channel,
+    route,
+    confidence,
+    safetyLevel,
+    JSON.stringify(missingContext),
+    JSON.stringify(extractedEntities),
+    success,
+    latencyMs || null,
+    errorCode || null,
+    errorMessage || null
+  ];
+
+  const result = await p.query(q, values);
+  return { persisted: true, runId: result.rows?.[0]?.id };
+}
+
+export async function insertOrchestratorArtifact({ runId, profileId, artifactType, payload, expiresAt }) {
+  const p = getPool();
+  if (!p) return { persisted: false, reason: 'no_connection_string' };
+  if (!runId) return { persisted: false, reason: 'missing_runId' };
+
+  const q = `
+    INSERT INTO orchestrator_artifacts
+      (run_id, profile_id, artifact_type, payload, expires_at)
+    VALUES
+      ($1,$2,$3,$4::jsonb,$5)
+    RETURNING id;
+  `;
+
+  const result = await p.query(q, [
+    runId,
+    profileId || null,
+    artifactType,
+    JSON.stringify(payload || {}),
+    expiresAt || null
+  ]);
+
+  return { persisted: true, artifactId: result.rows?.[0]?.id };
 }
