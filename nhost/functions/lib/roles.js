@@ -9,6 +9,10 @@ export function getHasuraRole(req) {
   );
 }
 
+export function getHasuraUserId(req) {
+  return req.headers['x-hasura-user-id'] || req.headers['x-nhost-user-id'] || null;
+}
+
 export function assertAdminRole(req) {
   const role = getHasuraRole(req);
   const allowed = new Set(['system_admin', 'school_admin', 'district_admin']);
