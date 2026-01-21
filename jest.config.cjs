@@ -10,6 +10,10 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^lucide-react$': '<rootDir>/src/__mocks__/lucide-react.js',
+    '^msw$': '<rootDir>/src/__mocks__/msw.js',
+    '^msw/node$': '<rootDir>/src/__mocks__/msw-node.js',
+    '^react-markdown$': '<rootDir>/src/__mocks__/react-markdown.js',
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
   },
   transform: {
