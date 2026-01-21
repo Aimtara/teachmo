@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { graphqlRequest } from '@/lib/graphql';
 import { Card, Input, Select, Button, LoadingSpinner } from '@/components/ui';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 /**
  * AdminAIBudgetSettings allows administrators to configure overall AI spend

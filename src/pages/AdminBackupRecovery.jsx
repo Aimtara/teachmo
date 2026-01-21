@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { graphqlRequest } from '@/lib/graphql';
 import { Card, Table, Button, LoadingSpinner, Select } from '@/components/ui';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 /**
  * AdminBackupRecovery provides a simple interface for administrators to

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { graphqlRequest } from '@/lib/graphql';
 import { Card, Table, Input, Button, LoadingSpinner } from '@/components/ui';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 /**
  * AdminPartnerReferrals manages referral codes for partners. District

@@ -1,32 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  FormControl,
-  FormLabel,
-  Heading,
-  Input,
-  Select,
-  Table,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  useDisclosure,
-  useToast,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from '@chakra-ui/react';
+import { toast } from 'sonner';
 import { graphqlRequest } from '@/lib/graphql';
 import { createLogger } from '@/utils/logger';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const logger = createLogger('AdminSISDataManager');
 
@@ -38,11 +26,10 @@ const SIS_TABLES = [
 ];
 
 export default function AdminSISDataManager() {
-  const toast = useToast();
   const [table, setTable] = useState('sis_roster_students');
   const [records, setRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isOpen, setIsOpen] = useState(false);
 
   const fetchRecords = async (tableName) => {
     try {
@@ -52,7 +39,7 @@ export default function AdminSISDataManager() {
       setRecords(res[tableName]);
     } catch (err) {
       logger.error('Failed to fetch records', err);
-      toast({ title: 'Failed to load records', status: 'error' });
+      toast.error('Failed to load records');
     }
   };
 
@@ -62,7 +49,7 @@ export default function AdminSISDataManager() {
 
   const handleOpenRecord = (record) => {
     setSelectedRecord(record);
-    onOpen();
+    setIsOpen(true);
   };
 
   const handleSave = async () => {
@@ -76,12 +63,12 @@ export default function AdminSISDataManager() {
         update_${table}_by_pk(pk_columns: {id: $id}, _set: $data) { id }
       }`;
       await graphqlRequest(mutation, { id: selectedRecord.id, data: updates });
-      toast({ title: 'Record updated', status: 'success' });
-      onClose();
+      toast.success('Record updated');
+      setIsOpen(false);
       await fetchRecords(table);
     } catch (err) {
       logger.error('Failed to update record', err);
-      toast({ title: 'Update failed', status: 'error' });
+      toast.error('Update failed');
     }
   };
 
@@ -92,66 +79,85 @@ export default function AdminSISDataManager() {
   const currentColumns = SIS_TABLES.find((t) => t.name === table).columns;
 
   return (
-    <Box p={6} maxW="6xl" mx="auto">
-      <Heading mb={4}>SIS Data Manager</Heading>
-      <Card mb={6}>
-        <CardHeader><Heading size="md">Select Table</Heading></CardHeader>
-        <CardBody>
-          <FormControl maxW="sm">
-            <FormLabel>Table</FormLabel>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+      <h1 className="text-2xl font-semibold">SIS Data Manager</h1>
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Table</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-sm space-y-2">
+            <label className="text-sm font-medium">Table</label>
             <Select value={table} onChange={(e) => setTable(e.target.value)}>
               {SIS_TABLES.map((t) => (
-                <option key={t.name} value={t.name}>{t.name}</option>
+                <option key={t.name} value={t.name}>
+                  {t.name}
+                </option>
               ))}
             </Select>
-          </FormControl>
-        </CardBody>
+          </div>
+        </CardContent>
       </Card>
       <Card>
-        <CardHeader><Heading size="md">Records</Heading></CardHeader>
-        <CardBody>
-          <Table size="sm">
-            <Thead>
-              <Tr>
+        <CardHeader>
+          <CardTitle>Records</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
                 {currentColumns.map((col) => (
-                  <Th key={col}>{col}</Th>
+                  <TableHead key={col}>{col}</TableHead>
                 ))}
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {records.map((rec) => (
-                <Tr key={rec.id}>
+                <TableRow key={rec.id}>
                   {currentColumns.map((col) => (
-                    <Td key={`${rec.id}-${col}`}>{rec[col]}</Td>
+                    <TableCell key={`${rec.id}-${col}`}>{rec[col]}</TableCell>
                   ))}
-                  <Td>
-                    <Button size="xs" colorScheme="blue" onClick={() => handleOpenRecord(rec)}>Edit</Button>
-                  </Td>
-                </Tr>
+                  <TableCell>
+                    <Button size="sm" onClick={() => handleOpenRecord(rec)}>
+                      Edit
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </Tbody>
+            </TableBody>
           </Table>
-        </CardBody>
+        </CardContent>
       </Card>
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Edit Record</ModalHeader>
-          <ModalBody>
-            {selectedRecord && currentColumns.filter((c) => c !== 'id').map((field) => (
-              <FormControl key={field} mb={3}>
-                <FormLabel>{field}</FormLabel>
-                <Input value={selectedRecord[field] || ''} onChange={(e) => handleChangeField(field, e.target.value)} />
-              </FormControl>
-            ))}
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleSave}>Save</Button>
-            <Button onClick={onClose}>Cancel</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Record</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {selectedRecord &&
+              currentColumns
+                .filter((c) => c !== 'id')
+                .map((field) => (
+                  <div key={field} className="space-y-2">
+                    <label className="text-sm font-medium">{field}</label>
+                    <Input
+                      value={selectedRecord[field] || ''}
+                      onChange={(e) => handleChangeField(field, e.target.value)}
+                    />
+                  </div>
+                ))}
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={handleSave}>
+              Save
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
