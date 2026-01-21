@@ -10,3 +10,5 @@ export default function FeatureGate({ feature, children, redirectTo }) {
   if (redirectTo) return <Navigate to={redirectTo} replace />;
   return <FeatureDisabled />;
 }
+
+export { FeatureGate };

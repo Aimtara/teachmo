@@ -84,3 +84,5 @@ export default function MapView({ events, userLocation }) {
     </div>
   );
 }
+
+export { MapView };

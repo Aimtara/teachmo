@@ -288,3 +288,5 @@ export default function QuickTips({ currentPage }) {
     </AnimatePresence>
   );
 }
+
+export { QuickTips };

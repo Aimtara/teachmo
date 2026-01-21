@@ -127,3 +127,5 @@ export default function SecurityStatusWidget() {
     </div>
   );
 }
+
+export { SecurityStatusWidget };

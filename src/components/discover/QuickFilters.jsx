@@ -27,3 +27,5 @@ export default function QuickFilters({ onSelect }) {
     </div>
   );
 }
+
+export { QuickFilters };
