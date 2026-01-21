@@ -31,7 +31,11 @@ export const SignalTypeEnum = z.enum([
   'action_completed',
   'notification_opened',
   'cooldown_started',
-  'cooldown_ended'
+  'cooldown_ended',
+
+  // Planner ticks
+  'system_daily_tick',
+  'system_weekly_tick'
 ]);
 
 export const OrchestratorZoneEnum = z.enum(['green', 'amber', 'red']);
@@ -144,6 +148,61 @@ export const OrchestratorDecisionSchema = z
   })
   .strict();
 
+export const DigestItemSchema = z
+  .object({
+    id: z.string(),
+    familyId: z.string().min(1),
+    createdAt: z.string().datetime(),
+    signalType: SignalTypeEnum,
+    title: z.string(),
+    summary: z.string(),
+    urgency: z.number().min(0).max(1),
+    impact: z.number().min(0).max(1),
+    meta: z.record(z.any()).optional(),
+    status: z.enum(['queued', 'delivered', 'dismissed']).default('queued')
+  })
+  .strict();
+
+export const DailyPlanSchema = z
+  .object({
+    id: z.string(),
+    familyId: z.string().min(1),
+    createdAt: z.string().datetime(),
+    windowStart: z.string().datetime(),
+    windowEnd: z.string().datetime(),
+    zoneAtPlanTime: OrchestratorZoneEnum,
+    attentionBudgetMin: z.number().int().min(0),
+    actions: z.array(OrchestratorActionSchema),
+    rationale: z.string()
+  })
+  .strict();
+
+export const WeeklyBriefSchema = z
+  .object({
+    id: z.string(),
+    familyId: z.string().min(1),
+    createdAt: z.string().datetime(),
+    weekStart: z.string().datetime(),
+    weekEnd: z.string().datetime(),
+    zoneSummary: z.object({
+      currentZone: OrchestratorZoneEnum,
+      tension: z.number().min(0).max(1),
+      slack: z.number().min(0).max(1),
+      cooldownActive: z.boolean()
+    }),
+    signalCounts: z.record(z.number().int().min(0)),
+    highlights: z.array(z.string()),
+    risks: z.array(z.string()),
+    recommendedNextSteps: z.array(z.string()),
+    setpointAdjustments: z
+      .object({
+        dailyAttentionBudgetMin: z.number().int().min(0).optional(),
+        maxNotificationsPerHour: z.number().int().min(0).optional()
+      })
+      .optional()
+  })
+  .strict();
+
 // --- Convenience types (JSDoc for JS consumers) ---
 
 /** @typedef {z.infer<typeof OrchestratorSignalSchema>} OrchestratorSignal */
@@ -151,3 +210,6 @@ export const OrchestratorDecisionSchema = z
 /** @typedef {z.infer<typeof OrchestratorStateSchema>} OrchestratorState */
 /** @typedef {z.infer<typeof OrchestratorActionSchema>} OrchestratorAction */
 /** @typedef {z.infer<typeof OrchestratorDecisionSchema>} OrchestratorDecision */
+/** @typedef {z.infer<typeof DigestItemSchema>} DigestItem */
+/** @typedef {z.infer<typeof DailyPlanSchema>} DailyPlan */
+/** @typedef {z.infer<typeof WeeklyBriefSchema>} WeeklyBrief */

@@ -45,6 +45,91 @@ router.post('/signal', (req, res) => {
   }
 });
 
+router.post('/:familyId/run-daily', (req, res) => {
+  try {
+    const plan = orchestratorEngine.runDaily(req.params.familyId);
+    res.json(plan);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.post('/:familyId/run-weekly', (req, res) => {
+  try {
+    const brief = orchestratorEngine.runWeekly(req.params.familyId);
+    res.json(brief);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/digest', (req, res) => {
+  try {
+    res.json({ digest: orchestratorEngine.getDigest(req.params.familyId) });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.post('/:familyId/digest/mark-delivered', (req, res) => {
+  try {
+    res.json({ digest: orchestratorEngine.markDigestDelivered(req.params.familyId) });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/plans/daily', (req, res) => {
+  try {
+    res.json({ plans: orchestratorEngine.getDailyPlans(req.params.familyId) });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/briefs/weekly', (req, res) => {
+  try {
+    res.json({ briefs: orchestratorEngine.getWeeklyBriefs(req.params.familyId) });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/actions', (req, res) => {
+  try {
+    res.json({ actions: orchestratorEngine.listActions(req.params.familyId) });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.post('/:familyId/actions/:actionId/complete', (req, res) => {
+  try {
+    const completed = orchestratorEngine.completeAction(req.params.familyId, req.params.actionId);
+
+    if (completed) {
+      orchestratorEngine.ingest({
+        familyId: req.params.familyId,
+        source: 'system',
+        type: 'action_completed',
+        payload: { actionId: req.params.actionId }
+      });
+    }
+
+    res.json({ completed });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
 // GET /api/orchestrator/:familyId/state
 router.get('/:familyId/state', (req, res) => {
   try {
