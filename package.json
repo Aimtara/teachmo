@@ -25,7 +25,7 @@
     "@base44/sdk": "^0.1.2",
     "@hello-pangea/dnd": "^16.6.0",
     "@hookform/resolvers": "^4.1.2",
-    "@nhost/nhost-js": "^3.2.8",
+    "@nhost/nhost-js": "^3.3.1",
     "@nhost/react": "^3.11.2",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -110,9 +110,6 @@
     "zod": "^3.24.2",
     "zustand": "^5.0.2"
   },
-  "overrides": {
-    "@nhost/nhost-js": "^3.2.8"
-  },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
     "@babel/core": "^7.26.0",
@@ -139,6 +136,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "babel-jest": "^29.7.0",
+    "babel-plugin-transform-vite-meta-env": "^1.0.0",
     "eslint": "^9.19.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.0.0",

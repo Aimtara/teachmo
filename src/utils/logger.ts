@@ -9,18 +9,10 @@ type EnvShape = {
 };
 
 const getEnv = (): EnvShape => {
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env as EnvShape;
-  }
-
-  if (typeof process !== 'undefined') {
-    return {
-      MODE: process.env.NODE_ENV,
-      VITE_LOG_LEVEL: process.env.VITE_LOG_LEVEL
-    };
-  }
-
-  return {};
+  return (import.meta.env ?? {
+    MODE: process.env.NODE_ENV,
+    VITE_LOG_LEVEL: process.env.VITE_LOG_LEVEL
+  }) as EnvShape;
 };
 
 const normalizeLevel = (level?: string | null): LogLevel => {
