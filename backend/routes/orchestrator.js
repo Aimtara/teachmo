@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { runOrchestrator } from '../orchestrator/orchestrator.js';
+import { orchestratorEngine } from '../orchestrator/engine.js';
 
 const router = Router();
 
@@ -31,6 +32,39 @@ router.post('/route', async (req, res) => {
 
   const output = await runOrchestrator({ request, auth: req.auth, tenant: req.tenant });
   return res.json(output);
+});
+
+// POST /api/orchestrator/signal
+router.post('/signal', (req, res) => {
+  try {
+    const decision = orchestratorEngine.ingest(req.body);
+    res.json(decision);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+// GET /api/orchestrator/:familyId/state
+router.get('/:familyId/state', (req, res) => {
+  try {
+    const state = orchestratorEngine.getState(req.params.familyId);
+    res.json(state);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+// GET /api/orchestrator/:familyId/signals
+router.get('/:familyId/signals', (req, res) => {
+  try {
+    const signals = orchestratorEngine.getRecentSignals(req.params.familyId);
+    res.json({ signals });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
 });
 
 export default router;
