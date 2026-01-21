@@ -1,4 +1,4 @@
-import * as generatedEntities from './entities.generated';
+import * as generatedEntities from './entities.generated.js';
 import { WeeklyBrief } from './legacy/entities';
 
 // Some adapters expect conversational "thread" entities that map to the Base44 Conversation schema.
@@ -16,5 +16,5 @@ export const base44EntitiesMap = {
 
 export default base44EntitiesMap;
 export { MessageThread, MessageThreadParticipant };
-export * from './entities.generated';
+export * from './entities.generated.js';
 export { WeeklyBrief };

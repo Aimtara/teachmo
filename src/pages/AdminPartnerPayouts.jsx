@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { graphqlRequest } from '@/lib/graphql';
 import { Card, Table, Button, LoadingSpinner } from '@/components/ui';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 /**
  * AdminPartnerPayouts allows administrators to connect a payout provider (e.g.
