@@ -36,3 +36,5 @@ export default function DrilldownDrawer({ open, onOpenChange, metricKey, rows, o
     </Sheet>
   );
 }
+
+export { DrilldownDrawer };
