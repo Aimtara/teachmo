@@ -1,5 +1,6 @@
 /* eslint-env node */
 import { query } from '../db.js';
+import { sendAnomalyAlerts } from '../alerts/dispatcher.js';
 
 /**
  * Upsert anomaly and bump counters.
@@ -11,7 +12,7 @@ export async function upsertAnomaly({
   windowMinutes = 10,
   meta = {}
 }) {
-  await query(
+  const res = await query(
     `
     INSERT INTO orchestrator_anomalies
       (family_id, anomaly_type, severity, window_minutes, meta, count, first_seen, last_seen)
@@ -23,9 +24,37 @@ export async function upsertAnomaly({
       meta = EXCLUDED.meta,
       count = orchestrator_anomalies.count + 1,
       last_seen = now()
+    RETURNING family_id, anomaly_type, severity, count, window_minutes, last_seen, meta
     `,
     [familyId, anomalyType, severity, windowMinutes, JSON.stringify(meta ?? {})]
   );
+
+  const row = res.rows[0];
+
+  // Escalation policy: if count gets high, force severity up.
+  const count = Number(row.count || 0);
+  let sev = row.severity;
+
+  // Tune these however you like:
+  if (count >= 50) sev = 'error';
+  else if (count >= 15 && sev === 'info') sev = 'warn';
+
+  if (sev !== row.severity) {
+    await query(
+      `UPDATE orchestrator_anomalies SET severity = $3 WHERE family_id = $1 AND anomaly_type = $2`,
+      [familyId, anomalyType, sev]
+    );
+  }
+
+  // 🚨 alert hooks (deduped by dispatcher)
+  await sendAnomalyAlerts({
+    familyId,
+    anomalyType,
+    severity: sev,
+    meta: { ...row.meta, count, windowMinutes }
+  });
+
+  return { ...row, severity: sev };
 }
 
 /**
