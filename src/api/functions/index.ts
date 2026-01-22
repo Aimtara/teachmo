@@ -4,7 +4,7 @@
 // IMPORTANT: Do not add placeholder stubs here—stubs make the UI look "working"
 // while silently dropping real behaviour.
 import * as base44Functions from '../base44/functions';
-import { orchestrate } from './orchestrate';
+import { orchestrate, orchestrateAction } from './orchestrate';
 
 // Re-export existing functions from the Base44 module to preserve behaviour.
 export const {
@@ -37,7 +37,7 @@ export const {
   weeklyBriefGenerate,
 } = base44Functions;
 
-export { orchestrate };
+export { orchestrate, orchestrateAction };
 
 // --- Additional helpers used across the app ---
 
@@ -51,7 +51,8 @@ export async function getAdvancedAnalytics<TParams = GenericPayload>(params: TPa
 const functionsMap = {
   ...base44Functions,
   getAdvancedAnalytics,
-  orchestrate
+  orchestrate,
+  orchestrateAction
 };
 
 export default functionsMap;

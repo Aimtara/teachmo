@@ -29,6 +29,14 @@ export interface OrchestratorSelectedContext {
 export interface OrchestratorMetadata {
   locale?: string;
   timezone?: string;
+  /**
+   * Optional UI action envelope for deterministic routing.
+   * When channel=UI_ACTION, metadata.action.id should be set.
+   */
+  action?: {
+    id: string;
+    payload?: unknown;
+  };
 }
 
 export interface OrchestratorRequestInput {
