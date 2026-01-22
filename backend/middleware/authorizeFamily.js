@@ -1,5 +1,7 @@
 /* eslint-env node */
 import { query } from '../db.js';
+import { auditEvent } from '../security/audit.js';
+import { maybeFlagAnomalyFromAudit } from '../security/anomaly.js';
 
 async function hasMembership(familyId, userId) {
   const res = await query(
@@ -30,7 +32,19 @@ export function authorizeFamilyParam(paramName = 'familyId') {
     }
 
     const m = await hasMembership(familyId, userId);
-    if (!m.ok) return res.status(403).json({ error: 'forbidden_family' });
+    if (!m.ok) {
+      await auditEvent(req, {
+        eventType: 'forbidden_family',
+        severity: 'warn',
+        userId,
+        familyId,
+        statusCode: 403
+      });
+
+      await maybeFlagAnomalyFromAudit({ familyId, eventType: 'forbidden_family', windowMinutes: 10 });
+
+      return res.status(403).json({ error: 'forbidden_family' });
+    }
 
     req.familyAccess = { familyId, role: m.role };
     return next();
@@ -57,7 +71,19 @@ export function authorizeFamilyBody(bodyKey = 'familyId') {
     }
 
     const m = await hasMembership(familyId, userId);
-    if (!m.ok) return res.status(403).json({ error: 'forbidden_family' });
+    if (!m.ok) {
+      await auditEvent(req, {
+        eventType: 'forbidden_family',
+        severity: 'warn',
+        userId,
+        familyId,
+        statusCode: 403
+      });
+
+      await maybeFlagAnomalyFromAudit({ familyId, eventType: 'forbidden_family', windowMinutes: 10 });
+
+      return res.status(403).json({ error: 'forbidden_family' });
+    }
 
     req.familyAccess = { familyId, role: m.role };
     return next();

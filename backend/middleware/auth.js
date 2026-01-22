@@ -8,6 +8,7 @@
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { resolveRoleScopes } from '../rbac.js';
+import { auditEvent } from '../security/audit.js';
 function getClaim(obj, key) {
   if (!obj) return null;
   if (obj[key] !== undefined) return obj[key];
@@ -221,7 +222,10 @@ export async function requireAuthOrService(req, res, next) {
   const authHeader = req.get('Authorization') || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-  if (!token) return res.status(401).json({ error: 'missing_bearer_token' });
+  if (!token) {
+    await auditEvent(req, { eventType: 'auth_missing_token', severity: 'warn', statusCode: 401 });
+    return res.status(401).json({ error: 'missing_bearer_token' });
+  }
 
   const jwksSet = getRemoteJwks();
   if (!jwksSet) return res.status(500).json({ error: 'AUTH_JWKS_URL_not_configured' });
@@ -248,6 +252,12 @@ export async function requireAuthOrService(req, res, next) {
     return next();
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    await auditEvent(req, {
+      eventType: 'auth_invalid_token',
+      severity: 'warn',
+      statusCode: 401,
+      meta: { detail: msg }
+    });
     return res.status(401).json({ error: 'invalid_token', detail: msg });
   }
 }

@@ -17,6 +17,8 @@ import { runDailyPlanner } from './planner.js';
 import { runWeeklyRegulator } from './weekly.js';
 import { generateWeeklyBriefWithLLM } from './weekly_llm.js';
 import { orchestratorPgStore } from './pgStore.js';
+import { auditEventBare } from '../security/audit.js';
+import { maybeFlagAnomalyFromAudit } from '../security/anomaly.js';
 
 export class OrchestratorEngine {
   /**
@@ -53,6 +55,16 @@ export class OrchestratorEngine {
     const { inserted } = await orchestratorPgStore.insertSignalIdempotent(parsed);
 
     if (!inserted) {
+      await auditEventBare({
+        eventType: 'duplicate_signal',
+        severity: 'info',
+        userId: null,
+        familyId: parsed.familyId,
+        statusCode: 200,
+        meta: { idempotencyKey: parsed.idempotencyKey ?? null, signalType: parsed.type }
+      });
+      await maybeFlagAnomalyFromAudit({ familyId: parsed.familyId, eventType: 'duplicate_signal', windowMinutes: 10 });
+
       const state = await this._getOrInitState(parsed.familyId, now);
       return OrchestratorDecisionSchema.parse({
         state,
