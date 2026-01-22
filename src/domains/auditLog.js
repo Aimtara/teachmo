@@ -21,8 +21,9 @@ export async function writeAuditLog(input) {
     ...(changeDetails ? { change_details: changeDetails } : {}),
   };
 
+  // actor_id is set server-side via Hasura insert permissions using X-Hasura-User-Id.
+  // Do not send actor_id from the client to avoid permission mismatches.
   const object = {
-    actor_id: input.actorId,
     action: input.action,
     entity_type: input.entityType,
     entity_id: input.entityId ?? null,
