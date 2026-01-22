@@ -35,9 +35,9 @@ router.post('/route', async (req, res) => {
 });
 
 // POST /api/orchestrator/signal
-router.post('/signal', (req, res) => {
+router.post('/signal', async (req, res) => {
   try {
-    const decision = orchestratorEngine.ingest(req.body);
+    const decision = await orchestratorEngine.ingest(req.body);
     res.json(decision);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -45,9 +45,9 @@ router.post('/signal', (req, res) => {
   }
 });
 
-router.post('/:familyId/run-daily', (req, res) => {
+router.post('/:familyId/run-daily', async (req, res) => {
   try {
-    const plan = orchestratorEngine.runDaily(req.params.familyId);
+    const plan = await orchestratorEngine.runDaily(req.params.familyId);
     res.json(plan);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -65,36 +65,79 @@ router.post('/:familyId/run-weekly', async (req, res) => {
   }
 });
 
-router.get('/:familyId/digest', (req, res) => {
+router.get('/:familyId/digest', async (req, res) => {
   try {
-    res.json({ digest: orchestratorEngine.getDigest(req.params.familyId) });
+    const status = req.query.status ?? 'queued';
+    const limit = parseInt(req.query.limit ?? '50', 10);
+    const offset = parseInt(req.query.offset ?? '0', 10);
+    const digest = await orchestratorEngine.getDigest(req.params.familyId, { status, limit, offset });
+    res.json({ digest });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(400).json({ error: message });
   }
 });
 
-router.post('/:familyId/digest/mark-delivered', (req, res) => {
+router.post('/:familyId/digest/mark-delivered', async (req, res) => {
   try {
-    res.json({ digest: orchestratorEngine.markDigestDelivered(req.params.familyId) });
+    const digest = await orchestratorEngine.markDigestDelivered(req.params.familyId);
+    res.json({ digest });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(400).json({ error: message });
   }
 });
 
-router.get('/:familyId/plans/daily', (req, res) => {
+router.post('/:familyId/digest/:itemId/dismiss', async (req, res) => {
   try {
-    res.json({ plans: orchestratorEngine.getDailyPlans(req.params.familyId) });
+    const dismissed = await orchestratorEngine.dismissDigestItem(req.params.familyId, req.params.itemId);
+    res.json({ dismissed });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(400).json({ error: message });
   }
 });
 
-router.get('/:familyId/briefs/weekly', (req, res) => {
+router.get('/:familyId/plans/daily', async (req, res) => {
   try {
-    res.json({ briefs: orchestratorEngine.getWeeklyBriefs(req.params.familyId) });
+    const limit = parseInt(req.query.limit ?? '10', 10);
+    const offset = parseInt(req.query.offset ?? '0', 10);
+    const plans = await orchestratorEngine.getDailyPlans(req.params.familyId, { limit, offset });
+    res.json({ plans });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/plans/daily/latest', async (req, res) => {
+  try {
+    const plan = await orchestratorEngine.getLatestDailyPlan(req.params.familyId);
+    if (!plan) return res.status(404).json({ error: 'no_daily_plan' });
+    res.json(plan);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/briefs/weekly', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit ?? '10', 10);
+    const offset = parseInt(req.query.offset ?? '0', 10);
+    const briefs = await orchestratorEngine.getWeeklyBriefs(req.params.familyId, { limit, offset });
+    res.json({ briefs });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/briefs/weekly/latest', async (req, res) => {
+  try {
+    const brief = await orchestratorEngine.getLatestWeeklyBrief(req.params.familyId);
+    if (!brief) return res.status(404).json({ error: 'no_weekly_brief' });
+    res.json(brief);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(400).json({ error: message });
@@ -110,12 +153,12 @@ router.get('/:familyId/actions', (req, res) => {
   }
 });
 
-router.post('/:familyId/actions/:actionId/complete', (req, res) => {
+router.post('/:familyId/actions/:actionId/complete', async (req, res) => {
   try {
     const completed = orchestratorEngine.completeAction(req.params.familyId, req.params.actionId);
 
     if (completed) {
-      orchestratorEngine.ingest({
+      await orchestratorEngine.ingest({
         familyId: req.params.familyId,
         source: 'system',
         type: 'action_completed',

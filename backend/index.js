@@ -8,6 +8,7 @@ import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
 import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
 import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
 import { createLogger } from './utils/logger.js';
+import { runMigrations } from './migrate.js';
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +25,7 @@ const shouldSeedDemo =
 if (shouldSeedDemo) {
   seedDemoData();
 }
+await runMigrations();
 startRetentionPurgeScheduler();
 startNotificationQueueScheduler();
 startObservabilitySchedulers();
