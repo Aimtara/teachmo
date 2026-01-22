@@ -67,6 +67,7 @@ export const SignalFeaturesSchema = z
 export const OrchestratorSignalSchema = z
   .object({
     id: z.string().optional(),
+    idempotencyKey: z.string().min(1).max(200).optional(),
     familyId: z.string().min(1),
     childId: z.string().optional(),
     source: SignalSourceEnum,
@@ -136,6 +137,16 @@ export const OrchestratorActionSchema = z
 
     // Any extra details for UI/LLM templates
     meta: z.record(z.any()).optional()
+  })
+  .strict();
+
+export const ActionStatusEnum = z.enum(['queued', 'completed', 'dismissed']);
+
+export const ActionQueueItemSchema = z
+  .object({
+    action: OrchestratorActionSchema,
+    status: ActionStatusEnum,
+    updatedAt: z.string().datetime()
   })
   .strict();
 

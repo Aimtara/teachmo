@@ -39,6 +39,11 @@ router.post('/route', async (req, res) => {
 // POST /api/orchestrator/signal
 router.post('/signal', async (req, res) => {
   try {
+    const headerKey = req.get('Idempotency-Key');
+    if (headerKey && !req.body.idempotencyKey) {
+      req.body.idempotencyKey = headerKey;
+    }
+
     const decision = await orchestratorEngine.ingest(req.body);
     res.json(decision);
   } catch (err) {
@@ -146,9 +151,14 @@ router.get('/:familyId/briefs/weekly/latest', async (req, res) => {
   }
 });
 
-router.get('/:familyId/actions', (req, res) => {
+router.get('/:familyId/actions', async (req, res) => {
   try {
-    res.json({ actions: orchestratorEngine.listActions(req.params.familyId) });
+    const status = req.query.status ?? 'queued';
+    const limit = parseInt(req.query.limit ?? '50', 10);
+    const offset = parseInt(req.query.offset ?? '0', 10);
+
+    const actions = await orchestratorPgStore.listActions(req.params.familyId, { status, limit, offset });
+    res.json({ actions });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(400).json({ error: message });
@@ -157,18 +167,37 @@ router.get('/:familyId/actions', (req, res) => {
 
 router.post('/:familyId/actions/:actionId/complete', async (req, res) => {
   try {
-    const completed = orchestratorEngine.completeAction(req.params.familyId, req.params.actionId);
+    const completed = await orchestratorPgStore.completeAction(
+      req.params.familyId,
+      req.params.actionId,
+      { source: 'api' }
+    );
 
     if (completed) {
       await orchestratorEngine.ingest({
         familyId: req.params.familyId,
         source: 'system',
         type: 'action_completed',
+        idempotencyKey: `action_completed:${req.params.actionId}`,
         payload: { actionId: req.params.actionId }
       });
     }
 
     res.json({ completed });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.post('/:familyId/actions/:actionId/dismiss', async (req, res) => {
+  try {
+    const dismissed = await orchestratorPgStore.dismissAction(
+      req.params.familyId,
+      req.params.actionId,
+      { source: 'api' }
+    );
+    res.json({ dismissed });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(400).json({ error: message });

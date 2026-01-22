@@ -50,7 +50,18 @@ export class OrchestratorEngine {
     const parsed = OrchestratorSignalSchema.parse(rawSignal);
     const now = parseTimestamp(parsed.timestamp);
 
-    await orchestratorPgStore.insertSignal(parsed);
+    const { inserted } = await orchestratorPgStore.insertSignalIdempotent(parsed);
+
+    if (!inserted) {
+      const state = await this._getOrInitState(parsed.familyId, now);
+      return OrchestratorDecisionSchema.parse({
+        state,
+        nextAction: null,
+        candidates: [],
+        suppressedReason: 'duplicate_signal'
+      });
+    }
+
     this.store.appendSignal(parsed);
 
     const prevState = await this._getOrInitState(parsed.familyId, now);
@@ -84,7 +95,10 @@ export class OrchestratorEngine {
       await orchestratorPgStore.insertDigestItem(digestItem);
     }
 
-    if (nextAction) this.store.enqueueAction(parsed.familyId, nextAction);
+    if (nextAction) {
+      this.store.enqueueAction(parsed.familyId, nextAction);
+      await orchestratorPgStore.upsertAction(parsed.familyId, nextAction, 'queued');
+    }
 
     const stateOk = OrchestratorStateSchema.parse(nextState);
     const decision = {
@@ -109,7 +123,10 @@ export class OrchestratorEngine {
 
     await orchestratorPgStore.insertDailyPlan(plan);
 
-    for (const a of plan.actions) this.store.enqueueAction(familyId, a);
+    for (const a of plan.actions) {
+      this.store.enqueueAction(familyId, a);
+      await orchestratorPgStore.upsertAction(familyId, a, 'queued');
+    }
 
     return plan;
   }

@@ -5,7 +5,8 @@ import {
   DailyPlanSchema,
   DigestItemSchema,
   OrchestratorStateSchema,
-  OrchestratorSignalSchema
+  OrchestratorSignalSchema,
+  OrchestratorActionSchema
 } from './types.js';
 import { makeId } from './utils.js';
 
@@ -47,27 +48,29 @@ export class OrchestratorPgStore {
     return b;
   }
 
-  async insertSignal(signal) {
+  /**
+   * Insert a signal with idempotency protection.
+   * Returns { inserted: boolean, signal }.
+   */
+  async insertSignalIdempotent(signal) {
     const s = OrchestratorSignalSchema.parse(signal);
 
-    const id = s.id || makeId('sig');
     const occurredAt = s.timestamp ? s.timestamp : new Date().toISOString();
+    const id = s.id || makeId('sig');
 
-    await query(
+    const idem =
+      s.idempotencyKey ??
+      (typeof s.payload?.idempotencyKey === 'string' ? s.payload.idempotencyKey : null) ??
+      null;
+
+    const res = await query(
       `
       INSERT INTO orchestrator_signals
-        (id, family_id, child_id, source, type, occurred_at, features_json, payload_json, signal_json)
+        (id, family_id, child_id, source, type, occurred_at, idempotency_key, features_json, payload_json, signal_json)
       VALUES
-        ($1, $2, $3, $4, $5, $6::timestamptz, $7::jsonb, $8::jsonb, $9::jsonb)
-      ON CONFLICT (id) DO UPDATE SET
-        family_id = EXCLUDED.family_id,
-        child_id = EXCLUDED.child_id,
-        source = EXCLUDED.source,
-        type = EXCLUDED.type,
-        occurred_at = EXCLUDED.occurred_at,
-        features_json = EXCLUDED.features_json,
-        payload_json = EXCLUDED.payload_json,
-        signal_json = EXCLUDED.signal_json
+        ($1, $2, $3, $4, $5, $6::timestamptz, $7, $8::jsonb, $9::jsonb, $10::jsonb)
+      ON CONFLICT (family_id, idempotency_key) DO NOTHING
+      RETURNING signal_json
       `,
       [
         id,
@@ -76,13 +79,35 @@ export class OrchestratorPgStore {
         s.source,
         s.type,
         occurredAt,
+        idem,
         JSON.stringify(s.features ?? null),
         JSON.stringify(s.payload ?? null),
-        JSON.stringify({ ...s, id, timestamp: occurredAt })
+        JSON.stringify({ ...s, id, idempotencyKey: idem, timestamp: occurredAt })
       ]
     );
 
-    return { ...s, id, timestamp: occurredAt };
+    if (res.rowCount === 1) {
+      return { inserted: true, signal: OrchestratorSignalSchema.parse(res.rows[0].signal_json) };
+    }
+
+    if (idem) {
+      const existing = await query(
+        `
+        SELECT signal_json
+        FROM orchestrator_signals
+        WHERE family_id = $1 AND idempotency_key = $2
+        ORDER BY occurred_at DESC
+        LIMIT 1
+        `,
+        [s.familyId, idem]
+      );
+
+      if (existing.rowCount === 1) {
+        return { inserted: false, signal: OrchestratorSignalSchema.parse(existing.rows[0].signal_json) };
+      }
+    }
+
+    return { inserted: false, signal: { ...s, id, idempotencyKey: idem, timestamp: occurredAt } };
   }
 
   async listSignals(familyId, { sinceIso = null, limit = 200, offset = 0 } = {}) {
@@ -378,6 +403,131 @@ export class OrchestratorPgStore {
       status: r.status,
       meta: r.meta ?? {}
     });
+  }
+
+  async upsertAction(familyId, action, status = 'queued') {
+    const a = OrchestratorActionSchema.parse(action);
+
+    await query(
+      `
+      INSERT INTO orchestrator_actions
+        (id, family_id, created_at, updated_at, status, type, action_json)
+      VALUES
+        ($1, $2, $3::timestamptz, now(), $4, $5, $6::jsonb)
+      ON CONFLICT (id) DO UPDATE SET
+        family_id = EXCLUDED.family_id,
+        updated_at = now(),
+        status = EXCLUDED.status,
+        type = EXCLUDED.type,
+        action_json = EXCLUDED.action_json
+      `,
+      [a.id, familyId, a.createdAt, status, a.type, JSON.stringify(a)]
+    );
+
+    return { action: a, status, updatedAt: new Date().toISOString() };
+  }
+
+  async listActions(familyId, { status = 'queued', limit = 50, offset = 0 } = {}) {
+    const params = [familyId];
+    let where = `WHERE family_id = $1`;
+
+    if (status !== 'all') {
+      params.push(status);
+      where += ` AND status = $${params.length}`;
+    }
+
+    params.push(limit);
+    params.push(offset);
+
+    const res = await query(
+      `
+      SELECT action_json, status, updated_at
+      FROM orchestrator_actions
+      ${where}
+      ORDER BY created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+      `,
+      params
+    );
+
+    return res.rows.map((r) => ({
+      action: OrchestratorActionSchema.parse(r.action_json),
+      status: r.status,
+      updatedAt: new Date(r.updated_at).toISOString()
+    }));
+  }
+
+  async completeAction(familyId, actionId, meta = {}) {
+    const res = await query(
+      `
+      UPDATE orchestrator_actions
+      SET status = 'completed', completed_at = now(), updated_at = now()
+      WHERE family_id = $1 AND id = $2 AND status = 'queued'
+      RETURNING action_json, status, updated_at
+      `,
+      [familyId, actionId]
+    );
+
+    if (res.rowCount === 0) {
+      const existing = await query(
+        `
+        SELECT action_json, status, updated_at
+        FROM orchestrator_actions
+        WHERE family_id = $1 AND id = $2
+        LIMIT 1
+        `,
+        [familyId, actionId]
+      );
+      if (existing.rowCount === 0) return null;
+
+      return {
+        action: OrchestratorActionSchema.parse(existing.rows[0].action_json),
+        status: existing.rows[0].status,
+        updatedAt: new Date(existing.rows[0].updated_at).toISOString()
+      };
+    }
+
+    await query(
+      `
+      INSERT INTO orchestrator_action_events (action_id, family_id, event_type, meta)
+      VALUES ($1, $2, $3, $4::jsonb)
+      `,
+      [actionId, familyId, 'completed', JSON.stringify(meta)]
+    );
+
+    return {
+      action: OrchestratorActionSchema.parse(res.rows[0].action_json),
+      status: res.rows[0].status,
+      updatedAt: new Date(res.rows[0].updated_at).toISOString()
+    };
+  }
+
+  async dismissAction(familyId, actionId, meta = {}) {
+    const res = await query(
+      `
+      UPDATE orchestrator_actions
+      SET status = 'dismissed', dismissed_at = now(), updated_at = now()
+      WHERE family_id = $1 AND id = $2 AND status = 'queued'
+      RETURNING action_json, status, updated_at
+      `,
+      [familyId, actionId]
+    );
+
+    if (res.rowCount === 0) return null;
+
+    await query(
+      `
+      INSERT INTO orchestrator_action_events (action_id, family_id, event_type, meta)
+      VALUES ($1, $2, $3, $4::jsonb)
+      `,
+      [actionId, familyId, 'dismissed', JSON.stringify(meta)]
+    );
+
+    return {
+      action: OrchestratorActionSchema.parse(res.rows[0].action_json),
+      status: res.rows[0].status,
+      updatedAt: new Date(res.rows[0].updated_at).toISOString()
+    };
   }
 }
 
