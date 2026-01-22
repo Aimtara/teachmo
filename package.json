@@ -13,6 +13,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:a11y": "jest --testPathPattern=a11y",
+    "loadtest:systemHealth": "node scripts/loadtest/systemHealth.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "preview": "vite preview",
