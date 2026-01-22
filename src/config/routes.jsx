@@ -292,6 +292,14 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading observability dashboard...</p>
   },
   {
+    name: 'OpsOrchestrator',
+    path: '/ops/orchestrator',
+    Component: lazy(() => import('@/pages/OpsOrchestrator.jsx')),
+    allowedRoles: ['system_admin', 'admin'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading ops orchestrator...</p>
+  },
+  {
     name: 'AdminSystemHealth',
     path: '/admin/system-health',
     Component: lazy(() => import('@/pages/AdminSystemHealth.jsx')),

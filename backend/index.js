@@ -2,7 +2,7 @@
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
 import app from './app.js';
-import { seedDemoData } from './seed.js';
+import { seedDemoData, seedOpsDemoData } from './seed.js';
 import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
 import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
@@ -25,7 +25,9 @@ const shouldSeedDemo =
 if (shouldSeedDemo) {
   seedDemoData();
 }
+
 await runMigrations();
+await seedOpsDemoData();
 startRetentionPurgeScheduler();
 startNotificationQueueScheduler();
 startObservabilitySchedulers();
