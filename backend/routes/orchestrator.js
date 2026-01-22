@@ -7,8 +7,10 @@ import { requireTenant } from '../middleware/tenant.js';
 import { query } from '../db.js';
 import { runOrchestrator } from '../orchestrator/orchestrator.js';
 import { orchestratorEngine } from '../orchestrator/engine.js';
+import { getFamilyHealth } from '../orchestrator/health.js';
 import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.js';
 import { orchestratorPgStore } from '../orchestrator/pgStore.js';
+import { listAnomalies } from '../security/anomaly.js';
 
 const router = Router();
 
@@ -72,7 +74,64 @@ router.post('/admin/memberships', requireAuthOrService, async (req, res) => {
   }
 });
 
+router.get('/admin/audit', requireAuthOrService, async (req, res) => {
+  try {
+    if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
+
+    const limit = parseInt(req.query.limit ?? '100', 10);
+    const eventType = req.query.eventType ? String(req.query.eventType) : null;
+
+    const params = [];
+    let where = 'WHERE 1=1';
+    if (eventType) {
+      params.push(eventType);
+      where += ` AND event_type = $${params.length}`;
+    }
+
+    params.push(limit);
+
+    const out = await query(
+      `
+      SELECT id, created_at, event_type, severity, user_id, family_id, ip, method, path, status_code, request_id, meta
+      FROM security_audit_events
+      ${where}
+      ORDER BY created_at DESC
+      LIMIT $${params.length}
+      `,
+      params
+    );
+
+    res.json({ events: out.rows });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
 router.use('/:familyId', requireAuthOrService, authorizeFamilyParam('familyId'));
+
+router.get('/:familyId/health', async (req, res) => {
+  try {
+    const days = parseInt(req.query.days ?? '14', 10);
+    const health = await getFamilyHealth(req.params.familyId, { days });
+    res.json(health);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/anomalies', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit ?? '50', 10);
+    const offset = parseInt(req.query.offset ?? '0', 10);
+    const anomalies = await listAnomalies(req.params.familyId, { limit, offset });
+    res.json({ anomalies });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
 
 router.post('/:familyId/run-daily', async (req, res) => {
   try {
