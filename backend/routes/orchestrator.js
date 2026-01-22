@@ -108,6 +108,110 @@ router.get('/admin/audit', requireAuthOrService, async (req, res) => {
   }
 });
 
+// Create endpoint
+router.post('/admin/alerts/endpoints', requireAuthOrService, async (req, res) => {
+  try {
+    if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
+
+    const { familyId, type, target, secret = null, enabled = true } = req.body || {};
+    if (!familyId || !type || !target) return res.status(400).json({ error: 'missing_familyId_type_target' });
+
+    const out = await query(
+      `
+      INSERT INTO orchestrator_alert_endpoints (family_id, type, target, secret, enabled)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, family_id, type, target, enabled, created_at
+      `,
+      [familyId, type, target, secret, Boolean(enabled)]
+    );
+
+    res.json({ endpoint: out.rows[0] });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+// List endpoints
+router.get('/admin/alerts/endpoints', requireAuthOrService, async (req, res) => {
+  try {
+    if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
+
+    const familyId = req.query.familyId ? String(req.query.familyId) : null;
+    const params = [];
+    let where = 'WHERE 1=1';
+
+    if (familyId) {
+      params.push(familyId);
+      where += ` AND family_id = $${params.length}`;
+    }
+
+    const out = await query(
+      `
+      SELECT id, family_id, type, target, enabled, created_at
+      FROM orchestrator_alert_endpoints
+      ${where}
+      ORDER BY created_at DESC
+      LIMIT 200
+      `,
+      params
+    );
+
+    res.json({ endpoints: out.rows });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+// Disable endpoint
+router.post('/admin/alerts/endpoints/:id/disable', requireAuthOrService, async (req, res) => {
+  try {
+    if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
+
+    const id = Number(req.params.id);
+    await query(`UPDATE orchestrator_alert_endpoints SET enabled = false WHERE id = $1`, [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+// View deliveries
+router.get('/admin/alerts/deliveries', requireAuthOrService, async (req, res) => {
+  try {
+    if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
+
+    const familyId = req.query.familyId ? String(req.query.familyId) : null;
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit ?? '100', 10)));
+
+    const params = [];
+    let where = 'WHERE 1=1';
+    if (familyId) {
+      params.push(familyId);
+      where += ` AND family_id = $${params.length}`;
+    }
+    params.push(limit);
+
+    const out = await query(
+      `
+      SELECT id, endpoint_id, family_id, anomaly_type, severity, status, response_code, created_at, dedupe_key
+      FROM orchestrator_alert_deliveries
+      ${where}
+      ORDER BY created_at DESC
+      LIMIT $${params.length}
+      `,
+      params
+    );
+
+    res.json({ deliveries: out.rows });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
 router.use('/:familyId', requireAuthOrService, authorizeFamilyParam('familyId'));
 
 router.get('/:familyId/health', async (req, res) => {

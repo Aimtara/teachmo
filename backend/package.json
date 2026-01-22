@@ -8,6 +8,7 @@
     "migrate": "node migrate.js",
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "snapshot:daily": "node jobs/snapshotDailyMetrics.js 14",
     "tick:daily": "node jobs/orchestratorTick.js daily",
     "tick:weekly": "node jobs/orchestratorTick.js weekly"
   },

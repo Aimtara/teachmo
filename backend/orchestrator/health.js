@@ -1,47 +1,40 @@
 /* eslint-env node */
 import { query } from '../db.js';
 
-export async function getFamilyHealth(familyId, { days = 14 } = {}) {
-  const daysInt = Math.max(1, Math.min(90, Number(days) || 14));
+// fallback: live computation if snapshots missing
+async function getFamilyHealthLive(familyId, daysInt) {
   const since = `now() - (${daysInt} || ' days')::interval`;
 
-  // signals/day
   const signalsRes = await query(
     `
     SELECT date_trunc('day', occurred_at) AS day, COUNT(*)::int AS signals
     FROM orchestrator_signals
     WHERE family_id = $1 AND occurred_at >= ${since}
-    GROUP BY 1
-    ORDER BY 1 ASC
+    GROUP BY 1 ORDER BY 1 ASC
     `,
     [familyId]
   );
 
-  // actions created/day
   const actionsCreatedRes = await query(
     `
     SELECT date_trunc('day', created_at) AS day, COUNT(*)::int AS actions_created
     FROM orchestrator_actions
     WHERE family_id = $1 AND created_at >= ${since}
-    GROUP BY 1
-    ORDER BY 1 ASC
+    GROUP BY 1 ORDER BY 1 ASC
     `,
     [familyId]
   );
 
-  // actions completed/day
   const actionsCompletedRes = await query(
     `
     SELECT date_trunc('day', completed_at) AS day, COUNT(*)::int AS actions_completed
     FROM orchestrator_actions
     WHERE family_id = $1 AND completed_at IS NOT NULL AND completed_at >= ${since}
-    GROUP BY 1
-    ORDER BY 1 ASC
+    GROUP BY 1 ORDER BY 1 ASC
     `,
     [familyId]
   );
 
-  // ingest suppression/duplicates/day via decision traces
   const ingestRes = await query(
     `
     SELECT
@@ -50,11 +43,8 @@ export async function getFamilyHealth(familyId, { days = 14 } = {}) {
       SUM(CASE WHEN suppressed_reason IS NOT NULL THEN 1 ELSE 0 END)::int AS suppressed,
       SUM(CASE WHEN suppressed_reason = 'duplicate_signal' THEN 1 ELSE 0 END)::int AS duplicates
     FROM orchestrator_decision_traces
-    WHERE family_id = $1
-      AND trigger_type = 'ingest'
-      AND created_at >= ${since}
-    GROUP BY 1
-    ORDER BY 1 ASC
+    WHERE family_id = $1 AND trigger_type = 'ingest' AND created_at >= ${since}
+    GROUP BY 1 ORDER BY 1 ASC
     `,
     [familyId]
   );
@@ -69,19 +59,17 @@ export async function getFamilyHealth(familyId, { days = 14 } = {}) {
     { ingests: 0, suppressed: 0, duplicates: 0 }
   );
 
-  const suppressedRate = totals.ingests > 0 ? totals.suppressed / totals.ingests : 0;
-  const duplicateRate = totals.ingests > 0 ? totals.duplicates / totals.ingests : 0;
-
   return {
     familyId,
     windowDays: daysInt,
     generatedAt: new Date().toISOString(),
+    source: 'live',
     totals: {
       ingests: totals.ingests,
       suppressed: totals.suppressed,
       duplicates: totals.duplicates,
-      suppressedRate,
-      duplicateRate
+      suppressedRate: totals.ingests ? totals.suppressed / totals.ingests : 0,
+      duplicateRate: totals.ingests ? totals.duplicates / totals.ingests : 0
     },
     series: {
       signalsPerDay: signalsRes.rows.map((r) => ({ day: new Date(r.day).toISOString(), count: r.signals })),
@@ -98,6 +86,77 @@ export async function getFamilyHealth(familyId, { days = 14 } = {}) {
       actionsCompletedPerDay: actionsCompletedRes.rows.map((r) => ({
         day: new Date(r.day).toISOString(),
         count: r.actions_completed
+      }))
+    }
+  };
+}
+
+export async function getFamilyHealth(familyId, { days = 14 } = {}) {
+  const daysInt = Math.max(1, Math.min(90, Number(days) || 14));
+
+  const snapRes = await query(
+    `
+    SELECT day, signals, ingests, suppressed, duplicates,
+           actions_created, actions_completed,
+           forbidden_family, auth_invalid_token, auth_missing_token, updated_at
+    FROM orchestrator_daily_snapshots
+    WHERE family_id = $1 AND day >= (current_date - $2::int)
+    ORDER BY day ASC
+    `,
+    [familyId, daysInt]
+  );
+
+  // If snapshots are missing, fall back to live.
+  if (snapRes.rowCount === 0) {
+    return getFamilyHealthLive(familyId, daysInt);
+  }
+
+  const rows = snapRes.rows;
+
+  const totals = rows.reduce(
+    (acc, r) => {
+      acc.ingests += r.ingests;
+      acc.suppressed += r.suppressed;
+      acc.duplicates += r.duplicates;
+      return acc;
+    },
+    { ingests: 0, suppressed: 0, duplicates: 0 }
+  );
+
+  return {
+    familyId,
+    windowDays: daysInt,
+    generatedAt: new Date().toISOString(),
+    source: 'snapshot',
+    snapshotUpdatedAt: new Date(rows[rows.length - 1].updated_at).toISOString(),
+    totals: {
+      ingests: totals.ingests,
+      suppressed: totals.suppressed,
+      duplicates: totals.duplicates,
+      suppressedRate: totals.ingests ? totals.suppressed / totals.ingests : 0,
+      duplicateRate: totals.ingests ? totals.duplicates / totals.ingests : 0
+    },
+    series: {
+      signalsPerDay: rows.map((r) => ({ day: new Date(r.day).toISOString(), count: r.signals })),
+      ingestsPerDay: rows.map((r) => ({
+        day: new Date(r.day).toISOString(),
+        ingests: r.ingests,
+        suppressed: r.suppressed,
+        duplicates: r.duplicates
+      })),
+      actionsCreatedPerDay: rows.map((r) => ({
+        day: new Date(r.day).toISOString(),
+        count: r.actions_created
+      })),
+      actionsCompletedPerDay: rows.map((r) => ({
+        day: new Date(r.day).toISOString(),
+        count: r.actions_completed
+      })),
+      securityNoisePerDay: rows.map((r) => ({
+        day: new Date(r.day).toISOString(),
+        forbiddenFamily: r.forbidden_family,
+        invalidToken: r.auth_invalid_token,
+        missingToken: r.auth_missing_token
       }))
     }
   };
