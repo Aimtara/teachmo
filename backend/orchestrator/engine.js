@@ -16,6 +16,7 @@ import { optimize } from './scoring.js';
 import { OrchestratorStore, orchestratorStore } from './store.js';
 import { runDailyPlanner } from './planner.js';
 import { runWeeklyRegulator } from './weekly.js';
+import { generateWeeklyBriefWithLLM } from './weekly_llm.js';
 
 export class OrchestratorEngine {
   /**
@@ -94,12 +95,29 @@ export class OrchestratorEngine {
     return plan;
   }
 
-  runWeekly(familyId) {
+  async runWeekly(familyId) {
     const now = new Date();
     const state = this.store.getOrCreateState(familyId, now);
     const signals = this.store.getRecentSignals(familyId);
 
-    const { brief, setpoints } = runWeeklyRegulator({ state, recentSignals: signals, now });
+    const useLlm = String(process.env.ORCH_WEEKLY_USE_LLM ?? 'true').toLowerCase() !== 'false';
+
+    let brief = null;
+
+    if (useLlm && process.env.OPENAI_API_KEY) {
+      brief = await generateWeeklyBriefWithLLM({ state, recentSignals: signals, now });
+    }
+
+    let setpoints = {};
+
+    if (!brief) {
+      const fallback = runWeeklyRegulator({ state, recentSignals: signals, now });
+      brief = fallback.brief;
+      setpoints = fallback.setpoints;
+    } else {
+      setpoints = brief.setpointAdjustments ?? {};
+    }
+
     const validatedBrief = WeeklyBriefSchema.parse(brief);
 
     const nextState = { ...state };
