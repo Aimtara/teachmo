@@ -34,7 +34,7 @@ This roadmap assumes a school-first posture with a slim consumer funnel running 
   - Digest of school messages + events
   - Brief personalization with load scoring + “words to try” tone constraints
 
-- **Office Hours scheduling orchestration**
+- **office hours scheduling orchestration**
   - Confirmations, reminders, calendar sync, no double-booking
 
 - **Preference center + channel policy**
