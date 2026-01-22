@@ -5,6 +5,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { runOrchestrator } from '../orchestrator/orchestrator.js';
 import { orchestratorEngine } from '../orchestrator/engine.js';
+import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.js';
+import { orchestratorPgStore } from '../orchestrator/pgStore.js';
 
 const router = Router();
 
@@ -174,10 +176,31 @@ router.post('/:familyId/actions/:actionId/complete', async (req, res) => {
 });
 
 // GET /api/orchestrator/:familyId/state
-router.get('/:familyId/state', (req, res) => {
+router.get('/:familyId/state', async (req, res) => {
   try {
-    const state = orchestratorEngine.getState(req.params.familyId);
+    const state = await orchestratorEngine.getState(req.params.familyId);
     res.json(state);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.patch('/:familyId/state', async (req, res) => {
+  try {
+    const patch = OrchestratorStatePatchSchema.parse(req.body);
+    const current = await orchestratorEngine.getState(req.params.familyId);
+
+    const next = {
+      ...current,
+      ...patch,
+      updatedAt: new Date().toISOString()
+    };
+
+    await orchestratorPgStore.upsertState(next);
+    orchestratorEngine.store.setState(req.params.familyId, next, new Date());
+
+    res.json(next);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(400).json({ error: message });
