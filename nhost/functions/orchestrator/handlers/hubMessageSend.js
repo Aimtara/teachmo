@@ -22,6 +22,7 @@ export async function hubMessageSendHandler(ctx) {
         missing,
         promptUser: {
           type: 'FOLLOWUP_QUESTION',
+          actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
           question:
             missing[0] === 'childId'
               ? 'Which child is this message about?'

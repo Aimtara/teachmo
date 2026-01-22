@@ -3,31 +3,19 @@ import { ROUTES } from '../routes.js';
 export async function unknownClarifyHandler() {
   return {
     route: ROUTES.UNKNOWN_CLARIFY,
+    needs: {
+      missing: [],
+      promptUser: {
+        type: 'FOLLOWUP_QUESTION',
+        actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
+        question: 'What would you like to do next in Teachmo?',
+        placeholder: 'Try: “summarize my messages”, “book office hours”, “message the teacher”…'
+      }
+    },
     ui: {
-      type: 'CHOICE',
-      title: 'What would you like to do?',
-      options: [
-        {
-          label: 'Send a message',
-          value: ROUTES.HUB_MESSAGE_SEND,
-          description: 'Draft a note to a teacher or staff member'
-        },
-        {
-          label: 'Summarize messages',
-          value: ROUTES.HUB_THREAD_SUMMARIZE,
-          description: 'Catch me up on a thread'
-        },
-        {
-          label: 'Weekly brief',
-          value: ROUTES.WEEKLY_BRIEF_GENERATE,
-          description: 'What did I miss this week?'
-        },
-        {
-          label: 'Explore resources',
-          value: ROUTES.EXPLORE_DEEP_LINK,
-          description: 'Find events, activities, or programs'
-        }
-      ]
+      type: 'CARD',
+      title: 'Quick question',
+      body: 'Tell me what you want to do, and I’ll route you to the right place.'
     }
   };
 }
