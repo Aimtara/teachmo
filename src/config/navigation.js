@@ -117,6 +117,7 @@ export const NAV_STRUCTURE = [
       { name: 'Partner Dashboard', page: 'AdminPartners', icon: Users, requiredScopes: ['org:manage'] },
       { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
       { name: 'Observability', page: 'AdminObservability', icon: Activity, requiredScopes: ['org:manage'] },
+      { name: 'Ops Orchestrator', page: 'OpsOrchestrator', icon: Activity, requiredScopes: ['org:manage'] },
       { name: 'System Health', page: 'AdminSystemHealth', icon: Activity, requiredScopes: ['org:manage'] },
       { name: 'Notifications', page: 'AdminNotifications', icon: Bell, requiredScopes: ['org:manage'] },
       { name: 'Users', page: 'AdminUsers', icon: UserCheck, requiredScopes: ['users:manage'] },
