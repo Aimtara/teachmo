@@ -3,28 +3,46 @@ import { listEvents } from '@/domains/events';
 import { listActivities } from '@/domains/activities';
 import { listThreads } from '@/domains/messaging';
 import { useUserData } from '@nhost/react';
-import WeeklyBriefCard from '@/components/dashboard/WeeklyBriefCard.jsx';
+import WeeklyFamilyBriefCard from '@/components/dashboard/WeeklyFamilyBriefCard';
+import { getLatestWeeklyBrief, runWeeklyBrief } from '@/domains/orchestrator';
 
 export default function ParentDashboard() {
   const user = useUserData();
   const [events, setEvents] = useState([]);
   const [activities, setActivities] = useState([]);
   const [threads, setThreads] = useState([]);
+  const [brief, setBrief] = useState(null);
+  const [briefLoading, setBriefLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
-      const [eventData, activityData, threadData] = await Promise.all([
+      const familyId = user.profile_id || user.id;
+      const [eventData, activityData, threadData, briefData] = await Promise.all([
         listEvents(user.default_school_id || null).catch(() => []),
         listActivities().catch(() => []),
-        listThreads(user.profile_id || user.id).catch(() => [])
+        listThreads(user.profile_id || user.id).catch(() => []),
+        getLatestWeeklyBrief(familyId).catch(() => null)
       ]);
       setEvents(eventData);
       setActivities(activityData);
       setThreads(threadData);
+      setBrief(briefData);
     };
     load();
   }, [user]);
+
+  const generateBrief = async () => {
+    if (!user) return;
+    const familyId = user.profile_id || user.id;
+    setBriefLoading(true);
+    try {
+      const nextBrief = await runWeeklyBrief(familyId);
+      setBrief(nextBrief);
+    } finally {
+      setBriefLoading(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -34,9 +52,7 @@ export default function ParentDashboard() {
       </header>
 
       <section className="grid md:grid-cols-3 gap-4">
-        <div className="md:col-span-3">
-          <WeeklyBriefCard />
-        </div>
+        <WeeklyFamilyBriefCard brief={brief} onGenerate={generateBrief} loading={briefLoading} />
 
         <div className="bg-white shadow rounded p-4">
           <h2 className="font-medium mb-2">Upcoming events</h2>

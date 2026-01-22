@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "migrate": "node migrate.js",
     "start": "node index.js",
     "dev": "nodemon index.js",
     "tick:daily": "node jobs/orchestratorTick.js daily",

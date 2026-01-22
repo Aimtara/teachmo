@@ -4,8 +4,7 @@ import {
   OrchestratorSignalSchema,
   OrchestratorStateSchema,
   DigestItemSchema,
-  DailyPlanSchema,
-  WeeklyBriefSchema
+  DailyPlanSchema
 } from './types.js';
 import { parseTimestamp, makeId, toIso } from './utils.js';
 import { extractFeatures } from './features.js';
@@ -17,6 +16,7 @@ import { OrchestratorStore, orchestratorStore } from './store.js';
 import { runDailyPlanner } from './planner.js';
 import { runWeeklyRegulator } from './weekly.js';
 import { generateWeeklyBriefWithLLM } from './weekly_llm.js';
+import { orchestratorPgStore } from './pgStore.js';
 
 export class OrchestratorEngine {
   /**
@@ -30,7 +30,7 @@ export class OrchestratorEngine {
    * Ingest a single signal and return a decision.
    * @param {import('./types.js').OrchestratorSignal} rawSignal
    */
-  ingest(rawSignal) {
+  async ingest(rawSignal) {
     const parsed = OrchestratorSignalSchema.parse(rawSignal);
     const now = parseTimestamp(parsed.timestamp);
 
@@ -63,7 +63,7 @@ export class OrchestratorEngine {
         meta: { reason: suppression.reason, payload: parsed.payload ?? {} },
         status: 'queued'
       });
-      this.store.appendDigestItem(parsed.familyId, digestItem);
+      await orchestratorPgStore.insertDigestItem(digestItem);
     }
 
     if (nextAction) this.store.enqueueAction(parsed.familyId, nextAction);
@@ -79,7 +79,7 @@ export class OrchestratorEngine {
     return OrchestratorDecisionSchema.parse(decision);
   }
 
-  runDaily(familyId) {
+  async runDaily(familyId) {
     const now = new Date();
     const state = this.store.getOrCreateState(familyId, now);
     const signals = this.store.getRecentSignals(familyId);
@@ -88,7 +88,7 @@ export class OrchestratorEngine {
       runDailyPlanner({ state, recentSignals: signals, now, k: 3, horizonHours: 24 })
     );
 
-    this.store.appendDailyPlan(familyId, plan);
+    await orchestratorPgStore.insertDailyPlan(plan);
 
     for (const a of plan.actions) this.store.enqueueAction(familyId, a);
 
@@ -118,8 +118,6 @@ export class OrchestratorEngine {
       setpoints = brief.setpointAdjustments ?? {};
     }
 
-    const validatedBrief = WeeklyBriefSchema.parse(brief);
-
     const nextState = { ...state };
     if (typeof setpoints.dailyAttentionBudgetMin === 'number') {
       nextState.dailyAttentionBudgetMin = setpoints.dailyAttentionBudgetMin;
@@ -129,8 +127,8 @@ export class OrchestratorEngine {
     }
     this.store.setState(familyId, nextState, now);
 
-    this.store.appendWeeklyBrief(familyId, validatedBrief);
-    return validatedBrief;
+    const saved = await orchestratorPgStore.insertWeeklyBrief(brief);
+    return saved;
   }
 
   getState(familyId) {
@@ -141,24 +139,32 @@ export class OrchestratorEngine {
     return this.store.getRecentSignals(familyId);
   }
 
-  getDigest(familyId) {
-    this.store.getOrCreateState(familyId, new Date());
-    return this.store.getDigest(familyId);
+  async getDigest(familyId, opts) {
+    return orchestratorPgStore.listDigestItems(familyId, opts);
   }
 
-  markDigestDelivered(familyId) {
-    this.store.getOrCreateState(familyId, new Date());
-    return this.store.markDigestDelivered(familyId);
+  async markDigestDelivered(familyId) {
+    return orchestratorPgStore.markDigestDelivered(familyId);
   }
 
-  getDailyPlans(familyId) {
-    this.store.getOrCreateState(familyId, new Date());
-    return this.store.getDailyPlans(familyId);
+  async dismissDigestItem(familyId, itemId) {
+    return orchestratorPgStore.dismissDigestItem(familyId, itemId);
   }
 
-  getWeeklyBriefs(familyId) {
-    this.store.getOrCreateState(familyId, new Date());
-    return this.store.getWeeklyBriefs(familyId);
+  async getDailyPlans(familyId, opts) {
+    return orchestratorPgStore.listDailyPlans(familyId, opts);
+  }
+
+  async getLatestDailyPlan(familyId) {
+    return orchestratorPgStore.getLatestDailyPlan(familyId);
+  }
+
+  async getWeeklyBriefs(familyId, opts) {
+    return orchestratorPgStore.listWeeklyBriefs(familyId, opts);
+  }
+
+  async getLatestWeeklyBrief(familyId) {
+    return orchestratorPgStore.getLatestWeeklyBrief(familyId);
   }
 
   listActions(familyId) {
