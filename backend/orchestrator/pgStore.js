@@ -1,6 +1,6 @@
 /* eslint-env node */
 import { query } from '../db.js';
-import { WeeklyBriefSchema, DailyPlanSchema, DigestItemSchema } from './types.js';
+import { WeeklyBriefSchema, DailyPlanSchema, DigestItemSchema, OrchestratorStateSchema } from './types.js';
 
 export class OrchestratorPgStore {
   async insertWeeklyBrief(brief) {
@@ -170,6 +170,51 @@ export class OrchestratorPgStore {
     );
 
     return d;
+  }
+
+  async upsertState(state) {
+    const s = OrchestratorStateSchema.parse(state);
+
+    await query(
+      `
+      INSERT INTO orchestrator_states
+        (family_id, updated_at, zone, tension, slack, cooldown_until, state_json)
+      VALUES
+        ($1, $2::timestamptz, $3, $4, $5, $6::timestamptz, $7::jsonb)
+      ON CONFLICT (family_id) DO UPDATE SET
+        updated_at = EXCLUDED.updated_at,
+        zone = EXCLUDED.zone,
+        tension = EXCLUDED.tension,
+        slack = EXCLUDED.slack,
+        cooldown_until = EXCLUDED.cooldown_until,
+        state_json = EXCLUDED.state_json
+      `,
+      [
+        s.familyId,
+        s.updatedAt,
+        s.zone,
+        s.tension,
+        s.slack,
+        s.cooldownUntil,
+        JSON.stringify(s)
+      ]
+    );
+
+    return s;
+  }
+
+  async getState(familyId) {
+    const res = await query(
+      `
+      SELECT state_json
+      FROM orchestrator_states
+      WHERE family_id = $1
+      LIMIT 1
+      `,
+      [familyId]
+    );
+    if (res.rowCount === 0) return null;
+    return OrchestratorStateSchema.parse(res.rows[0].state_json);
   }
 
   async listDigestItems(familyId, { status = 'queued', limit = 50, offset = 0 } = {}) {

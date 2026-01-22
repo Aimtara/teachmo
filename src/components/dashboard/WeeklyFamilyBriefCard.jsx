@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
+import WeeklyFamilyBriefModal from './WeeklyFamilyBriefModal';
 
 export default function WeeklyFamilyBriefCard({ brief, onGenerate, loading }) {
   const [expanded, setExpanded] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const steps = useMemo(() => {
     const arr = brief?.recommendedNextSteps || [];
@@ -42,14 +44,19 @@ export default function WeeklyFamilyBriefCard({ brief, onGenerate, loading }) {
             Zone: <span className="font-semibold">{zone}</span> · Tension: {tensionPct}%
           </p>
         </div>
-        <button
-          className="px-3 py-2 rounded border text-sm disabled:opacity-60"
-          onClick={onGenerate}
-          disabled={loading}
-          title="Refresh with the latest signals"
-        >
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </button>
+        <div className="flex gap-2">
+          <button className="px-3 py-2 rounded border text-sm" onClick={() => setModalOpen(true)}>
+            View full brief
+          </button>
+          <button
+            className="px-3 py-2 rounded border text-sm disabled:opacity-60"
+            onClick={onGenerate}
+            disabled={loading}
+            title="Refresh with the latest signals"
+          >
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 grid md:grid-cols-3 gap-4">
@@ -87,6 +94,8 @@ export default function WeeklyFamilyBriefCard({ brief, onGenerate, loading }) {
           </ul>
         </div>
       </div>
+
+      <WeeklyFamilyBriefModal open={modalOpen} onClose={() => setModalOpen(false)} brief={brief} />
     </div>
   );
 }

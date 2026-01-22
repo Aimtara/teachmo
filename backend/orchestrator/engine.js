@@ -8,7 +8,7 @@ import {
 } from './types.js';
 import { parseTimestamp, makeId, toIso } from './utils.js';
 import { extractFeatures } from './features.js';
-import { reduceState } from './state.js';
+import { createInitialState, reduceState } from './state.js';
 import { generateCandidates } from './candidates.js';
 import { shouldSuppressNotifyNow, createNotificationBucket } from './policy.js';
 import { optimize } from './scoring.js';
@@ -26,6 +26,22 @@ export class OrchestratorEngine {
     this.store = opts.store ?? orchestratorStore;
   }
 
+  async _getOrInitState(familyId, now = new Date()) {
+    const inMem = this.store.states.get(familyId);
+    if (inMem) return OrchestratorStateSchema.parse(inMem);
+
+    const fromDb = await orchestratorPgStore.getState(familyId);
+    if (fromDb) {
+      this.store.setState(familyId, fromDb, now);
+      return fromDb;
+    }
+
+    const init = createInitialState(familyId, now);
+    this.store.setState(familyId, init, now);
+    await orchestratorPgStore.upsertState(init);
+    return init;
+  }
+
   /**
    * Ingest a single signal and return a decision.
    * @param {import('./types.js').OrchestratorSignal} rawSignal
@@ -36,12 +52,13 @@ export class OrchestratorEngine {
 
     this.store.appendSignal(parsed);
 
-    const prevState = this.store.getOrCreateState(parsed.familyId, now);
+    const prevState = await this._getOrInitState(parsed.familyId, now);
     const bucket = this.store.getBucket(parsed.familyId) ?? createNotificationBucket(prevState, now);
 
     const features = extractFeatures(parsed, { now });
     const nextState = reduceState(prevState, parsed, features, { now });
     this.store.setState(parsed.familyId, nextState, now);
+    await orchestratorPgStore.upsertState(nextState);
 
     const candidates = generateCandidates({ state: nextState, signal: parsed, features, now });
 
@@ -81,7 +98,7 @@ export class OrchestratorEngine {
 
   async runDaily(familyId) {
     const now = new Date();
-    const state = this.store.getOrCreateState(familyId, now);
+    const state = await this._getOrInitState(familyId, now);
     const signals = this.store.getRecentSignals(familyId);
 
     const plan = DailyPlanSchema.parse(
@@ -97,7 +114,7 @@ export class OrchestratorEngine {
 
   async runWeekly(familyId) {
     const now = new Date();
-    const state = this.store.getOrCreateState(familyId, now);
+    const state = await this._getOrInitState(familyId, now);
     const signals = this.store.getRecentSignals(familyId);
 
     const useLlm = String(process.env.ORCH_WEEKLY_USE_LLM ?? 'true').toLowerCase() !== 'false';
@@ -126,13 +143,15 @@ export class OrchestratorEngine {
       nextState.maxNotificationsPerHour = setpoints.maxNotificationsPerHour;
     }
     this.store.setState(familyId, nextState, now);
+    await orchestratorPgStore.upsertState(nextState);
 
     const saved = await orchestratorPgStore.insertWeeklyBrief(brief);
     return saved;
   }
 
-  getState(familyId) {
-    return this.store.getOrCreateState(familyId, new Date());
+  async getState(familyId) {
+    const now = new Date();
+    return this._getOrInitState(familyId, now);
   }
 
   getRecentSignals(familyId) {
