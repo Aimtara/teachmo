@@ -189,3 +189,65 @@ export function requireAdmin(req, res, next) {
   if (!allowed.includes(role)) return res.status(403).json({ error: 'forbidden' });
   next();
 }
+
+let orchestratorJwks = null;
+
+function getRemoteJwks() {
+  const url = process.env.AUTH_JWKS_URL;
+  if (!url) return null;
+  if (!orchestratorJwks) orchestratorJwks = createRemoteJWKSet(new URL(url));
+  return orchestratorJwks;
+}
+
+function extractUserId(payload) {
+  const hasura = payload?.['https://hasura.io/jwt/claims'];
+  const uid = hasura?.['x-hasura-user-id'] || payload?.sub || payload?.userId;
+  return typeof uid === 'string' ? uid : null;
+}
+
+function extractRoles(payload) {
+  const hasura = payload?.['https://hasura.io/jwt/claims'];
+  const roles = hasura?.['x-hasura-allowed-roles'] || payload?.roles || [];
+  return Array.isArray(roles) ? roles : [];
+}
+
+export async function requireAuthOrService(req, res, next) {
+  const svcKey = req.get('X-Teachmo-Service-Key');
+  if (process.env.TEACHMO_SERVICE_KEY && svcKey === process.env.TEACHMO_SERVICE_KEY) {
+    req.auth = { isService: true, userId: null, roles: ['service'] };
+    return next();
+  }
+
+  const authHeader = req.get('Authorization') || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (!token) return res.status(401).json({ error: 'missing_bearer_token' });
+
+  const jwksSet = getRemoteJwks();
+  if (!jwksSet) return res.status(500).json({ error: 'AUTH_JWKS_URL_not_configured' });
+
+  try {
+    const issuer = process.env.AUTH_JWT_ISSUER || undefined;
+    const audience = process.env.AUTH_JWT_AUDIENCE || undefined;
+
+    const { payload } = await jwtVerify(token, jwksSet, {
+      issuer,
+      audience
+    });
+
+    const userId = extractUserId(payload);
+    if (!userId) return res.status(401).json({ error: 'token_missing_user_id' });
+
+    req.auth = {
+      isService: false,
+      userId,
+      roles: extractRoles(payload),
+      raw: payload
+    };
+
+    return next();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return res.status(401).json({ error: 'invalid_token', detail: msg });
+  }
+}

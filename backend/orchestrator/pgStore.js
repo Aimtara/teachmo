@@ -405,6 +405,100 @@ export class OrchestratorPgStore {
     });
   }
 
+  async insertDecisionTrace({
+    familyId,
+    triggerType,
+    triggerId = null,
+    suppressedReason = null,
+    chosenActionId = null,
+    zone = null,
+    tension = null,
+    slack = null,
+    trace
+  }) {
+    await query(
+      `
+      INSERT INTO orchestrator_decision_traces
+        (family_id, trigger_type, trigger_id, suppressed_reason, chosen_action_id, zone, tension, slack, trace_json)
+      VALUES
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+      `,
+      [
+        familyId,
+        triggerType,
+        triggerId,
+        suppressedReason,
+        chosenActionId,
+        zone,
+        tension,
+        slack,
+        JSON.stringify(trace)
+      ]
+    );
+  }
+
+  async listDecisionTraces(familyId, { limit = 50, offset = 0, triggerType = null } = {}) {
+    const params = [familyId];
+    let where = `WHERE family_id = $1`;
+    if (triggerType) {
+      params.push(triggerType);
+      where += ` AND trigger_type = $${params.length}`;
+    }
+    params.push(limit);
+    params.push(offset);
+
+    const res = await query(
+      `
+      SELECT id, created_at, trigger_type, trigger_id, suppressed_reason, chosen_action_id, zone, tension, slack, trace_json
+      FROM orchestrator_decision_traces
+      ${where}
+      ORDER BY created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+      `,
+      params
+    );
+
+    return res.rows.map((r) => ({
+      id: r.id,
+      createdAt: new Date(r.created_at).toISOString(),
+      triggerType: r.trigger_type,
+      triggerId: r.trigger_id,
+      suppressedReason: r.suppressed_reason,
+      chosenActionId: r.chosen_action_id,
+      zone: r.zone,
+      tension: r.tension != null ? Number(r.tension) : null,
+      slack: r.slack != null ? Number(r.slack) : null,
+      trace: r.trace_json
+    }));
+  }
+
+  async getDecisionTrace(familyId, traceId) {
+    const res = await query(
+      `
+      SELECT id, created_at, trigger_type, trigger_id, suppressed_reason, chosen_action_id, zone, tension, slack, trace_json
+      FROM orchestrator_decision_traces
+      WHERE family_id = $1 AND id = $2
+      LIMIT 1
+      `,
+      [familyId, traceId]
+    );
+
+    if (res.rowCount === 0) return null;
+    const r = res.rows[0];
+    return {
+      id: r.id,
+      createdAt: new Date(r.created_at).toISOString(),
+      triggerType: r.trigger_type,
+      triggerId: r.trigger_id,
+      suppressedReason: r.suppressed_reason,
+      chosenActionId: r.chosen_action_id,
+      zone: r.zone,
+      tension: r.tension != null ? Number(r.tension) : null,
+      slack: r.slack != null ? Number(r.slack) : null,
+      trace: r.trace_json
+    };
+  }
+
   async upsertAction(familyId, action, status = 'queued') {
     const a = OrchestratorActionSchema.parse(action);
 
