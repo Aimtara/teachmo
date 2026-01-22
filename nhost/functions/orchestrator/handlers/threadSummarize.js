@@ -12,6 +12,7 @@ export async function threadSummarizeHandler(ctx) {
       missing,
       promptUser: {
         type: 'FOLLOWUP_QUESTION',
+        actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
         question: 'Which conversation should I summarize?',
         placeholder: 'Choose a thread in the Hub (Phase 1)'
       }

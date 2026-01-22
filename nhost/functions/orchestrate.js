@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { classify } from './orchestrator/classify.js';
 import { getHandler } from './orchestrator/registry.js';
-import { ARTIFACT_TYPES, SAFETY_LEVELS } from './orchestrator/routes.js';
+import { ARTIFACT_TYPES, ROUTES, SAFETY_LEVELS } from './orchestrator/routes.js';
 import { insertOrchestratorArtifact, insertOrchestratorRun } from './orchestrator/persist.js';
 
 // Minimal runtime validation. Keep in sync with src/lib/orchestrator/schemas.ts.
@@ -13,13 +13,21 @@ const OrchestratorRequestSchema = z.object({
   selected: z
     .object({
       childId: z.string().optional(),
-      schoolId: z.string().optional()
+      schoolId: z.string().optional(),
+      threadId: z.string().optional(),
+      recipientUserId: z.string().optional()
     })
     .optional(),
   metadata: z
     .object({
       locale: z.string().optional(),
-      timezone: z.string().optional()
+      timezone: z.string().optional(),
+      action: z
+        .object({
+          id: z.string().optional(),
+          payload: z.record(z.any()).optional()
+        })
+        .optional()
     })
     .optional()
 });
@@ -46,7 +54,49 @@ export default async (req, res) => {
       }
     };
 
-    const classification = classify({ text: ctx.text, channel: ctx.channel });
+    // Deterministic UI_ACTION preprocessing:
+    // - choice actions should fill selected fields without requiring "chat interpretation" in the UI.
+    // - followup answers can be forwarded to normal text classification server-side.
+    const actionId = ctx.metadata?.action?.id ? String(ctx.metadata.action.id) : '';
+    if (ctx.channel === 'UI_ACTION' && actionId) {
+      const payload = ctx.metadata?.action?.payload || {};
+
+      if (actionId === 'HUB_THREAD_SUMMARIZE_CHOOSE_THREAD') {
+        const threadId = payload.threadId || payload.value;
+        if (threadId) ctx.selected = { ...ctx.selected, threadId: String(threadId) };
+      }
+
+      if (actionId === 'HUB_MESSAGE_SEND_CHOOSE_RECIPIENT') {
+        const recipientUserId = payload.recipientUserId || payload.value;
+        if (recipientUserId) ctx.selected = { ...ctx.selected, recipientUserId: String(recipientUserId) };
+      }
+
+      if (actionId === 'ORCHESTRATOR_FOLLOWUP_ANSWER') {
+        const answer = payload.answer;
+        if (answer != null) {
+          // Convert to a regular chat turn (server-side) so existing intent classification works.
+          ctx.channel = 'CHAT';
+          ctx.text = String(answer);
+          // Remove action metadata to avoid downstream confusion.
+          ctx.metadata = { ...(ctx.metadata || {}) };
+          delete ctx.metadata.action;
+        } else {
+          // If no answer provided, degrade gracefully.
+          return res.status(400).json({
+            route: ROUTES.UNKNOWN_CLARIFY,
+            confidence: 0.2,
+            safety: { level: 'NONE', reasons: [] },
+            ui: { type: 'ERROR', title: 'Missing answer', message: 'No follow-up answer was provided.' }
+          });
+        }
+      }
+    }
+
+    const classification = classify({
+      text: ctx.text,
+      channel: ctx.channel,
+      actionId: ctx.metadata?.action?.id
+    });
     const handler = getHandler(classification.route);
 
     // Execute specialist
