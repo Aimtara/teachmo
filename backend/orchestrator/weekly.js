@@ -44,6 +44,7 @@ export function runWeeklyRegulator({ state, recentSignals, now }) {
   }
 
   const setpoints = tuneSetpoints(state);
+  const whyNow = buildWhyNow(state);
 
   const brief = {
     id: makeId('wbrief'),
@@ -61,6 +62,7 @@ export function runWeeklyRegulator({ state, recentSignals, now }) {
     highlights: highlights.length ? highlights : ['Steady week: keep systems simple and predictable.'],
     risks: risks.length ? risks : ['No major risks detected — stay consistent and avoid over-optimizing.'],
     recommendedNextSteps,
+    whyNow,
     setpointAdjustments: setpoints
   };
 
@@ -82,4 +84,17 @@ function tuneSetpoints(state) {
   }
 
   return adj;
+}
+
+function buildWhyNow(state) {
+  if (state.zone === 'red' || state.tension > 0.75) {
+    return 'Because this week is high-load, one focused step plus batching will reduce stress without dropping the ball.';
+  }
+  if (state.slack > 0.7 && state.zone === 'green') {
+    return 'Because touchpoints have been light, a small check-in now prevents surprises later with very little effort.';
+  }
+  if (state.relationshipStrain > 0.55) {
+    return 'Because communication heat is rising, a calm, brief approach keeps the relationship strong while solving the issue.';
+  }
+  return 'Because steady routines beat heroic effort, the next small step keeps home and school aligned without overload.';
 }

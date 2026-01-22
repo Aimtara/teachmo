@@ -22,6 +22,11 @@ export default function WeeklyFamilyBriefModal({ open, onClose, brief }) {
               Zone: <span className="font-semibold">{zone}</span> · Tension {tensionPct}% · Slack {slackPct}%
               {brief.zoneSummary?.cooldownActive ? ' · Cooldown active' : ''}
             </p>
+            {brief.whyNow && (
+              <p className="mt-2 text-sm text-gray-800">
+                <span className="font-semibold">Why now:</span> {brief.whyNow}
+              </p>
+            )}
           </div>
 
           <button className="px-3 py-2 rounded border text-sm" onClick={onClose}>

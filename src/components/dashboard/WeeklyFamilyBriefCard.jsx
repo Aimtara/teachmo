@@ -62,6 +62,11 @@ export default function WeeklyFamilyBriefCard({ brief, onGenerate, loading }) {
       <div className="mt-3 grid md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
           <p className="text-sm font-semibold mb-2">Next steps (keep it tiny)</p>
+          {brief.whyNow && (
+            <p className="text-sm text-gray-700 mb-2">
+              <span className="font-semibold">Why now:</span> {brief.whyNow}
+            </p>
+          )}
           <ol className="list-decimal ml-5 space-y-1 text-sm">
             {steps.map((s, i) => (
               <li key={`${i}-${s}`}>{s}</li>

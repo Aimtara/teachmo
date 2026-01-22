@@ -208,9 +208,18 @@ router.patch('/:familyId/state', async (req, res) => {
 });
 
 // GET /api/orchestrator/:familyId/signals
-router.get('/:familyId/signals', (req, res) => {
+router.get('/:familyId/signals', async (req, res) => {
   try {
-    const signals = orchestratorEngine.getRecentSignals(req.params.familyId);
+    const limit = parseInt(req.query.limit ?? '200', 10);
+    const offset = parseInt(req.query.offset ?? '0', 10);
+    const sinceDays = req.query.sinceDays ? parseInt(req.query.sinceDays, 10) : null;
+
+    const sinceIso =
+      sinceDays && Number.isFinite(sinceDays)
+        ? new Date(Date.now() - sinceDays * 24 * 3600 * 1000).toISOString()
+        : null;
+
+    const signals = await orchestratorPgStore.listSignals(req.params.familyId, { sinceIso, limit, offset });
     res.json({ signals });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
