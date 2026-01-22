@@ -55,9 +55,9 @@ router.post('/:familyId/run-daily', (req, res) => {
   }
 });
 
-router.post('/:familyId/run-weekly', (req, res) => {
+router.post('/:familyId/run-weekly', async (req, res) => {
   try {
-    const brief = orchestratorEngine.runWeekly(req.params.familyId);
+    const brief = await orchestratorEngine.runWeekly(req.params.familyId);
     res.json(brief);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
