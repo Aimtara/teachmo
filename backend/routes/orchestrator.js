@@ -1,8 +1,10 @@
 /* eslint-env node */
 import { Router } from 'express';
 import crypto from 'crypto';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAuthOrService } from '../middleware/auth.js';
+import { authorizeFamilyParam, authorizeFamilyBody } from '../middleware/authorizeFamily.js';
 import { requireTenant } from '../middleware/tenant.js';
+import { query } from '../db.js';
 import { runOrchestrator } from '../orchestrator/orchestrator.js';
 import { orchestratorEngine } from '../orchestrator/engine.js';
 import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.js';
@@ -10,10 +12,7 @@ import { orchestratorPgStore } from '../orchestrator/pgStore.js';
 
 const router = Router();
 
-router.use(requireAuth);
-router.use(requireTenant);
-
-router.post('/route', async (req, res) => {
+router.post('/route', requireAuth, requireTenant, async (req, res) => {
   const body = req.body || {};
   const actor = {
     userId: req.auth?.userId,
@@ -37,7 +36,7 @@ router.post('/route', async (req, res) => {
 });
 
 // POST /api/orchestrator/signal
-router.post('/signal', async (req, res) => {
+router.post('/signal', requireAuthOrService, authorizeFamilyBody('familyId'), async (req, res) => {
   try {
     const headerKey = req.get('Idempotency-Key');
     if (headerKey && !req.body.idempotencyKey) {
@@ -52,10 +51,62 @@ router.post('/signal', async (req, res) => {
   }
 });
 
+router.post('/admin/memberships', requireAuthOrService, async (req, res) => {
+  try {
+    if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
+
+    const { familyId, userId, role = 'parent' } = req.body || {};
+    if (!familyId || !userId) return res.status(400).json({ error: 'missing_familyId_or_userId' });
+
+    await query(
+      `INSERT INTO family_memberships(family_id, user_id, role)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (family_id, user_id) DO UPDATE SET role = EXCLUDED.role`,
+      [familyId, userId, role]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.use('/:familyId', requireAuthOrService, authorizeFamilyParam('familyId'));
+
 router.post('/:familyId/run-daily', async (req, res) => {
   try {
     const plan = await orchestratorEngine.runDaily(req.params.familyId);
     res.json(plan);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/traces', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit ?? '50', 10);
+    const offset = parseInt(req.query.offset ?? '0', 10);
+    const triggerType = req.query.triggerType ? String(req.query.triggerType) : null;
+
+    const traces = await orchestratorPgStore.listDecisionTraces(req.params.familyId, {
+      limit,
+      offset,
+      triggerType
+    });
+    res.json({ traces });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
+router.get('/:familyId/traces/:traceId', async (req, res) => {
+  try {
+    const trace = await orchestratorPgStore.getDecisionTrace(req.params.familyId, Number(req.params.traceId));
+    if (!trace) return res.status(404).json({ error: 'trace_not_found' });
+    res.json(trace);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(400).json({ error: message });

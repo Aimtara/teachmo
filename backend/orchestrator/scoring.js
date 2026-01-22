@@ -70,6 +70,19 @@ export function optimize(actions, state, opts = {}) {
 
   return {
     candidates: scored.map((x) => x.action),
-    nextAction
+    nextAction,
+    scored: scored.map((x) => ({
+      actionId: x.action.id,
+      type: x.action.type,
+      score: x.score,
+      timeCostMin: x.action.timeCostMin,
+      cognitiveCost: x.action.cognitiveCost,
+      emotionalCost: x.action.emotionalCost,
+      kidBenefit: x.action.kidBenefit,
+      relationshipBenefit: x.action.relationshipBenefit,
+      schoolResolutionBenefit: x.action.schoolResolutionBenefit,
+      parentBurden: x.action.parentBurden,
+      teacherBurden: x.action.teacherBurden
+    }))
   };
 }

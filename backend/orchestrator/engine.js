@@ -77,7 +77,7 @@ export class OrchestratorEngine {
     const suppression = shouldSuppressNotifyNow({ state: nextState, signal: parsed, features, bucket, now });
     const allowNotifyNow = !suppression.suppress;
 
-    const { candidates: sortedCandidates, nextAction } = optimize(candidates, nextState, { allowNotifyNow });
+    const { candidates: sortedCandidates, nextAction, scored } = optimize(candidates, nextState, { allowNotifyNow });
 
     if (suppression.suppress) {
       const digestItem = DigestItemSchema.parse({
@@ -99,6 +99,32 @@ export class OrchestratorEngine {
       this.store.enqueueAction(parsed.familyId, nextAction);
       await orchestratorPgStore.upsertAction(parsed.familyId, nextAction, 'queued');
     }
+
+    await orchestratorPgStore.insertDecisionTrace({
+      familyId: parsed.familyId,
+      triggerType: 'ingest',
+      triggerId: parsed.id ?? null,
+      suppressedReason: suppression.suppress ? suppression.reason : null,
+      chosenActionId: nextAction?.id ?? null,
+      zone: nextState.zone,
+      tension: nextState.tension,
+      slack: nextState.slack,
+      trace: {
+        signal: {
+          id: parsed.id ?? null,
+          type: parsed.type,
+          source: parsed.source,
+          timestamp: parsed.timestamp ?? null,
+          idempotencyKey: parsed.idempotencyKey ?? null
+        },
+        features,
+        stateBefore: prevState,
+        stateAfter: nextState,
+        allowNotifyNow,
+        suppression,
+        scoredCandidates: scored.slice(0, 12)
+      }
+    });
 
     const stateOk = OrchestratorStateSchema.parse(nextState);
     const decision = {
@@ -122,6 +148,26 @@ export class OrchestratorEngine {
     );
 
     await orchestratorPgStore.insertDailyPlan(plan);
+
+    await orchestratorPgStore.insertDecisionTrace({
+      familyId,
+      triggerType: 'daily',
+      triggerId: plan.id,
+      suppressedReason: null,
+      chosenActionId: plan.actions?.[0]?.id ?? null,
+      zone: state.zone,
+      tension: state.tension,
+      slack: state.slack,
+      trace: {
+        planMeta: {
+          attentionBudgetMin: plan.attentionBudgetMin,
+          windowStart: plan.windowStart,
+          windowEnd: plan.windowEnd
+        },
+        actions: plan.actions.map((a) => ({ id: a.id, type: a.type, title: a.title })),
+        rationale: plan.rationale
+      }
+    });
 
     for (const a of plan.actions) {
       this.store.enqueueAction(familyId, a);
@@ -166,6 +212,23 @@ export class OrchestratorEngine {
     await orchestratorPgStore.upsertState(nextState);
 
     const saved = await orchestratorPgStore.insertWeeklyBrief(brief);
+
+    await orchestratorPgStore.insertDecisionTrace({
+      familyId,
+      triggerType: 'weekly',
+      triggerId: saved.id,
+      suppressedReason: null,
+      chosenActionId: null,
+      zone: nextState.zone,
+      tension: nextState.tension,
+      slack: nextState.slack,
+      trace: {
+        usedLlm: Boolean(brief?.whyNow && process.env.OPENAI_API_KEY),
+        setpointsApplied: setpoints,
+        weekWindow: { start: saved.weekStart, end: saved.weekEnd },
+        whyNow: saved.whyNow ?? null
+      }
+    });
     return saved;
   }
 
