@@ -74,7 +74,8 @@ export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) 
     'You are Teachmo. Create a WEEKLY BRIEF for a family that reduces cognitive and emotional load.\n' +
     'Stay neutral and balanced between home needs and school needs (yin-yang), while protecting the child.\n' +
     'Keep it short, calm, and practical.\n' +
-    'Return a SINGLE JSON object that matches the required structure exactly.';
+    'Return a SINGLE JSON object that matches the required structure exactly.\n' +
+    'Must output whyNow as one sentence (<= 240 chars). If uncertain, use a calm generic one-liner.';
 
   const user =
     'Use the input JSON below to write the weekly brief.\n' +
@@ -82,6 +83,7 @@ export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) 
     '- Must include ALL fields in requiredFields exactly as provided (do not change them).\n' +
     '- zoneSummary should reflect stateSnapshot (currentZone, tension, slack, cooldownActive).\n' +
     '- highlights/risks/steps should be short (1 sentence each) and not exceed the specified max counts.\n' +
+    '- whyNow: one sentence (<= 240 chars) explaining why the first step matters right now, in plain language.\n' +
     '- setpointAdjustments: only include if you recommend small, conservative changes; otherwise omit.\n' +
     '- signalCounts must be copied from input signalCounts (you may keep as-is).\n' +
     '- Output ONLY JSON.\n\n' +

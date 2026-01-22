@@ -194,6 +194,7 @@ export const WeeklyBriefSchema = z
     highlights: z.array(z.string()),
     risks: z.array(z.string()),
     recommendedNextSteps: z.array(z.string()),
+    whyNow: z.string().min(1).max(240).optional(),
     setpointAdjustments: z
       .object({
         dailyAttentionBudgetMin: z.number().int().min(0).optional(),

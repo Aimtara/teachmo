@@ -21,7 +21,7 @@ async function runDaily() {
   const results = [];
   for (const id of ids) {
     try {
-      const plan = orchestratorEngine.runDaily(id);
+      const plan = await orchestratorEngine.runDaily(id);
       results.push({ familyId: id, ok: true, planId: plan.id });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

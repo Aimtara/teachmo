@@ -50,6 +50,7 @@ export class OrchestratorEngine {
     const parsed = OrchestratorSignalSchema.parse(rawSignal);
     const now = parseTimestamp(parsed.timestamp);
 
+    await orchestratorPgStore.insertSignal(parsed);
     this.store.appendSignal(parsed);
 
     const prevState = await this._getOrInitState(parsed.familyId, now);
@@ -99,7 +100,8 @@ export class OrchestratorEngine {
   async runDaily(familyId) {
     const now = new Date();
     const state = await this._getOrInitState(familyId, now);
-    const signals = this.store.getRecentSignals(familyId);
+    const since = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
+    const signals = await orchestratorPgStore.listSignals(familyId, { sinceIso: since, limit: 500 });
 
     const plan = DailyPlanSchema.parse(
       runDailyPlanner({ state, recentSignals: signals, now, k: 3, horizonHours: 24 })
@@ -115,7 +117,8 @@ export class OrchestratorEngine {
   async runWeekly(familyId) {
     const now = new Date();
     const state = await this._getOrInitState(familyId, now);
-    const signals = this.store.getRecentSignals(familyId);
+    const since = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
+    const signals = await orchestratorPgStore.listSignals(familyId, { sinceIso: since, limit: 500 });
 
     const useLlm = String(process.env.ORCH_WEEKLY_USE_LLM ?? 'true').toLowerCase() !== 'false';
 

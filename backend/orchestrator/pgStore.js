@@ -1,6 +1,13 @@
 /* eslint-env node */
 import { query } from '../db.js';
-import { WeeklyBriefSchema, DailyPlanSchema, DigestItemSchema, OrchestratorStateSchema } from './types.js';
+import {
+  WeeklyBriefSchema,
+  DailyPlanSchema,
+  DigestItemSchema,
+  OrchestratorStateSchema,
+  OrchestratorSignalSchema
+} from './types.js';
+import { makeId } from './utils.js';
 
 export class OrchestratorPgStore {
   async insertWeeklyBrief(brief) {
@@ -38,6 +45,70 @@ export class OrchestratorPgStore {
     );
 
     return b;
+  }
+
+  async insertSignal(signal) {
+    const s = OrchestratorSignalSchema.parse(signal);
+
+    const id = s.id || makeId('sig');
+    const occurredAt = s.timestamp ? s.timestamp : new Date().toISOString();
+
+    await query(
+      `
+      INSERT INTO orchestrator_signals
+        (id, family_id, child_id, source, type, occurred_at, features_json, payload_json, signal_json)
+      VALUES
+        ($1, $2, $3, $4, $5, $6::timestamptz, $7::jsonb, $8::jsonb, $9::jsonb)
+      ON CONFLICT (id) DO UPDATE SET
+        family_id = EXCLUDED.family_id,
+        child_id = EXCLUDED.child_id,
+        source = EXCLUDED.source,
+        type = EXCLUDED.type,
+        occurred_at = EXCLUDED.occurred_at,
+        features_json = EXCLUDED.features_json,
+        payload_json = EXCLUDED.payload_json,
+        signal_json = EXCLUDED.signal_json
+      `,
+      [
+        id,
+        s.familyId,
+        s.childId ?? null,
+        s.source,
+        s.type,
+        occurredAt,
+        JSON.stringify(s.features ?? null),
+        JSON.stringify(s.payload ?? null),
+        JSON.stringify({ ...s, id, timestamp: occurredAt })
+      ]
+    );
+
+    return { ...s, id, timestamp: occurredAt };
+  }
+
+  async listSignals(familyId, { sinceIso = null, limit = 200, offset = 0 } = {}) {
+    const params = [familyId];
+    let where = `WHERE family_id = $1`;
+
+    if (sinceIso) {
+      params.push(sinceIso);
+      where += ` AND occurred_at >= $${params.length}::timestamptz`;
+    }
+
+    params.push(limit);
+    params.push(offset);
+
+    const res = await query(
+      `
+      SELECT signal_json
+      FROM orchestrator_signals
+      ${where}
+      ORDER BY occurred_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+      `,
+      params
+    );
+
+    return res.rows.map((r) => OrchestratorSignalSchema.parse(r.signal_json));
   }
 
   async listWeeklyBriefs(familyId, { limit = 10, offset = 0 } = {}) {
