@@ -5,14 +5,17 @@ import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import {
   ackAnomaly,
   clearMitigation,
   closeAnomaly,
+  getAlerts,
   getFamilyHealth,
   getMitigations,
   getTimeline,
@@ -41,12 +44,12 @@ export default function OpsOrchestrator() {
   const [timelineHours, setTimelineHours] = useState('48');
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
-  const [noteByAnomaly, setNoteByAnomaly] = useState({});
+  const [dialogNote, setDialogNote] = useState('');
+  const [actionDialog, setActionDialog] = useState({ open: false, anomalyType: '', action: '' });
   const queryClient = useQueryClient();
 
   const familiesQuery = useQuery({
     queryKey: ['ops-families', search],
-    enabled: Boolean(OPS_ADMIN_KEY),
     queryFn: () => listFamilies(search.trim()),
   });
 
@@ -54,44 +57,49 @@ export default function OpsOrchestrator() {
 
   const healthQuery = useQuery({
     queryKey: ['ops-health', familyId],
-    enabled: Boolean(OPS_ADMIN_KEY && familyId),
+    enabled: Boolean(familyId),
     queryFn: () => getFamilyHealth(familyId),
   });
 
   const anomaliesQuery = useQuery({
     queryKey: ['ops-anomalies', familyId, statusFilter],
-    enabled: Boolean(OPS_ADMIN_KEY && familyId),
+    enabled: Boolean(familyId),
     queryFn: () => listAnomalies(familyId, statusFilter),
   });
 
   const mitigationQuery = useQuery({
     queryKey: ['ops-mitigation', familyId],
-    enabled: Boolean(OPS_ADMIN_KEY && familyId),
+    enabled: Boolean(familyId),
     queryFn: () => getMitigations(familyId),
+  });
+
+  const alertsQuery = useQuery({
+    queryKey: ['ops-alerts', familyId],
+    enabled: Boolean(familyId),
+    queryFn: () => getAlerts(familyId),
   });
 
   const timelineQuery = useQuery({
     queryKey: ['ops-timeline', familyId, timelineHours],
-    enabled: Boolean(OPS_ADMIN_KEY && familyId),
+    enabled: Boolean(familyId),
     queryFn: () => getTimeline(familyId, Number(timelineHours) || 48),
   });
 
-  const runAnomalyAction = async (action, anomalyType) => {
+  const runAnomalyAction = async (action, anomalyType, note) => {
     setActionMessage('');
     setActionError('');
     if (!familyId) return;
 
     try {
-      const note = noteByAnomaly[anomalyType]?.trim() || undefined;
+      const trimmedNote = note?.trim() || undefined;
       if (action === 'ack') {
-        await ackAnomaly(familyId, anomalyType, note);
+        await ackAnomaly(familyId, anomalyType, trimmedNote);
       } else if (action === 'close') {
-        await closeAnomaly(familyId, anomalyType, note);
+        await closeAnomaly(familyId, anomalyType, trimmedNote);
       } else if (action === 'reopen') {
-        await reopenAnomaly(familyId, anomalyType, note);
+        await reopenAnomaly(familyId, anomalyType, trimmedNote);
       }
       setActionMessage(`${action} complete for ${anomalyType}.`);
-      setNoteByAnomaly((prev) => ({ ...prev, [anomalyType]: '' }));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['ops-anomalies', familyId] }),
         queryClient.invalidateQueries({ queryKey: ['ops-timeline', familyId] }),
@@ -101,13 +109,13 @@ export default function OpsOrchestrator() {
     }
   };
 
-  const handleClearMitigation = async () => {
+  const handleClearMitigation = async (mitigationType) => {
     if (!familyId) return;
     setActionMessage('');
     setActionError('');
     try {
-      await clearMitigation(familyId);
-      setActionMessage('Mitigation cleared.');
+      await clearMitigation(familyId, mitigationType);
+      setActionMessage(`Mitigation ${mitigationType} cleared.`);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['ops-mitigation', familyId] }),
         queryClient.invalidateQueries({ queryKey: ['ops-timeline', familyId] }),
@@ -120,7 +128,8 @@ export default function OpsOrchestrator() {
   const daily = healthQuery.data?.daily;
   const hourly = healthQuery.data?.hourly || [];
   const anomalies = anomaliesQuery.data?.anomalies || [];
-  const mitigation = mitigationQuery.data?.mitigation;
+  const mitigations = mitigationQuery.data?.mitigations || (mitigationQuery.data?.mitigation ? [mitigationQuery.data.mitigation] : []);
+  const alerts = alertsQuery.data?.alerts || [];
   const timeline = timelineQuery.data || {};
 
   const timelineBuckets = useMemo(() => {
@@ -133,7 +142,7 @@ export default function OpsOrchestrator() {
       return date.toISOString();
     };
 
-    (timeline.hourly || []).forEach((row) => {
+    (timeline.hourlyRows || timeline.hourly || []).forEach((row) => {
       const key = toHourKey(row.hour || row.hour_start || row.timestamp);
       if (!key) return;
       buckets.set(key, { key, snapshot: row, events: [] });
@@ -189,17 +198,19 @@ export default function OpsOrchestrator() {
           <p className="text-sm text-gray-600">Acknowledge and close anomalies with timeline context.</p>
         </header>
 
-        {!OPS_ADMIN_KEY ? (
+        {!OPS_ADMIN_KEY && (
           <Card>
             <CardHeader>
               <CardTitle>Missing Ops Admin Key</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-gray-600">
-              Set <span className="font-mono">VITE_OPS_ADMIN_KEY</span> to enable ops API access.
+              Set <span className="font-mono">VITE_OPS_ADMIN_KEY</span> to enable ops API access. Requests will be forbidden
+              until the key is configured.
             </CardContent>
           </Card>
-        ) : (
-          <div className="space-y-6">
+        )}
+
+        <div className="space-y-6">
             <Card>
               <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -216,6 +227,10 @@ export default function OpsOrchestrator() {
               <CardContent className="space-y-3">
                 {familiesQuery.isLoading ? (
                   <p className="text-sm text-gray-500">Loading families...</p>
+                ) : familiesQuery.isError ? (
+                  <p className="text-sm text-red-600">
+                    Failed to load families: {familiesQuery.error?.message || 'Unknown error'}
+                  </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {(familiesQuery.data?.families || []).map((family) => (
@@ -243,6 +258,10 @@ export default function OpsOrchestrator() {
                 <CardContent className="space-y-3 text-sm">
                   {healthQuery.isLoading ? (
                     <p className="text-gray-500">Loading health...</p>
+                  ) : healthQuery.isError ? (
+                    <p className="text-red-600">
+                      Failed to load health: {healthQuery.error?.message || 'Unknown error'}
+                    </p>
                   ) : (
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">
@@ -297,27 +316,46 @@ export default function OpsOrchestrator() {
                 <CardContent className="space-y-3 text-sm">
                   {mitigationQuery.isLoading ? (
                     <p className="text-gray-500">Loading mitigation...</p>
+                  ) : mitigationQuery.isError ? (
+                    <p className="text-red-600">
+                      Failed to load mitigations: {mitigationQuery.error?.message || 'Unknown error'}
+                    </p>
                   ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {mitigation?.active ? (
-                          <ShieldAlert className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <Shield className="h-4 w-4 text-emerald-500" />
-                        )}
-                        <span className="font-medium">
-                          {mitigation?.active ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        Updated: {formatDateTime(mitigation?.updated_at)}
-                      </div>
-                      <pre className="rounded bg-gray-50 p-3 text-xs text-gray-700">
-                        {JSON.stringify(mitigation?.params || {}, null, 2)}
-                      </pre>
-                      <Button variant="outline" onClick={handleClearMitigation}>
-                        Force clear mitigation
-                      </Button>
+                    <div className="space-y-3">
+                      {mitigations.length === 0 ? (
+                        <p className="text-gray-500">No mitigations reported.</p>
+                      ) : (
+                        mitigations.map((mitigation) => (
+                          <div key={mitigation.type || mitigation.id || mitigation.name} className="rounded border p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                {mitigation.active ? (
+                                  <ShieldAlert className="h-4 w-4 text-red-500" />
+                                ) : (
+                                  <Shield className="h-4 w-4 text-emerald-500" />
+                                )}
+                                <span className="font-medium">{mitigation.type || mitigation.name || 'Mitigation'}</span>
+                              </div>
+                              <Badge variant={mitigation.active ? 'destructive' : 'outline'}>
+                                {mitigation.active ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </div>
+                            <div className="mt-2 text-xs text-gray-600">
+                              Updated: {formatDateTime(mitigation.updated_at)}
+                            </div>
+                            <pre className="mt-2 rounded bg-gray-50 p-3 text-xs text-gray-700">
+                              {JSON.stringify(mitigation.params || {}, null, 2)}
+                            </pre>
+                            <Button
+                              className="mt-3"
+                              variant="outline"
+                              onClick={() => handleClearMitigation(mitigation.type || mitigation.name || 'default')}
+                            >
+                              Force clear
+                            </Button>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -358,14 +396,19 @@ export default function OpsOrchestrator() {
                       <TableHead>First seen</TableHead>
                       <TableHead>Last seen</TableHead>
                       <TableHead>Count</TableHead>
-                      <TableHead>Note</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {anomalies.length === 0 ? (
+                    {anomaliesQuery.isError ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-sm text-muted-foreground">
+                        <TableCell colSpan={7} className="text-sm text-red-600">
+                          Failed to load anomalies: {anomaliesQuery.error?.message || 'Unknown error'}
+                        </TableCell>
+                      </TableRow>
+                    ) : anomalies.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-sm text-muted-foreground">
                           No anomalies found.
                         </TableCell>
                       </TableRow>
@@ -382,28 +425,18 @@ export default function OpsOrchestrator() {
                           <TableCell>{formatDateTime(row.first_seen)}</TableCell>
                           <TableCell>{formatDateTime(row.last_seen)}</TableCell>
                           <TableCell>{row.count ?? '—'}</TableCell>
-                          <TableCell className="min-w-[200px]">
-                            <Input
-                              value={noteByAnomaly[row.anomaly_type] || ''}
-                              onChange={(event) =>
-                                setNoteByAnomaly((prev) => ({
-                                  ...prev,
-                                  [row.anomaly_type]: event.target.value,
-                                }))
-                              }
-                              placeholder="Add note"
-                            />
-                          </TableCell>
                           <TableCell className="space-x-2">
                             {row.status === 'open' && (
                               <>
-                                <Button size="sm" onClick={() => runAnomalyAction('ack', row.anomaly_type)}>
+                                <Button size="sm" onClick={() => setActionDialog({ open: true, anomalyType: row.anomaly_type, action: 'ack' })}>
                                   Acknowledge
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  onClick={() => runAnomalyAction('close', row.anomaly_type)}
+                                  onClick={() =>
+                                    setActionDialog({ open: true, anomalyType: row.anomaly_type, action: 'close' })
+                                  }
                                 >
                                   Close
                                 </Button>
@@ -411,20 +444,29 @@ export default function OpsOrchestrator() {
                             )}
                             {row.status === 'acknowledged' && (
                               <>
-                                <Button size="sm" onClick={() => runAnomalyAction('close', row.anomaly_type)}>
+                                <Button
+                                  size="sm"
+                                  onClick={() => setActionDialog({ open: true, anomalyType: row.anomaly_type, action: 'close' })}
+                                >
                                   Close
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => runAnomalyAction('reopen', row.anomaly_type)}
+                                  onClick={() =>
+                                    setActionDialog({ open: true, anomalyType: row.anomaly_type, action: 'reopen' })
+                                  }
                                 >
                                   Reopen
                                 </Button>
                               </>
                             )}
                             {row.status === 'closed' && (
-                              <Button size="sm" variant="outline" onClick={() => runAnomalyAction('reopen', row.anomaly_type)}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setActionDialog({ open: true, anomalyType: row.anomaly_type, action: 'reopen' })}
+                              >
                                 Reopen
                               </Button>
                             )}
@@ -436,6 +478,56 @@ export default function OpsOrchestrator() {
                 </Table>
                 {actionMessage && <p className="text-sm text-emerald-600">{actionMessage}</p>}
                 {actionError && <p className="text-sm text-red-600">{actionError}</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Alert Deliveries</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {alertsQuery.isLoading ? (
+                  <p className="text-sm text-gray-500">Loading alerts...</p>
+                ) : alertsQuery.isError ? (
+                  <p className="text-sm text-red-600">
+                    Failed to load alerts: {alertsQuery.error?.message || 'Unknown error'}
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Severity</TableHead>
+                        <TableHead>Target</TableHead>
+                        <TableHead>Last delivery</TableHead>
+                        <TableHead>Count</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {alerts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-sm text-muted-foreground">
+                            No alert deliveries found.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        alerts.map((alert) => (
+                          <TableRow key={alert.id || `${alert.endpoint_type}-${alert.endpoint_target}`}>
+                            <TableCell>{alert.endpoint_type || alert.type || '—'}</TableCell>
+                            <TableCell>{alert.status || '—'}</TableCell>
+                            <TableCell>{alert.severity || '—'}</TableCell>
+                            <TableCell className="text-xs text-gray-600">
+                              {alert.endpoint_target || alert.target || '—'}
+                            </TableCell>
+                            <TableCell>{formatDateTime(alert.last_delivered_at || alert.updated_at)}</TableCell>
+                            <TableCell>{alert.count ?? '—'}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
 
@@ -468,6 +560,10 @@ export default function OpsOrchestrator() {
               <CardContent className="space-y-4">
                 {timelineQuery.isLoading ? (
                   <p className="text-sm text-gray-500">Loading timeline...</p>
+                ) : timelineQuery.isError ? (
+                  <p className="text-sm text-red-600">
+                    Failed to load timeline: {timelineQuery.error?.message || 'Unknown error'}
+                  </p>
                 ) : timelineBuckets.length === 0 ? (
                   <p className="text-sm text-gray-500">No timeline data available.</p>
                 ) : (
@@ -537,8 +633,54 @@ export default function OpsOrchestrator() {
               </CardContent>
             </Card>
           </div>
-        )}
       </div>
+      <Dialog
+        open={actionDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setDialogNote('');
+          setActionDialog((prev) => ({ ...prev, open }));
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {actionDialog.action ? `${actionDialog.action.toUpperCase()} anomaly` : 'Update anomaly'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <p className="text-gray-600">
+              Add an operator note for <span className="font-mono">{actionDialog.anomalyType}</span>.
+            </p>
+            <Textarea
+              value={dialogNote}
+              onChange={(event) => setDialogNote(event.target.value)}
+              placeholder="Optional note"
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDialogNote('');
+                setActionDialog({ open: false, anomalyType: '', action: '' });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                const { action, anomalyType } = actionDialog;
+                setActionDialog({ open: false, anomalyType: '', action: '' });
+                await runAnomalyAction(action, anomalyType, dialogNote);
+                setDialogNote('');
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ProtectedRoute>
   );
 }

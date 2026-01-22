@@ -62,12 +62,12 @@ export const getAlerts = (familyId) =>
   opsFetch(`/ops/families/${encodeURIComponent(familyId)}/alerts`);
 
 export const getMitigations = (familyId) =>
-  opsFetch(`/ops/families/${encodeURIComponent(familyId)}/mitigation`);
+  opsFetch(`/ops/families/${encodeURIComponent(familyId)}/mitigations`);
 
 export const clearMitigation = (familyId, mitigationType, note) =>
-  opsFetch(`/ops/families/${encodeURIComponent(familyId)}/mitigation/clear`, {
+  opsFetch(`/ops/families/${encodeURIComponent(familyId)}/mitigations/${encodeURIComponent(mitigationType)}/clear`, {
     method: 'POST',
-    body: JSON.stringify({ mitigationType, note }),
+    body: JSON.stringify({ note }),
   });
 
 export const getTimeline = (familyId, hours = 48) => {
