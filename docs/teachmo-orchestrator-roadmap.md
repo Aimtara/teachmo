@@ -83,4 +83,4 @@ This roadmap assumes a school-first posture with a slim consumer funnel running 
   - Model fallback + cost controls + per-response logging
 
 - **Equity + inclusion hardening**
-  - EN/ES baseline expansion and culturally inclusive defaults
+  - EN/ES baseline expansion and culturally inclusive defaults.
