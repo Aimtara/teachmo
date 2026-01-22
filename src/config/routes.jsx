@@ -295,7 +295,7 @@ export const ROUTE_DEFINITIONS = [
     name: 'OpsOrchestrator',
     path: '/ops/orchestrator',
     Component: lazy(() => import('@/pages/OpsOrchestrator.jsx')),
-    allowedRoles: ['system_admin', 'admin'],
+    allowedRoles: ['system_admin'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading ops orchestrator...</p>
   },
