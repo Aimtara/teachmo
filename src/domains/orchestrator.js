@@ -24,3 +24,28 @@ export async function runWeeklyBrief(familyId) {
     body: JSON.stringify({})
   });
 }
+
+export async function listActions(familyId, { status = 'queued', limit = 10 } = {}) {
+  const qs = new URLSearchParams({ status, limit: String(limit) }).toString();
+  return orchFetch(`/api/orchestrator/${encodeURIComponent(familyId)}/actions?${qs}`);
+}
+
+export async function completeAction(familyId, actionId) {
+  return orchFetch(
+    `/api/orchestrator/${encodeURIComponent(familyId)}/actions/${encodeURIComponent(actionId)}/complete`,
+    {
+      method: 'POST',
+      body: JSON.stringify({})
+    }
+  );
+}
+
+export async function dismissAction(familyId, actionId) {
+  return orchFetch(
+    `/api/orchestrator/${encodeURIComponent(familyId)}/actions/${encodeURIComponent(actionId)}/dismiss`,
+    {
+      method: 'POST',
+      body: JSON.stringify({})
+    }
+  );
+}
