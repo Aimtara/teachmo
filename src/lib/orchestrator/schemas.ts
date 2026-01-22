@@ -77,7 +77,13 @@ export const orchestratorRequestSchema = z.object({
   metadata: z
     .object({
       locale: z.string().optional(),
-      timezone: z.string().optional()
+      timezone: z.string().optional(),
+      action: z
+        .object({
+          id: z.string().min(1),
+          payload: z.unknown().optional()
+        })
+        .optional()
     })
     .optional()
 });
