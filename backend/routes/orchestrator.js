@@ -212,12 +212,45 @@ router.get('/admin/alerts/deliveries', requireAuthOrService, async (req, res) =>
   }
 });
 
+router.get('/admin/mitigations', requireAuthOrService, async (req, res) => {
+  try {
+    if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
+
+    const familyId = req.query.familyId ? String(req.query.familyId) : null;
+    const params = [];
+    let where = 'WHERE 1=1';
+    if (familyId) {
+      params.push(familyId);
+      where += ` AND family_id = $${params.length}`;
+    }
+
+    const out = await query(
+      `
+      SELECT family_id, mitigation_type, active, activated_at, expires_at, last_updated, count, meta
+      FROM orchestrator_mitigations
+      ${where}
+      ORDER BY last_updated DESC
+      LIMIT 200
+      `,
+      params
+    );
+
+    res.json({ mitigations: out.rows });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: message });
+  }
+});
+
 router.use('/:familyId', requireAuthOrService, authorizeFamilyParam('familyId'));
 
 router.get('/:familyId/health', async (req, res) => {
   try {
     const days = parseInt(req.query.days ?? '14', 10);
-    const health = await getFamilyHealth(req.params.familyId, { days });
+    const hourly = req.query.hourly === '1' || req.query.hourly === 'true';
+    const hourlyHours = parseInt(req.query.hourlyHours ?? '24', 10);
+
+    const health = await getFamilyHealth(req.params.familyId, { days, hourly, hourlyHours });
     res.json(health);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

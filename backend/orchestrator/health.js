@@ -1,8 +1,31 @@
 /* eslint-env node */
 import { query } from '../db.js';
 
+async function getHourlySeries(familyId, hours = 24) {
+  const h = Math.max(1, Math.min(72, Number(hours) || 24));
+  const res = await query(
+    `
+    SELECT hour, signals, ingests, suppressed, duplicates, actions_created, actions_completed
+    FROM orchestrator_hourly_snapshots
+    WHERE family_id = $1 AND hour >= now() - ($2 || ' hours')::interval
+    ORDER BY hour ASC
+    `,
+    [familyId, String(h)]
+  );
+
+  return res.rows.map((r) => ({
+    hour: new Date(r.hour).toISOString(),
+    signals: r.signals,
+    ingests: r.ingests,
+    suppressed: r.suppressed,
+    duplicates: r.duplicates,
+    actionsCreated: r.actions_created,
+    actionsCompleted: r.actions_completed
+  }));
+}
+
 // fallback: live computation if snapshots missing
-async function getFamilyHealthLive(familyId, daysInt) {
+async function getFamilyHealthLive(familyId, daysInt, includeHourly = false) {
   const since = `now() - (${daysInt} || ' days')::interval`;
 
   const signalsRes = await query(
@@ -87,12 +110,15 @@ async function getFamilyHealthLive(familyId, daysInt) {
         day: new Date(r.day).toISOString(),
         count: r.actions_completed
       }))
-    }
+    },
+    hourly: includeHourly ? [] : null
   };
 }
 
-export async function getFamilyHealth(familyId, { days = 14 } = {}) {
+export async function getFamilyHealth(familyId, { days = 14, hourly = false, hourlyHours = 24 } = {}) {
   const daysInt = Math.max(1, Math.min(90, Number(days) || 14));
+  const includeHourly = String(hourly ?? 'false').toLowerCase() === 'true';
+  const hourlyWindow = Number(hourlyHours ?? 24);
 
   const snapRes = await query(
     `
@@ -108,7 +134,7 @@ export async function getFamilyHealth(familyId, { days = 14 } = {}) {
 
   // If snapshots are missing, fall back to live.
   if (snapRes.rowCount === 0) {
-    return getFamilyHealthLive(familyId, daysInt);
+    return getFamilyHealthLive(familyId, daysInt, includeHourly);
   }
 
   const rows = snapRes.rows;
@@ -122,6 +148,11 @@ export async function getFamilyHealth(familyId, { days = 14 } = {}) {
     },
     { ingests: 0, suppressed: 0, duplicates: 0 }
   );
+
+  let hourlySeries = null;
+  if (includeHourly) {
+    hourlySeries = await getHourlySeries(familyId, hourlyWindow);
+  }
 
   return {
     familyId,
@@ -158,6 +189,7 @@ export async function getFamilyHealth(familyId, { days = 14 } = {}) {
         invalidToken: r.auth_invalid_token,
         missingToken: r.auth_missing_token
       }))
-    }
+    },
+    hourly: hourlySeries
   };
 }
