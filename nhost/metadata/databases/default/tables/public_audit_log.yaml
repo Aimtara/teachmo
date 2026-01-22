@@ -94,3 +94,33 @@ insert_permissions:
       check:
         school_id:
           _eq: X-Hasura-School-Id
+  - role: teacher
+    permission:
+      check: {}
+      set:
+        actor_id: X-Hasura-User-Id
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+  - role: parent
+    permission:
+      check: {}
+      set:
+        actor_id: X-Hasura-User-Id
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+  - role: partner
+    permission:
+      check: {}
+      set:
+        actor_id: X-Hasura-User-Id
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata

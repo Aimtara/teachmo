@@ -10,9 +10,18 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   test: {
+    // Default to jsdom for UI tests.
     environment: 'jsdom',
-    setupFiles: './setupTests.js',
+    // Use a Vitest-specific setup file so legacy Jest-style tests can run under Vitest.
+    setupFiles: ['./setupVitest.js'],
     globals: true,
-    exclude: ['node_modules', 'dist', 'backend/**', 'scripts/**']
+
+    // Some server-side tests should not run in jsdom.
+    environmentMatchGlobs: [
+      ['backend/**/*.{test,spec}.{js,jsx,ts,tsx}', 'node'],
+      ['nhost/functions/**/*.{test,spec}.{js,jsx,ts,tsx}', 'node'],
+      ['scripts/**/*.{test,spec}.{js,jsx,ts,tsx}', 'node'],
+    ],
+    exclude: ['node_modules', 'dist', 'backend/**', 'scripts/**'],
   },
 });
