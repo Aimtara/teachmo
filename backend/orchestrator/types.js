@@ -112,7 +112,18 @@ export const OrchestratorStateSchema = z
         start: z.string().regex(/^\d{2}:\d{2}$/),
         end: z.string().regex(/^\d{2}:\d{2}$/)
       })
+      .nullable(),
+    mitigation: z
+      .object({
+        type: z.string(),
+        active: z.boolean(),
+        appliedAt: z.string().datetime(),
+        expiresAt: z.string().datetime(),
+        reason: z.string(),
+        prev: z.record(z.any()).optional()
+      })
       .nullable()
+      .optional()
   })
   .strict();
 

@@ -9,6 +9,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "snapshot:daily": "node jobs/snapshotDailyMetrics.js 14",
+    "snapshot:hourly": "node jobs/snapshotHourlyMetrics.js 48",
+    "mitigation:reap": "node jobs/mitigationReaper.js",
     "tick:daily": "node jobs/orchestratorTick.js daily",
     "tick:weekly": "node jobs/orchestratorTick.js weekly"
   },

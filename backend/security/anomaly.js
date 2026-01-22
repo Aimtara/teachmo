@@ -1,6 +1,7 @@
 /* eslint-env node */
 import { query } from '../db.js';
 import { sendAnomalyAlerts } from '../alerts/dispatcher.js';
+import { applyDuplicateStormMitigation } from '../orchestrator/mitigation.js';
 
 /**
  * Upsert anomaly and bump counters.
@@ -44,6 +45,14 @@ export async function upsertAnomaly({
       `UPDATE orchestrator_anomalies SET severity = $3 WHERE family_id = $1 AND anomaly_type = $2`,
       [familyId, anomalyType, sev]
     );
+  }
+
+  if (anomalyType === 'repeated_duplicate_signals') {
+    await applyDuplicateStormMitigation({
+      familyId,
+      duplicateCount: count,
+      windowMinutes
+    });
   }
 
   // 🚨 alert hooks (deduped by dispatcher)

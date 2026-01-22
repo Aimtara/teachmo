@@ -14,6 +14,27 @@ function shouldAlert(severity) {
   return severity === 'warn' || severity === 'error';
 }
 
+function allowedEndpointTypesForSeverity(severity) {
+  if (severity === 'warn') return new Set(['slack']);
+  if (severity === 'error') return new Set(['pagerduty', 'webhook']);
+  return new Set([]);
+}
+
+function pagerDutyPayload({ routingKey, dedupKey, summary, customDetails }) {
+  return {
+    routing_key: routingKey,
+    event_action: 'trigger',
+    dedup_key: dedupKey,
+    payload: {
+      summary,
+      source: 'teachmo',
+      severity: 'error',
+      timestamp: new Date().toISOString(),
+      custom_details: customDetails ?? {}
+    }
+  };
+}
+
 function dedupeKey({ endpointId, familyId, anomalyType, minutes }) {
   // Bucket by N-minute window so we don’t spam.
   const now = Date.now();
@@ -52,6 +73,9 @@ export async function sendAnomalyAlerts({ familyId, anomalyType, severity, meta 
 
   if (!shouldAlert(severity)) return { sent: 0, failed: 0, skipped: 0 };
 
+  const allowed = allowedEndpointTypesForSeverity(severity);
+  if (allowed.size === 0) return { sent: 0, failed: 0, skipped: 0 };
+
   const dedupeMinutes = clampInt(process.env.ALERT_DEDUPE_MINUTES ?? 60, 5, 1440);
 
   const endpoints = await query(
@@ -68,6 +92,11 @@ export async function sendAnomalyAlerts({ familyId, anomalyType, severity, meta 
   let skipped = 0;
 
   for (const ep of endpoints.rows) {
+    if (!allowed.has(ep.type)) {
+      skipped += 1;
+      continue;
+    }
+
     const dk = dedupeKey({ endpointId: ep.id, familyId, anomalyType, minutes: dedupeMinutes });
 
     // Deduped already?
@@ -122,6 +151,34 @@ export async function sendAnomalyAlerts({ familyId, anomalyType, severity, meta 
         responseCode = r.status;
         responseBody = r.text;
         status = r.ok ? 'sent' : 'failed';
+      } else if (ep.type === 'pagerduty') {
+        const routingKey = ep.secret;
+        if (!routingKey) {
+          status = 'failed';
+          responseBody = 'pagerduty_missing_routing_key_in_secret';
+        } else {
+          const pdUrl =
+            ep.target && ep.target.startsWith('http')
+              ? ep.target
+              : 'https://events.pagerduty.com/v2/enqueue';
+
+          const body = pagerDutyPayload({
+            routingKey,
+            dedupKey: dk,
+            summary: `Teachmo anomaly: ${anomalyType} (family ${familyId})`,
+            customDetails: payload
+          });
+
+          const r = await fetchWithTimeout(pdUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+
+          responseCode = r.status;
+          responseBody = r.text;
+          status = r.ok ? 'sent' : 'failed';
+        }
       } else if (ep.type === 'email') {
         // Minimal “hook”: treat email as a webhook to your email service
         // If you don’t have one, you can still store endpoints now and wire later.
