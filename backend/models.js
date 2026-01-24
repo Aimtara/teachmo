@@ -15,6 +15,14 @@ export const messageLogs = [];
 export const automationRuns = [];
 export const aiLogs = [];
 export const telemetryLogs = [];
+export const orchestratorPlans = [];
+export const orchestratorApprovals = [];
+export const orchestratorRuns = [];
+export const orchestratorRunbooks = [];
+export const orchestratorRunbookRuns = [];
+export const orchestratorAlertRoutes = [];
+export const orchestratorEscalationPolicies = [];
+export const orchestratorAlertDeliveries = [];
 
 let counters = {
   program: 1,
@@ -33,6 +41,14 @@ let counters = {
   automation: 1,
   ai: 1,
   telemetry: 1,
+  orchestratorPlan: 1,
+  orchestratorApproval: 1,
+  orchestratorRun: 1,
+  orchestratorRunbook: 1,
+  orchestratorRunbookRun: 1,
+  orchestratorAlertRoute: 1,
+  orchestratorEscalationPolicy: 1,
+  orchestratorAlertDelivery: 1,
 };
 
 export const nextId = (key) => counters[key]++;
