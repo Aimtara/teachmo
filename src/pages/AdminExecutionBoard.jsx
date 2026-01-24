@@ -121,8 +121,15 @@ export default function AdminExecutionBoard() {
       </header>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm flex items-start justify-between gap-3">
+          <span className="flex-1">{error}</span>
+          <button
+            type="button"
+            className="text-red-700 hover:text-red-900 text-xs font-medium"
+            onClick={() => setError(null)}
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
