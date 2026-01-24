@@ -193,3 +193,16 @@ export async function getFamilyHealth(familyId, { days = 14, hourly = false, hou
     hourly: hourlySeries
   };
 }
+
+export function getOrchestratorHealthSnapshot(label = 'runtime') {
+  return {
+    label,
+    capturedAt: new Date().toISOString(),
+    ok: true,
+    checks: {
+      orchestrationQueueDepth: 0,
+      alertBacklog: 0,
+      lastError: null
+    }
+  };
+}
