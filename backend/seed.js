@@ -129,6 +129,13 @@ export async function seedOpsDemoData() {
   await query(
     `
     INSERT INTO orchestrator_mitigations
+      (family_id, mitigation_type, active, activated_at, last_updated, count, meta)
+    VALUES ($1, 'duplicate_storm', true, now(), now(), 1, $2::jsonb)
+    ON CONFLICT (family_id, mitigation_type) DO UPDATE SET
+      active = EXCLUDED.active,
+      activated_at = EXCLUDED.activated_at,
+      last_updated = now(),
+      count = orchestrator_mitigations.count + 1,
       (family_id, mitigation_type, active, activated_at, expires_at, last_updated, count, previous_state_json, applied_patch_json, meta)
     VALUES
       ($1, 'duplicate_storm', true, now(), now() + interval '45 minutes', now(), 1, $2::jsonb, $3::jsonb, $4::jsonb)
