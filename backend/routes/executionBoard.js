@@ -1,5 +1,6 @@
 /* eslint-env node */
 import express from 'express';
+import { z } from 'zod';
 
 import {
   executionEpics,
@@ -8,6 +9,48 @@ import {
   executionDependencies,
 } from '../models.js';
 import { executionBoardSeed } from '../executionBoardSeedData.js';
+
+// Validation schemas
+const statusEnum = z.enum(['Backlog', 'Planned', 'In progress', 'Done']);
+const gateStatusEnum = z.enum(['Backlog', 'Planned', 'In progress']);
+
+const epicPatchSchema = z.object({
+  workstream: z.string().optional(),
+  tag: z.string().optional(),
+  railSegment: z.string().optional(),
+  ownerRole: z.string().optional(),
+  upstream: z.string().nullable().optional(),
+  downstream: z.string().nullable().optional(),
+  gates: z.string().nullable().optional(),
+  status: statusEnum.optional(),
+  nextMilestone: z.string().optional(),
+  dod: z.string().optional(),
+  notes: z.string().optional(),
+  epicKey: z.string().optional(),
+  railPriority: z.union([z.string(), z.number()]).optional(),
+});
+
+const gatePatchSchema = z.object({
+  purpose: z.string().optional(),
+  checklist: z.string().optional(),
+  ownerRole: z.string().optional(),
+  dependsOn: z.string().optional(),
+  targetWindow: z.string().optional(),
+  status: gateStatusEnum.optional(),
+});
+
+const slicePatchSchema = z.object({
+  outcome: z.string().optional(),
+  primaryEpic: z.string().optional(),
+  gate: z.string().optional(),
+  inputs: z.string().optional(),
+  deliverables: z.string().optional(),
+  acceptance: z.string().optional(),
+  status: statusEnum.optional(),
+  owner: z.string().optional(),
+  storyKey: z.string().optional(),
+  dependsOn: z.string().optional(),
+});
 
 function ensureSeeded() {
   if (executionEpics.length === 0) {
@@ -115,6 +158,15 @@ executionBoardRouter.patch('/epics/:id', express.json(), (req, res) => {
   const { idx, item } = findById(executionEpics, id);
   if (!item) return res.status(404).json({ error: 'Epic not found' });
 
+  // Validate request body
+  const validation = epicPatchSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error.issues,
+    });
+  }
+
   const allowed = [
     'workstream',
     'tag',
@@ -145,6 +197,15 @@ executionBoardRouter.patch('/gates/:gate', express.json(), (req, res) => {
   const idx = executionGates.findIndex((g) => g.gate === gate);
   if (idx === -1) return res.status(404).json({ error: 'Gate not found' });
 
+  // Validate request body
+  const validation = gatePatchSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error.issues,
+    });
+  }
+
   const allowed = ['purpose', 'checklist', 'ownerRole', 'dependsOn', 'targetWindow', 'status'];
   const patch = {};
   allowed.forEach((k) => {
@@ -159,6 +220,15 @@ executionBoardRouter.patch('/slices/:id', express.json(), (req, res) => {
   const { id } = req.params;
   const { idx, item } = findById(executionSlices, id);
   if (!item) return res.status(404).json({ error: 'Slice not found' });
+
+  // Validate request body
+  const validation = slicePatchSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error.issues,
+    });
+  }
 
   const allowed = ['outcome', 'primaryEpic', 'gate', 'inputs', 'deliverables', 'acceptance', 'status', 'owner', 'storyKey', 'dependsOn'];
   const patch = {};
