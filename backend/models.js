@@ -23,6 +23,10 @@ export const orchestratorRunbookRuns = [];
 export const orchestratorAlertRoutes = [];
 export const orchestratorEscalationPolicies = [];
 export const orchestratorAlertDeliveries = [];
+export const executionEpics = [];
+export const executionGates = [];
+export const executionSlices = [];
+export const executionDependencies = [];
 
 let counters = {
   program: 1,
@@ -49,6 +53,9 @@ let counters = {
   orchestratorAlertRoute: 1,
   orchestratorEscalationPolicy: 1,
   orchestratorAlertDelivery: 1,
+  executionEpic: 1,
+  executionSlice: 1,
+  executionDependency: 1,
 };
 
 export const nextId = (key) => counters[key]++;

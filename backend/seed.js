@@ -1,6 +1,13 @@
 /* eslint-env node */
 import { createLogger } from './utils/logger.js';
 import { query } from './db.js';
+import {
+  executionEpics,
+  executionGates,
+  executionSlices,
+  executionDependencies,
+} from './models.js';
+import { executionBoardSeed } from './executionBoardSeedData.js';
 
 const logger = createLogger('seed');
 
@@ -10,6 +17,21 @@ export function seedDemoData() {
   }
 
   logger.warn('Demo seeding is disabled for database-backed partner portal data.');
+}
+
+export function seedExecutionBoardData() {
+  if (executionEpics.length === 0) {
+    executionEpics.push(...executionBoardSeed.epics);
+  }
+  if (executionGates.length === 0) {
+    executionGates.push(...executionBoardSeed.gates);
+  }
+  if (executionSlices.length === 0) {
+    executionSlices.push(...executionBoardSeed.slices);
+  }
+  if (executionDependencies.length === 0) {
+    executionDependencies.push(...executionBoardSeed.dependencies);
+  }
 }
 
 export async function seedOpsDemoData() {

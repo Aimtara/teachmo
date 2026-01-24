@@ -265,6 +265,16 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading admin dashboard...</p>
   },
   {
+    name: 'AdminExecutionBoard',
+    path: '/admin/execution-board',
+    Component: lazy(() => import('@/pages/AdminExecutionBoard.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['system_admin'],
+    requiredScopes: ['system:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading execution board...</p>
+  },
+  {
     name: 'AdminWeeklyBriefs',
     path: '/admin/weekly-briefs',
     Component: lazy(() => import('@/pages/AdminWeeklyBriefs.jsx')),
