@@ -94,7 +94,7 @@ export async function seedOpsDemoData() {
   const existingEndpoint = await query(
     `
     SELECT id
-    FROM family_alert_endpoints
+    FROM orchestrator_alert_endpoints
     WHERE family_id = $1 AND type = 'webhook' AND target = 'https://example.com/ops-webhook'
     LIMIT 1
     `,
@@ -105,7 +105,7 @@ export async function seedOpsDemoData() {
   if (!endpointId) {
     const endpoint = await query(
       `
-      INSERT INTO family_alert_endpoints (family_id, type, target, enabled)
+      INSERT INTO orchestrator_alert_endpoints (family_id, type, target, enabled)
       VALUES ($1, 'webhook', 'https://example.com/ops-webhook', true)
       RETURNING id
       `,
@@ -128,12 +128,15 @@ export async function seedOpsDemoData() {
 
   await query(
     `
-    INSERT INTO orchestrator_mitigation_state (family_id, active, params, updated_at)
-    VALUES ($1, true, $2::jsonb, now())
-    ON CONFLICT (family_id) DO UPDATE SET
+    INSERT INTO orchestrator_mitigations
+      (family_id, mitigation_type, active, activated_at, last_updated, count, meta)
+    VALUES ($1, 'duplicate_storm', true, now(), now(), 1, $2::jsonb)
+    ON CONFLICT (family_id, mitigation_type) DO UPDATE SET
       active = EXCLUDED.active,
-      params = EXCLUDED.params,
-      updated_at = now()
+      activated_at = EXCLUDED.activated_at,
+      last_updated = now(),
+      count = orchestrator_mitigations.count + 1,
+      meta = EXCLUDED.meta
     `,
     [familyId, JSON.stringify({ mode: 'duplicate_suppression', maxPerHour: 0 })]
   );
