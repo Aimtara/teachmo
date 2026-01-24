@@ -37,6 +37,7 @@ import ltiRouter from './routes/lti.js';
 import orchestratorRouter from './routes/orchestrator.js';
 import opsRouter from './routes/ops.js';
 import { metricsMiddleware, getMetricsSnapshot } from './metrics.js';
+import { executionBoardRouter } from './routes/executionBoard.js';
 
 // Load environment variables
 dotenv.config();
@@ -111,6 +112,7 @@ app.use('/api/integrations', integrationsRouter);
 app.use('/api/lti', ltiRouter);
 app.use('/api/orchestrator', orchestratorRouter);
 app.use('/api/ops', opsRouter);
+app.use('/api/execution-board', executionBoardRouter);
 
 app.get('/api/metrics', (req, res) => {
   res.json(getMetricsSnapshot());

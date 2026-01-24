@@ -115,6 +115,7 @@ export const NAV_STRUCTURE = [
     children: [
       { name: 'Admin Dashboard', page: 'AdminDashboard', icon: Shield, requiredScopes: ['org:manage'] },
       { name: 'Partner Dashboard', page: 'AdminPartners', icon: Users, requiredScopes: ['org:manage'] },
+      { name: 'Execution Board', page: 'AdminExecutionBoard', icon: Target, roles: ['system_admin'], requiredScopes: ['system:manage'] },
       { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
       { name: 'Observability', page: 'AdminObservability', icon: Activity, requiredScopes: ['org:manage'] },
       { name: 'Ops Orchestrator', page: 'OpsOrchestrator', icon: Activity, roles: ['system_admin'], requiredScopes: ['system:manage'] },
