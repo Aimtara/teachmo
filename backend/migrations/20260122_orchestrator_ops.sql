@@ -61,25 +61,14 @@ CREATE TABLE IF NOT EXISTS orchestrator_anomalies (
 CREATE INDEX IF NOT EXISTS idx_ops_anomalies_family_last
   ON orchestrator_anomalies (family_id, last_seen DESC);
 
+-- NOTE: canonical anomaly lifecycle columns are added in later migrations;
+-- keep this as a no-op for backwards compatibility.
 ALTER TABLE orchestrator_anomalies
   ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'open';
 
-CREATE TABLE IF NOT EXISTS family_alert_endpoints (
-  id bigserial PRIMARY KEY,
-  family_id text NOT NULL,
-  type text NOT NULL,
-  target text NOT NULL,
-  secret text,
-  enabled boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ops_family_alert_endpoints
-  ON family_alert_endpoints (family_id, enabled);
-
 CREATE TABLE IF NOT EXISTS orchestrator_alert_deliveries (
   id bigserial PRIMARY KEY,
-  endpoint_id bigint NOT NULL REFERENCES family_alert_endpoints(id) ON DELETE CASCADE,
+  endpoint_id bigint NOT NULL REFERENCES orchestrator_alert_endpoints(id) ON DELETE CASCADE,
   family_id text NOT NULL,
   anomaly_type text NOT NULL,
   severity text NOT NULL,
@@ -94,17 +83,4 @@ CREATE TABLE IF NOT EXISTS orchestrator_alert_deliveries (
 CREATE INDEX IF NOT EXISTS idx_ops_alert_deliveries
   ON orchestrator_alert_deliveries (family_id, created_at DESC);
 
-ALTER TABLE orchestrator_alert_deliveries
-  DROP CONSTRAINT IF EXISTS orchestrator_alert_deliveries_endpoint_id_fkey;
-
-ALTER TABLE orchestrator_alert_deliveries
-  ADD CONSTRAINT orchestrator_alert_deliveries_endpoint_id_fkey
-  FOREIGN KEY (endpoint_id) REFERENCES family_alert_endpoints(id) ON DELETE CASCADE;
-
-CREATE TABLE IF NOT EXISTS orchestrator_mitigation_state (
-  family_id text PRIMARY KEY,
-  active boolean NOT NULL DEFAULT false,
-  params jsonb NOT NULL DEFAULT '{}'::jsonb,
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  cleared_at timestamptz
-);
+-- NOTE: mitigations are tracked in orchestrator_mitigations (011_orchestrator_mitigations.sql).
