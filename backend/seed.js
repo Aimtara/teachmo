@@ -136,9 +136,25 @@ export async function seedOpsDemoData() {
       activated_at = EXCLUDED.activated_at,
       last_updated = now(),
       count = orchestrator_mitigations.count + 1,
+      (family_id, mitigation_type, active, activated_at, expires_at, last_updated, count, previous_state_json, applied_patch_json, meta)
+    VALUES
+      ($1, 'duplicate_storm', true, now(), now() + interval '45 minutes', now(), 1, $2::jsonb, $3::jsonb, $4::jsonb)
+    ON CONFLICT (family_id, mitigation_type) DO UPDATE SET
+      active = EXCLUDED.active,
+      activated_at = EXCLUDED.activated_at,
+      expires_at = EXCLUDED.expires_at,
+      last_updated = now(),
+      count = orchestrator_mitigations.count + 1,
+      previous_state_json = EXCLUDED.previous_state_json,
+      applied_patch_json = EXCLUDED.applied_patch_json,
       meta = EXCLUDED.meta
     `,
-    [familyId, JSON.stringify({ mode: 'duplicate_suppression', maxPerHour: 0 })]
+    [
+      familyId,
+      JSON.stringify({ cooldownUntil: null, maxNotificationsPerHour: null }),
+      JSON.stringify({ maxNotificationsPerHour: 0, mitigation: { type: 'duplicate_storm', active: true } }),
+      JSON.stringify({ seeded: true, reason: 'ops_demo' }),
+    ]
   );
 
   logger.info('Ops demo data seeded.');

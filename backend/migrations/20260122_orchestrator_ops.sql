@@ -61,5 +61,26 @@ CREATE TABLE IF NOT EXISTS orchestrator_anomalies (
 CREATE INDEX IF NOT EXISTS idx_ops_anomalies_family_last
   ON orchestrator_anomalies (family_id, last_seen DESC);
 
+-- NOTE: canonical anomaly lifecycle columns are added in later migrations;
+-- keep this as a no-op for backwards compatibility.
 ALTER TABLE orchestrator_anomalies
   ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'open';
+
+CREATE TABLE IF NOT EXISTS orchestrator_alert_deliveries (
+  id bigserial PRIMARY KEY,
+  endpoint_id bigint NOT NULL REFERENCES orchestrator_alert_endpoints(id) ON DELETE CASCADE,
+  family_id text NOT NULL,
+  anomaly_type text NOT NULL,
+  severity text NOT NULL,
+  dedupe_key text NOT NULL UNIQUE,
+  status text NOT NULL DEFAULT 'sent',
+  response_code int,
+  response_body text,
+  payload_json jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ops_alert_deliveries
+  ON orchestrator_alert_deliveries (family_id, created_at DESC);
+
+-- NOTE: mitigations are tracked in orchestrator_mitigations (011_orchestrator_mitigations.sql).
