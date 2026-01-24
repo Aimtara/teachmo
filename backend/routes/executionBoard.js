@@ -81,8 +81,31 @@ function findById(list, id) {
   return { idx, item: list[idx] };
 }
 
+// Basic authentication middleware ensuring the request is from an authenticated user.
+// This implementation checks for the presence of an Authorization header.
+// In a real deployment, this should align with the application's existing auth mechanism.
+function requireAuth(req, res, next) {
+  if (!req.headers.authorization) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  next();
+}
+
+// Basic authorization middleware ensuring the user has admin privileges.
+// This implementation checks a header-based role; integrate with your user model as appropriate.
+function requireAdmin(req, res, next) {
+  const role = req.headers['x-user-role'];
+  if (role !== 'admin') {
+    return res.status(403).json({ error: 'Admin privileges required' });
+  }
+  next();
+}
+
 export const executionBoardRouter = express.Router();
 
+// Protect all execution board routes with authentication and admin authorization.
+executionBoardRouter.use(requireAuth);
+executionBoardRouter.use(requireAdmin);
 executionBoardRouter.get('/board', (req, res) => {
   res.json(enrichBoard());
 });
