@@ -11,6 +11,7 @@ export async function weeklyBriefHandler(ctx) {
         missing,
         promptUser: {
           type: 'FOLLOWUP_QUESTION',
+          actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
           question: 'Which child should this weekly brief cover?'
         }
       },

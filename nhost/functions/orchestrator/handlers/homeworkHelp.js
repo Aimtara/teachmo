@@ -13,6 +13,7 @@ export async function homeworkHelpHandler(ctx) {
             missing: ['assignmentDetails'],
             promptUser: {
               type: 'FOLLOWUP_QUESTION',
+              actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
               question: 'What assignment do you want help with?',
               placeholder: 'Paste the prompt or describe the homework'
             }
