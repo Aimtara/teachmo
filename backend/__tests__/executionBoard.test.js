@@ -7,7 +7,7 @@ const { executionEpics, executionGates, executionSlices, executionDependencies }
 
 const app = express();
 app.use(express.json());
-app.use('/api/execution', executionBoardRouter);
+app.use('/api/execution-board', executionBoardRouter);
 
 describe('Execution Board API', () => {
   // Helper function to create authenticated requests
@@ -28,14 +28,14 @@ describe('Execution Board API', () => {
 
   describe('Authentication and Authorization', () => {
     test('GET /board returns 401 without authorization header', async () => {
-      const res = await request(app).get('/api/execution/board');
+      const res = await request(app).get('/api/execution-board/board');
       expect(res.status).toBe(401);
       expect(res.body).toEqual({ error: 'Authentication required' });
     });
 
     test('GET /board returns 403 without admin role', async () => {
       const res = await request(app)
-        .get('/api/execution/board')
+        .get('/api/execution-board/board')
         .set('Authorization', 'Bearer valid-token')
         .set('x-user-role', 'user');
       expect(res.status).toBe(403);
@@ -44,14 +44,14 @@ describe('Execution Board API', () => {
 
     test('PATCH /epics/:id returns 401 without authorization', async () => {
       const res = await request(app)
-        .patch('/api/execution/epics/epic-1')
+        .patch('/api/execution-board/epics/epic-1')
         .send({ status: 'Done' });
       expect(res.status).toBe(401);
     });
 
     test('PATCH /gates/:gate returns 403 without admin role', async () => {
       const res = await request(app)
-        .patch('/api/execution/gates/G0')
+        .patch('/api/execution-board/gates/G0')
         .set('Authorization', 'Bearer valid-token')
         .set('x-user-role', 'user')
         .send({ status: 'Done' });
@@ -61,7 +61,7 @@ describe('Execution Board API', () => {
 
   describe('GET /board', () => {
     test('returns enriched board data with empty arrays when not seeded', async () => {
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('updatedAt');
       expect(res.body).toHaveProperty('epics');
@@ -93,7 +93,7 @@ describe('Execution Board API', () => {
         type: 'blocks',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       expect(res.body.epics).toHaveLength(2);
       expect(res.body.gates).toHaveLength(1);
@@ -112,7 +112,7 @@ describe('Execution Board API', () => {
         type: 'blocks',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       
       const epic2 = res.body.epics.find((e) => e.id === 'epic-2');
@@ -135,7 +135,7 @@ describe('Execution Board API', () => {
         type: 'blocks',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       
       const epic2 = res.body.epics.find((e) => e.id === 'epic-2');
@@ -151,7 +151,7 @@ describe('Execution Board API', () => {
         status: 'In Progress',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       
       const gate = res.body.gates[0];
@@ -171,7 +171,7 @@ describe('Execution Board API', () => {
         type: 'blocks',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       
       const dep = res.body.dependencies[0];
@@ -187,7 +187,7 @@ describe('Execution Board API', () => {
         checklist: '',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       const gate = res.body.gates[0];
       expect(gate.total).toBe(0);
       expect(gate.checked).toBe(0);
@@ -200,7 +200,7 @@ describe('Execution Board API', () => {
         checklist: '☐ Item 1\n☐ Item 2',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       const gate = res.body.gates[0];
       expect(gate.total).toBe(2);
       expect(gate.checked).toBe(0);
@@ -213,7 +213,7 @@ describe('Execution Board API', () => {
         checklist: '☑ Item 1\n☑ Item 2',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       const gate = res.body.gates[0];
       expect(gate.total).toBe(2);
       expect(gate.checked).toBe(2);
@@ -226,7 +226,7 @@ describe('Execution Board API', () => {
         checklist: '☑ Item 1\n☐ Item 2\n☑ Item 3\n☐ Item 4',
       });
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       const gate = res.body.gates[0];
       expect(gate.total).toBe(4);
       expect(gate.checked).toBe(2);
@@ -251,7 +251,7 @@ describe('Execution Board API', () => {
         nextMilestone: '2024-Q1',
       };
 
-      const res = await authenticatedRequest('patch', '/api/execution/epics/epic-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/epics/epic-1')
         .send(updates);
       
       expect(res.status).toBe(200);
@@ -262,7 +262,7 @@ describe('Execution Board API', () => {
     });
 
     test('returns 404 for non-existent epic', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/epics/non-existent')
+      const res = await authenticatedRequest('patch', '/api/execution-board/epics/non-existent')
         .send({ status: 'Done' });
       
       expect(res.status).toBe(404);
@@ -270,7 +270,7 @@ describe('Execution Board API', () => {
     });
 
     test('ignores disallowed fields', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/epics/epic-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/epics/epic-1')
         .send({ 
           status: 'Done',
           id: 'changed-id',
@@ -299,7 +299,7 @@ describe('Execution Board API', () => {
         railPriority: 1,
       };
 
-      const res = await authenticatedRequest('patch', '/api/execution/epics/epic-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/epics/epic-1')
         .send(updates);
       
       expect(res.status).toBe(200);
@@ -307,7 +307,7 @@ describe('Execution Board API', () => {
     });
 
     test('returns enriched board data after update', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/epics/epic-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/epics/epic-1')
         .send({ status: 'Done' });
       
       expect(res.status).toBe(200);
@@ -335,7 +335,7 @@ describe('Execution Board API', () => {
         checklist: '☑ Item 1\n☐ Item 2',
       };
 
-      const res = await authenticatedRequest('patch', '/api/execution/gates/G0')
+      const res = await authenticatedRequest('patch', '/api/execution-board/gates/G0')
         .send(updates);
       
       expect(res.status).toBe(200);
@@ -346,7 +346,7 @@ describe('Execution Board API', () => {
     });
 
     test('returns 404 for non-existent gate', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/gates/G999')
+      const res = await authenticatedRequest('patch', '/api/execution-board/gates/G999')
         .send({ status: 'Done' });
       
       expect(res.status).toBe(404);
@@ -354,7 +354,7 @@ describe('Execution Board API', () => {
     });
 
     test('ignores disallowed fields', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/gates/G0')
+      const res = await authenticatedRequest('patch', '/api/execution-board/gates/G0')
         .send({ 
           status: 'Done',
           gate: 'G1',
@@ -376,7 +376,7 @@ describe('Execution Board API', () => {
         status: 'Done',
       };
 
-      const res = await authenticatedRequest('patch', '/api/execution/gates/G0')
+      const res = await authenticatedRequest('patch', '/api/execution-board/gates/G0')
         .send(updates);
       
       expect(res.status).toBe(200);
@@ -384,7 +384,7 @@ describe('Execution Board API', () => {
     });
 
     test('returns enriched board data after update', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/gates/G0')
+      const res = await authenticatedRequest('patch', '/api/execution-board/gates/G0')
         .send({ status: 'Done' });
       
       expect(res.status).toBe(200);
@@ -409,7 +409,7 @@ describe('Execution Board API', () => {
         owner: 'John Doe',
       };
 
-      const res = await authenticatedRequest('patch', '/api/execution/slices/slice-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/slices/slice-1')
         .send(updates);
       
       expect(res.status).toBe(200);
@@ -420,7 +420,7 @@ describe('Execution Board API', () => {
     });
 
     test('returns 404 for non-existent slice', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/slices/non-existent')
+      const res = await authenticatedRequest('patch', '/api/execution-board/slices/non-existent')
         .send({ status: 'Done' });
       
       expect(res.status).toBe(404);
@@ -428,7 +428,7 @@ describe('Execution Board API', () => {
     });
 
     test('ignores disallowed fields', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/slices/slice-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/slices/slice-1')
         .send({ 
           status: 'Done',
           id: 'changed-id',
@@ -454,7 +454,7 @@ describe('Execution Board API', () => {
         dependsOn: ['slice-0'],
       };
 
-      const res = await authenticatedRequest('patch', '/api/execution/slices/slice-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/slices/slice-1')
         .send(updates);
       
       expect(res.status).toBe(200);
@@ -462,7 +462,7 @@ describe('Execution Board API', () => {
     });
 
     test('returns enriched board data after update', async () => {
-      const res = await authenticatedRequest('patch', '/api/execution/slices/slice-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/slices/slice-1')
         .send({ status: 'Done' });
       
       expect(res.status).toBe(200);
@@ -476,7 +476,7 @@ describe('Execution Board API', () => {
       executionEpics.push({ id: 'epic-1', status: 'Todo' });
 
       const res = await request(app)
-        .patch('/api/execution/epics/epic-1')
+        .patch('/api/execution-board/epics/epic-1')
         .set('Authorization', 'Bearer valid-token')
         .set('x-user-role', 'admin')
         .set('Content-Type', 'application/json')
@@ -488,7 +488,7 @@ describe('Execution Board API', () => {
     test('handles empty request body in PATCH', async () => {
       executionEpics.push({ id: 'epic-1', status: 'Todo' });
 
-      const res = await authenticatedRequest('patch', '/api/execution/epics/epic-1')
+      const res = await authenticatedRequest('patch', '/api/execution-board/epics/epic-1')
         .send({});
       
       expect(res.status).toBe(200);
@@ -505,7 +505,7 @@ describe('Execution Board API', () => {
       expect(executionSlices.length).toBe(0);
       expect(executionDependencies.length).toBe(0);
 
-      const res = await authenticatedRequest('get', '/api/execution/board');
+      const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       
       // After the request, data should be seeded (if seed data exists)
