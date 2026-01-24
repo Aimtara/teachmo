@@ -8,8 +8,30 @@ const includesAny = (text, needles) => needles.some((n) => text.includes(n));
  * You can later swap this for a low-temp LLM classifier that returns
  * the same shape: { route, confidence, extractedEntities, safety }.
  */
-export function classify({ text = '', channel = 'CHAT' } = {}) {
+export function classify({ text = '', channel = 'CHAT', actionId = '' } = {}) {
   const t = String(text || '').toLowerCase().trim();
+  const action = String(actionId || '').trim();
+
+  if (channel === 'UI_ACTION' && action) {
+    switch (action) {
+      case 'HUB_THREAD_SUMMARIZE_CHOOSE_THREAD':
+        return {
+          route: ROUTES.HUB_THREAD_SUMMARIZE,
+          confidence: 0.98,
+          extractedEntities: {},
+          safety: { level: SAFETY_LEVELS.NONE, reasons: [] }
+        };
+      case 'HUB_MESSAGE_SEND_CHOOSE_RECIPIENT':
+        return {
+          route: ROUTES.HUB_MESSAGE_SEND,
+          confidence: 0.98,
+          extractedEntities: {},
+          safety: { level: SAFETY_LEVELS.NONE, reasons: [] }
+        };
+      default:
+        break;
+    }
+  }
 
   // Safety gate (very light: flag + route; detailed handling belongs in the Safety specialist).
   const safetyHit = includesAny(t, [

@@ -18,20 +18,10 @@ export const orchestratorSafetySchema = z.object({
   reasons: z.array(z.string())
 });
 
-export const orchestratorPromptSchema = z.object({
-  type: z.literal('FOLLOWUP_QUESTION'),
-  question: z.string(),
-  placeholder: z.string().optional()
-});
-
-export const orchestratorNeedsSchema = z.object({
-  missing: z.array(z.string()),
-  promptUser: orchestratorPromptSchema.optional()
-});
-
 export const orchestratorUiActionSchema = z.object({
   label: z.string(),
   action: z.string(),
+  actionId: z.string().optional(),
   payload: z.record(z.unknown()).optional()
 });
 
@@ -39,6 +29,26 @@ export const orchestratorUiOptionSchema = z.object({
   label: z.string(),
   value: z.string(),
   description: z.string().optional()
+});
+
+export const orchestratorPromptSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('FOLLOWUP_QUESTION'),
+    question: z.string(),
+    placeholder: z.string().optional(),
+    actionId: z.string().optional()
+  }),
+  z.object({
+    type: z.literal('CHOICE'),
+    title: z.string().optional(),
+    options: z.array(orchestratorUiOptionSchema),
+    actionId: z.string().optional()
+  })
+]);
+
+export const orchestratorNeedsSchema = z.object({
+  missing: z.array(z.string()),
+  promptUser: orchestratorPromptSchema.optional()
 });
 
 export const orchestratorUiSchema = z.object({
@@ -71,7 +81,9 @@ export const orchestratorRequestSchema = z.object({
   selected: z
     .object({
       childId: z.string().optional(),
-      schoolId: z.string().optional()
+      schoolId: z.string().optional(),
+      threadId: z.string().optional(),
+      recipientUserId: z.string().optional()
     })
     .optional(),
   metadata: z

@@ -12,6 +12,7 @@ export async function officeHoursHandler(ctx) {
       missing,
       promptUser: {
         type: 'FOLLOWUP_QUESTION',
+        actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
         question: 'Which teacher would you like to meet with?',
         placeholder: 'Choose a teacher (Phase 1)'
       }

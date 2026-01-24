@@ -24,6 +24,8 @@ export interface OrchestratorActor {
 export interface OrchestratorSelectedContext {
   childId?: string;
   schoolId?: string;
+  threadId?: string;
+  recipientUserId?: string;
 }
 
 export interface OrchestratorMetadata {
@@ -57,9 +59,17 @@ export interface OrchestratorPromptQuestion {
   type: 'FOLLOWUP_QUESTION';
   question: string;
   placeholder?: string;
+  actionId?: string;
 }
 
-export type OrchestratorPromptUser = OrchestratorPromptQuestion;
+export interface OrchestratorPromptChoice {
+  type: 'CHOICE';
+  title?: string;
+  options: OrchestratorUiOption[];
+  actionId?: string;
+}
+
+export type OrchestratorPromptUser = OrchestratorPromptQuestion | OrchestratorPromptChoice;
 
 export interface OrchestratorNeeds {
   missing: string[];
@@ -69,6 +79,7 @@ export interface OrchestratorNeeds {
 export interface OrchestratorUiAction {
   label: string;
   action: string;
+  actionId?: string;
   payload?: Record<string, unknown>;
 }
 

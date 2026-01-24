@@ -1,4 +1,23 @@
+import { fetchRecentThreadsForUser, fetchUserLabels } from '../messageHubData.js';
 import { ARTIFACT_TYPES, ROUTES } from '../routes.js';
+
+function buildRecipientOptions(threads, labelMap) {
+  const seen = new Set();
+  const options = [];
+  for (const thread of threads) {
+    for (const participant of thread.participants || []) {
+      const id = participant.user_id;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      options.push({
+        value: id,
+        label: labelMap.get(id) || `User ${String(id).slice(0, 6)}`,
+        description: thread.title || thread.last_message_preview || undefined
+      });
+    }
+  }
+  return options;
+}
 
 function basicDraftFromText(text = '') {
   const t = String(text || '').trim();
@@ -14,20 +33,45 @@ export async function hubMessageSendHandler(ctx) {
   // In Phase 1, we at least need a child context to avoid mis-addressing.
   // TeacherId/threadId selection can be a UI chooser later.
   if (!ctx.selected?.childId) missing.push('childId');
+  if (!ctx.selected?.recipientUserId) missing.push('recipientUserId');
 
   if (missing.length > 0) {
+    let options = [];
+    if (missing.includes('recipientUserId') && ctx.actor?.userId) {
+      try {
+        const { threads, otherUserIds } = await fetchRecentThreadsForUser({
+          userId: ctx.actor.userId,
+          limit: 6
+        });
+        const labelMap = await fetchUserLabels({ userIds: otherUserIds });
+        options = buildRecipientOptions(threads, labelMap);
+      } catch (_) {
+        options = [];
+      }
+    }
+
     return {
       route: ROUTES.HUB_MESSAGE_SEND,
       needs: {
         missing,
-        promptUser: {
-          type: 'FOLLOWUP_QUESTION',
-          actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
-          question:
-            missing[0] === 'childId'
-              ? 'Which child is this message about?'
-              : 'I need a bit more info to send this message.'
-        }
+        promptUser: missing.includes('childId')
+          ? {
+              type: 'FOLLOWUP_QUESTION',
+              actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
+              question: 'Which child is this message about?'
+            }
+          : options.length > 0
+            ? {
+                type: 'CHOICE',
+                title: 'Who should receive this message?',
+                actionId: 'HUB_MESSAGE_SEND_CHOOSE_RECIPIENT',
+                options
+              }
+            : {
+                type: 'FOLLOWUP_QUESTION',
+                actionId: 'ORCHESTRATOR_FOLLOWUP_ANSWER',
+                question: 'Who should receive this message?'
+              }
       },
       ui: {
         type: 'CARD',
@@ -55,6 +99,7 @@ export async function hubMessageSendHandler(ctx) {
       type: ARTIFACT_TYPES.MESSAGE_DRAFT,
       payload: {
         childId: ctx.selected.childId,
+        recipientUserId: ctx.selected.recipientUserId,
         draft,
         sourceText: ctx.text || '',
         status: 'draft'
