@@ -1,6 +1,5 @@
 /* eslint-env node */
 import express from 'express';
-import { z } from 'zod';
 
 import {
   executionEpics,
@@ -9,48 +8,11 @@ import {
   executionDependencies,
 } from '../models.js';
 import { executionBoardSeed } from '../executionBoardSeedData.js';
-
-// Validation schemas
-const statusEnum = z.enum(['Backlog', 'Planned', 'In progress', 'Done']);
-const gateStatusEnum = z.enum(['Backlog', 'Planned', 'In progress']);
-
-const epicPatchSchema = z.object({
-  workstream: z.string().optional(),
-  tag: z.string().optional(),
-  railSegment: z.string().optional(),
-  ownerRole: z.string().optional(),
-  upstream: z.string().nullable().optional(),
-  downstream: z.string().nullable().optional(),
-  gates: z.string().nullable().optional(),
-  status: statusEnum.optional(),
-  nextMilestone: z.string().optional(),
-  dod: z.string().optional(),
-  notes: z.string().optional(),
-  epicKey: z.string().optional(),
-  railPriority: z.union([z.string(), z.number()]).optional(),
-});
-
-const gatePatchSchema = z.object({
-  purpose: z.string().optional(),
-  checklist: z.string().optional(),
-  ownerRole: z.string().optional(),
-  dependsOn: z.string().optional(),
-  targetWindow: z.string().optional(),
-  status: gateStatusEnum.optional(),
-});
-
-const slicePatchSchema = z.object({
-  outcome: z.string().optional(),
-  primaryEpic: z.string().optional(),
-  gate: z.string().optional(),
-  inputs: z.string().optional(),
-  deliverables: z.string().optional(),
-  acceptance: z.string().optional(),
-  status: statusEnum.optional(),
-  owner: z.string().optional(),
-  storyKey: z.string().optional(),
-  dependsOn: z.string().optional(),
-});
+import {
+  epicPatchSchema,
+  gatePatchSchema,
+  slicePatchSchema,
+} from '../validation/executionBoard.js';
 
 function ensureSeeded() {
   if (executionEpics.length === 0) {
