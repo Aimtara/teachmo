@@ -1,323 +1,665 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuthenticationStatus } from '@nhost/react';
 import { API_BASE_URL } from '@/config/api';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
+const INTERNAL_KEY = import.meta.env.VITE_INTERNAL_API_KEY || '';
 
-const TAGS = ['All', 'MVP shipping', 'Pilot hardening', 'Enterprise scale', 'R&D'];
-const STATUSES = ['All', 'Backlog', 'Planned', 'In progress', 'Done'];
-
-function unique(values) {
-  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b)));
+function withInternalHeaders(init = {}) {
+  const headers = new Headers(init.headers || {});
+  if (INTERNAL_KEY) headers.set('x-internal-key', INTERNAL_KEY);
+  headers.set('content-type', 'application/json');
+  return { ...init, headers };
 }
 
-function statusBadgeVariant(status) {
-  if (status === 'Done') return 'default';
-  if (status === 'In progress') return 'secondary';
-  return 'outline';
+const STATUS_OPTIONS = ['Backlog', 'Planned', 'In Progress', 'Blocked', 'Done'];
+
+function percentDone(checklist = []) {
+  const items = Array.isArray(checklist) ? checklist : [];
+  if (items.length === 0) return 0;
+  const done = items.filter((i) => i?.done).length;
+  return Math.round((done / items.length) * 100);
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        `rounded-lg px-3 py-2 text-sm font-semibold transition ` +
+        (active
+          ? 'bg-gray-900 text-white'
+          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50')
+      }
+    >
+      {children}
+    </button>
+  );
 }
 
 export default function AdminExecutionBoard() {
-  const [board, setBoard] = useState(null);
+  const { isAuthenticated } = useAuthenticationStatus();
+
+  const [tab, setTab] = useState('epics');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [board, setBoard] = useState(null);
+  const [audit, setAudit] = useState([]);
+  const [query, setQuery] = useState('');
 
-  const [search, setSearch] = useState('');
-  const [tag, setTag] = useState('All');
-  const [segment, setSegment] = useState('All');
-  const [status, setStatus] = useState('All');
-
-  const refresh = async () => {
+  const reloadBoard = async () => {
     setLoading(true);
-    setError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/execution-board/board`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch(`${API_BASE_URL}/execution-board/board`, withInternalHeaders());
+      if (!res.ok) throw new Error(`Failed to load board (${res.status})`);
       const data = await res.json();
       setBoard(data);
-    } catch (e) {
-      setError(e?.message || 'Failed to load execution board');
+      setError(null);
+    } catch (err) {
+      setError(err);
     } finally {
       setLoading(false);
     }
   };
 
+  const reloadAudit = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/execution-board/audit?limit=200`, withInternalHeaders());
+      if (!res.ok) throw new Error(`Failed to load audit (${res.status})`);
+      const rows = await res.json();
+      setAudit(rows);
+    } catch (err) {
+      console.warn('Audit load failed', err);
+    }
+  };
+
   useEffect(() => {
-    refresh();
-  }, []);
+    if (!isAuthenticated) return;
+    reloadBoard();
+    reloadAudit();
+  }, [isAuthenticated]);
 
-  const segments = useMemo(() => {
-    if (!board?.epics) return ['All'];
-    return ['All', ...unique(board.epics.map((e) => e.railSegment))];
-  }, [board]);
+  const epics = board?.epics || [];
+  const gates = board?.gates || [];
+  const slices = board?.slices || [];
+  const dependencies = board?.dependencies || [];
 
-  const stats = useMemo(() => {
-    const empty = { backlog: 0, planned: 0, inProgress: 0, done: 0, blocked: 0 };
-    if (!board?.epics) return empty;
-    return board.epics.reduce((acc, e) => {
-      if (e.status === 'Backlog') acc.backlog += 1;
-      else if (e.status === 'Planned') acc.planned += 1;
-      else if (e.status === 'In progress') acc.inProgress += 1;
-      else if (e.status === 'Done') acc.done += 1;
-      if (e.blocked) acc.blocked += 1;
-      return acc;
-    }, { ...empty });
-  }, [board]);
+  const epicOptions = useMemo(() => epics.map((e) => ({ id: e.id, label: `${e.id} — ${e.workstream}` })), [epics]);
+  const gateOptions = useMemo(() => gates.map((g) => g.gate), [gates]);
 
   const filteredEpics = useMemo(() => {
-    if (!board?.epics) return [];
-    const q = search.trim().toLowerCase();
-    return board.epics
-      .filter((e) => (tag === 'All' ? true : e.tag === tag))
-      .filter((e) => (segment === 'All' ? true : e.railSegment === segment))
-      .filter((e) => (status === 'All' ? true : e.status === status))
-      .filter((e) => {
-        if (!q) return true;
-        const hay = `${e.id} ${e.workstream} ${e.ownerRole} ${e.nextMilestone} ${e.notes}`.toLowerCase();
-        return hay.includes(q);
-      })
-      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  }, [board, search, tag, segment, status]);
-
-  const updateEpic = async (id, patch) => {
-    // Minimal “save” that always returns the refreshed board.
-    const res = await fetch(`${API_BASE_URL}/execution-board/epics/${id}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch)
-      }
+    if (!query.trim()) return epics;
+    const q = query.toLowerCase();
+    return epics.filter(
+      (e) =>
+        e.id.toLowerCase().includes(q) ||
+        e.workstream.toLowerCase().includes(q) ||
+        (e.tag || '').toLowerCase().includes(q) ||
+        (e.railSegment || '').toLowerCase().includes(q)
     );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    setBoard(await res.json());
+  }, [epics, query]);
+
+  if (!isAuthenticated) return <Navigate to="/" replace />;
+
+  const patchEpic = async (id, patch) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/execution-board/epics/${id}`,
+        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) })
+      );
+      if (!res.ok) throw new Error(`Update failed (${res.status})`);
+      const next = await res.json();
+      setBoard(next);
+      await reloadAudit();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const patchGate = async (gate, patch) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/execution-board/gates/${gate}`,
+        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) })
+      );
+      if (!res.ok) throw new Error(`Update failed (${res.status})`);
+      const next = await res.json();
+      setBoard(next);
+      await reloadAudit();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const patchSlice = async (id, patch) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/execution-board/slices/${id}`,
+        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) })
+      );
+      if (!res.ok) throw new Error(`Update failed (${res.status})`);
+      const next = await res.json();
+      setBoard(next);
+      await reloadAudit();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createNewSlice = async (payload) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/execution-board/slices`,
+        withInternalHeaders({ method: 'POST', body: JSON.stringify(payload) })
+      );
+      if (!res.ok) throw new Error(`Create failed (${res.status})`);
+      const next = await res.json();
+      setBoard(next);
+      await reloadAudit();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addDependency = async (payload) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/execution-board/dependencies`,
+        withInternalHeaders({ method: 'POST', body: JSON.stringify(payload) })
+      );
+      if (!res.ok && res.status !== 409) throw new Error(`Add dependency failed (${res.status})`);
+      const next = await res.json();
+      setBoard(next);
+      await reloadAudit();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeDependency = async (id) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/execution-board/dependencies/${id}`, withInternalHeaders({ method: 'DELETE' }));
+      if (!res.ok) throw new Error(`Delete dependency failed (${res.status})`);
+      const next = await res.json();
+      setBoard(next);
+      await reloadAudit();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="p-6 space-y-6">
       <header className="space-y-1">
-        <h1 className="text-3xl font-semibold">Execution board</h1>
+        <h1 className="text-3xl font-semibold text-gray-900">Execution Board</h1>
         <p className="text-gray-600">
-          One place to see gates → epics → slices → dependency blockers.
-          {board?.updatedAt ? ` Updated ${new Date(board.updatedAt).toLocaleString()}.` : ''}
+          This is the dependency rail made visible: epics, gates, slices, blockers, and change history.
         </p>
+        <div className="text-xs text-gray-500">
+          {board?.updatedAt ? `Seed updated: ${board.updatedAt}` : ''} {saving ? ' • Saving…' : ''}
+        </div>
       </header>
 
+      {loading && <p className="text-gray-600">Loading execution board…</p>}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded p-3 text-sm flex items-start justify-between gap-3">
-          <span className="flex-1">{error}</span>
-          <button
-            type="button"
-            className="text-red-700 hover:text-red-900 text-xs font-medium"
-            onClick={() => setError(null)}
-          >
-            Dismiss
-          </button>
-        </div>
+        <p className="text-red-600" role="alert">
+          {error.message}
+        </p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Backlog</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{stats.backlog}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Planned</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{stats.planned}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">In progress</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{stats.inProgress}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Done</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{stats.done}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Blocked</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{stats.blocked}</CardContent>
-        </Card>
+      {!loading && board && (
+        <>
+          <div className="grid gap-3 md:grid-cols-5">
+            {gates.map((g) => (
+              <div key={g.gate} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500">{g.gate}</div>
+                    <div className="text-sm font-semibold text-gray-900">{g.purpose}</div>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900">{percentDone(g.checklist)}%</div>
+                </div>
+                <div className="mt-2 h-2 w-full rounded-full bg-gray-100">
+                  <div
+                    className="h-2 rounded-full bg-gray-900"
+                    style={{ width: `${percentDone(g.checklist)}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-gray-500">Status: {g.status}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <TabButton active={tab === 'epics'} onClick={() => setTab('epics')}>Epics</TabButton>
+            <TabButton active={tab === 'gates'} onClick={() => setTab('gates')}>Gates</TabButton>
+            <TabButton active={tab === 'slices'} onClick={() => setTab('slices')}>Slices</TabButton>
+            <TabButton active={tab === 'dependencies'} onClick={() => setTab('dependencies')}>Dependencies</TabButton>
+            <TabButton active={tab === 'audit'} onClick={() => setTab('audit')}>Audit</TabButton>
+            <div className="flex-1" />
+            {tab === 'epics' && (
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full md:w-72 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                placeholder="Search epics…"
+              />
+            )}
+            <button
+              type="button"
+              onClick={reloadBoard}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {tab === 'epics' && (
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-x-auto">
+              <table className="min-w-[1100px] w-full text-sm">
+                <thead className="bg-gray-50 text-gray-600">
+                  <tr>
+                    <th className="text-left px-3 py-2">ID</th>
+                    <th className="text-left px-3 py-2">Workstream</th>
+                    <th className="text-left px-3 py-2">Tag</th>
+                    <th className="text-left px-3 py-2">Rail</th>
+                    <th className="text-left px-3 py-2">Gates</th>
+                    <th className="text-left px-3 py-2">Status</th>
+                    <th className="text-left px-3 py-2">Rail priority</th>
+                    <th className="text-left px-3 py-2">Blocked</th>
+                    <th className="text-left px-3 py-2">Owner</th>
+                    <th className="text-left px-3 py-2">DoD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEpics.map((e) => (
+                    <tr key={e.id} className="border-t border-gray-100 align-top">
+                      <td className="px-3 py-2 font-semibold text-gray-900 whitespace-nowrap">{e.id}</td>
+                      <td className="px-3 py-2 text-gray-900 min-w-[260px]">{e.workstream}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{e.tag}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{e.railSegment}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{e.gates}</td>
+                      <td className="px-3 py-2">
+                        <select
+                          value={e.status}
+                          onChange={(ev) => patchEpic(e.id, { status: ev.target.value })}
+                          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
+                        >
+                          {STATUS_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(e.railPriority)}
+                          onChange={(ev) => patchEpic(e.id, { railPriority: ev.target.checked })}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={e.blocked ? 'text-red-700 font-semibold' : 'text-gray-500'}>
+                          {e.blocked ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          defaultValue={e.ownerRole || ''}
+                          onBlur={(ev) => {
+                            const value = ev.target.value.trim();
+                            if (value !== (e.ownerRole || '')) patchEpic(e.id, { ownerRole: value });
+                          }}
+                          className="w-36 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
+                          placeholder="Owner"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 min-w-[280px]">{e.dod}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {tab === 'gates' && (
+            <div className="grid gap-4 md:grid-cols-2">
+              {gates.map((g) => (
+                <div key={g.gate} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">{g.gate}: {g.purpose}</h2>
+                      <div className="text-xs text-gray-500">Owner: {g.ownerRole || '—'} • Depends on: {g.dependsOn || '—'}</div>
+                    </div>
+                    <select
+                      value={g.status}
+                      onChange={(ev) => patchGate(g.gate, { status: ev.target.value })}
+                      className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
+                    >
+                      {['Planned', 'In Progress', 'Blocked', 'Done'].map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <ul className="mt-4 space-y-2">
+                    {(g.checklist || []).map((item) => (
+                      <li key={item.id} className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(item.done)}
+                          onChange={(ev) => {
+                            const next = (g.checklist || []).map((i) =>
+                              i.id === item.id ? { ...i, done: ev.target.checked } : i
+                            );
+                            patchGate(g.gate, { checklist: next });
+                          }}
+                        />
+                        <span className={item.done ? 'text-gray-500 line-through' : 'text-gray-800'}>
+                          {item.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === 'slices' && (
+            <SlicesTab
+              slices={slices}
+              epics={epicOptions}
+              gates={gateOptions}
+              onPatch={patchSlice}
+              onCreate={createNewSlice}
+            />
+          )}
+
+          {tab === 'dependencies' && (
+            <DependenciesTab
+              dependencies={dependencies}
+              epics={epicOptions}
+              onAdd={addDependency}
+              onRemove={removeDependency}
+            />
+          )}
+
+          {tab === 'audit' && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900">Change history</h2>
+              <p className="text-sm text-gray-600">Latest updates across epics, gates, slices, and dependencies.</p>
+              <ul className="mt-4 space-y-2">
+                {audit.map((row) => (
+                  <li key={row.id} className="rounded-lg bg-slate-50 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-gray-900">
+                        {row.entity} {row.entityId} — {row.action}
+                      </div>
+                      <div className="text-xs text-gray-500">{new Date(row.createdAt).toLocaleString()}</div>
+                    </div>
+                    {row.actor && <div className="text-xs text-gray-500">Actor: {row.actor}</div>}
+                    {row.patch && (
+                      <pre className="mt-2 overflow-x-auto text-xs text-gray-700">{JSON.stringify(row.patch, null, 2)}</pre>
+                    )}
+                  </li>
+                ))}
+                {audit.length === 0 && <li className="text-sm text-gray-500">No audit entries yet.</li>}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function SlicesTab({ slices, epics, gates, onPatch, onCreate }) {
+  const [draft, setDraft] = useState({
+    id: '',
+    outcome: '',
+    primaryEpic: epics[0]?.id || '',
+    gate: gates[0] || '',
+    status: 'Backlog',
+    owner: ''
+  });
+
+  useEffect(() => {
+    if (!draft.primaryEpic && epics[0]?.id) setDraft((d) => ({ ...d, primaryEpic: epics[0].id }));
+    if (!draft.gate && gates[0]) setDraft((d) => ({ ...d, gate: gates[0] }));
+  }, [epics, gates]);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">Create slice</h2>
+        <div className="mt-3 grid gap-3 md:grid-cols-6">
+          <input
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            placeholder="ID (e.g. S11)"
+            value={draft.id}
+            onChange={(e) => setDraft((d) => ({ ...d, id: e.target.value }))}
+          />
+          <input
+            className="md:col-span-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            placeholder="Outcome"
+            value={draft.outcome}
+            onChange={(e) => setDraft((d) => ({ ...d, outcome: e.target.value }))}
+          />
+          <select
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            value={draft.primaryEpic}
+            onChange={(e) => setDraft((d) => ({ ...d, primaryEpic: e.target.value }))}
+          >
+            {epics.map((e) => (
+              <option key={e.id} value={e.id}>{e.label}</option>
+            ))}
+          </select>
+          <select
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            value={draft.gate}
+            onChange={(e) => setDraft((d) => ({ ...d, gate: e.target.value }))}
+          >
+            {gates.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              const id = draft.id.trim();
+              const outcome = draft.outcome.trim();
+              if (!id || !outcome) return;
+              onCreate({
+                id,
+                outcome,
+                primaryEpic: draft.primaryEpic,
+                gate: draft.gate,
+                status: draft.status,
+                owner: draft.owner
+              });
+              setDraft((d) => ({ ...d, id: '', outcome: '' }));
+            }}
+            className="rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+          >
+            Create
+          </button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Gate progress</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {(board?.gates || []).map((g) => (
-            <div key={g.gate} className="border rounded-lg p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">{g.gate}</div>
-                <Badge variant={statusBadgeVariant(g.status)}>{g.status}</Badge>
-              </div>
-              <div className="text-xs text-gray-600">{g.purpose}</div>
-              <Progress value={Math.round((g.progress || 0) * 100)} />
-              <div className="text-xs text-gray-600">
-                {g.checked ?? 0}/{g.total ?? 0} checklist items
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-x-auto">
+        <table className="min-w-[1000px] w-full text-sm">
+          <thead className="bg-gray-50 text-gray-600">
+            <tr>
+              <th className="text-left px-3 py-2">ID</th>
+              <th className="text-left px-3 py-2">Outcome</th>
+              <th className="text-left px-3 py-2">Epic</th>
+              <th className="text-left px-3 py-2">Gate</th>
+              <th className="text-left px-3 py-2">Status</th>
+              <th className="text-left px-3 py-2">Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            {slices.map((s) => (
+              <tr key={s.id} className="border-t border-gray-100">
+                <td className="px-3 py-2 font-semibold text-gray-900 whitespace-nowrap">{s.id}</td>
+                <td className="px-3 py-2 text-gray-900 min-w-[300px]">{s.outcome}</td>
+                <td className="px-3 py-2">
+                  <select
+                    value={s.primaryEpic || ''}
+                    onChange={(e) => onPatch(s.id, { primaryEpic: e.target.value })}
+                    className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
+                  >
+                    <option value="">—</option>
+                    {epics.map((e) => (
+                      <option key={e.id} value={e.id}>{e.label}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-2">
+                  <select
+                    value={s.gate || ''}
+                    onChange={(e) => onPatch(s.id, { gate: e.target.value })}
+                    className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
+                  >
+                    <option value="">—</option>
+                    {gates.map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-2">
+                  <select
+                    value={s.status}
+                    onChange={(e) => onPatch(s.id, { status: e.target.value })}
+                    className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-2">
+                  <input
+                    defaultValue={s.owner || ''}
+                    onBlur={(e) => {
+                      const value = e.target.value.trim();
+                      if (value !== (s.owner || '')) onPatch(s.id, { owner: value });
+                    }}
+                    className="w-40 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
+                    placeholder="Owner"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Epics</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <Input placeholder="Search epics…" value={search} onChange={(e) => setSearch(e.target.value)} />
+function DependenciesTab({ dependencies, epics, onAdd, onRemove }) {
+  const [fromEpic, setFromEpic] = useState(epics[0]?.id || '');
+  const [toEpic, setToEpic] = useState(epics[1]?.id || '');
+  const [notes, setNotes] = useState('');
 
-            <Select value={tag} onValueChange={setTag}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tag" />
-              </SelectTrigger>
-              <SelectContent>
-                {TAGS.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  useEffect(() => {
+    if (!fromEpic && epics[0]?.id) setFromEpic(epics[0].id);
+    if (!toEpic && epics[1]?.id) setToEpic(epics[1].id);
+  }, [epics]);
 
-            <Select value={segment} onValueChange={setSegment}>
-              <SelectTrigger>
-                <SelectValue placeholder="Rail segment" />
-              </SelectTrigger>
-              <SelectContent>
-                {segments.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">Add dependency</h2>
+        <div className="mt-3 grid gap-3 md:grid-cols-4">
+          <select
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            value={fromEpic}
+            onChange={(e) => setFromEpic(e.target.value)}
+          >
+            {epics.map((e) => (
+              <option key={e.id} value={e.id}>{e.label}</option>
+            ))}
+          </select>
+          <select
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            value={toEpic}
+            onChange={(e) => setToEpic(e.target.value)}
+          >
+            {epics.map((e) => (
+              <option key={e.id} value={e.id}>{e.label}</option>
+            ))}
+          </select>
+          <input
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            placeholder="Notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (!fromEpic || !toEpic || fromEpic === toEpic) return;
+              onAdd({ fromEpic, toEpic, type: 'blocks', notes: notes.trim() });
+              setNotes('');
+            }}
+            className="rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+          >
+            Add
+          </button>
+        </div>
+      </div>
 
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">ID</TableHead>
-                  <TableHead>Workstream</TableHead>
-                  <TableHead className="w-[140px]">Tag</TableHead>
-                  <TableHead className="w-[140px]">Segment</TableHead>
-                  <TableHead className="w-[160px]">Owner</TableHead>
-                  <TableHead className="w-[140px]">Status</TableHead>
-                  <TableHead className="w-[120px]">Blocked</TableHead>
-                  <TableHead className="w-[130px]">Rail priority</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-8 text-center text-gray-600">Loading…</TableCell>
-                  </TableRow>
-                ) : filteredEpics.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-8 text-center text-gray-600">No epics match your filters.</TableCell>
-                  </TableRow>
-                ) : (
-                  filteredEpics.map((e) => (
-                    <TableRow key={e.id}>
-                      <TableCell className="font-mono text-sm">{e.id}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{e.workstream}</div>
-                        {e.nextMilestone ? (
-                          <div className="text-xs text-gray-600 line-clamp-2">{e.nextMilestone}</div>
-                        ) : null}
-                      </TableCell>
-                      <TableCell><Badge variant="outline">{e.tag}</Badge></TableCell>
-                      <TableCell>{e.railSegment}</TableCell>
-                      <TableCell className="text-sm text-gray-700">{e.ownerRole}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={e.status}
-                          onValueChange={async (value) => {
-                            try {
-                              await updateEpic(e.id, { status: value });
-                            } catch (err) {
-                              setError(err?.message || 'Failed to update status');
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUSES.filter((s) => s !== 'All').map((s) => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        {e.blocked ? (
-                          <div className="text-xs text-red-700">
-                            Blocked by {e.blockedBy?.join(', ') || 'unknown'}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-600">—</div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={Boolean(e.railPriority)}
-                            onCheckedChange={async (checked) => {
-                              try {
-                                await updateEpic(e.id, { railPriority: checked });
-                              } catch (err) {
-                                setError(err?.message || 'Failed to update rail priority');
-                              }
-                            }}
-                          />
-                          <span className="text-xs text-gray-600">{e.railPriority ? 'Yes' : 'No'}</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-x-auto">
+        <table className="min-w-[900px] w-full text-sm">
+          <thead className="bg-gray-50 text-gray-600">
+            <tr>
+              <th className="text-left px-3 py-2">ID</th>
+              <th className="text-left px-3 py-2">From</th>
+              <th className="text-left px-3 py-2">To</th>
+              <th className="text-left px-3 py-2">Type</th>
+              <th className="text-left px-3 py-2">Notes</th>
+              <th className="text-left px-3 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dependencies.map((d) => (
+              <tr key={d.id} className="border-t border-gray-100">
+                <td className="px-3 py-2 font-semibold text-gray-900">{d.id}</td>
+                <td className="px-3 py-2">{d.fromEpic}</td>
+                <td className="px-3 py-2">{d.toEpic}</td>
+                <td className="px-3 py-2">{d.type}</td>
+                <td className="px-3 py-2 text-gray-700">{d.notes}</td>
+                <td className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => onRemove(d.id)}
+                    className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
