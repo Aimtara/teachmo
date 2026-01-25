@@ -4,10 +4,12 @@ import { useAuthenticationStatus } from '@nhost/react';
 import { API_BASE_URL } from '@/config/api';
 
 const INTERNAL_KEY = import.meta.env.VITE_INTERNAL_API_KEY || '';
+const WIP_LIMIT = 5;
 
-function withInternalHeaders(init = {}) {
+function withInternalHeaders(init = {}, actor) {
   const headers = new Headers(init.headers || {});
   if (INTERNAL_KEY) headers.set('x-internal-key', INTERNAL_KEY);
+  if (actor) headers.set('x-actor', actor);
   headers.set('content-type', 'application/json');
   return { ...init, headers };
 }
@@ -19,6 +21,30 @@ function percentDone(checklist = []) {
   if (items.length === 0) return 0;
   const done = items.filter((i) => i?.done).length;
   return Math.round((done / items.length) * 100);
+}
+
+function toCsv(rows, columns) {
+  const escape = (value) => {
+    if (value === null || value === undefined) return '';
+    const s = typeof value === 'string' ? value : JSON.stringify(value);
+    const needsQuotes = /[",\n\r]/.test(s);
+    const escaped = s.replace(/"/g, '""');
+    return needsQuotes ? `"${escaped}"` : escaped;
+  };
+
+  const header = columns.join(',');
+  const lines = rows.map((row) => columns.map((c) => escape(row?.[c])).join(','));
+  return [header, ...lines].join('\n');
+}
+
+function downloadCsv(filename, csvText) {
+  const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function TabButton({ active, onClick, children }) {
@@ -47,6 +73,8 @@ export default function AdminExecutionBoard() {
   const [error, setError] = useState(null);
   const [board, setBoard] = useState(null);
   const [audit, setAudit] = useState([]);
+  const [orchestratorActions, setOrchestratorActions] = useState([]);
+  const [opsLoading, setOpsLoading] = useState(false);
   const [query, setQuery] = useState('');
 
   const reloadBoard = async () => {
@@ -75,16 +103,37 @@ export default function AdminExecutionBoard() {
     }
   };
 
+  const reloadOrchestrator = async () => {
+    setOpsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/execution-board/orchestrator-actions?limit=100`, withInternalHeaders());
+      if (!res.ok) throw new Error(`Failed to load ops (${res.status})`);
+      const payload = await res.json();
+      setOrchestratorActions(payload.rows || []);
+    } catch (err) {
+      console.warn('Ops load failed', err);
+    } finally {
+      setOpsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) return;
     reloadBoard();
     reloadAudit();
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated || tab !== 'ops') return;
+    reloadOrchestrator();
+  }, [isAuthenticated, tab]);
+
   const epics = board?.epics || [];
   const gates = board?.gates || [];
   const slices = board?.slices || [];
   const dependencies = board?.dependencies || [];
+  const railPriorityCount = epics.filter((e) => Boolean(e.railPriority)).length;
+  const wipOverLimit = railPriorityCount > WIP_LIMIT;
 
   const epicOptions = useMemo(() => epics.map((e) => ({ id: e.id, label: `${e.id} — ${e.workstream}` })), [epics]);
   const gateOptions = useMemo(() => gates.map((g) => g.gate), [gates]);
@@ -107,7 +156,7 @@ export default function AdminExecutionBoard() {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/execution-board/epics/${id}`,
-        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) })
+        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) }, 'system_admin')
       );
       if (!res.ok) throw new Error(`Update failed (${res.status})`);
       const next = await res.json();
@@ -124,7 +173,7 @@ export default function AdminExecutionBoard() {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/execution-board/gates/${gate}`,
-        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) })
+        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) }, 'system_admin')
       );
       if (!res.ok) throw new Error(`Update failed (${res.status})`);
       const next = await res.json();
@@ -141,7 +190,7 @@ export default function AdminExecutionBoard() {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/execution-board/slices/${id}`,
-        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) })
+        withInternalHeaders({ method: 'PATCH', body: JSON.stringify(patch) }, 'system_admin')
       );
       if (!res.ok) throw new Error(`Update failed (${res.status})`);
       const next = await res.json();
@@ -158,7 +207,7 @@ export default function AdminExecutionBoard() {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/execution-board/slices`,
-        withInternalHeaders({ method: 'POST', body: JSON.stringify(payload) })
+        withInternalHeaders({ method: 'POST', body: JSON.stringify(payload) }, 'system_admin')
       );
       if (!res.ok) throw new Error(`Create failed (${res.status})`);
       const next = await res.json();
@@ -175,7 +224,7 @@ export default function AdminExecutionBoard() {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/execution-board/dependencies`,
-        withInternalHeaders({ method: 'POST', body: JSON.stringify(payload) })
+        withInternalHeaders({ method: 'POST', body: JSON.stringify(payload) }, 'system_admin')
       );
       if (!res.ok && res.status !== 409) throw new Error(`Add dependency failed (${res.status})`);
       const next = await res.json();
@@ -191,10 +240,41 @@ export default function AdminExecutionBoard() {
   const removeDependency = async (id) => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/execution-board/dependencies/${id}`, withInternalHeaders({ method: 'DELETE' }));
+      const res = await fetch(
+        `${API_BASE_URL}/execution-board/dependencies/${id}`,
+        withInternalHeaders({ method: 'DELETE' }, 'system_admin')
+      );
       if (!res.ok) throw new Error(`Delete dependency failed (${res.status})`);
       const next = await res.json();
       setBoard(next);
+      await reloadAudit();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const exportBackendCsv = async (entity) => {
+    const res = await fetch(
+      `${API_BASE_URL}/execution-board/export?entity=${encodeURIComponent(entity)}&format=csv`,
+      withInternalHeaders()
+    );
+    if (!res.ok) throw new Error(`Export failed (${res.status})`);
+    const text = await res.text();
+    downloadCsv(`teachmo_${entity}.csv`, text);
+  };
+
+  const queueOrchestratorAction = async ({ actionType, entityType, entityId, payload }) => {
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/execution-board/orchestrator-actions`,
+        withInternalHeaders({ method: 'POST', body: JSON.stringify({ actionType, entityType, entityId, payload }) }, 'system_admin')
+      );
+      if (!res.ok) throw new Error(`Queue action failed (${res.status})`);
+      await res.json();
+      await reloadOrchestrator();
       await reloadAudit();
     } catch (err) {
       setError(err);
@@ -210,6 +290,9 @@ export default function AdminExecutionBoard() {
         <p className="text-gray-600">
           This is the dependency rail made visible: epics, gates, slices, blockers, and change history.
         </p>
+        <div className="text-sm text-gray-600">
+          Rail priorities: <span className={wipOverLimit ? 'font-semibold text-red-700' : 'font-semibold'}>{railPriorityCount}</span> / {WIP_LIMIT}
+        </div>
         <div className="text-xs text-gray-500">
           {board?.updatedAt ? `Seed updated: ${board.updatedAt}` : ''} {saving ? ' • Saving…' : ''}
         </div>
@@ -251,6 +334,8 @@ export default function AdminExecutionBoard() {
             <TabButton active={tab === 'slices'} onClick={() => setTab('slices')}>Slices</TabButton>
             <TabButton active={tab === 'dependencies'} onClick={() => setTab('dependencies')}>Dependencies</TabButton>
             <TabButton active={tab === 'audit'} onClick={() => setTab('audit')}>Audit</TabButton>
+            <TabButton active={tab === 'ops'} onClick={() => setTab('ops')}>Ops</TabButton>
+            <TabButton active={tab === 'exports'} onClick={() => setTab('exports')}>Exports</TabButton>
             <div className="flex-1" />
             {tab === 'epics' && (
               <input
@@ -259,6 +344,40 @@ export default function AdminExecutionBoard() {
                 className="w-full md:w-72 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
                 placeholder="Search epics…"
               />
+            )}
+            {tab === 'epics' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => exportBackendCsv('epics')}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Export epics (backend)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const csv = toCsv(filteredEpics, [
+                      'id',
+                      'workstream',
+                      'tag',
+                      'railSegment',
+                      'ownerRole',
+                      'status',
+                      'blocked',
+                      'gates',
+                      'railPriority',
+                      'nextMilestone',
+                      'dod',
+                      'notes'
+                    ]);
+                    downloadCsv('execution_epics_local.csv', csv);
+                  }}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Export epics (local)
+                </button>
+              </>
             )}
             <button
               type="button"
@@ -283,6 +402,7 @@ export default function AdminExecutionBoard() {
                     <th className="text-left px-3 py-2">Rail priority</th>
                     <th className="text-left px-3 py-2">Blocked</th>
                     <th className="text-left px-3 py-2">Owner</th>
+                    <th className="text-left px-3 py-2">Ops</th>
                     <th className="text-left px-3 py-2">DoD</th>
                   </tr>
                 </thead>
@@ -309,7 +429,15 @@ export default function AdminExecutionBoard() {
                         <input
                           type="checkbox"
                           checked={Boolean(e.railPriority)}
-                          onChange={(ev) => patchEpic(e.id, { railPriority: ev.target.checked })}
+                          onChange={(ev) => {
+                            const nextValue = ev.target.checked;
+                            const isEnabling = nextValue && !e.railPriority;
+                            if (isEnabling && railPriorityCount >= WIP_LIMIT) {
+                              setError(new Error(`WIP limit reached (${WIP_LIMIT}). Finish a priority before adding another.`));
+                              return;
+                            }
+                            patchEpic(e.id, { railPriority: nextValue });
+                          }}
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -327,6 +455,46 @@ export default function AdminExecutionBoard() {
                           className="w-36 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
                           placeholder="Owner"
                         />
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => queueOrchestratorAction({
+                              actionType: 'RUNBOOK_CREATE',
+                              entityType: 'epic',
+                              entityId: e.id,
+                              payload: { workstream: e.workstream, tag: e.tag }
+                            })}
+                            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                          >
+                            Runbook
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => queueOrchestratorAction({
+                              actionType: 'ESCALATE',
+                              entityType: 'epic',
+                              entityId: e.id,
+                              payload: { reason: 'Needs attention' }
+                            })}
+                            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                          >
+                            Escalate
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => queueOrchestratorAction({
+                              actionType: 'ROLLBACK',
+                              entityType: 'epic',
+                              entityId: e.id,
+                              payload: { hint: 'Feature-flag rollback or revert deploy' }
+                            })}
+                            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                          >
+                            Rollback
+                          </button>
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-gray-700 min-w-[280px]">{e.dod}</td>
                     </tr>
@@ -403,6 +571,18 @@ export default function AdminExecutionBoard() {
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900">Change history</h2>
               <p className="text-sm text-gray-600">Latest updates across epics, gates, slices, and dependencies.</p>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const csv = toCsv(audit, ['id', 'entity', 'entityId', 'action', 'actor', 'createdAt', 'patch']);
+                    downloadCsv('execution_audit_local.csv', csv);
+                  }}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Export audit (local)
+                </button>
+              </div>
               <ul className="mt-4 space-y-2">
                 {audit.map((row) => (
                   <li key={row.id} className="rounded-lg bg-slate-50 p-3">
@@ -420,6 +600,166 @@ export default function AdminExecutionBoard() {
                 ))}
                 {audit.length === 0 && <li className="text-sm text-gray-500">No audit entries yet.</li>}
               </ul>
+            </div>
+          )}
+
+          {tab === 'ops' && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Orchestrator queue</h2>
+                  <p className="text-sm text-gray-600">Queued runbooks, escalations, and rollbacks.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={reloadOrchestrator}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Refresh
+                </button>
+              </div>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const csv = toCsv(orchestratorActions, [
+                      'id',
+                      'actionType',
+                      'entityType',
+                      'entityId',
+                      'requestedBy',
+                      'status',
+                      'createdAt',
+                      'payload',
+                      'result'
+                    ]);
+                    downloadCsv('execution_orchestrator_local.csv', csv);
+                  }}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Export ops (local)
+                </button>
+              </div>
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-[900px] w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-600">
+                    <tr>
+                      <th className="text-left px-3 py-2">ID</th>
+                      <th className="text-left px-3 py-2">Action</th>
+                      <th className="text-left px-3 py-2">Entity</th>
+                      <th className="text-left px-3 py-2">Status</th>
+                      <th className="text-left px-3 py-2">Requested</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orchestratorActions.map((row) => (
+                      <tr key={row.id} className="border-t border-gray-100">
+                        <td className="px-3 py-2 font-semibold text-gray-900">{row.id}</td>
+                        <td className="px-3 py-2">{row.actionType}</td>
+                        <td className="px-3 py-2">{row.entityType}:{row.entityId}</td>
+                        <td className="px-3 py-2">{row.status}</td>
+                        <td className="px-3 py-2 text-gray-600 text-xs">
+                          {row.createdAt ? new Date(row.createdAt).toLocaleString() : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                    {orchestratorActions.length === 0 && !opsLoading && (
+                      <tr>
+                        <td className="px-3 py-2 text-gray-500" colSpan={5}>No orchestrator actions yet.</td>
+                      </tr>
+                    )}
+                    {opsLoading && (
+                      <tr>
+                        <td className="px-3 py-2 text-gray-500" colSpan={5}>Loading ops…</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {tab === 'exports' && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">CSV exports</h2>
+                <p className="text-sm text-gray-600">
+                  Export from the backend API or download the exact rows currently shown.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-semibold text-gray-700">Backend exports</div>
+                <div className="flex flex-wrap gap-2">
+                  {['epics', 'gates', 'slices', 'dependencies'].map((entity) => (
+                    <button
+                      key={entity}
+                      type="button"
+                      onClick={() => exportBackendCsv(entity)}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      Export {entity}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-semibold text-gray-700">Local exports</div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const csv = toCsv(epics, [
+                        'id',
+                        'workstream',
+                        'tag',
+                        'railSegment',
+                        'ownerRole',
+                        'status',
+                        'blocked',
+                        'gates',
+                        'railPriority',
+                        'nextMilestone',
+                        'dod',
+                        'notes'
+                      ]);
+                      downloadCsv('execution_epics_local.csv', csv);
+                    }}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Local epics
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const csv = toCsv(gates, ['gate', 'purpose', 'status', 'progress', 'ownerRole', 'dependsOn', 'targetWindow', 'checklist']);
+                      downloadCsv('execution_gates_local.csv', csv);
+                    }}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Local gates
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const csv = toCsv(slices, ['id', 'outcome', 'primaryEpic', 'gate', 'status', 'owner', 'dependsOn', 'inputs', 'deliverables', 'acceptance']);
+                      downloadCsv('execution_slices_local.csv', csv);
+                    }}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Local slices
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const csv = toCsv(dependencies, ['id', 'fromEpic', 'toEpic', 'type', 'notes']);
+                      downloadCsv('execution_dependencies_local.csv', csv);
+                    }}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Local dependencies
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </>
