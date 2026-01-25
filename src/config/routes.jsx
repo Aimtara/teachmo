@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 
-const ENABLE_INTERNAL_ROUTES = import.meta.env.VITE_ENABLE_INTERNAL_ROUTES === 'true';
+// Internal routes are dev-friendly by default, but can be explicitly enabled in production.
+const ENABLE_INTERNAL_ROUTES = import.meta.env.DEV || import.meta.env.VITE_ENABLE_INTERNAL_ROUTES === 'true';
 
 export const ROUTE_DEFINITIONS = [
   {
