@@ -1,5 +1,8 @@
 /* eslint-env node */
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import {
   ensureExecutionBoardReady,
   getExecutionBoard,
@@ -16,12 +19,47 @@ import {
 
 const router = express.Router();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_PATH = path.join(__dirname, '..', 'data', 'executionBoard.json');
+
+let cache = null;
+let cacheMtimeMs = 0;
+
+function loadBoardSnapshot() {
+  const stat = fs.statSync(DATA_PATH);
+  if (!cache || stat.mtimeMs !== cacheMtimeMs) {
+    const raw = fs.readFileSync(DATA_PATH, 'utf-8');
+    cache = JSON.parse(raw);
+    cacheMtimeMs = stat.mtimeMs;
+  }
+  return cache;
+}
+
 function requireInternalKey(req, res, next) {
   const required = process.env.INTERNAL_API_KEY;
   if (!required) return next();
   const provided = req.header('x-internal-key');
   if (provided && provided === required) return next();
   return res.status(401).json({ error: 'Unauthorized' });
+}
+
+const publicSections = new Set([
+  'epics',
+  'gates',
+  'slices',
+  'dependencies',
+  'metrics',
+  'pilotMetrics',
+  'decisionLog'
+]);
+
+function isPublicSnapshotRequest(req) {
+  if (req.method !== 'GET') return false;
+  if (req.path === '/') return true;
+  const match = req.path.match(/^\/([^/]+)$/);
+  if (!match) return false;
+  return publicSections.has(match[1]);
 }
 
 function actorFromReq(req) {
@@ -42,7 +80,22 @@ function toCsv(rows, columns) {
   return [header, ...lines].join('\n');
 }
 
-router.use(requireInternalKey);
+router.use((req, res, next) => {
+  if (isPublicSnapshotRequest(req)) return next();
+  return requireInternalKey(req, res, next);
+});
+
+router.get('/', (req, res) => {
+  try {
+    const board = loadBoardSnapshot();
+    res.json(board);
+  } catch (err) {
+    res.status(500).json({
+      error: 'execution_board_unavailable',
+      message: err.message
+    });
+  }
+});
 
 router.get('/board', async (req, res) => {
   const dbReady = await ensureExecutionBoardReady();
@@ -204,6 +257,34 @@ router.get('/export', async (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(csv);
+});
+
+router.get('/:section', (req, res) => {
+  try {
+    const board = loadBoardSnapshot();
+    const { section } = req.params;
+    const sectionMap = {
+      epics: 'epics',
+      gates: 'gates',
+      slices: 'slices',
+      dependencies: 'dependencies',
+      metrics: 'pilotMetrics',
+      pilotMetrics: 'pilotMetrics',
+      decisionLog: 'decisionLog'
+    };
+
+    const key = sectionMap[section];
+    if (!key) {
+      return res.status(404).json({ error: 'not_found', message: 'Unknown section' });
+    }
+
+    res.json({ [key]: board[key], generatedAt: board.generatedAt, source: board.source });
+  } catch (err) {
+    res.status(500).json({
+      error: 'execution_board_unavailable',
+      message: err.message
+    });
+  }
 });
 
 export const executionBoardRouter = router;
