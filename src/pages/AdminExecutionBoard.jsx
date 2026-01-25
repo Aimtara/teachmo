@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
 import { API_BASE_URL } from '@/config/api';
 
@@ -76,6 +76,7 @@ export default function AdminExecutionBoard() {
   const [orchestratorActions, setOrchestratorActions] = useState([]);
   const [opsLoading, setOpsLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const [searchParams] = useSearchParams();
 
   const reloadBoard = async () => {
     setLoading(true);
@@ -119,9 +120,11 @@ export default function AdminExecutionBoard() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    const q = searchParams.get('q');
+    if (q) setQuery(q);
     reloadBoard();
     reloadAudit();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, searchParams]);
 
   useEffect(() => {
     if (!isAuthenticated || tab !== 'ops') return;
