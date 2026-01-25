@@ -11,7 +11,7 @@
     "lint:barrel": "eslint src --ext .js,.jsx,.ts,.tsx --config eslint.barrel.config.js",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "jest",
-    "test:backend": "jest backend/__tests__ --env=node",
+    "test:backend": "jest --config jest.backend.config.cjs",
     "test:watch": "jest --watch",
     "test:a11y": "jest --testPathPattern=a11y",
     "backend:check": "node --check backend/routes/ops.js",

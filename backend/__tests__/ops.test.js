@@ -54,10 +54,13 @@ describe('Ops router', () => {
   });
 
   test('returns health snapshot shape', async () => {
-    // daily snapshots table exists?
     query
+      // tableExists('orchestrator_daily_snapshots')
+      .mockResolvedValueOnce({ rows: [{ reg: 'orchestrator_daily_snapshots' }] })
       // daily query
       .mockResolvedValueOnce({ rows: [{ day: '2026-01-24', ingests: 1 }] })
+      // tableExists('orchestrator_hourly_snapshots')
+      .mockResolvedValueOnce({ rows: [{ reg: 'orchestrator_hourly_snapshots' }] })
       // hourly query
       .mockResolvedValueOnce({ rows: [{ hour: '2026-01-24T00:00:00Z', ingests: 1 }] });
 
@@ -69,6 +72,8 @@ describe('Ops router', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('daily');
     expect(res.body).toHaveProperty('hourly');
+    expect(res.body.daily).not.toBeNull();
     expect(Array.isArray(res.body.hourly)).toBe(true);
+    expect(res.body.hourly).toHaveLength(1);
   });
 });
