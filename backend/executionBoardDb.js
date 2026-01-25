@@ -2,8 +2,20 @@
 import { query } from './db.js';
 import { executionBoardSeed } from './executionBoardSeedData.js';
 
+const WIP_LIMIT = 5;
+
 function nowIso() {
   return new Date().toISOString();
+}
+
+function computeGateProgress(checklist = []) {
+  const items = Array.isArray(checklist) ? checklist : [];
+  if (items.length === 0) return { progress: 0, doneCount: 0 };
+  const doneCount = items.filter((i) => Boolean(i?.done)).length;
+  return {
+    progress: Math.round((doneCount / items.length) * 100),
+    doneCount
+  };
 }
 
 export async function ensureExecutionBoardReady() {
@@ -80,6 +92,21 @@ export async function ensureExecutionBoardReady() {
         patch JSONB,
         actor TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS execution_orchestrator_actions (
+        id BIGSERIAL PRIMARY KEY,
+        action_type TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        requested_by TEXT,
+        status TEXT NOT NULL DEFAULT 'queued',
+        payload JSONB,
+        result JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
 
@@ -189,6 +216,10 @@ export async function getExecutionBoard(dbReady = true) {
     return {
       ...executionBoardSeed,
       epics: executionBoardSeed.epics.map((e) => ({ ...e, blocked: false })),
+      gates: executionBoardSeed.gates.map((g) => ({
+        ...g,
+        progress: computeGateProgress(g.checklist).progress
+      })),
       updatedAt: executionBoardSeed.updatedAt
     };
   }
@@ -223,7 +254,8 @@ export async function getExecutionBoard(dbReady = true) {
     ownerRole: r.owner_role || '',
     dependsOn: r.depends_on || '',
     targetWindow: r.target_window || '',
-    status: r.status
+    status: r.status,
+    progress: computeGateProgress(safeParseJson(r.checklist, [])).progress
   }));
 
   const slices = slicesRes.rows.map((r) => ({
@@ -275,6 +307,23 @@ export async function updateEpic(id, patch, actor) {
   const allowed = ['status', 'railPriority', 'notes', 'nextMilestone', 'ownerRole', 'tag', 'railSegment', 'gates'];
   const keys = Object.keys(patch || {}).filter((k) => allowed.includes(k));
   if (keys.length === 0) return false;
+
+  if (Object.prototype.hasOwnProperty.call(patch, 'railPriority')) {
+    const currentRes = await query('SELECT rail_priority FROM execution_epics WHERE id = $1', [id]);
+    const current = currentRes.rows?.[0];
+    if (!current) return false;
+
+    const enabling = Boolean(patch.railPriority) && !current.rail_priority;
+    if (enabling) {
+      const countRes = await query('SELECT COUNT(*)::int AS count FROM execution_epics WHERE rail_priority = TRUE');
+      const count = countRes.rows?.[0]?.count ?? 0;
+      if (count >= WIP_LIMIT) {
+        const error = new Error(`WIP limit reached (${WIP_LIMIT}).`);
+        error.code = 'WIP_LIMIT';
+        throw error;
+      }
+    }
+  }
 
   const fields = [];
   const values = [];
@@ -354,8 +403,19 @@ export async function updateSlice(id, patch, actor) {
 }
 
 export async function updateGate(gate, patch, actor) {
-  const checklist = patch.checklist ? JSON.stringify(patch.checklist) : null;
-  const status = patch.status;
+  const hasChecklist = Object.prototype.hasOwnProperty.call(patch, 'checklist');
+  const nextChecklist = hasChecklist ? patch.checklist : null;
+  const checklistJson = hasChecklist ? JSON.stringify(nextChecklist) : null;
+  let status = patch.status;
+
+  if (hasChecklist && Array.isArray(nextChecklist)) {
+    const { doneCount } = computeGateProgress(nextChecklist);
+    if (nextChecklist.length > 0 && doneCount === nextChecklist.length) {
+      status = 'Done';
+    } else if (!status) {
+      status = doneCount > 0 ? 'In Progress' : 'Planned';
+    }
+  }
 
   const res = await query(
     `UPDATE execution_gates
@@ -419,5 +479,44 @@ export async function getExecutionAudit({ limit = 200, entity, entityId } = {}) 
   return res.rows.map((r) => ({
     ...r,
     patch: safeParseJson(r.patch, r.patch)
+  }));
+}
+
+export async function createOrchestratorAction({ actionType, entityType, entityId, payload, requestedBy }) {
+  const res = await query(
+    `INSERT INTO execution_orchestrator_actions
+      (action_type, entity_type, entity_id, requested_by, payload)
+     VALUES ($1,$2,$3,$4,$5::jsonb)
+     RETURNING id, action_type, entity_type, entity_id, requested_by, status, payload, created_at, updated_at`,
+    [actionType, entityType, entityId, requestedBy || null, payload ? JSON.stringify(payload) : null]
+  );
+
+  const row = res.rows?.[0] ?? null;
+  if (row) {
+    await audit('orchestrator_action', String(row.id), 'create', { actionType, entityType, entityId, payload }, requestedBy);
+  }
+  return row;
+}
+
+export async function listOrchestratorActions({ limit = 100 } = {}) {
+  const res = await query(
+    `SELECT id, action_type, entity_type, entity_id, requested_by, status, payload, result, created_at, updated_at
+     FROM execution_orchestrator_actions
+     ORDER BY id DESC
+     LIMIT $1`,
+    [Math.min(Math.max(Number(limit) || 100, 1), 500)]
+  );
+
+  return res.rows.map((row) => ({
+    id: row.id,
+    actionType: row.action_type,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+    requestedBy: row.requested_by,
+    status: row.status,
+    payload: row.payload,
+    result: row.result,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   }));
 }
