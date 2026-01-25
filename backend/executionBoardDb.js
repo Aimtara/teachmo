@@ -498,16 +498,8 @@ export async function createOrchestratorAction({ actionType, entityType, entityI
   return row;
 }
 
-export async function listOrchestratorActions({ limit = 100 } = {}) {
-  const res = await query(
-    `SELECT id, action_type, entity_type, entity_id, requested_by, status, payload, result, created_at, updated_at
-     FROM execution_orchestrator_actions
-     ORDER BY id DESC
-     LIMIT $1`,
-    [Math.min(Math.max(Number(limit) || 100, 1), 500)]
-  );
-
-  return res.rows.map((row) => ({
+function mapOrchestratorActionRow(row) {
+  return {
     id: row.id,
     actionType: row.action_type,
     entityType: row.entity_type,
@@ -518,5 +510,35 @@ export async function listOrchestratorActions({ limit = 100 } = {}) {
     result: row.result,
     createdAt: row.created_at,
     updatedAt: row.updated_at
-  }));
+  };
+}
+
+export async function listOrchestratorActions({ limit = 100 } = {}) {
+  const res = await query(
+    `SELECT id, action_type, entity_type, entity_id, requested_by, status, payload, result, created_at, updated_at
+     FROM execution_orchestrator_actions
+     ORDER BY id DESC
+     LIMIT $1`,
+    [Math.min(Math.max(Number(limit) || 100, 1), 500)]
+  );
+
+  return res.rows.map(mapOrchestratorActionRow);
+}
+
+export async function updateOrchestratorActionStatus({ id, status, result, actor } = {}) {
+  const res = await query(
+    `UPDATE execution_orchestrator_actions
+     SET status = $2,
+         result = COALESCE($3::jsonb, result),
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, action_type, entity_type, entity_id, requested_by, status, payload, result, created_at, updated_at`,
+    [id, status, result ? JSON.stringify(result) : null]
+  );
+
+  const row = res.rows?.[0] ?? null;
+  if (row) {
+    await audit('orchestrator_action', String(row.id), 'status', { status, result }, actor);
+  }
+  return row ? mapOrchestratorActionRow(row) : null;
 }

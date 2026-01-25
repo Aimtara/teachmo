@@ -14,7 +14,8 @@ import {
   deleteDependency,
   getExecutionAudit,
   createOrchestratorAction,
-  listOrchestratorActions
+  listOrchestratorActions,
+  updateOrchestratorActionStatus
 } from '../executionBoardDb.js';
 
 const router = express.Router();
@@ -228,6 +229,58 @@ router.get('/orchestrator-actions', async (req, res) => {
   const limit = req.query.limit ? Number(req.query.limit) : 100;
   const rows = await listOrchestratorActions({ limit });
   res.json({ rows });
+});
+
+router.post('/orchestrator-actions/:id/approve', async (req, res) => {
+  const dbReady = await ensureExecutionBoardReady();
+  if (!dbReady) return res.status(503).json({ error: 'Execution board DB unavailable' });
+
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+
+  const action = await updateOrchestratorActionStatus({
+    id,
+    status: 'approved',
+    actor: actorFromReq(req)
+  });
+
+  if (!action) return res.status(404).json({ error: 'Action not found' });
+  res.json({ action });
+});
+
+router.post('/orchestrator-actions/:id/execute', async (req, res) => {
+  const dbReady = await ensureExecutionBoardReady();
+  if (!dbReady) return res.status(503).json({ error: 'Execution board DB unavailable' });
+
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+
+  const action = await updateOrchestratorActionStatus({
+    id,
+    status: 'running',
+    result: req.body?.result ?? null,
+    actor: actorFromReq(req)
+  });
+
+  if (!action) return res.status(404).json({ error: 'Action not found' });
+  res.json({ action });
+});
+
+router.post('/orchestrator-actions/:id/cancel', async (req, res) => {
+  const dbReady = await ensureExecutionBoardReady();
+  if (!dbReady) return res.status(503).json({ error: 'Execution board DB unavailable' });
+
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+
+  const action = await updateOrchestratorActionStatus({
+    id,
+    status: 'canceled',
+    actor: actorFromReq(req)
+  });
+
+  if (!action) return res.status(404).json({ error: 'Action not found' });
+  res.json({ action });
 });
 
 router.get('/export', async (req, res) => {
