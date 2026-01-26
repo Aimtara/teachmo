@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
 import { API_BASE_URL } from '@/config/api';
 
@@ -30,6 +30,7 @@ function parseChecklist(raw) {
 
 export default function ExecutionBoard() {
   const { isAuthenticated } = useAuthenticationStatus();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [board, setBoard] = useState(null);
   const [error, setError] = useState(null);
@@ -41,6 +42,9 @@ export default function ExecutionBoard() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+
+    const q = searchParams.get('q');
+    if (q) setSearch(q);
 
     const load = async () => {
       setLoading(true);
@@ -58,7 +62,7 @@ export default function ExecutionBoard() {
     };
 
     load();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, searchParams]);
 
   const epics = board?.epics || [];
   const gates = board?.gates || [];
@@ -252,12 +256,21 @@ export default function ExecutionBoard() {
                     <th className="px-3 py-2">Status</th>
                     <th className="px-3 py-2">Depends on</th>
                     <th className="px-3 py-2">Unlocks</th>
+                    <th className="px-3 py-2">Commands</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredEpics.map((epic) => {
                     const upstream = toArray(epic['Upstream Dependencies (IDs)']);
                     const downstream = toArray(epic['Downstream Dependencies (IDs)']);
+                    const epicId = epic['Epic ID'];
+                    const workstream = epic.Workstream || '';
+                    const prefillUrl = (type, title, payloadObj) => {
+                      const payload = encodeURIComponent(JSON.stringify(payloadObj ?? {}, null, 2));
+                      return `/internal/command-center?type=${encodeURIComponent(type)}&title=${encodeURIComponent(
+                        title
+                      )}&payload=${payload}`;
+                    };
 
                     return (
                       <tr
@@ -315,6 +328,56 @@ export default function ExecutionBoard() {
                                 {id}
                               </a>
                             ))}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 align-top">
+                          <div className="flex flex-wrap gap-2">
+                            <Link
+                              className="text-xs rounded-lg border border-gray-200 bg-white px-2 py-1 hover:bg-slate-100"
+                              to={prefillUrl(
+                                'RUNBOOK_CREATE',
+                                `${epicId}: ${workstream}`,
+                                {
+                                  incident: `Execution Board epic ${epicId}`,
+                                  service: workstream,
+                                  severity: 'warn',
+                                  upstream,
+                                  downstream,
+                                  anchor: `/internal/execution-board#epic-${epicId}`
+                                }
+                              )}
+                            >
+                              Runbook
+                            </Link>
+                            <Link
+                              className="text-xs rounded-lg border border-gray-200 bg-white px-2 py-1 hover:bg-slate-100"
+                              to={prefillUrl(
+                                'ESCALATE',
+                                `${epicId}: Decision / escalation`,
+                                {
+                                  severity: 'warn',
+                                  target: 'slack',
+                                  message: `Need a decision/escalation on ${epicId} (${workstream}).`,
+                                  anchor: `/internal/execution-board#epic-${epicId}`
+                                }
+                              )}
+                            >
+                              Escalate
+                            </Link>
+                            <Link
+                              className="text-xs rounded-lg border border-gray-200 bg-white px-2 py-1 hover:bg-slate-100"
+                              to={prefillUrl(
+                                'ROLLBACK',
+                                `${epicId}: Rollback`,
+                                {
+                                  deployment: '',
+                                  reason: `Rollback request linked to epic ${epicId} (${workstream}).`,
+                                  anchor: `/internal/execution-board#epic-${epicId}`
+                                }
+                              )}
+                            >
+                              Rollback
+                            </Link>
                           </div>
                         </td>
                       </tr>

@@ -1,83 +1,100 @@
 import { API_BASE_URL } from '@/config/api';
 
-const INTERNAL_KEY = import.meta.env.VITE_INTERNAL_API_KEY || '';
+export const ORCHESTRATOR_TYPES = {
+  RUNBOOK_CREATE: 'RUNBOOK_CREATE',
+  ESCALATE: 'ESCALATE',
+  ROLLBACK: 'ROLLBACK'
+};
 
-const commandCenterFetch = async (path, { actorId, headers, ...options } = {}) => {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(INTERNAL_KEY ? { 'x-internal-key': INTERNAL_KEY } : {}),
-      ...(actorId ? { 'x-actor': actorId } : {}),
-      ...headers,
-    },
-    ...options,
+async function http(path, { method = 'GET', body } = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
   });
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    const error = new Error(text || `Command Center error (${response.status})`);
-    error.status = response.status;
-    throw error;
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const json = await res.json();
+      message = json?.message || json?.error || message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
   }
 
-  return response.json();
-};
+  return res.json();
+}
 
-export const ORCHESTRATOR_TYPES = {
-  RUNBOOK_CREATE: 'runbook_create',
-  ESCALATE: 'escalate',
-  ROLLBACK: 'rollback',
-};
+export async function listCommandCenterActions({ status, type, limit } = {}) {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (type) params.set('type', type);
+  if (limit) params.set('limit', String(limit));
 
-const normalizeAction = (row) => {
-  const payload = row.payload ?? row.action_json ?? null;
-  const epic =
-    row.epic ??
-    payload?.epic ??
-    (row.entityId || row.entity_id
-      ? {
-          code: row.entityId || row.entity_id,
-          title: payload?.title ?? payload?.epicTitle ?? null,
-          tag: payload?.tag ?? null,
-        }
-      : null);
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  return http(`/command-center/actions${suffix}`);
+}
 
-  return {
-    id: row.id,
-    status: row.status,
-    type: row.type ?? row.actionType ?? row.action_type,
-    created_at: row.created_at ?? row.createdAt ?? null,
-    payload,
-    result: row.result ?? payload?.result ?? null,
-    error: row.error ?? payload?.error ?? null,
-    epic,
-    runbooks: row.runbooks ?? payload?.runbooks ?? [],
-    escalations: row.escalations ?? payload?.escalations ?? [],
-    rollbacks: row.rollbacks ?? payload?.rollbacks ?? [],
-  };
-};
+export async function getCommandCenterAction(id) {
+  return http(`/command-center/actions/${encodeURIComponent(id)}`);
+}
 
-export const listOrchestratorActions = async () => {
-  const data = await commandCenterFetch('/execution-board/orchestrator-actions?limit=200');
-  const rows = data?.orchestrator_actions ?? data?.rows ?? [];
-  return { orchestrator_actions: rows.map(normalizeAction) };
-};
-
-export const approveAction = (actionId, actorId) =>
-  commandCenterFetch(`/execution-board/orchestrator-actions/${encodeURIComponent(actionId)}/approve`, {
+export async function createCommandCenterAction({ type, title, payload, actorId }) {
+  return http('/command-center/actions', {
     method: 'POST',
-    actorId,
+    body: {
+      type,
+      title,
+      payload,
+      createdBy: actorId ?? null
+    }
   });
+}
 
-export const cancelAction = (actionId, actorId) =>
-  commandCenterFetch(`/execution-board/orchestrator-actions/${encodeURIComponent(actionId)}/cancel`, {
+export async function approveCommandCenterAction(id, actorId) {
+  return http(`/command-center/actions/${encodeURIComponent(id)}/approve`, {
     method: 'POST',
-    actorId,
+    body: { actorId: actorId ?? null }
   });
+}
 
-export const executeAction = (action, actorId) =>
-  commandCenterFetch(`/execution-board/orchestrator-actions/${encodeURIComponent(action.id)}/execute`, {
+export async function executeCommandCenterAction(id, actorId) {
+  return http(`/command-center/actions/${encodeURIComponent(id)}/execute`, {
     method: 'POST',
-    actorId,
-    body: JSON.stringify({ action }),
+    body: { actorId: actorId ?? null }
   });
+}
+
+export async function cancelCommandCenterAction(id, { actorId, reason } = {}) {
+  return http(`/command-center/actions/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+    body: { actorId: actorId ?? null, reason: reason ?? null }
+  });
+}
+
+export async function listCommandCenterAudit({ limit } = {}) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  return http(`/command-center/audit${suffix}`);
+}
+
+export async function listOrchestratorActions() {
+  return listCommandCenterActions();
+}
+
+export async function approveAction(id, actorId) {
+  return approveCommandCenterAction(id, actorId);
+}
+
+export async function cancelAction(id, actorId, reason) {
+  return cancelCommandCenterAction(id, { actorId, reason });
+}
+
+export async function executeAction(action, actorId) {
+  const id = typeof action === 'string' ? action : action?.id;
+  if (!id) throw new Error('Missing action id');
+  return executeCommandCenterAction(id, actorId);
+}
