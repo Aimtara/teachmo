@@ -17,8 +17,6 @@ import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
 import FeatureFlagProvider from './providers/FeatureFlagProvider.jsx';
 import { I18nProvider } from './components/shared/InternationalizationProvider';
 // NOTE: GlobalErrorBoundary replaces the legacy ErrorBoundary component.
-// The old src/components/shared/ErrorBoundary.jsx file is intentionally unused and can be removed
-// once no longer needed for reference.
 import GlobalErrorBoundary from './components/shared/GlobalErrorBoundary';
 import { useStore } from './components/hooks/useStore';
 import { isFeatureEnabled } from './utils/featureFlags';
