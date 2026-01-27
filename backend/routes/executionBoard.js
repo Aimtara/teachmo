@@ -7,22 +7,6 @@ import {
   executionSlices,
   executionDependencies,
 } from '../models.js';
-import { executionBoardSeed } from '../executionBoardSeedData.js';
-
-function ensureSeeded() {
-  if (executionEpics.length === 0) {
-    executionEpics.push(...executionBoardSeed.epics);
-  }
-  if (executionGates.length === 0) {
-    executionGates.push(...executionBoardSeed.gates);
-  }
-  if (executionSlices.length === 0) {
-    executionSlices.push(...executionBoardSeed.slices);
-  }
-  if (executionDependencies.length === 0) {
-    executionDependencies.push(...executionBoardSeed.dependencies);
-  }
-}
 
 function computeGateProgress(checklist = '') {
   // checklist is a text block with "☐" and "☑" markers
@@ -37,7 +21,6 @@ function computeGateProgress(checklist = '') {
 }
 
 function enrichBoard() {
-  ensureSeeded();
   const epicById = new Map(executionEpics.map((e) => [e.id, e]));
 
   const deps = executionDependencies.map((d) => ({
