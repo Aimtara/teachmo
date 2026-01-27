@@ -1,5 +1,9 @@
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
+import { createLogger } from '../_shared/logger';
+import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
+
+const logger = createLogger('export-thread-transcript');
 
 function makeHasuraClient() {
   const HASURA_URL = process.env.HASURA_GRAPHQL_ENDPOINT;
@@ -20,8 +24,8 @@ function makeHasuraClient() {
 
     const json = await response.json();
     if (json.errors) {
-      console.error('Hasura error', json.errors);
-      throw new Error(json.errors[0]?.message ?? 'hasura_error');
+      logger.error('Hasura error', json.errors);
+      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };
@@ -110,7 +114,7 @@ export default async (req: any, res: any) => {
       messages: thread.messages || [],
     });
   } catch (error: any) {
-    console.error('export-thread-transcript failed', error);
+    logger.error('export-thread-transcript failed', error);
     const message = error?.message ?? 'unexpected_error';
     return res.status(500).json({ ok: false, error: message });
   }
