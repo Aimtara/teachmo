@@ -73,14 +73,14 @@ describe('Execution Board API', () => {
     test('returns enriched board with seeded data', async () => {
       // Seed some data
       executionEpics.push(
-        { id: 'epic-1', status: 'In Progress', workstream: 'Platform' },
+        { id: 'epic-1', status: 'In progress', workstream: 'Platform' },
         { id: 'epic-2', status: 'Done', workstream: 'Core' }
       );
       executionGates.push({
         gate: 'G0',
         purpose: 'Launch readiness',
         checklist: '☑ Item 1\n☐ Item 2\n☐ Item 3',
-        status: 'In Progress',
+        status: 'In progress',
       });
       executionSlices.push({
         id: 'slice-1',
@@ -103,7 +103,7 @@ describe('Execution Board API', () => {
 
     test('enriches epics with blocking information', async () => {
       executionEpics.push(
-        { id: 'epic-1', status: 'In Progress', workstream: 'Platform' },
+        { id: 'epic-1', status: 'In progress', workstream: 'Platform' },
         { id: 'epic-2', status: 'Todo', workstream: 'Core' }
       );
       executionDependencies.push({
@@ -148,7 +148,7 @@ describe('Execution Board API', () => {
         gate: 'G0',
         purpose: 'Launch readiness',
         checklist: '☑ Item 1\n☑ Item 2\n☐ Item 3',
-        status: 'In Progress',
+        status: 'In progress',
       });
 
       const res = await authenticatedRequest('get', '/api/execution-board/board');
@@ -162,7 +162,7 @@ describe('Execution Board API', () => {
 
     test('includes dependency status information', async () => {
       executionEpics.push(
-        { id: 'epic-1', status: 'In Progress', workstream: 'Platform' },
+        { id: 'epic-1', status: 'In progress', workstream: 'Platform' },
         { id: 'epic-2', status: 'Done', workstream: 'Core' }
       );
       executionDependencies.push({
@@ -175,7 +175,7 @@ describe('Execution Board API', () => {
       expect(res.status).toBe(200);
       
       const dep = res.body.dependencies[0];
-      expect(dep.fromStatus).toBe('In Progress');
+      expect(dep.fromStatus).toBe('In progress');
       expect(dep.toStatus).toBe('Done');
     });
   });
@@ -246,7 +246,7 @@ describe('Execution Board API', () => {
 
     test('updates allowed fields successfully', async () => {
       const updates = {
-        status: 'In Progress',
+        status: 'In progress',
         workstream: 'Core',
         nextMilestone: '2024-Q1',
       };
@@ -255,7 +255,7 @@ describe('Execution Board API', () => {
         .send(updates);
       
       expect(res.status).toBe(200);
-      expect(executionEpics[0].status).toBe('In Progress');
+      expect(executionEpics[0].status).toBe('In progress');
       expect(executionEpics[0].workstream).toBe('Core');
       expect(executionEpics[0].nextMilestone).toBe('2024-Q1');
       expect(executionEpics[0]).toHaveProperty('updatedAt');
@@ -291,7 +291,7 @@ describe('Execution Board API', () => {
         upstream: ['epic-0'],
         downstream: ['epic-2'],
         gates: ['G1', 'G2'],
-        status: 'In Progress',
+        status: 'In progress',
         nextMilestone: '2024-Q2',
         dod: 'All tests pass',
         notes: 'Important notes',
@@ -330,7 +330,7 @@ describe('Execution Board API', () => {
 
     test('updates allowed fields successfully', async () => {
       const updates = {
-        status: 'In Progress',
+        status: 'In progress',
         purpose: 'Updated purpose',
         checklist: '☑ Item 1\n☐ Item 2',
       };
@@ -339,7 +339,7 @@ describe('Execution Board API', () => {
         .send(updates);
       
       expect(res.status).toBe(200);
-      expect(executionGates[0].status).toBe('In Progress');
+      expect(executionGates[0].status).toBe('In progress');
       expect(executionGates[0].purpose).toBe('Updated purpose');
       expect(executionGates[0].checklist).toBe('☑ Item 1\n☐ Item 2');
       expect(executionGates[0]).toHaveProperty('updatedAt');
@@ -404,7 +404,7 @@ describe('Execution Board API', () => {
 
     test('updates allowed fields successfully', async () => {
       const updates = {
-        status: 'In Progress',
+        status: 'In progress',
         outcome: 'Updated outcome',
         owner: 'John Doe',
       };
@@ -413,7 +413,7 @@ describe('Execution Board API', () => {
         .send(updates);
       
       expect(res.status).toBe(200);
-      expect(executionSlices[0].status).toBe('In Progress');
+      expect(executionSlices[0].status).toBe('In progress');
       expect(executionSlices[0].outcome).toBe('Updated outcome');
       expect(executionSlices[0].owner).toBe('John Doe');
       expect(executionSlices[0]).toHaveProperty('updatedAt');
@@ -497,6 +497,65 @@ describe('Execution Board API', () => {
     });
   });
 
+  describe('Validation Error Handling', () => {
+    beforeEach(() => {
+      executionEpics.push({ id: 'epic-1', status: 'Todo' });
+      executionGates.push({ gate: 'G0', status: 'Todo' });
+      executionSlices.push({ id: 'slice-1', status: 'Todo' });
+    });
+
+    test('returns 400 for invalid epic status', async () => {
+      const res = await authenticatedRequest('patch', '/api/execution-board/epics/epic-1')
+        .send({ status: 'InvalidStatus' });
+      
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'Validation failed');
+      expect(res.body).toHaveProperty('details');
+    });
+
+    test('returns 400 for invalid gate status', async () => {
+      const res = await authenticatedRequest('patch', '/api/execution-board/gates/G0')
+        .send({ status: 'InvalidStatus' });
+      
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'Validation failed');
+      expect(res.body).toHaveProperty('details');
+    });
+
+    test('returns 400 for invalid slice status', async () => {
+      const res = await authenticatedRequest('patch', '/api/execution-board/slices/slice-1')
+        .send({ status: 'InvalidStatus' });
+      
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'Validation failed');
+      expect(res.body).toHaveProperty('details');
+    });
+
+    test('returns 400 for invalid data types in epic', async () => {
+      const res = await authenticatedRequest('patch', '/api/execution-board/epics/epic-1')
+        .send({ upstream: 'should-be-array' });
+      
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'Validation failed');
+    });
+
+    test('returns 400 for invalid data types in gate', async () => {
+      const res = await authenticatedRequest('patch', '/api/execution-board/gates/G0')
+        .send({ dependsOn: 'should-be-array' });
+      
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'Validation failed');
+    });
+
+    test('returns 400 for invalid data types in slice', async () => {
+      const res = await authenticatedRequest('patch', '/api/execution-board/slices/slice-1')
+        .send({ inputs: 'should-be-array' });
+      
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'Validation failed');
+    });
+  });
+
   describe('Data Seeding', () => {
     test('automatically seeds data on first GET request', async () => {
       // Ensure arrays are empty
@@ -508,8 +567,8 @@ describe('Execution Board API', () => {
       const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       
-      // After the request, data should be available and the board response should be populated
-      // This test verifies that the endpoint returns the expected structure
+      // After the request, data should be seeded and the board response should be populated
+      // This test verifies that ensureSeeded() is called
       expect(res.body).toHaveProperty('epics');
       expect(res.body).toHaveProperty('gates');
       expect(res.body).toHaveProperty('slices');

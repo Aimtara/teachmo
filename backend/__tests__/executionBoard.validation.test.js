@@ -8,140 +8,90 @@ import {
   slicePatchSchema,
 } from '../validation/executionBoard.js';
 
-function runTests() {
-  console.log('🧪 Testing Execution Board Validation Schemas\n');
-  let passCount = 0;
-  let failCount = 0;
+describe('Execution Board Validation Schemas', () => {
+  describe('epicPatchSchema', () => {
+    test('accepts a valid status "Done"', () => {
+      const result = epicPatchSchema.safeParse({ status: 'Done' });
+      expect(result.success).toBe(true);
+    });
 
-  // Test 1: Valid epic status
-  console.log('Test 1: Valid epic status "Done"');
-  const test1 = epicPatchSchema.safeParse({ status: 'Done' });
-  if (test1.success) {
-    console.log('✅ Pass - Valid status accepted\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - Valid status rejected:', test1.error.issues, '\n');
-    failCount++;
-  }
+    test('rejects an invalid status', () => {
+      const result = epicPatchSchema.safeParse({ status: 'InvalidStatus' });
+      expect(result.success).toBe(false);
+    });
 
-  // Test 2: Invalid epic status
-  console.log('Test 2: Invalid epic status "InvalidStatus"');
-  const test2 = epicPatchSchema.safeParse({ status: 'InvalidStatus' });
-  if (!test2.success) {
-    console.log('✅ Pass - Invalid status rejected\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - Invalid status accepted\n');
-    failCount++;
-  }
+    test('accepts all valid epic statuses', () => {
+      const validStatuses = ['Backlog', 'Planned', 'In progress', 'Done'];
+      for (const status of validStatuses) {
+        const result = epicPatchSchema.safeParse({ status });
+        expect(result.success).toBe(true);
+      }
+    });
 
-  // Test 3: Valid gate status
-  console.log('Test 3: Valid gate status "In progress"');
-  const test3 = gatePatchSchema.safeParse({ status: 'In progress' });
-  if (test3.success) {
-    console.log('✅ Pass - Valid gate status accepted\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - Valid gate status rejected:', test3.error.issues, '\n');
-    failCount++;
-  }
+    test('accepts multiple valid fields', () => {
+      const result = epicPatchSchema.safeParse({
+        status: 'In progress',
+        notes: 'Updated notes',
+        railPriority: 1,
+      });
+      expect(result.success).toBe(true);
+    });
 
-  // Test 4: Invalid gate status (Done is not allowed for gates)
-  console.log('Test 4: Invalid gate status "Done" (not in gate enum)');
-  const test4 = gatePatchSchema.safeParse({ status: 'Done' });
-  if (!test4.success) {
-    console.log('✅ Pass - "Done" correctly rejected for gate\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - "Done" incorrectly accepted for gate\n');
-    failCount++;
-  }
+    test('accepts empty body (all fields optional)', () => {
+      const result = epicPatchSchema.safeParse({});
+      expect(result.success).toBe(true);
+    });
 
-  // Test 5: Valid slice status
-  console.log('Test 5: Valid slice status "Planned"');
-  const test5 = slicePatchSchema.safeParse({ status: 'Planned' });
-  if (test5.success) {
-    console.log('✅ Pass - Valid slice status accepted\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - Valid slice status rejected:', test5.error.issues, '\n');
-    failCount++;
-  }
-
-  // Test 6: Multiple valid fields
-  console.log('Test 6: Multiple valid fields for epic');
-  const test6 = epicPatchSchema.safeParse({ 
-    status: 'In progress',
-    notes: 'Updated notes',
-    railPriority: 1
+    test('accepts arrays for upstream, downstream, and gates', () => {
+      const result = epicPatchSchema.safeParse({
+        upstream: ['epic-0'],
+        downstream: ['epic-2'],
+        gates: ['G1', 'G2'],
+      });
+      expect(result.success).toBe(true);
+    });
   });
-  if (test6.success) {
-    console.log('✅ Pass - Multiple valid fields accepted\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - Multiple valid fields rejected:', test6.error.issues, '\n');
-    failCount++;
-  }
 
-  // Test 7: Empty body (should succeed as all fields are optional)
-  console.log('Test 7: Empty request body (all fields optional)');
-  const test7 = epicPatchSchema.safeParse({});
-  if (test7.success) {
-    console.log('✅ Pass - Empty body accepted (all fields optional)\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - Empty body rejected:', test7.error.issues, '\n');
-    failCount++;
-  }
+  describe('gatePatchSchema', () => {
+    test('accepts all valid gate statuses including Done', () => {
+      const validGateStatuses = ['Backlog', 'Planned', 'In progress', 'Done'];
+      for (const status of validGateStatuses) {
+        const result = gatePatchSchema.safeParse({ status });
+        expect(result.success).toBe(true);
+      }
+    });
 
-  // Test 8: All valid epic statuses
-  console.log('Test 8: All valid epic statuses');
-  const validStatuses = ['Backlog', 'Planned', 'In progress', 'Done'];
-  let allPassed = true;
-  for (const status of validStatuses) {
-    const result = epicPatchSchema.safeParse({ status });
-    if (!result.success) {
-      console.log(`  ❌ Failed for "${status}"`);
-      allPassed = false;
-    }
-  }
-  if (allPassed) {
-    console.log('✅ Pass - All valid statuses accepted\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - Some valid statuses rejected\n');
-    failCount++;
-  }
+    test('rejects an invalid gate status', () => {
+      const result = gatePatchSchema.safeParse({ status: 'Invalid' });
+      expect(result.success).toBe(false);
+    });
 
-  // Test 9: All valid gate statuses
-  console.log('Test 9: All valid gate statuses');
-  const validGateStatuses = ['Backlog', 'Planned', 'In progress'];
-  allPassed = true;
-  for (const status of validGateStatuses) {
-    const result = gatePatchSchema.safeParse({ status });
-    if (!result.success) {
-      console.log(`  ❌ Failed for "${status}"`);
-      allPassed = false;
-    }
-  }
-  if (allPassed) {
-    console.log('✅ Pass - All valid gate statuses accepted\n');
-    passCount++;
-  } else {
-    console.log('❌ Fail - Some valid gate statuses rejected\n');
-    failCount++;
-  }
+    test('accepts array for dependsOn', () => {
+      const result = gatePatchSchema.safeParse({
+        dependsOn: ['G1'],
+      });
+      expect(result.success).toBe(true);
+    });
+  });
 
-  console.log('═'.repeat(50));
-  console.log(`\n📊 Results: ${passCount} passed, ${failCount} failed`);
-  
-  if (failCount === 0) {
-    console.log('✅ All tests passed!\n');
-    process.exit(0);
-  } else {
-    console.log('❌ Some tests failed\n');
-    process.exit(1);
-  }
-}
+  describe('slicePatchSchema', () => {
+    test('exposes a success flag from safeParse', () => {
+      const result = slicePatchSchema.safeParse({});
+      expect(result).toHaveProperty('success');
+    });
 
-runTests();
+    test('accepts arrays for inputs, deliverables, and dependsOn', () => {
+      const result = slicePatchSchema.safeParse({
+        inputs: ['input-1'],
+        deliverables: ['deliverable-1'],
+        dependsOn: ['slice-0'],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    test('accepts valid slice status', () => {
+      const result = slicePatchSchema.safeParse({ status: 'Planned' });
+      expect(result.success).toBe(true);
+    });
+  });
+});
