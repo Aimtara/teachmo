@@ -32,3 +32,5 @@ export default function ShortsCard({ id, topic, thumbnail_url, duration_s, onOpe
     </button>
   );
 }
+
+export { ShortsCard };

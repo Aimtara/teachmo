@@ -170,3 +170,5 @@ export default function AppTour({ user, onTourComplete }) {
     </ShepherdTour>
   );
 }
+
+export { AppTour };

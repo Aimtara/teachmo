@@ -58,3 +58,5 @@ const RoleGuard = ({ children, allowedRoles, ptaBoardOnly = false }) => {
 };
 
 export default RoleGuard;
+
+export { RoleGuard };

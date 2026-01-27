@@ -1,33 +1,24 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  FormControl,
-  FormLabel,
-  Heading,
-  HStack,
-  Input,
-  Select,
-  Table,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  Text,
-  useToast,
-} from '@chakra-ui/react';
-import { useQuery } from 'react-query';
+import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 import { graphqlRequest } from '@/lib/graphql';
 import { createLogger } from '@/utils/logger';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const logger = createLogger('AdminReportSubscriptions');
 
 export default function AdminReportSubscriptions() {
-  const toast = useToast();
   const [email, setEmail] = useState('');
   const [reportId, setReportId] = useState('');
   const [subscribing, setSubscribing] = useState(false);
@@ -47,7 +38,7 @@ export default function AdminReportSubscriptions() {
 
   const handleSubscribe = async () => {
     if (!email || !reportId) {
-      toast({ title: 'Please select a report and enter an email', status: 'warning' });
+      toast.error('Please select a report and enter an email');
       return;
     }
     setSubscribing(true);
@@ -58,12 +49,12 @@ export default function AdminReportSubscriptions() {
         }
       }`;
       await graphqlRequest(mutation, { reportId, email });
-      toast({ title: 'User subscribed', status: 'success' });
+      toast.success('User subscribed');
       setEmail('');
       await refetch();
     } catch (err) {
       logger.error('Failed to subscribe user', err);
-      toast({ title: 'Subscription failed', status: 'error' });
+      toast.error('Subscription failed');
     } finally {
       setSubscribing(false);
     }
@@ -75,82 +66,100 @@ export default function AdminReportSubscriptions() {
         delete_scheduled_report_recipients_by_pk(report_id: $reportId, email: $email) { email }
       }`;
       await graphqlRequest(mutation, { reportId: rId, email: userEmail });
-      toast({ title: 'User unsubscribed', status: 'success' });
+      toast.success('User unsubscribed');
       await refetch();
     } catch (err) {
       logger.error('Failed to unsubscribe', err);
-      toast({ title: 'Unsubscribe failed', status: 'error' });
+      toast.error('Unsubscribe failed');
     }
   };
 
   return (
-    <Box p={6} maxW="6xl" mx="auto">
-      <Heading mb={4}>Report Subscriptions</Heading>
-      <Card mb={6}>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+      <h1 className="text-2xl font-semibold">Report Subscriptions</h1>
+      <Card>
         <CardHeader>
-          <Heading size="md">Subscribe User to Report</Heading>
+          <CardTitle>Subscribe User to Report</CardTitle>
         </CardHeader>
-        <CardBody>
-          <HStack spacing={4} align="flex-end">
-            <FormControl id="reportId" isRequired>
-              <FormLabel>Report</FormLabel>
-              <Select value={reportId} onChange={(e) => setReportId(e.target.value)} placeholder="Select a report">
+        <CardContent>
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Report</label>
+              <Select value={reportId} onChange={(e) => setReportId(e.target.value)}>
+                <option value="">Select a report</option>
                 {data?.scheduled_reports?.map((report) => (
-                  <option key={report.id} value={report.id}>{report.name}</option>
+                  <option key={report.id} value={report.id}>
+                    {report.name}
+                  </option>
                 ))}
               </Select>
-            </FormControl>
-            <FormControl id="email" isRequired>
-              <FormLabel>User Email</FormLabel>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" />
-            </FormControl>
-            <Button colorScheme="teal" onClick={handleSubscribe} isLoading={subscribing}>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">User Email</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
+              />
+            </div>
+            <Button onClick={handleSubscribe} disabled={subscribing}>
               Subscribe
             </Button>
-          </HStack>
-        </CardBody>
+          </div>
+        </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <Heading size="md">Active Reports</Heading>
+          <CardTitle>Active Reports</CardTitle>
         </CardHeader>
-        <CardBody>
+        <CardContent>
           {data?.scheduled_reports?.length ? (
-            <Table size="sm">
-              <Thead>
-                <Tr>
-                  <Th>Name</Th>
-                  <Th>Interval</Th>
-                  <Th>Format</Th>
-                  <Th>Metrics</Th>
-                  <Th>Recipients</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Interval</TableHead>
+                  <TableHead>Format</TableHead>
+                  <TableHead>Metrics</TableHead>
+                  <TableHead>Recipients</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {data.scheduled_reports.map((report) => (
-                  <Tr key={report.id}>
-                    <Td>{report.name}</Td>
-                    <Td>{report.interval}</Td>
-                    <Td>{report.format}</Td>
-                    <Td>{report.metrics.join(', ')}</Td>
-                    <Td>
-                      {report.recipients.length === 0 && <Text color="gray.500">No recipients</Text>}
-                      {report.recipients.map((r) => (
-                        <HStack key={r.email} spacing={2} mb={1}>
-                          <Text>{r.email}</Text>
-                          <Button size="xs" colorScheme="red" onClick={() => handleUnsubscribe(report.id, r.email)}>Remove</Button>
-                        </HStack>
-                      ))}
-                    </Td>
-                  </Tr>
+                  <TableRow key={report.id}>
+                    <TableCell>{report.name}</TableCell>
+                    <TableCell>{report.interval}</TableCell>
+                    <TableCell>{report.format}</TableCell>
+                    <TableCell>{report.metrics.join(', ')}</TableCell>
+                    <TableCell>
+                      {report.recipients.length === 0 && (
+                        <p className="text-sm text-muted-foreground">No recipients</p>
+                      )}
+                      <div className="space-y-2">
+                        {report.recipients.map((r) => (
+                          <div key={r.email} className="flex items-center gap-2">
+                            <span className="text-sm">{r.email}</span>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleUnsubscribe(report.id, r.email)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </Tbody>
+              </TableBody>
             </Table>
           ) : (
-            <Text>No scheduled reports yet.</Text>
+            <p className="text-sm text-muted-foreground">No scheduled reports yet.</p>
           )}
-        </CardBody>
+        </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 }
