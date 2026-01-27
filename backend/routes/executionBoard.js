@@ -42,7 +42,6 @@ function computeGateProgress(checklist = '') {
 }
 
 function enrichBoard() {
-  ensureSeeded();
   const epicById = new Map(executionEpics.map((e) => [e.id, e]));
 
   const deps = executionDependencies.map((d) => ({
