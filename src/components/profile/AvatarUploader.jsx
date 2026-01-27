@@ -2,9 +2,11 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Loader2 } from 'lucide-react';
 import { UploadFile } from '@/api/integrations';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function AvatarUploader({ user, onUpdate }) {
   const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
   const fileInputRef = useRef(null);
 
   const handleFileChange = async (e) => {
@@ -17,7 +19,11 @@ export default function AvatarUploader({ user, onUpdate }) {
       onUpdate(file_url);
     } catch (error) {
       console.error("Error uploading avatar:", error);
-      alert("Failed to upload new avatar. Please try again.");
+      toast({
+        variant: 'destructive',
+        title: 'Upload failed',
+        description: 'Failed to upload new avatar. Please try again.'
+      });
     }
     setIsUploading(false);
   };
