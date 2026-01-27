@@ -224,7 +224,7 @@ Teachmo is a full-stack education platform built with React, Vite, Nhost (Hasura
 ### GraphQL Queries
 ```typescript
 // Use the shared GraphQL helper
-import { graphqlRequest } from 'src/lib/graphql.ts';
+import { graphqlRequest } from '@/lib/graphql';
 
 const query = `
   query GetProfile($userId: uuid!) {
@@ -238,7 +238,7 @@ const query = `
 const result = await graphqlRequest({ query, variables: { userId } });
 
 // Alternative: use the graphql function with positional arguments
-import { graphql } from 'src/lib/graphql.ts';
+import { graphql } from '@/lib/graphql';
 const result2 = await graphql(query, { userId });
 ```
 
