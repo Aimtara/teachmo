@@ -27,6 +27,20 @@ function windowStart(seconds: number): string {
   return new Date(Math.floor(now / windowMs) * windowMs).toISOString();
 }
 
+type GraphQLError = {
+  message: string;
+  extensions?: Record<string, unknown>;
+  path?: Array<string | number>;
+  locations?: Array<{ line: number; column: number }>;
+};
+
+type HasuraResponse<T> = {
+  data?: T;
+  errors?: GraphQLError[];
+};
+
+type HasuraClient = <T>(query: string, variables?: Record<string, unknown>) => Promise<HasuraResponse<T>>;
+
 function makeHasuraClient(): HasuraClient {
   const HASURA_URL = process.env.HASURA_GRAPHQL_ENDPOINT;
   const ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
@@ -47,6 +61,7 @@ function makeHasuraClient(): HasuraClient {
     const json = (await response.json()) as HasuraResponse<unknown>;
     if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
+      throw new Error(json.errors[0].message);
       throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
