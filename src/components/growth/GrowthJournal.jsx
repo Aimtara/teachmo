@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Save, Smile, Tag, User, Loader2, Sparkles, X, Plus } from 'lucide-react';
 import VoiceInput from '../shared/VoiceInput';
 import { format } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
 
 const PROMPTS = [
   "What moment today made you feel proud as a parent?",
@@ -44,6 +45,7 @@ const getDailyPrompt = () => {
 };
 
 export default function GrowthJournal({ user, children, onEntrySaved, existingEntry }) {
+    const { toast } = useToast();
     const [prompt, setPrompt] = useState(getDailyPrompt());
     const [content, setContent] = useState('');
     const [mood, setMood] = useState('');
@@ -75,7 +77,11 @@ export default function GrowthJournal({ user, children, onEntrySaved, existingEn
 
     const handleSave = async () => {
         if (!content.trim()) {
-            alert("Please write something in your journal entry.");
+            toast({
+                variant: 'destructive',
+                title: 'Content required',
+                description: 'Please write something in your journal entry.'
+            });
             return;
         }
         setIsSaving(true);
@@ -104,7 +110,11 @@ export default function GrowthJournal({ user, children, onEntrySaved, existingEn
             }
         } catch (error) {
             console.error("Failed to save journal entry:", error);
-            alert("Could not save your entry. Please try again.");
+            toast({
+                variant: 'destructive',
+                title: 'Error saving entry',
+                description: 'Could not save your journal entry. Please try again.'
+            });
         }
         setIsSaving(false);
     };

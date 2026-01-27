@@ -12,8 +12,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import VoiceInput from "../shared/VoiceInput";
 import NewChildProfile from "./NewChildProfile";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function OnboardingFlow({ onComplete, onClose }) {
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [userData, setUserData] = useState({
     username: "",
@@ -55,7 +57,11 @@ export default function OnboardingFlow({ onComplete, onClose }) {
   const handleStep2Submit = async (e) => {
     e.preventDefault();
     if (!userData.username.trim()) {
-      alert("Please enter a username");
+      toast({
+        variant: 'destructive',
+        title: 'Username required',
+        description: 'Please enter a username to continue.'
+      });
       return;
     }
 
@@ -71,7 +77,11 @@ export default function OnboardingFlow({ onComplete, onClose }) {
       setCurrentStep(3);
     } catch (error) {
       console.error("Error saving user data:", error);
-      alert("Error saving your information. Please try again.");
+      toast({
+        variant: 'destructive',
+        title: 'Error saving information',
+        description: 'Could not save your profile. Please try again.'
+      });
     }
     setIsLoading(false);
   };
@@ -87,7 +97,11 @@ export default function OnboardingFlow({ onComplete, onClose }) {
       setCurrentStep(4);
     } catch (error) {
       console.error("Error creating child profile:", error);
-      alert("Error saving child information. Please try again.");
+      toast({
+        variant: 'destructive',
+        title: 'Error saving child information',
+        description: 'Could not save child profile. Please try again.'
+      });
     }
     setIsLoading(false);
   };

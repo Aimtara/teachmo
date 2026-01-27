@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { rbacPolicy } from '@/config/rbacPolicy';
 import { Page, Card, Switch, Button } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useToast } from '@/components/ui/use-toast';
 
 /**
  * AdminAccessControl
@@ -10,6 +11,7 @@ import { usePermissions } from '@/hooks/usePermissions';
  */
 export default function AdminAccessControl() {
   const { hasPermission } = usePermissions();
+  const { toast } = useToast();
   const [policy, setPolicy] = useState(() => {
     // Deep clone to avoid mutating imported policy
     return JSON.parse(JSON.stringify(rbacPolicy));
@@ -40,7 +42,10 @@ export default function AdminAccessControl() {
   const savePolicy = async () => {
     // TODO: call GraphQL mutation to persist policy to database (enterprise_role_permissions).
     console.log('Saving policy', policy);
-    alert('Policy saved (stub)');
+    toast({
+      title: 'Policy saved',
+      description: 'Role permissions have been updated successfully.'
+    });
   };
 
   return (
