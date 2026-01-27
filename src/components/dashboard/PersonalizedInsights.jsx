@@ -9,6 +9,7 @@ import { InvokeLLM } from "@/api/integrations";
 import { format, subDays } from "date-fns";
 import { Activity } from "@/api/entities";
 import { generateWarmOpener, getAdaptiveResponse, FALLBACK_RESPONSES } from "../shared/TeachmoTone";
+import { useToast } from "@/components/ui/use-toast";
 
 const FALLBACK_INSIGHTS = [
   {
@@ -36,6 +37,7 @@ const FALLBACK_INSIGHTS = [
 ];
 
 export default function PersonalizedInsights({ children, activities, user }) {
+  const { toast } = useToast();
   const [insights, setInsights] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedChild, setSelectedChild] = useState(null);
@@ -187,7 +189,11 @@ export default function PersonalizedInsights({ children, activities, user }) {
 
     } catch (error) {
       console.error('Error creating activity from insight:', error);
-      alert('Error adding to your activities. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Error adding activity',
+        description: 'Could not add this to your activities. Please try again.'
+      });
       setButtonFeedback(prev => {
         const newState = { ...prev };
         delete newState[index]; // Clear temporary feedback on error
