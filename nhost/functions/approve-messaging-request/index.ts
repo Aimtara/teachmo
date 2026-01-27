@@ -1,8 +1,24 @@
 import { getActorScope } from '../_shared/tenantScope';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
+import { createLogger } from '../_shared/logger';
+import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
+
+const logger = createLogger('approve-messaging-request');
 
 const ADMIN_ROLES = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
+
+type GraphQLError = {
+  message: string;
+  extensions?: Record<string, unknown>;
+  path?: Array<string | number>;
+  locations?: Array<{ line: number; column: number }>;
+};
+
+type HasuraResponse<T> = {
+  data?: T;
+  errors?: GraphQLError[];
+};
 
 function makeHasuraClient() {
   const HASURA_URL = process.env.HASURA_GRAPHQL_ENDPOINT;
@@ -21,10 +37,14 @@ function makeHasuraClient() {
       body: JSON.stringify({ query, variables }),
     });
 
+    const json = await response.json() as HasuraResponse<unknown>;
+    if (json.errors && json.errors.length > 0) {
+      console.error('Hasura error', json.errors);
+      throw new Error(json.errors[0].message);
     const json = await response.json();
     if (json.errors) {
-      console.error('Hasura error', json.errors);
-      throw new Error(json.errors[0]?.message ?? 'hasura_error');
+      logger.error('Hasura error', json.errors);
+      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };
@@ -168,7 +188,7 @@ export default async (req: any, res: any) => {
 
     return res.status(200).json({ ok: true, threadId });
   } catch (error: any) {
-    console.error('approve-messaging-request failed', error);
+    logger.error('approve-messaging-request failed', error);
     const message = error?.message ?? 'unexpected_error';
     return res.status(500).json({ ok: false, error: message });
   }

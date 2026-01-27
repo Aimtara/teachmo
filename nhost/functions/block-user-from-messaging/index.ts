@@ -1,12 +1,24 @@
 import type { Request, Response } from 'express';
 import { createLogger } from '../_shared/logger';
-import { getHasuraErrorMessage, type HasuraResponse } from '../_shared/hasuraTypes';
+import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
 import type { HasuraClient, HasuraResponse } from '../_shared/hasuraTypes';
 
 const logger = createLogger('block-user-from-messaging');
+
+type GraphQLError = {
+  message: string;
+  extensions?: Record<string, unknown>;
+  path?: Array<string | number>;
+  locations?: Array<{ line: number; column: number }>;
+};
+
+type HasuraResponse<T> = {
+  data?: T;
+  errors?: GraphQLError[];
+};
 
 type HasuraClient = <T>(query: string, variables?: Record<string, unknown>) => Promise<HasuraResponse<T>>;
 
@@ -30,7 +42,7 @@ function makeHasuraClient(): HasuraClient {
     const json = (await response.json()) as HasuraResponse<unknown>;
     if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
-      throw new Error(json.errors[0].message ?? 'hasura_error');
+      throw new Error(json.errors[0].message);
       throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
