@@ -1,6 +1,10 @@
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
+import { createLogger } from '../_shared/logger';
+import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
+
+const logger = createLogger('triage-message-report');
 
 const ALLOWED_STATUS = new Set(['triaged', 'resolved', 'dismissed']);
 const ALLOWED_SEVERITY = new Set(['low', 'medium', 'high']);
@@ -25,8 +29,8 @@ function makeHasuraClient() {
 
     const json = await response.json();
     if (json.errors) {
-      console.error('Hasura error', json.errors);
-      throw new Error(json.errors[0]?.message ?? 'hasura_error');
+      logger.error('Hasura error', json.errors);
+      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };
@@ -223,7 +227,7 @@ export default async (req: any, res: any) => {
 
     return res.status(200).json({ ok: true });
   } catch (error: any) {
-    console.error('triage-message-report failed', error);
+    logger.error('triage-message-report failed', error);
     const message = error?.message ?? 'unexpected_error';
     return res.status(500).json({ ok: false, error: message });
   }
