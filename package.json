@@ -22,6 +22,7 @@
     "@base44/sdk": "^0.1.2",
     "@hello-pangea/dnd": "^16.6.0",
     "@hookform/resolvers": "^4.1.2",
+    "graphql": "^16.0.0",
     "@nhost/nhost-js": "^3.2.8",
     "@nhost/react": "^3.11.2",
     "graphql": "^16.0.0",
