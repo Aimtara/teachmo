@@ -1,0 +1,1405 @@
+{
+  "generatedAt": "2026-01-25",
+  "source": "Teachmo_Single_Execution_Board_v4.xlsx",
+  "epics": [
+    {
+      "Epic ID": "E01",
+      "Workstream": "Consumer Coach core (parent-facing)",
+      "Tag": "MVP shipping",
+      "Rail Segment": "Core loops",
+      "Owner (Role)": "Product+Eng (Parent app)",
+      "Upstream Dependencies (IDs)": [
+        "E09",
+        "E13"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E05",
+        "E08",
+        "E22"
+      ],
+      "Gate(s)": [
+        "G0",
+        "G1",
+        "G3"
+      ],
+      "Status": "Planned",
+      "Next milestone": "Ship daily tip + goal + activity loop with notifications",
+      "Exit criteria (DoD)": "Parent can onboard → set goals → receive daily guidance; core screens stable; basic telemetry",
+      "Notes": "Keep scope tight: 1–2 killer loops; avoid feature sprawl.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E02",
+      "Workstream": "Messaging basics + weekly digest",
+      "Tag": "MVP shipping",
+      "Rail Segment": "Core loops",
+      "Owner (Role)": "Eng Lead (Messaging)",
+      "Upstream Dependencies (IDs)": [
+        "E09",
+        "E13",
+        "E03",
+        "E04"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E10",
+        "E17",
+        "E18"
+      ],
+      "Gate(s)": [
+        "G1",
+        "G2",
+        "G3"
+      ],
+      "Status": "Planned",
+      "Next milestone": "Reliable 1:1 messaging + weekly digest MVP",
+      "Exit criteria (DoD)": "Send/receive messages; digest generates on schedule; delivery retries; basic moderation",
+      "Notes": "Measure delivery + open rates from day 1.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E03",
+      "Workstream": "School directory/autocomplete (find a school)",
+      "Tag": "MVP shipping",
+      "Rail Segment": "Integrations",
+      "Owner (Role)": "Eng Lead (Directory)",
+      "Upstream Dependencies (IDs)": [
+        "E09",
+        "E13"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E02",
+        "E19",
+        "E20"
+      ],
+      "Gate(s)": [
+        "G1",
+        "G2"
+      ],
+      "Status": "Planned",
+      "Next milestone": "End-to-end directory search + school request stub",
+      "Exit criteria (DoD)": "User can find school; request association; admin can view/act; audit trail exists",
+      "Notes": "Treat as identity bootstrap for pilots.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E04",
+      "Workstream": "MVP integrations (CSV roster import / OneRoster-lite)",
+      "Tag": "MVP shipping",
+      "Rail Segment": "Integrations",
+      "Owner (Role)": "Eng Lead (Integrations)",
+      "Upstream Dependencies (IDs)": [
+        "E09",
+        "E13"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E02",
+        "E15",
+        "E16",
+        "E11"
+      ],
+      "Gate(s)": [
+        "G2"
+      ],
+      "Status": "Planned",
+      "Next milestone": "CSV roster import → deterministic mapping",
+      "Exit criteria (DoD)": "Import roster; validate; preview; commit; last sync timestamp stored; errors visible",
+      "Notes": "Start with CSV to de-risk vendor APIs.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E05",
+      "Workstream": "Unified Explore hub + AI deep-link handoff",
+      "Tag": "Pilot hardening",
+      "Rail Segment": "Core loops",
+      "Owner (Role)": "PM+Eng (Experience)",
+      "Upstream Dependencies (IDs)": [
+        "E01",
+        "E06",
+        "E10"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E22",
+        "E23"
+      ],
+      "Gate(s)": [
+        "G3"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Unified Explore MVP (For You / Activities / Events / Library) + AI deep links",
+      "Exit criteria (DoD)": "Single Explore surface; filters; AI links to filtered results; session metrics captured",
+      "Notes": "Critical for 'AI → action' conversion.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E06",
+      "Workstream": "UX navigation upgrades (hierarchical nav + command palette)",
+      "Tag": "Pilot hardening",
+      "Rail Segment": "Foundation",
+      "Owner (Role)": "Frontend Lead",
+      "Upstream Dependencies (IDs)": [
+        "E09",
+        "E13"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E05",
+        "E07",
+        "E08"
+      ],
+      "Gate(s)": [
+        "G0"
+      ],
+      "Status": "In progress",
+      "Next milestone": "Ship stable IA + keyboard/quick actions",
+      "Exit criteria (DoD)": "Nav is consistent; deep links reliable; permissions respected; no dead ends",
+      "Notes": "This reduces friction more than 'more features'.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E07",
+      "Workstream": "Accessibility (WCAG 2.1 AA) + i18n baseline",
+      "Tag": "Pilot hardening",
+      "Rail Segment": "Foundation",
+      "Owner (Role)": "Design+Frontend",
+      "Upstream Dependencies (IDs)": [
+        "E09",
+        "E06"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E08",
+        "E18"
+      ],
+      "Gate(s)": [
+        "G0"
+      ],
+      "Status": "Planned",
+      "Next milestone": "Core screens pass AA checks + strings externalized",
+      "Exit criteria (DoD)": "Audit checklist pass on core flows; i18n framework wired; contrast/labels fixed",
+      "Notes": "Do it early or it becomes debt with interest.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E08",
+      "Workstream": "Guided onboarding + tips + offline support",
+      "Tag": "Pilot hardening",
+      "Rail Segment": "Core loops",
+      "Owner (Role)": "PM+Frontend",
+      "Upstream Dependencies (IDs)": [
+        "E09",
+        "E10",
+        "E06"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E01"
+      ],
+      "Gate(s)": [
+        "G0",
+        "G3"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Onboarding that lands users in first success within 5 minutes",
+      "Exit criteria (DoD)": "Guided steps; empty states; offline caching for core content; drop-off tracked",
+      "Notes": "Pilot success often equals onboarding success.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E09",
+      "Workstream": "App foundation refactors (TypeScript, state mgmt, errors, perf)",
+      "Tag": "Pilot hardening",
+      "Rail Segment": "Foundation",
+      "Owner (Role)": "Tech Lead",
+      "Upstream Dependencies (IDs)": [],
+      "Downstream Dependencies (IDs)": [
+        "E13",
+        "E10",
+        "E06"
+      ],
+      "Gate(s)": [
+        "G0"
+      ],
+      "Status": "In progress",
+      "Next milestone": "Stabilize core app foundation",
+      "Exit criteria (DoD)": "Global error boundary; logging; perf budget; predictable state mgmt; basic test harness",
+      "Notes": "Unblocks everything; keep it boring and correct.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E10",
+      "Workstream": "Analytics instrumentation + monitoring dashboards",
+      "Tag": "Pilot hardening",
+      "Rail Segment": "Analytics/Admin",
+      "Owner (Role)": "Data/Eng",
+      "Upstream Dependencies (IDs)": [
+        "E09",
+        "E13"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E11",
+        "E12",
+        "E22"
+      ],
+      "Gate(s)": [
+        "G0",
+        "G4"
+      ],
+      "Status": "Planned",
+      "Next milestone": "Event taxonomy + dashboards for adoption and reliability",
+      "Exit criteria (DoD)": "Core events emitted; dashboard shows activation, messaging delivery, digest success; alerts wired",
+      "Notes": "No analytics = flying blind.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E11",
+      "Workstream": "Pilot admin console for integrations (setup, sync-now, error visibility)",
+      "Tag": "Pilot hardening",
+      "Rail Segment": "Analytics/Admin",
+      "Owner (Role)": "Eng Lead (Admin)",
+      "Upstream Dependencies (IDs)": [
+        "E10",
+        "E15",
+        "E13"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E12",
+        "E20"
+      ],
+      "Gate(s)": [
+        "G2",
+        "G4"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Admin can set up connectors and troubleshoot without engineers",
+      "Exit criteria (DoD)": "Sync-now; last sync; error list; runbook links; permissions enforced",
+      "Notes": "This is what makes pilots scalable.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E12",
+      "Workstream": "Orchestrator / Command Center (approvals, runbooks, escalations, rollbacks)",
+      "Tag": "Pilot hardening",
+      "Rail Segment": "Analytics/Admin",
+      "Owner (Role)": "Platform Lead",
+      "Upstream Dependencies (IDs)": [
+        "E10",
+        "E13",
+        "E14",
+        "E11"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E20",
+        "E24"
+      ],
+      "Gate(s)": [
+        "G4"
+      ],
+      "Status": "In progress",
+      "Next milestone": "Command Center usable for ops workflows",
+      "Exit criteria (DoD)": "Actions are permissioned; audited; timeline for anomalies; rollback toggles; alert routing works",
+      "Notes": "Treat as 'ops membrane' during pilots.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E13",
+      "Workstream": "Auth & Identity hardening (SSO, multi-tenant, RBAC/ABAC, guardianship)",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Identity",
+      "Owner (Role)": "Security/Platform",
+      "Upstream Dependencies (IDs)": [
+        "E09"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E14",
+        "E15",
+        "E20"
+      ],
+      "Gate(s)": [
+        "G1"
+      ],
+      "Status": "Planned",
+      "Next milestone": "Tenant boundaries + role enforcement + optional SSO",
+      "Exit criteria (DoD)": "RBAC/ABAC enforced end-to-end; tenant scoping verified; guardianship verified for child data",
+      "Notes": "This is your 'passport system'.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E14",
+      "Workstream": "Safety, privacy, compliance (COPPA/FERPA, consent, retention, audit logs)",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Identity",
+      "Owner (Role)": "Security/Legal/Eng",
+      "Upstream Dependencies (IDs)": [
+        "E13",
+        "E09"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E18",
+        "E24"
+      ],
+      "Gate(s)": [
+        "G1"
+      ],
+      "Status": "Planned",
+      "Next milestone": "Consent + retention controls + immutable audit trails",
+      "Exit criteria (DoD)": "Consent captured; retention policy implemented; data export/deletion path; audit logs immutable",
+      "Notes": "Non-negotiable for school deployment.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E15",
+      "Workstream": "Integrations expanded (SIS/LMS/SSO) + provisioning/role mgmt",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Integrations",
+      "Owner (Role)": "Eng Lead (Integrations)",
+      "Upstream Dependencies (IDs)": [
+        "E13",
+        "E04",
+        "E11"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E16",
+        "E25"
+      ],
+      "Gate(s)": [
+        "G2"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Add priority vendors / aggregators with robust sync jobs",
+      "Exit criteria (DoD)": "At least one SIS + one LMS connector stable; mapping rules; retries; rate limits; admin setup docs",
+      "Notes": "Sequence vendors by pilot demand.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E16",
+      "Workstream": "Assignments sync (LMS)",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Core loops",
+      "Owner (Role)": "Eng Lead (LMS)",
+      "Upstream Dependencies (IDs)": [
+        "E15",
+        "E13",
+        "E10"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E23"
+      ],
+      "Gate(s)": [
+        "G3"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Assignments view + alerts for at-risk/overdue",
+      "Exit criteria (DoD)": "Assignments list accurate; due dates; notifications; parent acknowledges; sync health measurable",
+      "Notes": "Start with read-only, then add actions.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E17",
+      "Workstream": "Office Hours scheduling",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Core loops",
+      "Owner (Role)": "Eng Lead (Scheduling)",
+      "Upstream Dependencies (IDs)": [
+        "E13",
+        "E02",
+        "E10"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E18"
+      ],
+      "Gate(s)": [
+        "G3"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Teacher slots → parent booking → reminders",
+      "Exit criteria (DoD)": "Publish slots; book; prevent double-book; reminders; calendar export; audit trail",
+      "Notes": "This is a high-trust workflow.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E18",
+      "Workstream": "SafeSpace + emergency notifier + push notifications",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Core loops",
+      "Owner (Role)": "Platform+Safety",
+      "Upstream Dependencies (IDs)": [
+        "E14",
+        "E13",
+        "E02",
+        "E10"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E24"
+      ],
+      "Gate(s)": [
+        "G3"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Sensitive reporting + high-reliability notifications",
+      "Exit criteria (DoD)": "Role-gated reporting; escalation policy; delivery retries; audit log; abuse protections",
+      "Notes": "Requires governance + careful UX.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E19",
+      "Workstream": "School directory participation flow + approvals",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Integrations",
+      "Owner (Role)": "Eng Lead (Directory/Admin)",
+      "Upstream Dependencies (IDs)": [
+        "E03",
+        "E13",
+        "E10"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E20"
+      ],
+      "Gate(s)": [
+        "G2",
+        "G4"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Request → verify → approve/deny with SLAs",
+      "Exit criteria (DoD)": "Approval queue; status updates; audit log; reporting on time-to-approval",
+      "Notes": "Turns directory into a growth funnel.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E20",
+      "Workstream": "Licensing & subscription management (seats, billing)",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Analytics/Admin",
+      "Owner (Role)": "BizOps+Eng",
+      "Upstream Dependencies (IDs)": [
+        "E13",
+        "E19",
+        "E11"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E21"
+      ],
+      "Gate(s)": [
+        "G4"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Seat-based licensing + billing integration",
+      "Exit criteria (DoD)": "Org plan; seat allocations; invoices; role-based admin; reconciliation reports",
+      "Notes": "Do after identity is solid.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E21",
+      "Workstream": "Partner portal (submissions → approval → analytics; training/incentives)",
+      "Tag": "Enterprise scale",
+      "Rail Segment": "Growth",
+      "Owner (Role)": "Partner Ops+Eng",
+      "Upstream Dependencies (IDs)": [
+        "E13",
+        "E10",
+        "E14",
+        "E20"
+      ],
+      "Downstream Dependencies (IDs)": [
+        "E22",
+        "E23"
+      ],
+      "Gate(s)": [
+        "G4"
+      ],
+      "Status": "Backlog",
+      "Next milestone": "Partner self-serve onboarding and publishing workflow",
+      "Exit criteria (DoD)": "Submit content; moderation queue; publish; analytics; partner roles/permissions",
+      "Notes": "Keep moderation tight.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E22",
+      "Workstream": "Gamification enhancements",
+      "Tag": "R&D",
+      "Rail Segment": "Growth",
+      "Owner (Role)": "PM (Engagement)",
+      "Upstream Dependencies (IDs)": [
+        "E10",
+        "E01",
+        "E02"
+      ],
+      "Downstream Dependencies (IDs)": [],
+      "Gate(s)": [],
+      "Status": "Backlog",
+      "Next milestone": "Design experiments for retention loops",
+      "Exit criteria (DoD)": "Hypothesis defined; experiment plan; success metrics; rollback plan",
+      "Notes": "Run as experiments, not permanent features.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E23",
+      "Workstream": "Content & curriculum alignment",
+      "Tag": "R&D",
+      "Rail Segment": "Growth",
+      "Owner (Role)": "PM (Curriculum)",
+      "Upstream Dependencies (IDs)": [
+        "E16",
+        "E10",
+        "E21"
+      ],
+      "Downstream Dependencies (IDs)": [],
+      "Gate(s)": [],
+      "Status": "Backlog",
+      "Next milestone": "Standards tagging + alignment-aware recommendations",
+      "Exit criteria (DoD)": "Metadata model; tagging workflow; recommendation logic; evaluation plan",
+      "Notes": "Needs teacher feedback loops.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E24",
+      "Workstream": "Ethical AI governance + moderation (transparency, bias testing, oversight)",
+      "Tag": "R&D",
+      "Rail Segment": "Identity",
+      "Owner (Role)": "AI Safety Lead",
+      "Upstream Dependencies (IDs)": [
+        "E14",
+        "E10",
+        "E12"
+      ],
+      "Downstream Dependencies (IDs)": [],
+      "Gate(s)": [],
+      "Status": "Backlog",
+      "Next milestone": "Governance layer for AI behavior in sensitive contexts",
+      "Exit criteria (DoD)": "Model transparency UX; safety evaluations; escalation workflow; auditability",
+      "Notes": "Start minimal: logging + human override.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    },
+    {
+      "Epic ID": "E25",
+      "Workstream": "LTI 1.3 launch + inside-LMS access patterns",
+      "Tag": "R&D",
+      "Rail Segment": "Integrations",
+      "Owner (Role)": "Integrations Lead",
+      "Upstream Dependencies (IDs)": [
+        "E15",
+        "E13",
+        "E14"
+      ],
+      "Downstream Dependencies (IDs)": [],
+      "Gate(s)": [],
+      "Status": "Backlog",
+      "Next milestone": "Embed Teachmo inside LMS with secure launch",
+      "Exit criteria (DoD)": "LTI spec conformance; security review; pilot in 1 district",
+      "Notes": "Do when LMS integration is proven.",
+      "Epic Key (tracker)": null,
+      "Blocked?": false,
+      "Rail priority (this week)": null
+    }
+  ],
+  "gates": [
+    {
+      "Gate": "G0",
+      "Purpose": "Foundation stable enough to build on",
+      "Exit criteria checklist (tick when done)": "☐ Global error handling + logging\n☐ Perf budget defined + basic profiling\n☐ Core navigation stable\n☐ Accessibility baseline on core screens\n☐ Analytics schema exists (even minimal)",
+      "Owner (Role)": "Tech Lead",
+      "Depends on": "—",
+      "Target window": "Now + next 2–4 weeks",
+      "Status": "In progress",
+      "Total checklist items": null,
+      "Checked items": null,
+      "Progress %": null
+    },
+    {
+      "Gate": "G1",
+      "Purpose": "Identity & tenancy v0 (passport system)",
+      "Exit criteria checklist (tick when done)": "☐ Roles enforced end-to-end\n☐ Tenant scoping verified\n☐ Audit log for sensitive actions\n☐ Consent baseline (where needed)\n☐ Permissions test cases exist",
+      "Owner (Role)": "Security/Platform Lead",
+      "Depends on": "G0",
+      "Target window": "Next 2–6 weeks",
+      "Status": "Planned",
+      "Total checklist items": null,
+      "Checked items": null,
+      "Progress %": null
+    },
+    {
+      "Gate": "G2",
+      "Purpose": "Integrations/Directory v0 (truth of who belongs where)",
+      "Exit criteria checklist (tick when done)": "☐ School directory request flow works\n☐ Roster import (CSV) works with preview/commit\n☐ Deterministic identity mapping rules\n☐ Sync jobs have retries + last-sync timestamp\n☐ Admin can see errors",
+      "Owner (Role)": "Integrations Lead",
+      "Depends on": "G1",
+      "Target window": "Next 4–8 weeks",
+      "Status": "Planned",
+      "Total checklist items": null,
+      "Checked items": null,
+      "Progress %": null
+    },
+    {
+      "Gate": "G3",
+      "Purpose": "Core loops v1 (messaging + scheduling + assignments)",
+      "Exit criteria checklist (tick when done)": "☐ Messaging delivery SLO defined and measured\n☐ Weekly digest reliable + measurable\n☐ Office hours booking MVP works\n☐ Assignments sync v0 live or contract-stubbed with real data",
+      "Owner (Role)": "Core Loops Lead",
+      "Depends on": "G2",
+      "Target window": "Next 6–12 weeks",
+      "Status": "Backlog",
+      "Total checklist items": null,
+      "Checked items": null,
+      "Progress %": null
+    },
+    {
+      "Gate": "G4",
+      "Purpose": "Analytics + Admin control room v1",
+      "Exit criteria checklist (tick when done)": "☐ Dashboards show activation + delivery + sync health\n☐ Admin: sync now, last sync, error list\n☐ Runbooks linked and usable\n☐ Rollback/disable connector actions exist\n☐ On-call routing policy documented",
+      "Owner (Role)": "Ops/Platform Lead",
+      "Depends on": "G3",
+      "Target window": "Next 8–14 weeks",
+      "Status": "Backlog",
+      "Total checklist items": null,
+      "Checked items": null,
+      "Progress %": null
+    }
+  ],
+  "slices": [
+    {
+      "Slice ID": "S01",
+      "Outcome (end-to-end)": "Roster import v0: upload CSV → preview → commit → last-sync timestamp",
+      "Primary Epic": "E04",
+      "Gate": "G2",
+      "Inputs needed": "Sample roster CSV; mapping rules; tenant/role check",
+      "Deliverables": "Import UI + API; validation errors; commit; store last_sync; error log",
+      "Acceptance tests": "Import sample dataset; verify counts; verify deterministic IDs; verify rollback of bad import",
+      "Status": "Planned",
+      "Owner": "Integrations Lead",
+      "Story Key (tracker)": null,
+      "Depends on slice IDs": []
+    },
+    {
+      "Slice ID": "S02",
+      "Outcome (end-to-end)": "Messaging reliability v0: send/receive + retries + basic abuse guard",
+      "Primary Epic": "E02",
+      "Gate": "G3",
+      "Inputs needed": "Identity mapping; notification service; rate limits",
+      "Deliverables": "Delivery queue; retry policy; failure dashboard",
+      "Acceptance tests": "Simulate outages; verify retry/backoff; verify metrics emitted; verify no duplicate storms",
+      "Status": "Backlog",
+      "Owner": "Messaging Lead",
+      "Story Key (tracker)": null,
+      "Depends on slice IDs": []
+    },
+    {
+      "Slice ID": "S03",
+      "Outcome (end-to-end)": "Weekly digest v0: scheduled job → digest render → delivery → open tracking",
+      "Primary Epic": "E02",
+      "Gate": "G3",
+      "Inputs needed": "Digest template; email/push delivery; analytics events",
+      "Deliverables": "Digest generation job; logs; delivery receipts; open/click events",
+      "Acceptance tests": "Generate for 10 test users; verify timing; verify opens recorded; verify opt-out works",
+      "Status": "Backlog",
+      "Owner": "Messaging Lead",
+      "Story Key (tracker)": null,
+      "Depends on slice IDs": []
+    },
+    {
+      "Slice ID": "S04",
+      "Outcome (end-to-end)": "Permissions rail v0: role gates in UI + API for teacher/admin actions",
+      "Primary Epic": "E13",
+      "Gate": "G1",
+      "Inputs needed": "Role matrix; tenant scoping rules",
+      "Deliverables": "RBAC middleware; UI guard components; audit events",
+      "Acceptance tests": "Try cross-tenant access; ensure denied; verify audit log entries",
+      "Status": "Planned",
+      "Owner": "Security/Platform Lead",
+      "Story Key (tracker)": null,
+      "Depends on slice IDs": []
+    },
+    {
+      "Slice ID": "S05",
+      "Outcome (end-to-end)": "Admin sync console v0: last sync + sync now + error list for one connector",
+      "Primary Epic": "E11",
+      "Gate": "G4",
+      "Inputs needed": "Connector job status; error model; identity roles",
+      "Deliverables": "Admin page; API endpoints; runbook links",
+      "Acceptance tests": "Trigger sync now; verify status updates; verify errors surface; verify permissions",
+      "Status": "Backlog",
+      "Owner": "Admin Lead",
+      "Story Key (tracker)": null,
+      "Depends on slice IDs": []
+    },
+    {
+      "Slice ID": "S06",
+      "Outcome (end-to-end)": "Explore deep-link v0: AI links to filtered Explore results reliably",
+      "Primary Epic": "E05",
+      "Gate": "G3",
+      "Inputs needed": "Stable routes; filter model",
+      "Deliverables": "Explore page; deep-link parser; analytics events",
+      "Acceptance tests": "Click AI deep link; verify filter applied; verify no 404; track conversion",
+      "Status": "Backlog",
+      "Owner": "Experience Lead",
+      "Story Key (tracker)": null,
+      "Depends on slice IDs": []
+    }
+  ],
+  "dependencies": [
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E01",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E01",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E02",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E02",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E03",
+      "To Epic ID": "E02",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E04",
+      "To Epic ID": "E02",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E03",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E03",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E04",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E04",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E01",
+      "To Epic ID": "E05",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E06",
+      "To Epic ID": "E05",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E05",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E06",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E06",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E07",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E06",
+      "To Epic ID": "E07",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E08",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E08",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E06",
+      "To Epic ID": "E08",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E10",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E10",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E11",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E15",
+      "To Epic ID": "E11",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E11",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E12",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E12",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E14",
+      "To Epic ID": "E12",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E11",
+      "To Epic ID": "E12",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E13",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E14",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E09",
+      "To Epic ID": "E14",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E15",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E04",
+      "To Epic ID": "E15",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E11",
+      "To Epic ID": "E15",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E15",
+      "To Epic ID": "E16",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E16",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E16",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E17",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E02",
+      "To Epic ID": "E17",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E17",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E14",
+      "To Epic ID": "E18",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E18",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E02",
+      "To Epic ID": "E18",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E18",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E03",
+      "To Epic ID": "E19",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E19",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E19",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E20",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E19",
+      "To Epic ID": "E20",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E11",
+      "To Epic ID": "E20",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E21",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E21",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E14",
+      "To Epic ID": "E21",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E20",
+      "To Epic ID": "E21",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E22",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E01",
+      "To Epic ID": "E22",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E02",
+      "To Epic ID": "E22",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E16",
+      "To Epic ID": "E23",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E23",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E21",
+      "To Epic ID": "E23",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E14",
+      "To Epic ID": "E24",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E10",
+      "To Epic ID": "E24",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E12",
+      "To Epic ID": "E24",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E15",
+      "To Epic ID": "E25",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E13",
+      "To Epic ID": "E25",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    },
+    {
+      "From Epic ID": "E14",
+      "To Epic ID": "E25",
+      "Dependency type": "blocks",
+      "Notes": "Upstream required",
+      "From Status": null,
+      "To Status": null
+    }
+  ],
+  "pilotMetrics": [
+    {
+      "Metric": "Activation rate (7d)",
+      "Definition": "% of new parents who complete onboarding + first action within 7 days",
+      "Why it matters": "Measures whether onboarding lands users in value quickly",
+      "Target / threshold": "≥ 45% in pilot",
+      "Owner": "PM (Growth)",
+      "Data source (event/table)": "signup_completed, first_action_completed"
+    },
+    {
+      "Metric": "Teacher reply rate",
+      "Definition": "% of parent-initiated threads receiving a teacher response within 48h",
+      "Why it matters": "School-side engagement is the flywheel",
+      "Target / threshold": "≥ 60% within 48h",
+      "Owner": "PM (School)",
+      "Data source (event/table)": "message_sent, message_replied"
+    },
+    {
+      "Metric": "Weekly digest open rate",
+      "Definition": "% of recipients who open digest within 72h",
+      "Why it matters": "Digest is a retention and trust anchor",
+      "Target / threshold": "≥ 35% open rate",
+      "Owner": "Messaging Lead",
+      "Data source (event/table)": "digest_sent, digest_opened"
+    },
+    {
+      "Metric": "Sync success rate",
+      "Definition": "% of scheduled sync runs that complete without errors",
+      "Why it matters": "Integrations must be boringly reliable",
+      "Target / threshold": "≥ 98% successful runs",
+      "Owner": "Integrations Lead",
+      "Data source (event/table)": "sync_run_started, sync_run_succeeded, sync_run_failed"
+    },
+    {
+      "Metric": "MTTR for sync failures",
+      "Definition": "Median time to resolve a sync failure",
+      "Why it matters": "Ops scalability depends on quick recoveries",
+      "Target / threshold": "< 24 hours median",
+      "Owner": "Ops Lead",
+      "Data source (event/table)": "incident_opened, incident_closed"
+    },
+    {
+      "Metric": "Permission errors",
+      "Definition": "Count of denied/invalid access attempts per week (legitimate bugs)",
+      "Why it matters": "Indicates role/tenant model correctness",
+      "Target / threshold": "Trend to near-zero",
+      "Owner": "Security Lead",
+      "Data source (event/table)": "authz_denied, authz_error"
+    },
+    {
+      "Metric": "Crash-free sessions",
+      "Definition": "% sessions without app crash/fatal error",
+      "Why it matters": "User trust baseline",
+      "Target / threshold": "≥ 99.5%",
+      "Owner": "Tech Lead",
+      "Data source (event/table)": "crash_report, session_started"
+    },
+    {
+      "Metric": "API error rate",
+      "Definition": "5xx rate across APIs",
+      "Why it matters": "System reliability health indicator",
+      "Target / threshold": "< 0.5% 5xx",
+      "Owner": "Platform Lead",
+      "Data source (event/table)": "api_request, api_error"
+    }
+  ],
+  "decisionLog": [
+    {
+      "Date": "2026-01-24",
+      "Decision": "Use dependency rail gates (G0–G4) to drive prioritization",
+      "Why (rationale)": "Prevents parallel thrash; makes blockers visible",
+      "Tradeoffs": "May delay 'nice-to-haves'",
+      "Owner": "Exec sponsor",
+      "Status": "Active",
+      "Links": null
+    },
+    {
+      "Date": "2026-01-24",
+      "Decision": "Start integrations with CSV roster import before vendor APIs",
+      "Why (rationale)": "De-risks mapping, jobs, admin UX quickly",
+      "Tradeoffs": "May require later migration",
+      "Owner": "Integrations Lead",
+      "Status": "Active",
+      "Links": null
+    }
+  ]
+}
