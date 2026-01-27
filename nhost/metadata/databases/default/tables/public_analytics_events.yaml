@@ -1,0 +1,166 @@
+table:
+  name: analytics_events
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: teacher
+    permission:
+      columns: '*'
+      filter:
+        actor_user_id:
+          _eq: X-Hasura-User-Id
+  - role: parent
+    permission:
+      columns: '*'
+      filter:
+        actor_user_id:
+          _eq: X-Hasura-User-Id
+  - role: partner
+    permission:
+      columns: '*'
+      filter:
+        actor_user_id:
+          _eq: X-Hasura-User-Id
+insert_permissions:
+  - role: teacher
+    permission:
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+      check:
+        _and:
+          - actor_user_id:
+              _eq: X-Hasura-User-Id
+          - _or:
+              - district_id:
+                  _is_null: true
+              - district_id:
+                  _eq: X-Hasura-District-Id
+          - _or:
+              - school_id:
+                  _is_null: true
+              - school_id:
+                  _eq: X-Hasura-School-Id
+  - role: parent
+    permission:
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+      check:
+        _and:
+          - actor_user_id:
+              _eq: X-Hasura-User-Id
+          - _or:
+              - district_id:
+                  _is_null: true
+              - district_id:
+                  _eq: X-Hasura-District-Id
+          - _or:
+              - school_id:
+                  _is_null: true
+              - school_id:
+                  _eq: X-Hasura-School-Id
+  - role: partner
+    permission:
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+      check:
+        _and:
+          - actor_user_id:
+              _eq: X-Hasura-User-Id
+          - _or:
+              - district_id:
+                  _is_null: true
+              - district_id:
+                  _eq: X-Hasura-District-Id
+          - _or:
+              - school_id:
+                  _is_null: true
+              - school_id:
+                  _eq: X-Hasura-School-Id
+  - role: school_admin
+    permission:
+      check:
+        _and:
+          - school_id:
+              _eq: X-Hasura-School-Id
+          - _or:
+              - district_id:
+                  _is_null: true
+              - district_id:
+                  _eq: X-Hasura-District-Id
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+  - role: district_admin
+    permission:
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+  - role: admin
+    permission:
+      check:
+        district_id:
+          _eq: X-Hasura-District-Id
+      columns:
+        - event_name
+        - actor_user_id
+        - district_id
+        - school_id
+        - entity_type
+        - entity_id
+        - metadata
+  - role: system_admin
+    permission:
+      check: {}
+      columns: '*'

@@ -1,12 +1,12 @@
-// Storybook configuration for the Teachmo UI component library.
+// Storybook configuration for Teachmo.
 //
-// This configuration uses Vite under the hood via the `@storybook/react-vite` preset
-// and automatically picks up stories from the teachmo component directory.
+// NOTE: Storybook expects a config directory at `.storybook/`.
+// We keep this file for quick reference, but the active config lives in `.storybook/main.ts`.
 
 import type { StorybookConfig } from '@storybook/react-vite';
 
 const config: StorybookConfig = {
-  stories: ['../src/components/teachmo/**/*.stories.@(js|jsx|ts|tsx)'],
+  stories: ['../src/**/*.stories.@(js|jsx|ts|tsx)', '../src/**/*.mdx'],
   addons: [
     '@storybook/addon-links',
     '@storybook/addon-essentials',

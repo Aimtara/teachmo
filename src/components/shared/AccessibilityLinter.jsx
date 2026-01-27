@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle, Code, FileText } from 'lucide-react';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('accessibility-linter');
 
 // Manual accessibility checks based on common eslint-plugin-jsx-a11y rules
 const ACCESSIBILITY_RULES = {
@@ -213,7 +216,7 @@ export default function AccessibilityLinter() {
             });
           }
         } catch (error) {
-          console.error(`Error running rule ${ruleId}:`, error);
+          logger.error(`Error running rule ${ruleId}`, error);
         }
       });
       

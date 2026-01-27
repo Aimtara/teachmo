@@ -8,6 +8,9 @@ import { Send, Bot, User as UserIcon, Sparkles, Loader2, ArrowLeft, Lightbulb } 
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { InvokeLLM } from '@/api/integrations';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('chat-window');
 
 const CONVERSATION_STARTERS = [
     {
@@ -159,7 +162,7 @@ export default function ChatWindow({ conversation, childContext, onBack, isMobil
             await updateConversations(conversationsToUpdate);
 
         } catch (error) {
-            console.error("Error sending message:", error);
+            logger.error('Error sending message', error);
             const errorMessage = { 
                 id: (Date.now() + 1).toString(), 
                 content: "I'm sorry, I'm having trouble responding right now. Please try again in a moment. Would you like me to help you troubleshoot this issue?", 

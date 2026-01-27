@@ -1,0 +1,12 @@
+table:
+  name: partner_onboarding_tasks
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}

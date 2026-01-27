@@ -1,0 +1,12 @@
+table:
+  name: partner_training_courses
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}

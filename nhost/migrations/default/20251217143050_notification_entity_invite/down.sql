@@ -1,0 +1,1 @@
+-- No-op for invite notification linkage.

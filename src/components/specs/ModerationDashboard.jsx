@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderWithProviders, screen, waitFor, axe } from '../testUtils';
+import { renderWithProviders, screen, waitFor, axe } from '../testing/testUtils';
 import ModerationDashboard from '@/pages/ModerationDashboard';
 import { ModerationReport, ModerationAction, CommunityGuideline } from '@/api/entities';
 

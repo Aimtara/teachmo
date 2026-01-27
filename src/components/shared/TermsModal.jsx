@@ -35,3 +35,5 @@ export default function TermsModal({ open, onOpenChange }) {
     </Dialog>
   );
 }
+
+export { TermsModal };

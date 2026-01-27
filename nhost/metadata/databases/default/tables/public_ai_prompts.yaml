@@ -1,0 +1,52 @@
+table:
+  name: ai_prompts
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - organization_id:
+              _is_null: true
+insert_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      check:
+        _or:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - organization_id:
+              _is_null: true
+update_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - organization_id:
+              _is_null: true
+      check:
+        _or:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - organization_id:
+              _is_null: true

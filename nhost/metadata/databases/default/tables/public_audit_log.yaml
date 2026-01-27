@@ -1,0 +1,126 @@
+table:
+  name: audit_log
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns:
+        - id
+        - created_at
+        - actor_id
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+        - organization_id
+        - school_id
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns:
+        - id
+        - created_at
+        - actor_id
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+        - organization_id
+        - school_id
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns:
+        - id
+        - created_at
+        - actor_id
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+        - organization_id
+        - school_id
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+insert_permissions:
+  - role: admin
+    permission:
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+      set:
+        actor_id: X-Hasura-User-Id
+        organization_id: X-Hasura-Organization-Id
+        school_id: X-Hasura-School-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+      set:
+        actor_id: X-Hasura-User-Id
+        organization_id: X-Hasura-Organization-Id
+        school_id: X-Hasura-School-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+      set:
+        actor_id: X-Hasura-User-Id
+        organization_id: X-Hasura-Organization-Id
+        school_id: X-Hasura-School-Id
+      check:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: teacher
+    permission:
+      check: {}
+      set:
+        actor_id: X-Hasura-User-Id
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+  - role: parent
+    permission:
+      check: {}
+      set:
+        actor_id: X-Hasura-User-Id
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata
+  - role: partner
+    permission:
+      check: {}
+      set:
+        actor_id: X-Hasura-User-Id
+      columns:
+        - action
+        - entity_type
+        - entity_id
+        - metadata

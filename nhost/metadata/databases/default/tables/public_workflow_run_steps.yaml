@@ -1,0 +1,29 @@
+table:
+  name: workflow_run_steps
+  schema: public
+select_permissions:
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: system_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: admin
+    permission:
+      check: {}
+      columns: '*'

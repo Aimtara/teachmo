@@ -7,6 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { User, Activity as ActivityEntity, LibraryResource, LocalEvent } from '@/api/entities';
 import { useDebounce } from '@/components/hooks/useDebounce';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('global-search');
 
 const SearchResultItem = ({ result, onClick, type }) => {
   const getIcon = () => {
@@ -117,7 +120,7 @@ export default function GlobalSearch({ user, placeholder = "Search everything...
 
         setResults(flatResults);
       } catch (error) {
-        console.error('Search error:', error);
+        logger.error('Search error', error);
         setResults([]);
       } finally {
         setIsLoading(false);

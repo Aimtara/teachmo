@@ -1,0 +1,37 @@
+table:
+  name: workflow_dead_letters
+  schema: public
+select_permissions:
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: school_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: district_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: system_admin
+    permission:
+      check: {}
+      columns: '*'
+  - role: admin
+    permission:
+      check: {}
+      columns: '*'

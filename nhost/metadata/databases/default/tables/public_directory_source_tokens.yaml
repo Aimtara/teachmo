@@ -1,0 +1,7 @@
+table:
+  name: directory_source_tokens
+  schema: public
+object_relationships:
+  - name: source
+    using:
+      foreign_key_constraint_on: source_id

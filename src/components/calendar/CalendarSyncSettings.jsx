@@ -19,6 +19,9 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { User } from '@/api/entities';
 import { calendarSync } from '@/api/functions';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('calendar-sync-settings');
 
 export default function CalendarSyncSettings({ user }) {
   const [syncSettings, setSyncSettings] = useState({
@@ -64,7 +67,7 @@ export default function CalendarSyncSettings({ user }) {
       // Open OAuth flow
       window.location.href = authUrl;
     } catch (error) {
-      console.error('Google connect error:', error);
+      logger.error('Google connect error', error);
       toast({
         variant: "destructive",
         title: "Connection Failed",
@@ -98,7 +101,7 @@ export default function CalendarSyncSettings({ user }) {
         description: `Synced ${data.synced} events successfully.`
       });
     } catch (error) {
-      console.error('Manual sync error:', error);
+      logger.error('Manual sync error', error);
       toast({
         variant: "destructive",
         title: "Sync Failed",
@@ -121,7 +124,7 @@ export default function CalendarSyncSettings({ user }) {
         description: "Calendar sync preferences saved."
       });
     } catch (error) {
-      console.error('Settings update error:', error);
+      logger.error('Settings update error', error);
       toast({
         variant: "destructive",
         title: "Update Failed",

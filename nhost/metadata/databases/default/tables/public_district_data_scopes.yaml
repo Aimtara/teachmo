@@ -1,0 +1,36 @@
+table:
+  name: district_data_scopes
+  schema: public
+select_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter:
+        district_id:
+          _eq: "X-Hasura-District-Id"
+insert_permissions:
+  - role: admin
+    permission:
+      check: {}
+      columns: "*"
+  - role: district_admin
+    permission:
+      check:
+        district_id:
+          _eq: "X-Hasura-District-Id"
+      columns: "*"
+update_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter:
+        district_id:
+          _eq: "X-Hasura-District-Id"

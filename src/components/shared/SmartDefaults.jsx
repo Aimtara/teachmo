@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { User } from '@/api/entities';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('smart-defaults');
 
 // Smart defaults based on user behavior and preferences
 export const useSmartDefaults = () => {
@@ -35,7 +38,7 @@ export const useSmartDefaults = () => {
         
         setPreferences(smartPreferences);
       } catch (error) {
-        console.error('Error loading user preferences:', error);
+        logger.error('Error loading user preferences', error);
         // Fallback to sensible defaults
         setPreferences({
           preferredTimeOfDay: 'morning',
@@ -61,7 +64,7 @@ export const useSmartDefaults = () => {
         smart_preferences: updatedPreferences
       });
     } catch (error) {
-      console.error('Error updating preference:', error);
+      logger.error('Error updating preference', error);
     }
   };
 

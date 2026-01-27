@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { User } from "@/api/entities";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('shared-use-premium');
 
 export function usePremium() {
   const [user, setUser] = useState(null);
@@ -13,7 +16,7 @@ export function usePremium() {
         setUser(currentUser);
         setIsPremium(currentUser?.subscription_tier === 'premium');
       } catch (error) {
-        console.error("Error fetching user:", error);
+        logger.error('Error fetching user', error);
       } finally {
         setIsLoading(false);
       }

@@ -3,6 +3,9 @@ import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('use-api');
 
 // Rate limiting configuration
 const RATE_LIMIT_CONFIG = {
@@ -100,7 +103,7 @@ const retryWithBackoff = async (fn, retries, delay, errorType) => {
         ? Math.min(delay * RATE_LIMIT_CONFIG.backoffMultiplier, RATE_LIMIT_CONFIG.maxBackoffDelay)
         : delay;
         
-      console.warn(`Request failed, retrying in ${backoffDelay}ms. Retries left: ${retries}`, error.message);
+      logger.warn(`Request failed, retrying in ${backoffDelay}ms. Retries left: ${retries}`, error.message);
       
       await new Promise(resolve => setTimeout(resolve, backoffDelay));
       return retryWithBackoff(fn, retries - 1, backoffDelay, errorType);

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { SkillTrack, ChildSkillTrack } from '@/api/entities';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/components/ui/use-toast';
 
 const DEFAULT_TRACKS = [
   {
@@ -117,6 +118,7 @@ const DEFAULT_TRACKS = [
 ];
 
 export default function SkillTrackSelector({ child, onSave, onCancel, existingTracks = [] }) {
+  const { toast } = useToast();
   const [availableTracks, setAvailableTracks] = useState([]);
   const [selectedTracks, setSelectedTracks] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -208,7 +210,11 @@ export default function SkillTrackSelector({ child, onSave, onCancel, existingTr
       onSave();
     } catch (error) {
       console.error('Error saving skill tracks:', error);
-      alert('Failed to save skill tracks. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Error saving skill tracks',
+        description: 'Could not save skill track selections. Please try again.'
+      });
     }
     setIsSaving(false);
   };

@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { format as dateFnsFormat } from 'date-fns';
 import { es, zhCN, enUS } from 'date-fns/locale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('i18n');
 
 const locales = {
   en: enUS,
@@ -8,12 +11,14 @@ const locales = {
   zh: zhCN
 };
 
+const supportedLocales = Object.keys(locales);
+
 const preloadLocale = async (locale) => {
   try {
     const module = await import(`./translations/${locale}.json`);
     return module.default;
   } catch (error) {
-    console.warn(`Falling back to English translations; failed to load ${locale}`, error);
+    logger.warn(`Falling back to English translations; failed to load ${locale}`, error);
     const fallback = await import('./translations/en.json');
     return fallback.default;
   }
@@ -31,10 +36,13 @@ export const useTranslation = () => {
 
 const rtlLanguages = new Set(['ar', 'he', 'fa', 'ur']);
 
-export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
+export const I18nProvider = ({ children, defaultLocale = 'en', enabled = true }) => {
   const [translations, setTranslations] = useState({});
   const loadedLocales = useRef(new Set());
   const [locale, setLocaleState] = useState(() => {
+    if (!enabled) {
+      return defaultLocale;
+    }
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('teachmo-locale');
       if (stored) {
@@ -59,6 +67,8 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
   }, []);
 
   const setLocale = (newLocale) => {
+    if (!enabled) return;
+    if (!supportedLocales.includes(newLocale)) return;
     setLocaleState(newLocale);
     loadLocale(newLocale);
     if (typeof window !== 'undefined') {
@@ -76,11 +86,39 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
     loadLocale(locale);
   }, [locale, loadLocale]);
 
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const urlLocale = params.get('lang');
+    if (urlLocale && supportedLocales.includes(urlLocale) && urlLocale !== locale) {
+      setLocale(urlLocale);
+    }
+  }, [enabled, locale]);
+
+  const resolveTranslation = (source, key) => {
+    if (!source) return undefined;
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      return source[key];
+    }
+    if (!key.includes('.')) {
+      return undefined;
+    }
+    return key.split('.').reduce((value, part) => {
+      if (value && typeof value === 'object' && part in value) {
+        return value[part];
+      }
+      return undefined;
+    }, source);
+  };
+
   const t = (key, params) => {
     const localeStrings = translations[locale] || translations[defaultLocale] || {};
     const defaultStrings = translations[defaultLocale] || {};
 
-    let translation = localeStrings[key] || defaultStrings[key] || key;
+    let translation =
+      resolveTranslation(localeStrings, key) ||
+      resolveTranslation(defaultStrings, key) ||
+      key;
     
     // Simple parameter replacement
     if (params) {
@@ -120,6 +158,7 @@ export const I18nProvider = ({ children, defaultLocale = 'en' }) => {
   const contextValue = {
     locale,
     setLocale,
+    availableLocales: supportedLocales,
     t,
     formatDate,
     formatNumber,

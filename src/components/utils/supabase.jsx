@@ -1,7 +1,12 @@
 // Supabase client configuration
 // Note: In production, these environment variables should be set in Base44 dashboard under Settings > Environment Variables
 
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('supabase');
+
 let supabase = null;
+let supabaseInitError = null;
 
 // Function to get environment variables in a browser-compatible way
 const getEnvVar = (name) => {
@@ -38,20 +43,19 @@ const initializeSupabase = async () => {
                            getEnvVar('VITE_SUPABASE_ANON_KEY') || 
                            getEnvVar('SUPABASE_ANON_KEY');
     
-    if (supabaseUrl && supabaseAnonKey) {
-      try {
-        // Dynamically import Supabase to avoid issues if not installed
-        const { createClient } = await import('npm:@supabase/supabase-js@2.39.0');
-        supabase = createClient(supabaseUrl, supabaseAnonKey);
-        console.log('Supabase client initialized successfully');
-      } catch (error) {
-        console.warn('Failed to initialize Supabase client:', error);
-      }
-    } else {
-      console.warn('Supabase environment variables not found. Please set SUPABASE_URL and SUPABASE_ANON_KEY in Base44 dashboard settings.');
+    if (!supabaseUrl || !supabaseAnonKey) {
+      supabaseInitError = new Error(
+        'Supabase environment variables not found. Please set SUPABASE_URL and SUPABASE_ANON_KEY.'
+      );
+      return;
     }
+
+    // Dynamically import Supabase to avoid issues if not installed
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
   } catch (error) {
-    console.warn('Error during Supabase initialization:', error);
+    supabaseInitError = error instanceof Error ? error : new Error('Error during Supabase initialization.');
+    logger.warn('Supabase initialization failed', supabaseInitError);
   }
 };
 
@@ -59,7 +63,8 @@ const initializeSupabase = async () => {
 try {
   initializeSupabase();
 } catch (error) {
-  console.warn('Failed to initialize Supabase on import:', error);
+  supabaseInitError = error instanceof Error ? error : new Error('Failed to initialize Supabase on import.');
+  logger.warn('Supabase initialization crashed on import', supabaseInitError);
 }
 
 // Export the client and utility functions
@@ -70,10 +75,13 @@ export const isSupabaseConfigured = () => {
   return supabase !== null;
 };
 
+export const getSupabaseInitError = () => supabaseInitError;
+
 // Helper function to get Supabase client with error handling
 export const getSupabaseClient = () => {
   if (!supabase) {
-    throw new Error('Supabase is not configured. Please check your environment variables.');
+    const message = supabaseInitError?.message || 'Supabase is not configured. Please check your environment variables.';
+    throw new Error(message);
   }
   return supabase;
 };

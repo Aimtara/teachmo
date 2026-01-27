@@ -27,9 +27,8 @@ const teacherOnboardingSchema = z.object({
 });
 
 const CREATE_TEACHER_PROFILE = `
-  mutation CreateTeacherProfile($input: profiles_insert_input!) {
-    insert_profiles_one(object: $input) {
-      id
+  mutation CreateTeacherProfile($input: user_profiles_insert_input!) {
+    insert_user_profiles_one(object: $input) {
       user_id
     }
   }
@@ -107,7 +106,7 @@ export default function TeacherOnboardingPage() {
       input: profileInput
     });
 
-    if (profileError || !profileData?.insert_profiles_one?.id) {
+    if (profileError || !profileData?.insert_user_profiles_one?.user_id) {
       console.error('Failed to create teacher profile', profileError);
       toast({
         variant: 'destructive',
@@ -117,7 +116,7 @@ export default function TeacherOnboardingPage() {
       return;
     }
 
-    const teacherProfileId = profileData.insert_profiles_one.id;
+    const teacherProfileId = profileData.insert_user_profiles_one.user_id;
 
     const { error: linkError } = await nhost.graphql.request(CONNECT_TEACHER_SCHOOL, {
       teacherId: teacherProfileId,

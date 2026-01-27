@@ -1,5 +1,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('use-entity-data');
 
 // Generic hook for entity data operations
 export function useEntityData(
@@ -290,7 +293,7 @@ export function useEntityData(
   // Initial load effect
   useEffect(() => {
     if (initialLoad || refetchOnMount) {
-      list().catch(console.error);
+      list().catch((error) => logger.error('Initial list load failed', error));
     }
   }, [list, initialLoad, refetchOnMount]);
 

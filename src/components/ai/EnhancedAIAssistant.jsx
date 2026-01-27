@@ -6,6 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Bot, Send, Loader2, AlertCircle, Lightbulb, BookOpen, Users, Sparkles, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { invokeAdvancedAI } from '@/api/functions';
+import { logAiInteraction } from '@/api/ai/log';
+import { resolveAiModel } from '@/api/ai/resolveModel';
+import { useTenant } from '@/contexts/TenantContext';
+import { estimateTokens, scoreHallucinationRisk } from '@/observability/aiSafety';
+import { logAnalyticsEvent } from '@/observability/telemetry';
+import { useTenantFeatureFlags } from '@/hooks/useTenantFeatureFlags';
 
 const AICapabilityBadge = ({ icon: Icon, label, description }) => (
   <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
@@ -147,6 +153,8 @@ const AIThinkingIndicator = ({ stage }) => {
 };
 
 export default function EnhancedAIAssistant({ user, children }) {
+  const tenant = useTenant();
+  const featureFlagsQuery = useTenantFeatureFlags();
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -194,6 +202,7 @@ What would you like help with today?`,
     setShowCapabilities(false);
 
     try {
+      const startTime = Date.now();
       // Simulate thinking stages
       setThinkingStage('analyzing');
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -204,13 +213,45 @@ What would you like help with today?`,
       setThinkingStage('formulating');
       await new Promise(resolve => setTimeout(resolve, 600));
 
+      const tokenPrompt = estimateTokens(inputValue);
+      const featureFlags = featureFlagsQuery.data ?? {};
+      let resolvedModel = { allowed: true, model: 'gpt-4o-mini', reason: 'default' };
+      try {
+        resolvedModel = await resolveAiModel({
+          preferredModel: tokenPrompt > 300 ? 'gpt-4o' : 'gpt-4o-mini',
+          estimatedTokens: tokenPrompt,
+          featureFlags,
+        });
+      } catch (error) {
+        console.warn('AI model resolution failed, using default model.', error);
+      }
+
+      if (!resolvedModel.allowed) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now().toString() + '_blocked',
+            content: "Your organization's AI budget has been reached. Please try again later or contact an administrator.",
+            isUser: false,
+            timestamp: new Date().toISOString(),
+            confidence: 0.1
+          }
+        ]);
+        setIsLoading(false);
+        setThinkingStage(null);
+        return;
+      }
+
+      const context = {
+        user_type: user?.user_type,
+        children: children || [],
+        conversation_history: messages.slice(-5) // Last 5 messages for context
+      };
+
       const aiResponse = await invokeAdvancedAI({
         query: inputValue,
-        context: {
-          user_type: user?.user_type,
-          children: children || [],
-          conversation_history: messages.slice(-5) // Last 5 messages for context
-        }
+        context,
+        model: resolvedModel.model
       });
 
       const aiMessage = {
@@ -223,6 +264,62 @@ What would you like help with today?`,
       };
 
       setMessages(prev => [...prev, aiMessage]);
+
+      if (tenant.organizationId) {
+        const tokenResponse = estimateTokens(aiResponse.response);
+        const tokenTotal = tokenPrompt + tokenResponse;
+        const risk = scoreHallucinationRisk(aiResponse.response);
+        const childId = Array.isArray(children) && children.length
+          ? String(children[0].id || children[0].childId || '')
+          : null;
+        const reviewRequired = risk.score >= 0.7;
+        const reviewReason = reviewRequired
+          ? `Risk score ${risk.score}${risk.flags.length ? ` (${risk.flags.join(', ')})` : ''}`
+          : null;
+
+        Promise.allSettled([
+          logAiInteraction(
+            { organizationId: tenant.organizationId, schoolId: tenant.schoolId },
+            {
+              prompt: inputValue,
+              response: aiResponse.response,
+              tokenPrompt,
+              tokenResponse,
+              tokenTotal,
+              safetyRiskScore: risk.score,
+              safetyFlags: risk.flags,
+              model: aiResponse.model || aiResponse.provider || resolvedModel.model || 'unknown',
+              metadata: {
+                confidence: aiResponse.confidence,
+                sources: aiResponse.sources,
+                modelReason: resolvedModel.reason,
+                budgetExceeded: resolvedModel.budgetExceeded
+              },
+              childId,
+              inputs: { query: inputValue, context },
+              outputs: { response: aiResponse.response, confidence: aiResponse.confidence, sources: aiResponse.sources },
+              reviewRequired,
+              reviewReason,
+              latencyMs: Date.now() - startTime
+            }
+          ),
+          logAnalyticsEvent(
+            { organizationId: tenant.organizationId, schoolId: tenant.schoolId },
+            {
+              eventName: 'ai_call',
+              metadata: {
+                tokenPrompt,
+                tokenResponse,
+                tokenTotal,
+                safetyRiskScore: risk.score,
+                safetyFlags: risk.flags,
+                model: aiResponse.model || aiResponse.provider || resolvedModel.model || 'unknown',
+                reviewRequired
+              }
+            }
+          )
+        ]).catch(() => {});
+      }
     } catch (error) {
       console.error('AI Assistant error:', error);
       const errorMessage = {

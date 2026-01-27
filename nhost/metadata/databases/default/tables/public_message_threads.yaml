@@ -1,0 +1,134 @@
+table:
+  name: message_threads
+  schema: public
+array_relationships:
+  - name: participants
+    using:
+      foreign_key_constraint_on:
+        column: thread_id
+        table:
+          name: message_thread_participants
+          schema: public
+  - name: profile_participants
+    using:
+      foreign_key_constraint_on:
+        column: thread_id
+        table:
+          name: thread_participants
+          schema: public
+  - name: messages
+    using:
+      foreign_key_constraint_on:
+        column: thread_id
+        table:
+          name: messages
+          schema: public
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: thread_id
+        table:
+          name: message_reports
+          schema: public
+object_relationships:
+  - name: request
+    using:
+      foreign_key_constraint_on: request_id
+select_permissions:
+  - role: parent
+    permission:
+      columns:
+        - id
+        - title
+        - created_at
+        - updated_at
+        - created_by
+        - last_message_preview
+        - school_id
+        - district_id
+        - requester_user_id
+        - target_user_id
+        - request_id
+        - status
+        - closed_at
+        - moderation_status
+        - last_reported_at
+        - closed_reason
+        - subject
+        - updated_at
+      filter:
+        _or:
+          - participants:
+              user_id: {_eq: X-Hasura-User-Id}
+          - profile_participants:
+              profile_id: {_eq: X-Hasura-Profile-Id}
+          - requester_user_id: {_eq: X-Hasura-User-Id}
+          - target_user_id: {_eq: X-Hasura-User-Id}
+  - role: teacher
+    permission:
+      columns:
+        - id
+        - title
+        - created_at
+        - updated_at
+        - created_by
+        - last_message_preview
+        - school_id
+        - district_id
+        - requester_user_id
+        - target_user_id
+        - request_id
+        - status
+        - closed_at
+        - moderation_status
+        - last_reported_at
+        - closed_reason
+        - subject
+        - updated_at
+      filter:
+        _or:
+          - participants:
+              user_id: {_eq: X-Hasura-User-Id}
+          - profile_participants:
+              profile_id: {_eq: X-Hasura-Profile-Id}
+          - requester_user_id: {_eq: X-Hasura-User-Id}
+          - target_user_id: {_eq: X-Hasura-User-Id}
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: admin
+    permission:
+      columns: "*"
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: system_admin
+    permission:
+      columns: "*"
+      filter: {}
+insert_permissions:
+  - role: parent
+    permission:
+      columns:
+        - subject
+        - title
+      check: {}
+      set:
+        created_by: x-hasura-user-id
+  - role: teacher
+    permission:
+      columns:
+        - subject
+        - title
+      check: {}
+      set:
+        created_by: x-hasura-user-id

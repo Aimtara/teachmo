@@ -1,6 +1,11 @@
 import React from 'react';
-import { renderWithProviders, screen, waitFor } from '../testUtils';
+import { renderWithProviders, screen, waitFor } from '../testing/testUtils';
 import { PerformanceMonitor, expectPerformance, simulateSlowNetwork } from '../performance/PerformanceTestUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('specs.performance');
+const isDevelopment =
+  typeof process !== 'undefined' ? process.env.NODE_ENV !== 'production' : true;
 import Dashboard from '@/pages/Dashboard';
 import ActivityCard from '@/components/activities/ActivityCard';
 
@@ -165,11 +170,13 @@ describe('Performance Tests', () => {
       expect(bundleAnalysis.styleCount).toBeLessThan(10);
       
       // Log bundle info for manual review
-      console.log('Bundle Analysis:', {
-        scripts: bundleAnalysis.scriptCount,
-        styles: bundleAnalysis.styleCount,
-        total: bundleAnalysis.totalResources
-      });
+      if (isDevelopment) {
+        logger.debug('Bundle Analysis:', {
+          scripts: bundleAnalysis.scriptCount,
+          styles: bundleAnalysis.styleCount,
+          total: bundleAnalysis.totalResources
+        });
+      }
     });
   });
 

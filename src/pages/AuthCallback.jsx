@@ -1,16 +1,31 @@
-import { useEffect } from 'react';
-import { useAuthenticationStatus } from '@nhost/react';
+import { useEffect, useRef } from 'react';
+import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { Navigate } from 'react-router-dom';
 import { getDefaultPathForRole, useUserRole } from '@/hooks/useUserRole';
 import { nhost } from '@/lib/nhostClient';
+import { useTenant } from '@/contexts/TenantContext';
+import { logAnalyticsEvent } from '@/observability/telemetry';
 
 export default function AuthCallback() {
   const { isAuthenticated, isLoading, error } = useAuthenticationStatus();
+  const user = useUserData();
+  const tenant = useTenant();
   const role = useUserRole();
+  const loggedRef = useRef(false);
 
   useEffect(() => {
     nhost.auth.refreshSession();
   }, []);
+
+  useEffect(() => {
+    if (loggedRef.current) return;
+    if (!isAuthenticated || tenant.loading || !tenant.organizationId || !user?.id) return;
+    loggedRef.current = true;
+    logAnalyticsEvent(
+      { organizationId: tenant.organizationId, schoolId: tenant.schoolId },
+      { eventName: 'auth_login', actorId: user.id, actorRole: role || undefined }
+    ).catch(() => {});
+  }, [isAuthenticated, tenant.loading, tenant.organizationId, tenant.schoolId, user?.id, role]);
 
   if (isAuthenticated) {
     return <Navigate to={getDefaultPathForRole(role)} replace />;

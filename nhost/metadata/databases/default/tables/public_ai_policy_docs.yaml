@@ -1,0 +1,129 @@
+table:
+  name: ai_policy_docs
+  schema: public
+select_permissions:
+  - role: public
+    permission:
+      columns:
+        - id
+        - slug
+        - title
+        - summary
+        - content
+        - body_markdown
+        - links
+        - published_at
+        - updated_at
+        - organization_id
+        - school_id
+      filter:
+        organization_id:
+          _is_null: true
+  - role: parent
+    permission:
+      columns:
+        - id
+        - slug
+        - title
+        - summary
+        - content
+        - body_markdown
+        - links
+        - published_at
+        - updated_at
+        - organization_id
+        - school_id
+      filter:
+        organization_id:
+          _is_null: true
+  - role: teacher
+    permission:
+      columns:
+        - id
+        - slug
+        - title
+        - summary
+        - content
+        - body_markdown
+        - links
+        - published_at
+        - updated_at
+        - organization_id
+        - school_id
+      filter:
+        organization_id:
+          _is_null: true
+  - role: partner
+    permission:
+      columns:
+        - id
+        - slug
+        - title
+        - summary
+        - content
+        - body_markdown
+        - links
+        - published_at
+        - updated_at
+        - organization_id
+        - school_id
+      filter:
+        organization_id:
+          _is_null: true
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - organization_id:
+              _is_null: true
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - organization_id:
+              _is_null: true
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - organization_id:
+              _is_null: true
+insert_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+update_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id

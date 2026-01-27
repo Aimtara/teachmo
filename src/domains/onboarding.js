@@ -28,6 +28,7 @@ export async function completeOnboarding({ userId, fullName, appRole, organizati
   const query = `mutation CompleteOnboarding($input: profiles_insert_input!) {
     insert_profiles_one(object: $input) {
       id
+      user_id
       full_name
       app_role
       organization_id

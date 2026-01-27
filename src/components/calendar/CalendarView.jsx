@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth, endOfWeek, isSameMonth, isSameDay, getDay, startOfDay, endOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
@@ -42,6 +42,13 @@ const DayCell = ({ day, monthStart, onDayClick, children: dayChildren }) => {
 
 const CalendarView = ({ currentDate, events, onEventClick, isLoading, view, onDayClick, childrenData }) => {
     const [now, setNow] = useState(new Date());
+    // Cache events by day to avoid recomputing filters on every render
+    const eventsCache = useRef({});
+
+    // Clear cache when events array or view changes
+    useEffect(() => {
+        eventsCache.current = {};
+    }, [events, view]);
 
     useEffect(() => {
         if (view === 'week') {
@@ -62,31 +69,38 @@ const CalendarView = ({ currentDate, events, onEventClick, isLoading, view, onDa
         days.push(day);
         day = addDays(day, 1);
     }
-    
-    const getEventsForDay = (day) => {
-        return events
-          .filter(event => {
-            if (!event || !event.start_time) return false;
-            const start = new Date(event.start_time);
-            if (isNaN(start.getTime())) return false;
 
-            if (event.all_day) return isSameDay(start, day);
-            
-            if (!event.end_time) return false;
-            const end = new Date(event.end_time);
-            if(isNaN(end.getTime())) return false;
-
-            return start <= endOfDay(day) && end >= startOfDay(day);
-          })
-          .sort((a,b) => {
-            const dateA = new Date(a.start_time);
-            const dateB = new Date(b.start_time);
-            if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
-            if (isNaN(dateA.getTime())) return 1;
-            if (isNaN(dateB.getTime())) return -1;
-            return dateA - dateB;
-          });
-    };
+    /**
+     * Get events for a specific day with memoization. Caches results in eventsCache by ISO date string.
+     */
+    const getEventsForDay = useCallback((targetDay) => {
+        const key = targetDay.toISOString().split('T')[0];
+        // Return cached result if available
+        if (eventsCache.current[key]) {
+            return eventsCache.current[key];
+        }
+        const list = events
+            .filter((event) => {
+                if (!event || !event.start_time) return false;
+                const start = new Date(event.start_time);
+                if (isNaN(start.getTime())) return false;
+                if (event.all_day) return isSameDay(start, targetDay);
+                if (!event.end_time) return false;
+                const end = new Date(event.end_time);
+                if (isNaN(end.getTime())) return false;
+                return start <= endOfDay(targetDay) && end >= startOfDay(targetDay);
+            })
+            .sort((a, b) => {
+                const dateA = new Date(a.start_time);
+                const dateB = new Date(b.start_time);
+                if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+                if (isNaN(dateA.getTime())) return 1;
+                if (isNaN(dateB.getTime())) return -1;
+                return dateA.getTime() - dateB.getTime();
+            });
+        eventsCache.current[key] = list;
+        return list;
+    }, [events]);
 
     if (isLoading) {
         return (

@@ -1,0 +1,12 @@
+table:
+  name: invite_send_counters
+  schema: public
+select_permissions:
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}

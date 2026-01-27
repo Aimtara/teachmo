@@ -1,14 +1,13 @@
 // Backend function testing suite
-import { applyReferralCode } from '../../.@/api/functions/applyReferralCode';
-import { manageSponsorships } from '../../.@/api/functions/manageSponsorships';
+import { applyReferralCode, manageSponsorships } from '@/api/functions';
 
 // Mock dependencies
 global.Deno = {
   env: {
     get: jest.fn((key) => {
       const mockEnv = {
-        'BASE44_APP_ID': 'test-app-id',
-        'OPENAI_API_KEY': 'test-openai-key'
+        VITE_BASE44_APP_ID: 'test-app-id',
+        OPENAI_API_KEY: 'test-openai-key'
       };
       return mockEnv[key];
     })

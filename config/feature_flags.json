@@ -1,0 +1,137 @@
+{
+  "flags": [
+    {
+      "key": "DISCOVER",
+      "description": "Show the discover feed and curated learning paths.",
+      "defaultEnabled": true,
+      "owner": "product",
+      "testMatrix": ["discover_default_on"]
+    },
+    {
+      "key": "COMMUNITY",
+      "description": "Enable community forums and peer collaboration features.",
+      "defaultEnabled": true,
+      "owner": "product",
+      "testMatrix": ["community_default_on"]
+    },
+    {
+      "key": "CALENDAR",
+      "description": "Enable the unified calendar experience.",
+      "defaultEnabled": false,
+      "owner": "product",
+      "testMatrix": ["calendar_flagged_off"]
+    },
+    {
+      "key": "MESSAGING",
+      "description": "Enable in-app messaging.",
+      "defaultEnabled": false,
+      "owner": "product",
+      "testMatrix": ["messaging_flagged_off"]
+    },
+    {
+      "key": "AI_ASSISTANT",
+      "description": "Expose the AI assistant surfaces in the UI.",
+      "defaultEnabled": false,
+      "owner": "ai",
+      "testMatrix": ["ai_assistant_flagged_off"]
+    },
+    {
+      "key": "TEACHER_CLASSES",
+      "description": "Enable teacher class management surfaces.",
+      "defaultEnabled": false,
+      "owner": "learning",
+      "testMatrix": ["teacher_classes_flagged_off"]
+    },
+    {
+      "key": "TEACHER_ASSIGNMENTS",
+      "description": "Enable teacher assignment management.",
+      "defaultEnabled": false,
+      "owner": "learning",
+      "testMatrix": ["teacher_assignments_flagged_off"]
+    },
+    {
+      "key": "TEACHER_MESSAGES",
+      "description": "Enable teacher messaging tools.",
+      "defaultEnabled": false,
+      "owner": "learning",
+      "testMatrix": ["teacher_messages_flagged_off"]
+    },
+    {
+      "key": "PARTNER_PORTAL",
+      "description": "Expose partner portal navigation and workflows.",
+      "defaultEnabled": false,
+      "owner": "partnerships",
+      "testMatrix": ["partner_portal_flagged_off"]
+    },
+    {
+      "key": "SCHOOL_DIRECTORY",
+      "description": "Enable the school directory directory listings.",
+      "defaultEnabled": false,
+      "owner": "districts",
+      "testMatrix": ["school_directory_flagged_off"]
+    },
+    {
+      "key": "ENTERPRISE_SSO",
+      "description": "Enable enterprise single sign-on capabilities.",
+      "defaultEnabled": false,
+      "owner": "security",
+      "testMatrix": ["enterprise_sso_flagged_off"]
+    },
+    {
+      "key": "ENTERPRISE_AUDIT_LOGS",
+      "description": "Enable enterprise audit log exports.",
+      "defaultEnabled": false,
+      "owner": "security",
+      "testMatrix": ["enterprise_audit_logs_flagged_off"]
+    },
+    {
+      "key": "ENTERPRISE_FEATURE_FLAGS",
+      "description": "Enable enterprise feature flag administration UI.",
+      "defaultEnabled": false,
+      "owner": "platform",
+      "testMatrix": ["enterprise_feature_flags_flagged_off"]
+    },
+    {
+      "key": "ENTERPRISE_AI_GOVERNANCE",
+      "description": "Enable enterprise AI governance controls.",
+      "defaultEnabled": false,
+      "owner": "ai",
+      "testMatrix": ["enterprise_ai_governance_flagged_off"]
+    },
+    {
+      "key": "ENTERPRISE_AI_REVIEW",
+      "description": "Enable enterprise AI review workflows.",
+      "defaultEnabled": false,
+      "owner": "ai",
+      "testMatrix": ["enterprise_ai_review_flagged_off"]
+    },
+    {
+      "key": "ENTERPRISE_SIS_ROSTER",
+      "description": "Enable SIS roster integrations.",
+      "defaultEnabled": false,
+      "owner": "integrations",
+      "testMatrix": ["enterprise_sis_roster_flagged_off"]
+    },
+    {
+      "key": "ENTERPRISE_TRANSPARENCY",
+      "description": "Enable enterprise transparency reporting.",
+      "defaultEnabled": true,
+      "owner": "compliance",
+      "testMatrix": ["enterprise_transparency_default_on"]
+    },
+    {
+      "key": "ENTERPRISE_MODE",
+      "description": "Enable enterprise mode across the app.",
+      "defaultEnabled": false,
+      "owner": "platform",
+      "testMatrix": ["enterprise_mode_flagged_off"]
+    },
+    {
+      "key": "FEATURE_I18N",
+      "description": "Enable internationalization wrappers in the UI.",
+      "defaultEnabled": false,
+      "owner": "platform",
+      "testMatrix": ["i18n_flagged_off"]
+    }
+  ]
+}

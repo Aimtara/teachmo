@@ -1,0 +1,26 @@
+table:
+  name: analytics_event_rollups_daily
+  schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id

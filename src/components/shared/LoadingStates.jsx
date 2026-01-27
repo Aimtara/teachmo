@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Animated loading spinner with context
-export function LoadingSpinner({ size = 'default', text = 'Loading...', className = '' }) {
+export function LoadingSpinner({ size = 'default', text, message, className = '' }) {
   const sizeMap = {
     sm: 'w-4 h-4',
     default: 'w-6 h-6',
@@ -16,10 +16,12 @@ export function LoadingSpinner({ size = 'default', text = 'Loading...', classNam
     xl: 'w-12 h-12'
   };
 
+  const label = text ?? message ?? 'Loading...';
+
   return (
     <div className={`flex items-center justify-center gap-2 ${className}`}>
       <Loader2 className={`${sizeMap[size]} animate-spin text-blue-600`} />
-      {text && <span className="text-sm text-gray-600 animate-pulse">{text}</span>}
+      {label && <span className="text-sm text-gray-600 animate-pulse">{label}</span>}
     </div>
   );
 }

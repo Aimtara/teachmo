@@ -1,0 +1,160 @@
+type FetchRequestInit = globalThis.RequestInit;
+type FetchHeadersInit = globalThis.HeadersInit;
+
+const getFunctionsBaseUrl = (): string => {
+  const env = (import.meta.env ?? process.env) as Record<string, string | undefined>;
+  return env?.VITE_NHOST_FUNCTIONS_URL || '/v1/functions';
+};
+
+const functionsBaseUrl = getFunctionsBaseUrl();
+
+type FunctionPayload = Record<string, unknown> | FormData | undefined;
+
+type InvokeOverrides = FetchRequestInit & { headers?: FetchHeadersInit };
+
+type InvocationResponse<T> = Promise<T | string | null>;
+
+const invokeNhostFunction = async <T = unknown>(
+  functionName: string,
+  payload: FunctionPayload = {},
+  initOverrides: InvokeOverrides = {}
+): InvocationResponse<T> => {
+  const { method = 'POST', headers = {}, ...rest } = initOverrides;
+
+  const normalizedHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(headers as Record<string, string>)
+  };
+
+  const requestInit: FetchRequestInit = {
+    method,
+    headers: normalizedHeaders,
+    ...rest
+  };
+
+  if (payload instanceof FormData) {
+    requestInit.body = payload;
+    delete normalizedHeaders['Content-Type'];
+  } else if (payload && Object.keys(payload).length > 0) {
+    requestInit.body = JSON.stringify(payload);
+  }
+
+  const response = await fetch(`${functionsBaseUrl}/${functionName}`, requestInit);
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Nhost function ${functionName} failed (${response.status}): ${errorText}`);
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return response.json() as Promise<T>;
+  }
+
+  return response.text();
+};
+
+const createFunctionInvoker = <T = unknown>(functionName: string, defaults: InvokeOverrides = {}) =>
+  (payload?: FunctionPayload, initOverrides: InvokeOverrides = {}) =>
+    invokeNhostFunction<T>(functionName, payload, { ...defaults, ...initOverrides });
+
+export const googleClassroomSync = createFunctionInvoker('googleClassroomSync');
+
+export const googleAuth = createFunctionInvoker('googleAuth');
+
+export const syncSISData = createFunctionInvoker('syncSISData');
+
+export const bulkUserManagement = createFunctionInvoker('bulkUserManagement');
+
+export const assignDefaultPermissions = createFunctionInvoker('assignDefaultPermissions');
+
+export const getGoogleAuthUrl = createFunctionInvoker('getGoogleAuthUrl');
+
+export const calendarSync = createFunctionInvoker('calendarSync');
+
+export const notificationSettings = createFunctionInvoker('notificationSettings');
+
+export const aiActivitySuggestions = createFunctionInvoker('aiActivitySuggestions');
+
+export const getAdminAnalytics = createFunctionInvoker('getAdminAnalytics');
+
+export const priorityNotifications = createFunctionInvoker('priorityNotifications');
+
+export const eventSubscriptions = createFunctionInvoker('eventSubscriptions');
+
+export const realEventSearch = createFunctionInvoker('realEventSearch');
+
+export const getSchoolIntegrationStatus = createFunctionInvoker('getSchoolIntegrationStatus');
+
+export const submitSchoolParticipationRequest = createFunctionInvoker('submitSchoolParticipationRequest');
+
+export const manageSchoolRequests = createFunctionInvoker('manageSchoolRequests');
+
+export const populateSchoolDirectory = createFunctionInvoker('populateSchoolDirectory');
+
+export const createStripeCheckout = createFunctionInvoker('createStripeCheckout');
+
+export const stripeWebhook = createFunctionInvoker('stripeWebhook');
+
+export const intelligentNotifications = createFunctionInvoker('intelligentNotifications');
+
+export const schoolDirectoryETL = createFunctionInvoker('schoolDirectoryETL');
+
+export const searchSchools = createFunctionInvoker('searchSchools');
+
+export const schoolDirectoryMonitoring = createFunctionInvoker('schoolDirectoryMonitoring');
+
+export const handleGoogleDisconnect = createFunctionInvoker('handleGoogleDisconnect');
+
+export const moderateContent = createFunctionInvoker('moderateContent');
+
+export const submitReport = createFunctionInvoker('submitReport');
+
+export const invokeAdvancedAI = createFunctionInvoker('invokeAdvancedAI');
+
+export const translateMessage = createFunctionInvoker('translateMessage');
+
+export const awardPodChallengePoints = createFunctionInvoker('awardPodChallengePoints');
+
+export const applyReferralCode = createFunctionInvoker('applyReferralCode');
+
+export const manageSponsorships = createFunctionInvoker('manageSponsorships');
+
+export const submitPrivacyRequest = createFunctionInvoker('submitPrivacyRequest');
+
+export const shortsGeneration = createFunctionInvoker('shortsGeneration');
+
+export const shortsAdmin = createFunctionInvoker('shortsAdmin');
+
+export const shortsTelemetry = createFunctionInvoker('shortsTelemetry');
+
+export const shortsRecommendations = createFunctionInvoker('shortsRecommendations');
+
+export const takeModerationAction = createFunctionInvoker('takeModerationAction');
+
+export const advancedAIHomeworkHelper = createFunctionInvoker('advancedAIHomeworkHelper');
+
+export const generateCurriculumAlignedActivities = createFunctionInvoker('generateCurriculumAlignedActivities');
+
+export const manageUserContentReview = createFunctionInvoker('manageUserContentReview');
+
+export const getUXAnalytics = createFunctionInvoker('getUXAnalytics');
+
+export const gamificationEngine = createFunctionInvoker('gamificationEngine');
+
+export const enterpriseAuditLogger = createFunctionInvoker('enterpriseAuditLogger');
+
+export const enterpriseDataExport = createFunctionInvoker('enterpriseDataExport');
+
+export const systemHealthMonitor = createFunctionInvoker('systemHealthMonitor');
+
+export const logAuditEvent = createFunctionInvoker('logAuditEvent');
+
+export const performanceMonitoring = createFunctionInvoker('performanceMonitoring');
+
+export const weeklyBriefSummarize = createFunctionInvoker('weeklyBriefSummarize');
+export const weeklyBriefGenerate = createFunctionInvoker('weeklyBriefGenerate');

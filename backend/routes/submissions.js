@@ -1,42 +1,87 @@
 /* eslint-env node */
 import { Router } from 'express';
-import { partnerSubmissions, nextId } from '../models.js';
+import { query } from '../db.js';
+import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = Router();
+const logger = createLogger('routes.submissions');
 
-// GET /api/submissions
-// Returns all submissions
-router.get('/', (req, res) => {
-  res.json(partnerSubmissions);
-});
-
-// POST /api/submissions
-// Creates a new submission with status pending
-router.post('/', (req, res) => {
-  const { type, title, description } = req.body;
-  if (!type || !title) {
-    return res.status(400).json({ error: 'type and title are required' });
+async function safeQuery(res, sql, params = []) {
+  try {
+    const result = await query(sql, params);
+    return result;
+  } catch (error) {
+    logger.error('Database error', error);
+    res.status(500).json({ error: 'db_error', detail: error.message });
+    return null;
   }
-  const submission = {
-    id: nextId('submission'),
-    type,
-    title,
-    description: description || '',
-    status: 'pending',
-  };
-  partnerSubmissions.push(submission);
-  res.status(201).json(submission);
+}
+
+// List partner submissions scoped to a tenant.
+// If x-user-id is provided, results are narrowed to that partner.
+router.get('/', requireDistrictScope, async (req, res) => {
+  const { districtId, userId } = getTenantScope(req);
+  const result = await safeQuery(
+    res,
+    `select id, type, title, description, status, reason, created_at, updated_at
+     from public.partner_submissions
+     where district_id = $1
+       and ($2::uuid is null or partner_user_id = $2::uuid)
+     order by created_at desc
+     limit 500`,
+    [districtId, userId]
+  );
+  if (!result) return;
+  res.json(result.rows);
 });
 
-// edit draft submission
-router.put('/:id', (req, res) => {
-  const { id } = req.params;
-  const submission = partnerSubmissions.find((s) => s.id === Number(id));
-  if (!submission) return res.status(404).json({ error: 'not found' });
-  if (submission.status !== 'pending') return res.status(400).json({ error: 'only pending editable' });
-  const { title, description } = req.body;
-  if (title) submission.title = title;
-  if (description) submission.description = description;
-  res.json(submission);
+// Create a submission (partner-scoped).
+router.post('/', requireDistrictScope, async (req, res) => {
+  const { districtId, userId } = getTenantScope(req);
+  if (!userId) return res.status(400).json({ error: 'user scope required (x-user-id)' });
+
+  const { type, title, description } = req.body || {};
+  if (!type) return res.status(400).json({ error: 'type required' });
+  if (!title) return res.status(400).json({ error: 'title required' });
+
+  const result = await safeQuery(
+    res,
+    `insert into public.partner_submissions (partner_user_id, district_id, type, title, description)
+     values ($1::uuid, $2::uuid, $3, $4, $5)
+     returning id, type, title, description, status, reason, created_at, updated_at`,
+    [userId, districtId, type, title, description ?? null]
+  );
+  if (!result) return;
+  res.status(201).json(result.rows[0]);
 });
+
+// Update pending submissions (title/description only), scoped to tenant + partner.
+router.put('/:id', requireDistrictScope, async (req, res) => {
+  const { districtId, userId } = getTenantScope(req);
+  if (!userId) return res.status(400).json({ error: 'user scope required (x-user-id)' });
+  const id = asUuidOrNull(req.params.id);
+  if (!id) return res.status(400).json({ error: 'invalid id' });
+
+  const { title, description } = req.body || {};
+  if (!title && !description) return res.status(400).json({ error: 'no changes' });
+
+  const result = await safeQuery(
+    res,
+    `update public.partner_submissions
+       set title = coalesce($2, title),
+           description = coalesce($3, description),
+           updated_at = now()
+     where id = $1
+       and district_id = $4
+       and partner_user_id = $5
+       and status = 'pending'
+     returning id, type, title, description, status, reason, created_at, updated_at`,
+    [id, title ?? null, description ?? null, districtId, userId]
+  );
+  if (!result) return;
+  if (!result.rows[0]) return res.status(404).json({ error: 'not_found' });
+  res.json(result.rows[0]);
+});
+
 export default router;

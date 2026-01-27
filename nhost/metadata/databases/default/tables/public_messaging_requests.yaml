@@ -1,0 +1,56 @@
+table:
+  name: messaging_requests
+  schema: public
+select_permissions:
+  - role: parent
+    permission:
+      columns:
+        - id
+        - school_id
+        - district_id
+        - requester_user_id
+        - target_user_id
+        - status
+        - reason
+        - created_at
+        - decided_at
+        - decided_by
+        - expires_at
+        - metadata
+      filter:
+        requester_user_id: {_eq: X-Hasura-User-Id}
+  - role: teacher
+    permission:
+      columns:
+        - id
+        - school_id
+        - district_id
+        - requester_user_id
+        - target_user_id
+        - status
+        - reason
+        - created_at
+        - decided_at
+        - decided_by
+        - expires_at
+        - metadata
+      filter:
+        _or:
+          - target_user_id: {_eq: X-Hasura-User-Id}
+          - requester_user_id: {_eq: X-Hasura-User-Id}
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: system_admin
+    permission:
+      columns: "*"
+      filter: {}

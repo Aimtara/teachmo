@@ -1,0 +1,12 @@
+table:
+  name: message_blocks
+  schema: public
+object_relationships:
+  - name: blocked_user
+    using:
+      foreign_key_constraint_on:
+        column: blocked_user_id
+        table:
+          name: users
+          schema: auth
+select_permissions: []

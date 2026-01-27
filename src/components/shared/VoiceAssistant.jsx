@@ -18,9 +18,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { createPageUrl } from '@/utils';
+import { createLogger } from '@/utils/logger';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Child, CalendarEvent, JournalEntry } from '@/api/entities';
+import { Activity, CalendarEvent } from '@/api/entities';
 import { InvokeLLM } from '@/api/integrations';
+
+const logger = createLogger('voice-assistant');
 
 const VOICE_COMMANDS = {
   navigation: {
@@ -49,7 +52,7 @@ const VOICE_COMMANDS = {
   }
 };
 
-export default function VoiceAssistant({ user, children }) {
+export default function VoiceAssistant({ user, childProfiles = [] }) {
   const [isListening, setIsListening] = useState(false);
   const [isEnabled, setIsEnabled] = useState(true);
   const [lastCommand, setLastCommand] = useState('');
@@ -115,7 +118,7 @@ export default function VoiceAssistant({ user, children }) {
 
   const registerWebSpeechCommands = () => {
     // This would typically involve registering with browser's voice command system
-    console.log('Registering web speech commands...');
+    logger.debug('Registering web speech commands');
   };
 
   const setupAlexaIntegration = () => {
@@ -150,7 +153,7 @@ export default function VoiceAssistant({ user, children }) {
       ]
     };
     
-    console.log('Alexa integration ready:', alexaCommands);
+    logger.debug('Alexa integration ready', alexaCommands);
   };
 
   const setupSiriIntegration = () => {
@@ -174,7 +177,7 @@ export default function VoiceAssistant({ user, children }) {
       }
     ];
     
-    console.log('Siri shortcuts available:', siriShortcuts);
+    logger.debug('Siri shortcuts available', siriShortcuts);
   };
 
   const handleVoiceCommand = async (event) => {
@@ -230,7 +233,7 @@ export default function VoiceAssistant({ user, children }) {
           responseText = "I'm not sure how to help with that.";
       }
     } catch (error) {
-      console.error('Error executing voice command:', error);
+      logger.error('Error executing voice command', error);
       responseText = "Sorry, I encountered an error processing that request.";
     }
     
@@ -258,10 +261,10 @@ export default function VoiceAssistant({ user, children }) {
         return `Your current login streak is ${user?.login_streak || 0} days.`;
         
       case 'children':
-        if (children.length === 0) {
+        if (childProfiles.length === 0) {
           return "You haven't added any children profiles yet.";
         }
-        return `You have ${children.length} ${children.length === 1 ? 'child' : 'children'}: ${children.map(c => `${c.name}, age ${c.age}`).join(', ')}.`;
+        return `You have ${childProfiles.length} ${childProfiles.length === 1 ? 'child' : 'children'}: ${childProfiles.map(c => `${c.name}, age ${c.age}`).join(', ')}.`;
         
       case 'nextEvent':
         const events = await CalendarEvent.filter({
@@ -325,7 +328,7 @@ export default function VoiceAssistant({ user, children }) {
         - Complete: activity
 
         User context:
-        - Has ${children.length} children
+        - Has ${childProfiles.length} children
         - Current points: ${user?.points || 0}
         - Login streak: ${user?.login_streak || 0} days
 
@@ -347,8 +350,8 @@ export default function VoiceAssistant({ user, children }) {
 
   const generateParentingTip = async () => {
     try {
-      const childContext = children.length > 0 
-        ? `for a parent with children aged ${children.map(c => c.age).join(', ')}`
+      const childContext = childProfiles.length > 0 
+        ? `for a parent with children aged ${childProfiles.map(c => c.age).join(', ')}`
         : 'for parents';
         
       const tip = await InvokeLLM({
@@ -376,7 +379,7 @@ export default function VoiceAssistant({ user, children }) {
   };
 
   const handleVoiceError = (event) => {
-    console.error('Voice recognition error:', event.error);
+    logger.warn('Voice recognition error', event.error);
     setIsListening(false);
     
     let errorMessage = "Sorry, I couldn't understand that.";

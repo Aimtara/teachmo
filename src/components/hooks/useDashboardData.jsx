@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Child, Activity, ParentingTip } from "@/api/entities";
+import { ParentingTip } from "@/api/entities";
 import { startOfWeek, endOfWeek } from 'date-fns';
 import { useApi } from '@/components/hooks/useApi';
+import backendAdapter from '@/backend/adapter';
 
 export function useDashboardData() {
   const { execute, isLoading, error, loadingStates } = useApi({ context: 'dashboard' });
@@ -58,12 +59,15 @@ export function useDashboardData() {
   const loadData = useCallback(async () => {
     try {
       // Sequentially execute API calls to avoid rate-limiting
-      const user = await execute(() => User.me(), { key: 'user' });
+      const user = await execute(() => backendAdapter.getCurrentUser(), { key: 'user' });
       if (!user) return; // Stop if user fails to load
 
       const [children, activities, tips] = await Promise.all([
-        execute(() => Child.list(), { key: 'children' }).catch(() => []),
-        execute(() => Activity.filter({ status: { $ne: 'completed' } }, '-created_date', 10), { key: 'activities' }).catch(() => []),
+        execute(() => backendAdapter.listChildren(), { key: 'children' }).catch(() => []),
+        execute(
+          () => backendAdapter.listActivities({ excludeStatus: 'completed', limit: 10 }),
+          { key: 'activities' }
+        ).catch(() => []),
         execute(() => ParentingTip.list('-created_date', 5), { key: 'tips' }).catch(() => [])
       ]);
       

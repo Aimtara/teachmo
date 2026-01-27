@@ -1,52 +1,39 @@
 /* eslint-env node */
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
-import express from 'express';
-import cors from 'cors';
-import assignmentsRouter from './routes/assignments.js';
-import submissionsRouter from './routes/submissions.js';
-import incentivesRouter from './routes/incentives.js';
-import coursesRouter from './routes/courses.js';
-import partnerPortalAdminRouter from './routes/partnerPortalAdmin.js';
-import contractsRouter from './routes/contracts.js';
-import onboardingRouter from './routes/onboarding.js';
-import programsRouter from './routes/programs.js';
-import faqsRouter from './routes/faqs.js';
-import quizzesRouter from './routes/quizzes.js';
-import learningPathsRouter from './routes/learningPaths.js';
-import { seedDemoData } from './seed.js';
+import app from './app.js';
+import { seedDemoData, seedExecutionBoardData, seedOpsDemoData } from './seed.js';
+import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
+import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
+import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
+import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
+import { createLogger } from './utils/logger.js';
+import { runMigrations } from './migrate.js';
 
 // Load environment variables
 dotenv.config();
 
-const app = express();
 const PORT = process.env.PORT || 4000;
+const logger = createLogger('server');
 
-// Middleware
-app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
-app.use(express.json());
+// Seed demo data ONLY when explicitly enabled.
+// Never seed in production.
+const shouldSeedDemo =
+  String(process.env.ENABLE_DEMO_SEED || '').toLowerCase() === 'true' &&
+  (process.env.NODE_ENV || 'development').toLowerCase() !== 'production';
 
-// Mount routes
-app.use('/api/assignments', assignmentsRouter);
-app.use('/api/submissions', submissionsRouter);
-app.use('/api/incentives', incentivesRouter);
-app.use('/api/courses', coursesRouter);
-app.use('/api/admin', partnerPortalAdminRouter);
-app.use('/api/contracts', contractsRouter);
-app.use('/api/onboarding', onboardingRouter);
-app.use('/api/programs', programsRouter);
-app.use('/api/faqs', faqsRouter);
-app.use('/api/quizzes', quizzesRouter);
-app.use('/api/learning-paths', learningPathsRouter);
+if (shouldSeedDemo) {
+  seedDemoData();
+}
 
-// Root endpoint to verify API is running
-app.get('/api', (req, res) => {
-  res.send({ message: 'Welcome to the Teachmo API' });
-});
-
-// Seed demo data so the dashboards have content
-seedDemoData();
+await runMigrations();
+seedExecutionBoardData();
+await seedOpsDemoData();
+startRetentionPurgeScheduler();
+startNotificationQueueScheduler();
+startObservabilitySchedulers();
+startRosterSyncScheduler();
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Teachmo backend server running on port ${PORT}`);
+  logger.info(`Teachmo backend server running on port ${PORT}`);
 });

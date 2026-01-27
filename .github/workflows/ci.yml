@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Backend syntax check
+        run: npm run backend:check
+
+      - name: Backend unit tests
+        run: npm run test:backend
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Backend syntax check
+        run: node --check backend/routes/ops.js
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+      
+      - name: Accessibility unit tests
+        run: npm run test:a11y
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Accessibility e2e tests
+        run: npm run e2e:a11y
+
+      - name: Build
+        run: npm run build

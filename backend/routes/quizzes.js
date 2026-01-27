@@ -3,30 +3,6 @@ import { Router } from 'express';
 
 const router = Router();
 
-// GET /api/quizzes
-// Returns a list of sample quizzes with questions and options
-router.get('/', (req, res) => {
-  res.json([
-    {
-      id: 1,
-      title: 'Fractions Basics Quiz',
-      questions: [
-        {
-          id: 1,
-          prompt: 'What is 1/2 of 8?',
-          options: ['2', '4', '6', '8'],
-          answer: '4'
-        },
-        {
-          id: 2,
-          prompt: 'Which fraction equals 0.25?',
-          options: ['1/4', '1/2', '3/4', '4/5'],
-          answer: '1/4'
-        }
-      ]
-    }
-  ]);
-});
 // In-memory quiz data (with answers, not exposed directly)
 const quizzes = [
   {
@@ -48,92 +24,43 @@ const quizzes = [
     ]
   }
 ];
-// In-memory quiz data (with answers, not exposed to clients)
-const quizzes = [
-  {
-    id: 1,
-    title: 'Fractions Basics Quiz',
-    questions: [
-      {
-        id: 1,
-        prompt: 'What is 1/2 of 8?',
-        options: ['2', '4', '6', '8'],
-        answer: '4'
-      },
-      {
-        id: 2,
-        prompt: 'Which fraction equals 0.25?',
-        options: ['1/4', '1/2', '3/4', '4/5'],
-        answer: '1/4'
-      }
-    ]
-  }
-];
+
+const sanitizeQuiz = (quiz) => ({
+  id: quiz.id,
+  title: quiz.title,
+  questions: quiz.questions.map((question) => ({
+    id: question.id,
+    prompt: question.prompt,
+    options: question.options
+  }))
+});
 
 // GET /api/quizzes
 // Returns a list of sample quizzes with questions and options (no answers)
 router.get('/', (req, res) => {
-  // Remove answers before sending to client
-  const quizzesForClient = quizzes.map(quiz => ({
-    id: quiz.id,
-    title: quiz.title,
-    questions: quiz.questions.map(q => ({
-      id: q.id,
-      prompt: q.prompt,
-      options: q.options
-    }))
-  }));
-  res.json(quizzesForClient);
+  res.json(quizzes.map(sanitizeQuiz));
 });
 
 // POST /api/quizzes/:id/submit
 // Accepts user answers and returns validation results
 router.post('/:id/submit', (req, res) => {
-  const quizId = parseInt(req.params.id, 10);
-  const userAnswers = req.body.answers; // { [questionId]: answer }
-  const quiz = quizzes.find(q => q.id === quizId);
-  if (!quiz) {
-    return res.status(404).json({ error: 'Quiz not found' });
-  }
-  const results = quiz.questions.map(q => ({
-    questionId: q.id,
-    correct: userAnswers && userAnswers[q.id] === q.answer,
-    correctAnswer: q.answer // Optionally include this, or omit if not desired
-  }));
-  res.json({ results });
-});
-// GET /api/quizzes
-// Returns a list of sample quizzes with questions and options (no answers)
-router.get('/', (req, res) => {
-  // Remove answers before sending to client
-  const quizzesWithoutAnswers = quizzes.map(quiz => ({
-    id: quiz.id,
-    title: quiz.title,
-    questions: quiz.questions.map(q => ({
-      id: q.id,
-      prompt: q.prompt,
-      options: q.options
-    }))
-  }));
-  res.json(quizzesWithoutAnswers);
-});
+  const quizId = Number.parseInt(req.params.id, 10);
+  const userAnswers = Array.isArray(req.body?.answers) ? req.body.answers : [];
+  const quiz = quizzes.find((q) => q.id === quizId);
 
-// POST /api/quizzes/:id/submit
-// Accepts user answers and returns validation results
-router.post('/:id/submit', (req, res) => {
-  const quizId = parseInt(req.params.id, 10);
-  const userAnswers = req.body.answers; // [{questionId: 1, answer: '4'}, ...]
-  const quiz = quizzes.find(q => q.id === quizId);
   if (!quiz) {
     return res.status(404).json({ error: 'Quiz not found' });
   }
-  const results = quiz.questions.map(q => {
-    const userAnswer = userAnswers.find(a => a.questionId === q.id);
+
+  const results = quiz.questions.map((question) => {
+    const userAnswer = userAnswers.find((answer) => answer.questionId === question.id);
     return {
-      questionId: q.id,
-      correct: userAnswer ? userAnswer.answer === q.answer : false
+      questionId: question.id,
+      correct: Boolean(userAnswer && userAnswer.answer === question.answer)
     };
   });
-  res.json({ results });
+
+  return res.json({ results });
 });
+
 export default router;

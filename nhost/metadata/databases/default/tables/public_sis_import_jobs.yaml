@@ -1,0 +1,117 @@
+table:
+  name: sis_import_jobs
+  schema: public
+array_relationships:
+  - name: roster_users
+    using:
+      foreign_key_constraint_on:
+        column: job_id
+        table:
+          name: sis_roster_users
+          schema: public
+  - name: roster_students
+    using:
+      foreign_key_constraint_on:
+        column: job_id
+        table:
+          name: sis_roster_students
+          schema: public
+  - name: roster_classes
+    using:
+      foreign_key_constraint_on:
+        column: job_id
+        table:
+          name: sis_roster_classes
+          schema: public
+  - name: roster_enrollments
+    using:
+      foreign_key_constraint_on:
+        column: job_id
+        table:
+          name: sis_roster_enrollments
+          schema: public
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        _and:
+          - organization_id:
+              _eq: X-Hasura-Organization-Id
+          - _or:
+              - school_id:
+                  _eq: X-Hasura-School-Id
+              - school_id:
+                  _is_null: true
+insert_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+update_permissions:
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+      check: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        organization_id:
+          _eq: X-Hasura-Organization-Id
+      check:
+        organization_id:
+          _eq: X-Hasura-Organization-Id

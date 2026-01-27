@@ -14,8 +14,25 @@
   "welcome_back": "Welcome back",
   "activities_completed": "Activities completed",
   "weekly_streak": "{{count}} day streak",
+  "language_switcher": {
+    "label": "Language",
+    "options": {
+      "en": "English",
+      "es": "Spanish",
+      "zh": "Chinese"
+    }
+  },
   "save": "Save",
   "cancel": "Cancel",
   "delete": "Delete",
-  "edit": "Edit"
+  "edit": "Edit",
+  "teacher_classes": {
+    "title": "My Classes",
+    "description": "View and manage your classes",
+    "empty_title": "Need help getting started?",
+    "empty_description": "Connect your Google Classroom account or learn more about managing classes in Teachmo.",
+    "setup_guide": "Teacher Setup Guide",
+    "contact_support": "Contact Support",
+    "students": "Students"
+  }
 }

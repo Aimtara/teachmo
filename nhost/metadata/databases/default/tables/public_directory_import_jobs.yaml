@@ -1,0 +1,64 @@
+table:
+  name: directory_import_jobs
+  schema: public
+select_permissions:
+  - role: admin
+    permission:
+      columns:
+        - id
+        - actor_id
+        - school_id
+        - district_id
+        - source_type
+        - source_ref
+        - source_hash
+        - status
+        - started_at
+        - finished_at
+        - stats
+        - errors
+      filter:
+        district_id:
+          _eq: "X-Hasura-District-Id"
+      limit: 20
+      allow_aggregations: false
+  - role: district_admin
+    permission:
+      columns:
+        - id
+        - actor_id
+        - school_id
+        - district_id
+        - source_type
+        - source_ref
+        - source_hash
+        - status
+        - started_at
+        - finished_at
+        - stats
+        - errors
+      filter:
+        district_id:
+          _eq: "X-Hasura-District-Id"
+      limit: 20
+      allow_aggregations: false
+  - role: school_admin
+    permission:
+      columns:
+        - id
+        - actor_id
+        - school_id
+        - district_id
+        - source_type
+        - source_ref
+        - source_hash
+        - status
+        - started_at
+        - finished_at
+        - stats
+        - errors
+      filter:
+        school_id:
+          _eq: "X-Hasura-School-Id"
+      limit: 20
+      allow_aggregations: false

@@ -2,8 +2,9 @@ import { graphqlRequest } from '@/lib/graphql';
 
 export async function fetchUserProfile(userId) {
   const query = `query GetProfile($userId: uuid!) {
-    profiles(where: { user_id: { _eq: $userId } }) {
+    profiles(where: { user_id: { _eq: $userId } }, limit: 1) {
       id
+      user_id
       full_name
       app_role
       organization_id
@@ -18,6 +19,7 @@ export async function createProfile(input) {
   const query = `mutation InsertProfile($input: profiles_insert_input!) {
     insert_profiles_one(object: $input) {
       id
+      user_id
       full_name
       app_role
       organization_id

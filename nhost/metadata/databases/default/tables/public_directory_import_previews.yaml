@@ -1,0 +1,48 @@
+table:
+  name: directory_import_previews
+  schema: public
+array_relationships:
+  - name: quarantine_rows
+    using:
+      foreign_key_constraint_on:
+        column: preview_id
+        table:
+          name: directory_import_quarantine
+          schema: public
+  - name: rows
+    using:
+      foreign_key_constraint_on:
+        column: preview_id
+        table:
+          name: directory_import_preview_rows
+          schema: public
+object_relationships:
+  - name: approval
+    using:
+      foreign_key_constraint_on: approval_id
+select_permissions:
+  - role: system_admin
+    permission:
+      columns: "*"
+      filter: {}
+  - role: admin
+    permission:
+      columns: "*"
+      filter:
+        _or:
+          - district_id:
+              _eq: X-Hasura-District-Id
+          - school_id:
+              _eq: X-Hasura-School-Id
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter:
+        district_id:
+          _eq: X-Hasura-District-Id
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id

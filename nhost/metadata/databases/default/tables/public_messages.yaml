@@ -1,0 +1,224 @@
+table:
+  name: messages
+  schema: public
+object_relationships:
+  - name: thread
+    using:
+      foreign_key_constraint_on: thread_id
+select_permissions:
+  - role: parent
+    permission:
+      columns:
+        - id
+        - thread_id
+        - sender_id
+        - sender_user_id
+        - created_at
+        - sent_at
+        - body
+        - content
+        - is_hidden
+        - is_redacted
+        - is_deleted
+        - flagged
+        - flag_reason
+      filter:
+        _and:
+          - thread:
+              _and:
+                - _or:
+                    - status: {_is_null: true}
+                    - status: {_eq: "active"}
+                - _or:
+                    - participants:
+                        user_id: {_eq: X-Hasura-User-Id}
+                    - profile_participants:
+                        profile_id: {_eq: X-Hasura-Profile-Id}
+                    - requester_user_id: {_eq: X-Hasura-User-Id}
+                    - target_user_id: {_eq: X-Hasura-User-Id}
+          - is_hidden: {_eq: false}
+          - is_deleted: {_eq: false}
+  - role: teacher
+    permission:
+      columns:
+        - id
+        - thread_id
+        - sender_id
+        - sender_user_id
+        - created_at
+        - sent_at
+        - body
+        - content
+        - is_hidden
+        - is_redacted
+        - is_deleted
+        - flagged
+        - flag_reason
+      filter:
+        _and:
+          - thread:
+              _and:
+                - _or:
+                    - status: {_is_null: true}
+                    - status: {_eq: "active"}
+                - _or:
+                    - participants:
+                        user_id: {_eq: X-Hasura-User-Id}
+                    - profile_participants:
+                        profile_id: {_eq: X-Hasura-Profile-Id}
+                    - requester_user_id: {_eq: X-Hasura-User-Id}
+                    - target_user_id: {_eq: X-Hasura-User-Id}
+          - is_hidden: {_eq: false}
+          - is_deleted: {_eq: false}
+  - role: school_admin
+    permission:
+      columns: "*"
+      filter:
+        thread:
+          school_id:
+            _eq: X-Hasura-School-Id
+  - role: district_admin
+    permission:
+      columns: "*"
+      filter:
+        thread:
+          district_id:
+            _eq: X-Hasura-District-Id
+  - role: admin
+    permission:
+      columns: "*"
+      filter:
+        thread:
+          district_id:
+            _eq: X-Hasura-District-Id
+insert_permissions:
+  - role: parent
+    permission:
+      columns:
+        - thread_id
+        - body
+        - content
+      check:
+        _and:
+          - sender_id: {_eq: X-Hasura-Profile-Id}
+          - thread:
+              _and:
+                - _or:
+                    - status: {_is_null: true}
+                    - status: {_eq: "active"}
+                - _or:
+                    - participants:
+                        user_id: {_eq: X-Hasura-User-Id}
+                    - profile_participants:
+                        profile_id: {_eq: X-Hasura-Profile-Id}
+                    - requester_user_id: {_eq: X-Hasura-User-Id}
+                    - target_user_id: {_eq: X-Hasura-User-Id}
+      set:
+        sender_id: x-hasura-profile-id
+        sender_user_id: x-hasura-user-id
+  - role: teacher
+    permission:
+      columns:
+        - thread_id
+        - body
+        - content
+      check:
+        _and:
+          - sender_id: {_eq: X-Hasura-Profile-Id}
+          - thread:
+              _and:
+                - _or:
+                    - status: {_is_null: true}
+                    - status: {_eq: "active"}
+                - _or:
+                    - participants:
+                        user_id: {_eq: X-Hasura-User-Id}
+                    - profile_participants:
+                        profile_id: {_eq: X-Hasura-Profile-Id}
+                    - requester_user_id: {_eq: X-Hasura-User-Id}
+                    - target_user_id: {_eq: X-Hasura-User-Id}
+      set:
+        sender_id: x-hasura-profile-id
+        sender_user_id: x-hasura-user-id
+update_permissions:
+  - role: school_admin
+    permission:
+      columns:
+        - is_hidden
+        - hidden_by
+        - hidden_reason
+        - hidden_at
+        - is_redacted
+        - redacted_by
+        - redacted_reason
+        - redacted_at
+        - is_deleted
+        - deleted_by
+        - deleted_reason
+        - deleted_at
+        - body
+        - flagged
+        - flag_reason
+      filter:
+        thread:
+          school_id:
+            _eq: X-Hasura-School-Id
+      check: {}
+      set:
+        hidden_by: x-hasura-user-id
+        redacted_by: x-hasura-user-id
+        deleted_by: x-hasura-user-id
+  - role: district_admin
+    permission:
+      columns:
+        - is_hidden
+        - hidden_by
+        - hidden_reason
+        - hidden_at
+        - is_redacted
+        - redacted_by
+        - redacted_reason
+        - redacted_at
+        - is_deleted
+        - deleted_by
+        - deleted_reason
+        - deleted_at
+        - body
+        - flagged
+        - flag_reason
+      filter:
+        thread:
+          district_id:
+            _eq: X-Hasura-District-Id
+      check: {}
+      set:
+        hidden_by: x-hasura-user-id
+        redacted_by: x-hasura-user-id
+        deleted_by: x-hasura-user-id
+  - role: admin
+    permission:
+      columns:
+        - is_hidden
+        - hidden_by
+        - hidden_reason
+        - hidden_at
+        - is_redacted
+        - redacted_by
+        - redacted_reason
+        - redacted_at
+        - is_deleted
+        - deleted_by
+        - deleted_reason
+        - deleted_at
+        - body
+        - flagged
+        - flag_reason
+      filter:
+        thread:
+          district_id:
+            _eq: X-Hasura-District-Id
+      check: {}
+      set:
+        hidden_by: x-hasura-user-id
+        redacted_by: x-hasura-user-id
+        deleted_by: x-hasura-user-id
