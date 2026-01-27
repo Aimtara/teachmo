@@ -1,6 +1,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('error-boundary');
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -15,7 +18,7 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log the error to an error reporting service
-    console.error("Uncaught error:", error, errorInfo);
+    logger.error('Uncaught error', error, errorInfo);
   }
 
   render() {

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 
 function safeJsonParse(txt) {
   try {
@@ -55,6 +56,9 @@ export default function AdminTenantSettings() {
   const [primaryColor, setPrimaryColor] = useState('#111827');
   const [accentColor, setAccentColor] = useState('#3b82f6');
   const [settingsJson, setSettingsJson] = useState('{}');
+  const [auditLogRetentionDays, setAuditLogRetentionDays] = useState('365');
+  const [dsarRetentionDays, setDsarRetentionDays] = useState('30');
+  const [requireSso, setRequireSso] = useState(false);
 
   useMemo(() => {
     const row = settingsQuery.data;
@@ -63,7 +67,18 @@ export default function AdminTenantSettings() {
     setLogoUrl(row.branding?.logo_url ?? '');
     setPrimaryColor(row.branding?.primary_color ?? '#111827');
     setAccentColor(row.branding?.accent_color ?? '#3b82f6');
-    setSettingsJson(JSON.stringify(row.settings ?? {}, null, 2));
+    const settings = row.settings ?? {};
+    const retention = settings.retention ?? {};
+    setAuditLogRetentionDays(String(retention.audit_log_days ?? retention.auditLogDays ?? '365'));
+    setDsarRetentionDays(String(retention.dsar_export_days ?? retention.dsarExportDays ?? '30'));
+    setSettingsJson(JSON.stringify(settings, null, 2));
+    const requireFlag =
+      settings.require_sso !== undefined
+        ? settings.require_sso
+        : settings.requireSso !== undefined
+        ? settings.requireSso
+        : false;
+    setRequireSso(Boolean(requireFlag));
   }, [settingsQuery.data]);
 
   const saveMutation = useMutation({
@@ -75,6 +90,13 @@ export default function AdminTenantSettings() {
         accent_color: accentColor || null,
       };
       const settings = safeJsonParse(settingsJson);
+      settings.retention = {
+        ...settings.retention,
+        audit_log_days: Number(auditLogRetentionDays) || 365,
+        dsar_export_days: Number(dsarRetentionDays) || 30,
+      };
+      // Persist the require_sso flag (use snake_case for consistency)
+      settings.require_sso = Boolean(requireSso);
 
       if (settingsQuery.data?.id) {
         const m = `mutation UpdateTenantSettings($id: uuid!, $changes: tenant_settings_set_input!) {
@@ -141,6 +163,27 @@ export default function AdminTenantSettings() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Identity & SSO</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="require-sso"
+              checked={requireSso}
+              onCheckedChange={(checked) => setRequireSso(checked)}
+            />
+            <label htmlFor="require-sso" className="text-sm">
+              Require users to sign in via single sign-on
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            When enabled, all users will be redirected to an enabled SSO provider and email/password login will be disabled.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Settings JSON</CardTitle>
         </CardHeader>
         <CardContent>
@@ -153,6 +196,35 @@ export default function AdminTenantSettings() {
           {saveMutation.error ? (
             <div className="mt-2 text-sm text-red-600">{String(saveMutation.error)}</div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Retention Policy</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Audit log retention (days)</div>
+            <Input
+              type="number"
+              min="1"
+              value={auditLogRetentionDays}
+              onChange={(e) => setAuditLogRetentionDays(e.target.value)}
+            />
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">DSAR export retention (days)</div>
+            <Input
+              type="number"
+              min="1"
+              value={dsarRetentionDays}
+              onChange={(e) => setDsarRetentionDays(e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground md:col-span-2">
+            Retention settings override the JSON payload on save and are used by the automated purge job.
+          </p>
         </CardContent>
       </Card>
     </div>

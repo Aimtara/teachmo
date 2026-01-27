@@ -8,6 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { InvokeLLM } from '@/api/integrations';
 import { useToast } from '@/components/ui/use-toast';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('proactive-ai');
 
 // Proactive AI "Teachmo Moments" - contextual suggestions based on user behavior
 export const TeachmoMoments = ({ user, children, currentPage, recentActivity }) => {
@@ -79,7 +82,7 @@ Return as JSON array of suggestions with: type, title, description, action, urge
 
       setSuggestions(response.suggestions || []);
     } catch (error) {
-      console.error('Error generating AI suggestions:', error);
+      logger.error('Error generating AI suggestions', error);
     } finally {
       setLoading(false);
     }
@@ -230,7 +233,7 @@ export const ContextualAssistance = ({ currentAction, strugglingIndicators }) =>
       setHelpContent(response);
       setShowHelp(true);
     } catch (error) {
-      console.error('Error generating contextual help:', error);
+      logger.error('Error generating contextual help', error);
     }
   };
 

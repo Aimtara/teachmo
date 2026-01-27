@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { User } from "@/api/entities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,9 @@ import { CheckCircle, AlertCircle, ExternalLink, RefreshCw, Users, BookOpen } fr
 import { motion } from "framer-motion";
 import { googleAuth } from "@/api/functions";
 import { googleClassroomSync } from "@/api/functions";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('GoogleClassroomConnect');
 
 export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -15,6 +18,10 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
   const [syncStatus, setSyncStatus] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [lastSyncTime, setLastSyncTime] = useState(null);
+
+  // Store interval and listener references for cleanup
+  const checkClosedRef = useRef(null);
+  const messageListenerRef = useRef(null);
 
   useEffect(() => {
     if (user?.google_classroom_connected) {
@@ -29,7 +36,7 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
 
     try {
       const { data } = await googleAuth({ action: 'authorize' });
-      
+
       if (data.authUrl) {
         // Open Google OAuth in a popup window
         const popup = window.open(
@@ -39,40 +46,40 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
         );
 
         // Listen for the popup to close or send a message
-        const checkClosed = setInterval(() => {
+        // Create interval and listener and store refs for cleanup
+        checkClosedRef.current = setInterval(() => {
           if (popup.closed) {
-            clearInterval(checkClosed);
+            if (checkClosedRef.current) clearInterval(checkClosedRef.current);
             setIsConnecting(false);
             // Check if connection was successful
             checkConnectionStatus();
           }
         }, 1000);
 
-        // Listen for messages from the popup
-        const messageListener = (event) => {
+        messageListenerRef.current = (event) => {
           if (event.origin !== window.location.origin) return;
-          
+
           if (event.data.type === 'google-auth-success') {
-            clearInterval(checkClosed);
+            if (checkClosedRef.current) clearInterval(checkClosedRef.current);
             popup.close();
             setConnectionStatus('connected');
             setIsConnecting(false);
             setSyncStatus({ type: 'success', message: 'Connected to Google Classroom successfully!' });
             if (onConnectionUpdate) onConnectionUpdate();
-            window.removeEventListener('message', messageListener);
+            if (messageListenerRef.current) window.removeEventListener('message', messageListenerRef.current);
           } else if (event.data.type === 'google-auth-error') {
-            clearInterval(checkClosed);
+            if (checkClosedRef.current) clearInterval(checkClosedRef.current);
             popup.close();
             setIsConnecting(false);
             setSyncStatus({ type: 'error', message: event.data.error || 'Failed to connect to Google Classroom' });
-            window.removeEventListener('message', messageListener);
+            if (messageListenerRef.current) window.removeEventListener('message', messageListenerRef.current);
           }
         };
 
-        window.addEventListener('message', messageListener);
+        window.addEventListener('message', messageListenerRef.current);
       }
     } catch (error) {
-      console.error('Connection error:', error);
+      logger.error('Connection error:', error);
       setIsConnecting(false);
       setSyncStatus({ type: 'error', message: 'Failed to initiate Google Classroom connection' });
     }
@@ -87,7 +94,7 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
         if (onConnectionUpdate) onConnectionUpdate();
       }
     } catch (error) {
-      console.error('Error checking connection status:', error);
+      logger.error('Error checking connection status:', error);
     }
   };
 
@@ -115,7 +122,7 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
         });
       }
     } catch (error) {
-      console.error('Sync error:', error);
+      logger.error('Sync error:', error);
       setSyncStatus({ 
         type: 'error', 
         message: `Failed to sync ${syncType}. Please try again.` 
@@ -133,17 +140,29 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
           google_classroom_token: null,
           google_classroom_refresh_token: null
         });
-        
+
         setConnectionStatus('disconnected');
         setLastSyncTime(null);
         setSyncStatus({ type: 'success', message: 'Disconnected from Google Classroom' });
         if (onConnectionUpdate) onConnectionUpdate();
       } catch (error) {
-        console.error('Disconnect error:', error);
+        logger.error('Disconnect error:', error);
         setSyncStatus({ type: 'error', message: 'Failed to disconnect from Google Classroom' });
       }
     }
   };
+
+  // Cleanup any pending intervals or listeners on unmount
+  useEffect(() => {
+    return () => {
+      if (checkClosedRef.current) {
+        clearInterval(checkClosedRef.current);
+      }
+      if (messageListenerRef.current) {
+        window.removeEventListener('message', messageListenerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">

@@ -1,0 +1,77 @@
+table:
+  name: classroom_students
+  schema: public
+object_relationships:
+  - name: classroom
+    using:
+      foreign_key_constraint_on: classroom_id
+  - name: child
+    using:
+      foreign_key_constraint_on: child_id
+select_permissions:
+  - role: teacher
+    permission:
+      columns: '*'
+      filter:
+        classroom:
+          teacher_id:
+            _eq: X-Hasura-Profile-Id
+  - role: parent
+    permission:
+      columns: '*'
+      filter:
+        child:
+          _or:
+            - profile_id:
+                _eq: X-Hasura-Profile-Id
+            - guardians:
+                guardian_id:
+                  _eq: X-Hasura-Profile-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        classroom:
+          school_id:
+            _eq: X-Hasura-School-Id
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+insert_permissions:
+  - role: teacher
+    permission:
+      columns:
+        - classroom_id
+        - child_id
+      check:
+        classroom:
+          teacher_id:
+            _eq: X-Hasura-Profile-Id
+  - role: school_admin
+    permission:
+      columns:
+        - classroom_id
+        - child_id
+      check:
+        classroom:
+          school_id:
+            _eq: X-Hasura-School-Id
+update_permissions:
+  - role: teacher
+    permission:
+      columns:
+        - classroom_id
+        - child_id
+      filter:
+        classroom:
+          teacher_id:
+            _eq: X-Hasura-Profile-Id
+      check:
+        classroom:
+          teacher_id:
+            _eq: X-Hasura-Profile-Id

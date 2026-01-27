@@ -144,3 +144,5 @@ export default function ShortsRail({ childId, topic, title = "Recommended Shorts
     </section>
   );
 }
+
+export { ShortsRail };

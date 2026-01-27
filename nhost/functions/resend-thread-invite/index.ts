@@ -1,8 +1,11 @@
 import crypto from 'crypto';
+import type { Request, Response } from 'express';
 import { sendEmail } from '../_shared/email';
+import { createLogger } from '../_shared/logger';
 import { enforceInviteRateLimits } from '../_shared/rateLimit';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 
+const logger = createLogger('resend-thread-invite');
 const allowedRoles = new Set(['teacher', 'school_admin', 'district_admin', 'admin', 'system_admin']);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -10,7 +13,7 @@ function sha256(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
 }
 
-export default async (req: any, res: any) => {
+export default async (req: Request, res: Response) => {
   if (req.method !== 'POST') return res.status(405).json({ ok: false });
 
   const role = String(req.headers['x-hasura-role'] ?? '');
@@ -30,7 +33,7 @@ export default async (req: any, res: any) => {
   const baseUrl = APP_BASE_URL.replace(/\/$/, '');
   const nowIso = new Date().toISOString();
 
-  async function hasura(query: string, variables?: Record<string, any>) {
+  async function hasura(query: string, variables?: Record<string, unknown>) {
     const response = await fetch(HASURA_URL, {
       method: 'POST',
       headers: {
@@ -140,12 +143,12 @@ export default async (req: any, res: any) => {
         }
       );
     } catch (error) {
-      console.warn('resend-thread-invite audit failed', error);
+      logger.warn('audit failed', error);
     }
 
     return res.status(200).json({ ok: true, inviteId, expiresAt });
   } catch (error) {
-    console.error('resend-thread-invite failed', error);
+    logger.error('request failed', error);
     return res.status(500).json({ ok: false });
   }
 };

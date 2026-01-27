@@ -69,6 +69,7 @@ function globalReducer(state, action) {
             data: action.payload.data,
             timestamp: Date.now(),
             ttl: action.payload.ttl,
+            sizeBytes: action.payload.sizeBytes ?? null,
           },
         },
       };
@@ -170,8 +171,8 @@ export const useGlobalActions = () => {
       dispatch({ type: 'CLOSE_MODAL' });
     }, [dispatch]);
 
-    const cacheSet = useCallback((key, data, ttl) => {
-      dispatch({ type: 'CACHE_SET', payload: { key, data, ttl } });
+    const cacheSet = useCallback((key, data, ttl, sizeBytes) => {
+      dispatch({ type: 'CACHE_SET', payload: { key, data, ttl, sizeBytes } });
     }, [dispatch]);
 
     const cacheInvalidate = useCallback((key) => {

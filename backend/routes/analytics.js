@@ -4,6 +4,8 @@ import PDFDocument from 'pdfkit';
 import { query } from '../db.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireAnyScope } from '../middleware/permissions.js';
+import { asUuidOrNull, getTenantScope } from '../utils/tenantScope.js';
 
 const router = Router();
 
@@ -209,6 +211,76 @@ function renderPdf(res, rows, { title }) {
   doc.end();
 }
 
+async function partnerUsageSummary({ organizationId, partnerId, start, end }) {
+  const params = [organizationId, start.toISOString(), end.toISOString()];
+  let where = 'organization_id = $1 and event_ts >= $2 and event_ts <= $3 and actor_role = $4';
+  params.push('partner');
+  if (partnerId) {
+    where += ` and actor_id = $${params.length + 1}`;
+    params.push(partnerId);
+  }
+
+  const usage = await query(
+    `select event_name, count(*) as total
+       from analytics_events
+      where ${where}
+        and event_name in ('partner_login', 'partner_invite_sent', 'partner_referral_click', 'partner_submission')
+      group by event_name
+      order by total desc`,
+    params
+  );
+
+  const conversions = await query(
+    `select count(*) as conversions
+       from analytics_events
+      where ${where}
+        and event_name = 'partner_conversion'`,
+    params
+  );
+
+  const clicks = usage.rows.find((row) => row.event_name === 'partner_referral_click');
+  const conversionCount = Number(conversions.rows?.[0]?.conversions || 0);
+  const clickCount = Number(clicks?.total || 0);
+
+  return {
+    usage: usage.rows || [],
+    conversions: conversionCount,
+    conversion_rate: clickCount ? conversionCount / clickCount : 0,
+  };
+}
+
+async function partnerRevenueSummary({ districtId, partnerId, start, end }) {
+  const params = [districtId, start.toISOString(), end.toISOString()];
+  let where = 'district_id = $1 and event_ts >= $2 and event_ts <= $3';
+  if (partnerId) {
+    where += ` and partner_user_id = $${params.length + 1}`;
+    params.push(partnerId);
+  }
+
+  const revenue = await query(
+    `select coalesce(sum(revenue_amount), 0) as total_revenue,
+            count(*) as revenue_events
+       from public.partner_revenue_events
+      where ${where}`,
+    params
+  );
+
+  const attributions = await query(
+    `select attribution_source, coalesce(sum(revenue_amount), 0) as revenue
+       from public.partner_revenue_events
+      where ${where}
+      group by attribution_source
+      order by revenue desc`,
+    params
+  );
+
+  return {
+    total_revenue: Number(revenue.rows?.[0]?.total_revenue || 0),
+    revenue_events: Number(revenue.rows?.[0]?.revenue_events || 0),
+    by_source: attributions.rows || [],
+  };
+}
+
 router.post('/events', async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const events = Array.isArray(req.body?.events) ? req.body.events : [];
@@ -266,6 +338,31 @@ router.get('/summary', requireAdmin, async (req, res) => {
     metrics,
     ai,
     rollups
+  });
+});
+
+router.get('/partners/summary', requireAnyScope(['partner:admin', 'partner:portal']), async (req, res) => {
+  const { start, end } = parseTimeRange(req);
+  const { organizationId } = req.tenant;
+  const { districtId, userId } = getTenantScope(req);
+  const partnerId = asUuidOrNull(req.query.partnerId) || userId;
+  if (!districtId && !organizationId) {
+    return res.status(400).json({ error: 'tenant scope required' });
+  }
+
+  const usage = await partnerUsageSummary({ organizationId, partnerId, start, end });
+  const revenue = await partnerRevenueSummary({
+    districtId: districtId || organizationId,
+    partnerId,
+    start,
+    end
+  });
+
+  res.json({
+    range: { start, end },
+    partnerId,
+    usage,
+    revenue
   });
 });
 

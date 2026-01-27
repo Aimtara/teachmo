@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import { logAuditEvent } from '@/api/functions.js';
+import { logAuditEvent } from '@/api/functions';
+import { logger } from '@/lib/logger';
 
 /**
  * @typedef {Object} Props
@@ -34,7 +35,7 @@ export default class GlobalErrorBoundary extends Component {
   }
 
   async componentDidCatch(error, errorInfo) {
-    console.error('Global Error Boundary caught an error:', error, errorInfo);
+    logger.error('Global Error Boundary caught an error', { error, errorInfo });
     
     this.setState({ errorInfo });
 
@@ -53,7 +54,7 @@ export default class GlobalErrorBoundary extends Component {
         severity: 'high'
       });
     } catch (logError) {
-      console.error('Failed to log error to audit system:', logError);
+      logger.warn('Failed to log error to audit system', { logError });
     }
   }
 

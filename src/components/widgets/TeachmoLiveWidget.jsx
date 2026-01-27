@@ -23,11 +23,13 @@ import { generateWarmOpener, FALLBACK_RESPONSES } from '../shared/TeachmoTone';
 import { User } from '@/api/entities';
 import { Activity } from '@/api/entities';
 import WidgetContainer from './WidgetContainer';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function TeachmoLiveWidget({
   isVisible,
   size = "compact"
 }) {
+  const { toast } = useToast();
   const [situation, setSituation] = useState('');
   const [teachableMoment, setTeachableMoment] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -239,10 +241,17 @@ export default function TeachmoLiveWidget({
       });
       
       // Show success feedback
-      alert('Added to your activities!');
+      toast({
+        title: 'Activity saved',
+        description: 'Added to your activities successfully!'
+      });
     } catch (error) {
       console.error('Error saving activity:', error);
-      alert('Error saving to activities. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Error saving activity',
+        description: 'Could not save to activities. Please try again.'
+      });
     }
   };
 
@@ -258,7 +267,10 @@ export default function TeachmoLiveWidget({
       });
     } else {
       navigator.clipboard.writeText(shareText);
-      alert('Copied to clipboard!');
+      toast({
+        title: 'Copied to clipboard',
+        description: 'Share text has been copied successfully.'
+      });
     }
   };
 

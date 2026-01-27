@@ -11,11 +11,13 @@ export type WorkflowDefinition = {
   id: string;
   name: string;
   description?: string | null;
-  definition: any;
+  definition: Record<string, unknown>;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
 };
+
+export type WorkflowRunPayload = Record<string, unknown>;
 
 async function authHeaders(tenant?: TenantScope) {
   const token = await nhost.auth.getAccessToken();
@@ -61,6 +63,6 @@ export async function updateWorkflow(tenant: TenantScope, id: string, payload: P
 export async function deleteWorkflow(tenant: TenantScope, id: string) {
   return request(`/workflows/${encodeURIComponent(id)}`, { method: 'DELETE' }, tenant);
 }
-export async function runWorkflow(tenant: TenantScope, id: string, payload: any) {
+export async function runWorkflow(tenant: TenantScope, id: string, payload: WorkflowRunPayload) {
   return request(`/workflows/${encodeURIComponent(id)}/run`, { method: 'POST', body: JSON.stringify(payload) }, tenant);
 }

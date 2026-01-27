@@ -1,4 +1,7 @@
 import { writeAuditLog } from '@/domains/auditLog';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('audit-log');
 
 export type AuditAction =
   | 'messages:send'
@@ -19,11 +22,15 @@ export async function logEvent(input: {
   entityType: string;
   entityId?: string | null;
   metadata?: Record<string, unknown>;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  changes?: Record<string, unknown> | null;
+  containsPii?: boolean;
 }) {
   // Avoid throwing hard if audit logging fails; we don’t want to block UX.
   try {
     await writeAuditLog(input);
   } catch (e) {
-    console.warn('Audit log write failed', e);
+    logger.warn('Audit log write failed', e);
   }
 }

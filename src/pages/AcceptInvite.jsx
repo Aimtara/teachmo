@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { InvitesAPI } from '@/api/adapters';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AcceptInvite');
 
 export default function AcceptInvite() {
   const [params] = useSearchParams();
@@ -19,7 +22,7 @@ export default function AcceptInvite() {
           setStatus('invalid');
         }
       } catch (error) {
-        console.error('accept-thread-invite failed', error);
+        logger.error('accept-thread-invite failed', error);
         setStatus('error');
       }
     })();

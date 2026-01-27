@@ -8,8 +8,10 @@
 // requests.
 
 interface ModelOptions {
+  /** Temperature controls randomness; 0.0–1.0. */
   temperature?: number;
-  [key: string]: any;
+  /** Additional model parameters; using unknown instead of any for type safety. */
+  [key: string]: unknown;
 }
 
 export function chooseModel(prompt: string, options: ModelOptions = {}) {

@@ -6,6 +6,9 @@ import PartnerOfferForm from '@/components/partner/PartnerOfferForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageLoading } from '@/components/shared/StandardLoadingStates';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('partner-offers');
 
 function PartnerOffersContent() {
   const [loading, setLoading] = useState(true);
@@ -28,7 +31,7 @@ function PartnerOffersContent() {
           setOffers(partnerOffers || []);
         }
       } catch (error) {
-        console.error('Failed to load offers data:', error);
+        logger.error('Failed to load offers data', error);
         ultraMinimalToast.error('Failed to load offers');
       } finally {
         setLoading(false);
@@ -43,7 +46,7 @@ function PartnerOffersContent() {
       const partnerOffers = await PartnerOffer.filter({ partner_id: partner.id });
       setOffers(partnerOffers || []);
     } catch (error) {
-      console.error('Failed to refresh offers:', error);
+      logger.error('Failed to refresh offers', error);
       ultraMinimalToast.error('Failed to refresh offers');
     }
   };

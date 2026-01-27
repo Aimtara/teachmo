@@ -7,6 +7,8 @@
 //   (Only enable TRUST_HASURA_HEADERS if this server is behind Hasura in a private network.)
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { resolveRoleScopes } from '../rbac.js';
+import { auditEvent } from '../security/audit.js';
 function getClaim(obj, key) {
   if (!obj) return null;
   if (obj[key] !== undefined) return obj[key];
@@ -97,6 +99,15 @@ function extractAuthContext(jwtClaims) {
     getClaim(hasuraClaims, 'x-hasura-user-id') ||
     getClaim(jwtClaims, 'user_id') ||
     getClaim(jwtClaims, 'sub');
+  const profileId =
+    getClaim(hasuraClaims, 'x-hasura-profile-id') ||
+    getClaim(jwtClaims, 'x-profile-id') ||
+    getClaim(jwtClaims, 'profile_id');
+  const organizationId =
+    getClaim(hasuraClaims, 'x-hasura-organization-id') ||
+    getClaim(hasuraClaims, 'x-hasura-org-id') ||
+    getClaim(jwtClaims, 'organization_id') ||
+    getClaim(jwtClaims, 'org_id');
   const districtId =
     getClaim(hasuraClaims, 'x-hasura-district-id') ||
     getClaim(jwtClaims, 'x-district-id') ||
@@ -110,11 +121,15 @@ function extractAuthContext(jwtClaims) {
     getClaim(hasuraClaims, 'x-hasura-scopes') ||
     getClaim(jwtClaims, 'x-hasura-scopes') ||
     getClaim(jwtClaims, 'scopes');
-  const scopes = normalizeScopes(scopesRaw);
+  const scopes = Array.from(
+    new Set([...normalizeScopes(scopesRaw), ...resolveRoleScopes(role ? String(role) : null)])
+  );
 
   return {
     role: role ? String(role) : null,
     userId: userId ? String(userId) : null,
+    profileId: profileId ? String(profileId) : null,
+    organizationId: organizationId ? String(organizationId) : null,
     districtId: districtId ? String(districtId) : null,
     schoolId: schoolId ? String(schoolId) : null,
     scopes,
@@ -149,7 +164,15 @@ export async function attachAuthContext(req, res, next) {
     if (isProd) {
       return res.status(401).json({ error: 'invalid auth' });
     }
-    req.auth = { role: null, userId: null, districtId: null, schoolId: null, scopes: [] };
+    req.auth = {
+      role: null,
+      userId: null,
+      profileId: null,
+      organizationId: null,
+      districtId: null,
+      schoolId: null,
+      scopes: []
+    };
     next();
   }
 }
@@ -166,4 +189,75 @@ export function requireAdmin(req, res, next) {
   const allowed = ['system_admin', 'district_admin', 'school_admin', 'admin'];
   if (!allowed.includes(role)) return res.status(403).json({ error: 'forbidden' });
   next();
+}
+
+let orchestratorJwks = null;
+
+function getRemoteJwks() {
+  const url = process.env.AUTH_JWKS_URL;
+  if (!url) return null;
+  if (!orchestratorJwks) orchestratorJwks = createRemoteJWKSet(new URL(url));
+  return orchestratorJwks;
+}
+
+function extractUserId(payload) {
+  const hasura = payload?.['https://hasura.io/jwt/claims'];
+  const uid = hasura?.['x-hasura-user-id'] || payload?.sub || payload?.userId;
+  return typeof uid === 'string' ? uid : null;
+}
+
+function extractRoles(payload) {
+  const hasura = payload?.['https://hasura.io/jwt/claims'];
+  const roles = hasura?.['x-hasura-allowed-roles'] || payload?.roles || [];
+  return Array.isArray(roles) ? roles : [];
+}
+
+export async function requireAuthOrService(req, res, next) {
+  const svcKey = req.get('X-Teachmo-Service-Key');
+  if (process.env.TEACHMO_SERVICE_KEY && svcKey === process.env.TEACHMO_SERVICE_KEY) {
+    req.auth = { isService: true, userId: null, roles: ['service'] };
+    return next();
+  }
+
+  const authHeader = req.get('Authorization') || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (!token) {
+    await auditEvent(req, { eventType: 'auth_missing_token', severity: 'warn', statusCode: 401 });
+    return res.status(401).json({ error: 'missing_bearer_token' });
+  }
+
+  const jwksSet = getRemoteJwks();
+  if (!jwksSet) return res.status(500).json({ error: 'AUTH_JWKS_URL_not_configured' });
+
+  try {
+    const issuer = process.env.AUTH_JWT_ISSUER || undefined;
+    const audience = process.env.AUTH_JWT_AUDIENCE || undefined;
+
+    const { payload } = await jwtVerify(token, jwksSet, {
+      issuer,
+      audience
+    });
+
+    const userId = extractUserId(payload);
+    if (!userId) return res.status(401).json({ error: 'token_missing_user_id' });
+
+    req.auth = {
+      isService: false,
+      userId,
+      roles: extractRoles(payload),
+      raw: payload
+    };
+
+    return next();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await auditEvent(req, {
+      eventType: 'auth_invalid_token',
+      severity: 'warn',
+      statusCode: 401,
+      meta: { detail: msg }
+    });
+    return res.status(401).json({ error: 'invalid_token', detail: msg });
+  }
 }

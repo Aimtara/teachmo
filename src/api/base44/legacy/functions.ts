@@ -1,24 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 type FetchRequestInit = globalThis.RequestInit;
 type FetchHeadersInit = globalThis.HeadersInit;
 
 const getFunctionsBaseUrl = (): string => {
-  if (typeof import.meta !== 'undefined') {
-    const url = (import.meta as { env?: Record<string, string> })?.env?.VITE_NHOST_FUNCTIONS_URL;
-    if (url) return url;
-  }
-
-  if (typeof process !== 'undefined') {
-    const url = process.env?.VITE_NHOST_FUNCTIONS_URL;
-    if (url) return url;
-  }
-
-  return '/v1/functions';
+  const env = (import.meta.env ?? process.env) as Record<string, string | undefined>;
+  return env?.VITE_NHOST_FUNCTIONS_URL || '/v1/functions';
 };
 
 const functionsBaseUrl = getFunctionsBaseUrl();
 
-type FunctionPayload = Record<string, any> | FormData | undefined;
+type FunctionPayload = Record<string, unknown> | FormData | undefined;
 
 type InvokeOverrides = FetchRequestInit & { headers?: FetchHeadersInit };
 

@@ -2,14 +2,16 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = Router();
+const logger = createLogger('routes.contracts');
 
 async function safeQuery(res, sql, params = []) {
   try {
     return await query(sql, params);
   } catch (error) {
-    console.error('[contracts] db error', error);
+    logger.error('Database error', error);
     res.status(500).json({ error: 'db_error', detail: error.message });
     return null;
   }

@@ -2,8 +2,19 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
+import { requireAuth } from '../middleware/auth.js';
+import { requireTenant } from '../middleware/tenant.js';
+import { requireAnyScope } from '../middleware/permissions.js';
+import { requireFeatureFlag } from '../middleware/featureFlags.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = Router();
+const logger = createLogger('routes.partner-portal-admin');
+
+router.use(requireAuth);
+router.use(requireTenant);
+router.use(requireFeatureFlag('PARTNER_PORTAL'));
+router.use(requireAnyScope(['partner:admin', 'partner:portal', 'partner:submissions']));
 
 // Tenant-scoped admin endpoints backing the Partner Portal.
 // These endpoints previously used in-memory demo models; we now persist to Postgres
@@ -14,7 +25,7 @@ async function safeQuery(res, sql, params = []) {
     const result = await query(sql, params);
     return result;
   } catch (error) {
-    console.error('[partnerPortalAdmin] db error', error);
+    logger.error('Database error', error);
     res.status(500).json({ error: 'db_error', detail: error.message });
     return null;
   }

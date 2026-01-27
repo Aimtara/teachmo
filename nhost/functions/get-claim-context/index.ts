@@ -1,4 +1,8 @@
+import type { Request, Response } from 'express';
+import { createLogger } from '../_shared/logger';
 import { constantTimeEqual, hashToken } from '../_shared/security/tokens';
+
+const logger = createLogger('get-claim-context');
 
 function maskEmail(email?: string | null) {
   if (!email) return '';
@@ -14,7 +18,7 @@ function maskEmail(email?: string | null) {
   return `${maskedLocal}@${domainMask}${tld ? `.${tld}` : ''}`;
 }
 
-export default async (req: any, res: any) => {
+export default async (req: Request, res: Response) => {
   if (req.method !== 'POST') return res.status(405).json({ ok: false });
 
   const { token } = req.body ?? {};
@@ -26,7 +30,7 @@ export default async (req: any, res: any) => {
 
   if (!HASURA_URL || !ADMIN_SECRET) return res.status(500).json({ ok: false });
 
-  async function hasura(query: string, variables?: Record<string, any>) {
+  async function hasura(query: string, variables?: Record<string, unknown>) {
     const response = await fetch(HASURA_URL, {
       method: 'POST',
       headers: {
@@ -73,8 +77,9 @@ export default async (req: any, res: any) => {
       status: invite.status,
       expiresAt: invite.expires_at,
     });
-  } catch (error: any) {
-    console.error('get-claim-context failed', error);
-    return res.status(500).json({ ok: false, reason: error?.message ?? 'failed' });
+  } catch (error) {
+    logger.error('request failed', error);
+    const message = error instanceof Error ? error.message : 'failed';
+    return res.status(500).json({ ok: false, reason: message });
   }
 };

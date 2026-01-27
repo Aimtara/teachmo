@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useGlobalState, useGlobalActions } from './GlobalStateManager';
 import { createLogger } from '@/utils/logger';
 
@@ -23,13 +23,35 @@ export const useCacheManager = () => {
   const actions = useGlobalActions();
   const pendingRequests = useRef(new Map());
   const hasHydrated = useRef(false);
+  const persistIdleHandle = useRef(null);
+  const persistTimeoutHandle = useRef(null);
 
   const persistCacheToStorage = useCallback((cacheSnapshot) => {
-    if (typeof localStorage === 'undefined') return;
+    if (typeof localStorage === 'undefined' || typeof window === 'undefined') return;
+
+    const persist = () => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cacheSnapshot));
+      } catch (error) {
+        cacheLogger.warn('Failed to persist cache snapshot', error);
+      }
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      if (persistIdleHandle.current) window.cancelIdleCallback(persistIdleHandle.current);
+      persistIdleHandle.current = window.requestIdleCallback(persist, { timeout: 2000 });
+    } else {
+      if (persistTimeoutHandle.current) window.clearTimeout(persistTimeoutHandle.current);
+      persistTimeoutHandle.current = window.setTimeout(persist, 0);
+    }
+  }, []);
+
+  const estimateSizeBytes = useCallback((value) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cacheSnapshot));
+      return JSON.stringify(value).length;
     } catch (error) {
-      cacheLogger.warn('Failed to persist cache snapshot', error);
+      cacheLogger.warn('Failed to estimate cache entry size', error);
+      return 0;
     }
   }, []);
 
@@ -41,14 +63,15 @@ export const useCacheManager = () => {
       if (stored) {
         const parsed = JSON.parse(stored);
         Object.entries(parsed).forEach(([key, value]) => {
-          actions.cacheSet(key, value.data, value.ttl || DEFAULT_TTL);
+          const sizeBytes = value.sizeBytes ?? estimateSizeBytes(value.data);
+          actions.cacheSet(key, value.data, value.ttl || DEFAULT_TTL, sizeBytes);
         });
       }
       hasHydrated.current = true;
     } catch (error) {
       cacheLogger.warn('Failed to hydrate cache from storage', error);
     }
-  }, [actions]);
+  }, [actions, estimateSizeBytes]);
 
   useEffect(() => {
     if (!hasHydrated.current) return;
@@ -85,6 +108,7 @@ export const useCacheManager = () => {
 
   // Set cached data with size management
   const setCached = useCallback((key, data, ttl = DEFAULT_TTL, { persist = false } = {}) => {
+    const sizeBytes = estimateSizeBytes(data);
     // Implement LRU eviction if cache is full
     const cacheKeys = Object.keys(state.cache);
     if (cacheKeys.length >= MAX_CACHE_SIZE) {
@@ -98,18 +122,19 @@ export const useCacheManager = () => {
       actions.cacheInvalidate(oldestKey);
     }
     
-    actions.cacheSet(key, data, ttl);
+    actions.cacheSet(key, data, ttl, sizeBytes);
     if (persist) {
       persistCacheToStorage({
         ...state.cache,
         [key]: {
           data,
           timestamp: Date.now(),
-          ttl
+          ttl,
+          sizeBytes,
         }
       });
     }
-  }, [state.cache, actions, persistCacheToStorage]);
+  }, [state.cache, actions, persistCacheToStorage, estimateSizeBytes]);
 
   // Cached fetch with deduplication
   const cachedFetch = useCallback(async (
@@ -179,7 +204,9 @@ export const useCacheManager = () => {
   const getCacheStats = useCallback(() => {
     const entries = Object.keys(state.cache);
     const totalSize = entries.reduce((size, key) => {
-      return size + JSON.stringify(state.cache[key].data).length;
+      const entry = state.cache[key];
+      const entrySize = entry.sizeBytes ?? estimateSizeBytes(entry.data);
+      return size + entrySize;
     }, 0);
 
     const expired = entries.filter(key => {
@@ -193,7 +220,7 @@ export const useCacheManager = () => {
       totalSizeBytes: totalSize,
       hitRate: null, // Would need to track hits/misses
     };
-  }, [state.cache]);
+  }, [state.cache, estimateSizeBytes]);
 
   // Preload cache entries
   const preload = useCallback(async (entries) => {
@@ -230,17 +257,19 @@ export const useEntityCache = (entityName) => {
   return {
     list: (fetchFn, options = {}) => 
       cacheManager.cachedFetch(getEntityKey('list'), fetchFn, options),
-    
+
     get: (id, fetchFn, options = {}) => 
       cacheManager.cachedFetch(getEntityKey('get', id), fetchFn, options),
-    
+
     invalidateList: () => cacheManager.invalidate(getEntityKey('list')),
     invalidateItem: (id) => cacheManager.invalidate(getEntityKey('get', id)),
+    /**
+     * Invalidate all cached entries for this entity. Uses cacheManager.getCacheKeys()
+     * to find keys matching this entity prefix instead of assuming a fixed size.
+     */
     invalidateAll: () => {
-      cacheManager.batchInvalidate([
-        getEntityKey('list'),
-        ...Array.from({ length: 100 }, (_, i) => getEntityKey('get', i))
-      ]);
+      const keys = cacheManager.getCacheKeys().filter((k) => k.startsWith(`${entityName}_`));
+      cacheManager.batchInvalidate(keys);
     },
   };
 };

@@ -11,6 +11,9 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
+import { createLogger } from "@/utils/logger";
+
+const logger = createLogger("event-modal");
 
 export default function EventModal({ event, user, onClose, childrenData, defaultChildId }) {
     const isNewEvent = !event || !event.id;
@@ -67,7 +70,7 @@ export default function EventModal({ event, user, onClose, childrenData, default
                     try {
                         await Activity.update(eventData.resource_id, { status: 'planned' });
                     } catch (error) {
-                        console.error("Failed to update source activity status:", error);
+                        logger.error("Failed to update source activity status", error);
                         // This is a non-blocking error.
                     }
                 }
@@ -80,7 +83,7 @@ export default function EventModal({ event, user, onClose, childrenData, default
                 description: `"${currentEvent.title}" has been saved.`
             });
         } catch (error) {
-            console.error("Failed to save event:", error);
+            logger.error("Failed to save event", error);
             setFormError("An error occurred while saving. Please try again.");
         } finally {
             setIsSaving(false);
@@ -99,7 +102,7 @@ export default function EventModal({ event, user, onClose, childrenData, default
                 description: `"${event.title}" has been removed from your calendar.`
             });
         } catch (error) {
-            console.error("Failed to delete event:", error);
+            logger.error("Failed to delete event", error);
             setFormError("An error occurred while deleting. Please try again.");
             setIsDeleting(false);
         }

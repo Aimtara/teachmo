@@ -30,7 +30,7 @@ select_permissions:
         - created_at
         - updated_at
       filter:
-        parent_user_id: { _eq: "X-Hasura-User-Id" }
+        parent_user_id: { _eq: X-Hasura-User-Id }
 
   - role: school_admin
     permission:

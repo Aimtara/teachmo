@@ -1,0 +1,39 @@
+table:
+  name: calendar_events
+  schema: public
+select_permissions:
+  - role: teacher
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - created_by:
+              _eq: X-Hasura-Profile-Id
+          - school_id:
+              _eq: X-Hasura-School-Id
+  - role: parent
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: school_admin
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: district_admin
+    permission:
+      columns: '*'
+      filter:
+        school_id:
+          _eq: X-Hasura-School-Id
+  - role: system_admin
+    permission:
+      columns: '*'
+      filter: {}
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}

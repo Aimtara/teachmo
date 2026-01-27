@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Shield,
   BarChart3,
+  Activity,
   Bell,
   FileText,
   Building2,
@@ -20,7 +21,9 @@ import {
   Compass,
   BadgePercent,
   CreditCard,
-  Handshake
+  Handshake,
+  Globe,
+  ShieldCheck
 } from 'lucide-react';
 import { isRouteEnabled } from './routes';
 import { isFeatureEnabled } from './features';
@@ -112,9 +115,32 @@ export const NAV_STRUCTURE = [
     children: [
       { name: 'Admin Dashboard', page: 'AdminDashboard', icon: Shield, requiredScopes: ['org:manage'] },
       { name: 'Partner Dashboard', page: 'AdminPartners', icon: Users, requiredScopes: ['org:manage'] },
+      { name: 'Execution Board', page: 'AdminExecutionBoard', icon: Target, roles: ['system_admin'], requiredScopes: ['system:manage'] },
+      { name: 'Command Center', page: 'AdminCommandCenter', icon: Compass, roles: ['system_admin'], requiredScopes: ['system:manage'] },
       { name: 'Analytics', page: 'AdminAnalytics', icon: BarChart3, requiredScopes: ['reporting:view'] },
+      { name: 'Observability', page: 'AdminObservability', icon: Activity, requiredScopes: ['org:manage'] },
+      { name: 'Ops Orchestrator', page: 'OpsOrchestrator', icon: Activity, roles: ['system_admin'], requiredScopes: ['system:manage'] },
+      { name: 'System Health', page: 'AdminSystemHealth', icon: Activity, requiredScopes: ['org:manage'] },
+      { name: 'Notifications', page: 'AdminNotifications', icon: Bell, requiredScopes: ['org:manage'] },
       { name: 'Users', page: 'AdminUsers', icon: UserCheck, requiredScopes: ['users:manage'] },
       { name: 'Tenant Settings', page: 'AdminTenantSettings', icon: Building2, requiredScopes: ['org:manage'] },
+      { name: 'SSO Policy', page: 'AdminSSOSettings', icon: Shield, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_SSO' },
+      { name: 'Tenant Domains', page: 'AdminTenantDomains', icon: Globe, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_SSO' },
+      { name: 'Audit Logs', page: 'AdminAuditLogs', icon: FileText, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AUDIT_LOGS' },
+      { name: 'Compliance Center', page: 'AdminCompliance', icon: ShieldCheck, requiredScopes: ['safety:review'] },
+      { name: 'Feature Flags', page: 'AdminFeatureFlags', icon: BadgePercent, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_FEATURE_FLAGS' },
+      { name: 'AI Governance', page: 'AdminAIGovernance', icon: Bot, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_GOVERNANCE' },
+      {
+        name: 'AI Prompts',
+        page: 'AdminAIPrompts',
+        icon: FileText,
+        roles: ['system_admin', 'admin'],
+        requiredScopes: ['safety:review'],
+        feature: 'ENTERPRISE_AI_GOVERNANCE'
+      },
+      { name: 'AI Review Queue', page: 'AdminAIReviewQueue', icon: Shield, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_REVIEW' },
+      { name: 'SIS Roster', page: 'AdminSISRoster', icon: School, requiredScopes: ['directory:manage'], feature: 'ENTERPRISE_SIS_ROSTER' },
+      { name: 'Integration Health', page: 'AdminIntegrationHealth', icon: Globe, requiredScopes: ['directory:manage'] },
       { name: 'Workflows', page: 'AdminWorkflows', icon: Compass, requiredScopes: ['automation:manage'] },
       { name: 'Message Reports', page: 'AdminModerationQueue', icon: Shield, requiredScopes: ['safety:review'] },
       { name: 'Messaging Blocks', page: 'AdminMessagingBlocklist', icon: Shield, requiredScopes: ['safety:review'] }
@@ -127,6 +153,7 @@ export const NAV_STRUCTURE = [
     requiredScopes: ['core:dashboard'],
     children: [
       { name: 'AI Coach', page: 'AIAssistant', icon: Bot, mobilePrimary: true, feature: 'AI_ASSISTANT' },
+      { name: 'AI Transparency', page: 'AITransparency', icon: FileText, mobileSecondary: true, feature: 'ENTERPRISE_TRANSPARENCY' },
       { name: 'School Directory', page: 'SchoolDirectory', icon: School, feature: 'SCHOOL_DIRECTORY' },
       { name: 'Notifications', page: 'Notifications', icon: Bell }
     ]

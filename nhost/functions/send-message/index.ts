@@ -1,6 +1,12 @@
+import type { Request, Response } from 'express';
+import { createLogger } from '../_shared/logger';
+import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
+import type { HasuraClient, HasuraResponse } from '../_shared/hasuraTypes';
+
+const logger = createLogger('send-message');
 
 const RATE_WINDOWS = [
   { windowSeconds: 60, limit: 10 },
@@ -21,14 +27,28 @@ function windowStart(seconds: number): string {
   return new Date(Math.floor(now / windowMs) * windowMs).toISOString();
 }
 
-function makeHasuraClient() {
+type GraphQLError = {
+  message: string;
+  extensions?: Record<string, unknown>;
+  path?: Array<string | number>;
+  locations?: Array<{ line: number; column: number }>;
+};
+
+type HasuraResponse<T> = {
+  data?: T;
+  errors?: GraphQLError[];
+};
+
+type HasuraClient = <T>(query: string, variables?: Record<string, unknown>) => Promise<HasuraResponse<T>>;
+
+function makeHasuraClient(): HasuraClient {
   const HASURA_URL = process.env.HASURA_GRAPHQL_ENDPOINT;
   const ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
   if (!HASURA_URL || !ADMIN_SECRET) {
     throw new Error('Missing Hasura configuration');
   }
 
-  return async (query: string, variables?: Record<string, any>) => {
+  return async (query: string, variables?: Record<string, unknown>) => {
     const response = await fetch(HASURA_URL, {
       method: 'POST',
       headers: {
@@ -38,20 +58,21 @@ function makeHasuraClient() {
       body: JSON.stringify({ query, variables }),
     });
 
-    const json = await response.json();
-    if (json.errors) {
-      console.error('Hasura error', json.errors);
-      throw new Error(json.errors[0]?.message ?? 'hasura_error');
+    const json = (await response.json()) as HasuraResponse<unknown>;
+    if (json.errors && json.errors.length > 0) {
+      logger.error('Hasura error', json.errors);
+      throw new Error(json.errors[0].message);
+      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };
 }
 
-async function checkRateLimits(hasura: any, baseKey: string) {
+async function checkRateLimits(hasura: HasuraClient, baseKey: string) {
   for (const entry of RATE_WINDOWS) {
     const start = windowStart(entry.windowSeconds);
     const rateKey = `${baseKey}:window:${entry.windowSeconds}`;
-    const rateResp = await hasura(
+    const rateResp = await hasura<{ rate: { count?: number; window_start?: string; window_seconds?: number } | null }>(
       `query Rate($key: String!) {
         rate: rate_limits_by_pk(key: $key) {
           key
@@ -93,7 +114,7 @@ async function checkRateLimits(hasura: any, baseKey: string) {
   return { allowed: true };
 }
 
-export default async (req: any, res: any) => {
+export default async (req: Request, res: Response) => {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 
   const actorId = String(req.headers['x-hasura-user-id'] ?? '').trim();
@@ -115,7 +136,18 @@ export default async (req: any, res: any) => {
   const appBase = String(process.env.APP_BASE_URL ?? '').replace(/\/$/, '');
 
   try {
-    const threadResp = await hasura(
+    const threadResp = await hasura<{
+      thread: {
+        id: string;
+        school_id?: string | null;
+        district_id?: string | null;
+        requester_user_id?: string | null;
+        target_user_id?: string | null;
+        status?: string | null;
+        moderation_status?: string | null;
+        request?: { id?: string | null; status?: string | null } | null;
+      } | null;
+    }>(
       `query Thread($id: uuid!) {
         thread: message_threads_by_pk(id: $id) {
           id
@@ -158,7 +190,7 @@ export default async (req: any, res: any) => {
     }
 
     const otherUserId = thread.requester_user_id === actorId ? thread.target_user_id : thread.requester_user_id;
-    const blocksResp = await hasura(
+    const blocksResp = await hasura<{ blocks: { id: string; blocked_user_id?: string | null }[] }>(
       `query Blocks($schoolId: uuid!, $actorId: uuid!, $otherId: uuid!) {
         blocks: message_blocks(
           where: {
@@ -201,7 +233,7 @@ export default async (req: any, res: any) => {
 
     if (!flaggedReason && BURST_FLAG_THRESHOLD > 0) {
       const burstSince = new Date(Date.now() - 30_000).toISOString();
-      const burstResp = await hasura(
+      const burstResp = await hasura<{ messages_aggregate?: { aggregate?: { count?: number } | null } | null }>(
         `query Burst($threadId: uuid!, $senderId: uuid!, $since: timestamptz!) {
           messages_aggregate(where: { thread_id: { _eq: $threadId }, sender_user_id: { _eq: $senderId }, created_at: { _gte: $since } }) {
             aggregate { count }
@@ -215,7 +247,10 @@ export default async (req: any, res: any) => {
       }
     }
 
-    const insertResp = await hasura(
+    const insertResp = await hasura<{
+      insert_messages_one?: { id?: string | null; thread_id?: string | null; created_at?: string | null } | null;
+      update_message_threads_by_pk?: { id?: string | null } | null;
+    }>(
       `mutation SendMessage($object: messages_insert_input!, $threadId: uuid!, $preview: String, $now: timestamptz!, $flagged: Boolean!, $flagReason: String) {
         insert_messages_one(object: $object) { id thread_id created_at }
         update_message_threads_by_pk(pk_columns: { id: $threadId }, _set: { last_message_preview: $preview, updated_at: $now }) {
@@ -268,7 +303,7 @@ export default async (req: any, res: any) => {
         }
       );
     } catch (e) {
-      console.warn('telemetry insert failed', e);
+      logger.warn('telemetry insert failed', e);
     }
 
     if (flaggedReason) {
@@ -330,9 +365,9 @@ export default async (req: any, res: any) => {
     );
 
     return res.status(200).json({ ok: true, messageId: message.id });
-  } catch (error: any) {
-    console.error('send-message failed', error);
-    const message = error?.message ?? 'unexpected_error';
+  } catch (error) {
+    logger.error('send-message failed', error);
+    const message = error instanceof Error ? error.message : 'unexpected_error';
     return res.status(500).json({ ok: false, error: message });
   }
 };

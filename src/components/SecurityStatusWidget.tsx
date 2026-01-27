@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('security-status-widget');
 
 type AuditFindingStatus = 'passed' | 'failed' | 'pending';
 
@@ -32,7 +35,7 @@ async function fetchAuditSummary(): Promise<AuditSummaryResponse> {
   if (typeof fetch !== 'function') return { findings: FALLBACK_FINDINGS, lastChecked: new Date().toISOString() };
 
   const response = await fetch('/functions/security/audit-summary').catch((error) => {
-    console.warn('Audit summary fetch failed', error);
+    logger.warn('Audit summary fetch failed', error);
     return null;
   });
 
@@ -124,3 +127,5 @@ export default function SecurityStatusWidget() {
     </div>
   );
 }
+
+export { SecurityStatusWidget };
