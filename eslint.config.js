@@ -45,6 +45,14 @@ export default [
               group: ['@/API/*', '@/API/**'],
               caseSensitive: true,
               message: 'Use "@/api" instead of "@/API".'
+            },
+            {
+              group: ['@/api/functions/*', '@/api/functions/**'],
+              message: 'Use "@/api/functions" barrel imports instead of direct file paths.'
+            },
+            {
+              group: ['@/api/entities/*', '@/api/entities/**'],
+              message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
             }
           ]
         }
@@ -78,6 +86,14 @@ export default [
               group: ['@/API/*', '@/API/**'],
               caseSensitive: true,
               message: 'Use "@/api" instead of "@/API".'
+            },
+            {
+              group: ['@/api/functions/*', '@/api/functions/**'],
+              message: 'Use "@/api/functions" barrel imports instead of direct file paths.'
+            },
+            {
+              group: ['@/api/entities/*', '@/api/entities/**'],
+              message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
             }
           ]
         }

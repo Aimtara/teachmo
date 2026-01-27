@@ -41,3 +41,5 @@ export default function AdminRoleGuard({ children, allowedRoles }: AdminRoleGuar
 
   return <>{children}</>;
 }
+
+export { AdminRoleGuard };

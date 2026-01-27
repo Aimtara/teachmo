@@ -6,8 +6,8 @@ import ReactFlow, {
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
-} from 'react-flow-renderer';
-import 'react-flow-renderer/dist/style.css';
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 
 const initialNodes = [
   { id: 'start', type: 'input', data: { label: 'Start' }, position: { x: 50, y: 100 } },
