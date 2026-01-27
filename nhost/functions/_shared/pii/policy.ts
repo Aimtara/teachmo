@@ -32,6 +32,16 @@ export function getPiiPolicyForSource(sourceRow: any, scopes?: DataScopes): PiiP
   const rawPolicy = sourceRow?.pii_policy;
   const policy = rawPolicy && typeof rawPolicy === 'object' ? { ...DEFAULT_PII_POLICY, ...rawPolicy } : DEFAULT_PII_POLICY;
 
+  if (policy.storeEmail && safeRaw.email) redacted.email = safeRaw.email;
+  // contact_type is always preserved as it's a non-PII classification field (parent_guardian, teacher, etc.)
+  // required for system operation and not considered personally identifiable information
+  if (safeRaw.contact_type) redacted.contact_type = safeRaw.contact_type;
+  if (policy.storeNames) {
+    if (safeRaw.firstName) redacted.firstName = safeRaw.firstName;
+    if (safeRaw.lastName) redacted.lastName = safeRaw.lastName;
+  }
+  if (policy.storeExternalIds && (safeRaw.externalId || safeRaw.external_id)) {
+    redacted.externalId = safeRaw.externalId ?? safeRaw.external_id;
   if (scopes && scopes.directory && scopes.directory.names === false) {
     policy.storeNames = false;
   }
