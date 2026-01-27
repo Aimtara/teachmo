@@ -162,7 +162,7 @@ Teachmo is a full-stack education platform built with React, Vite, Nhost (Hasura
 - Follow **Radix UI** patterns for interactive components
 - Use **Tailwind CSS** utility classes
 - Maintain **consistent spacing** and typography
-- Support **dark mode** via `next-themes`
+- Support **dark mode** via `next-themes` (compatible with Vite)
 
 ## Git Workflow
 
@@ -269,8 +269,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 const schema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1),
+  email: z.string().email('Invalid email address'),
+  name: z.string().min(1, 'Name is required'),
 });
 
 function MyForm() {
@@ -282,7 +282,19 @@ function MyForm() {
     // Handle form submission
   };
 
-  return <form onSubmit={handleSubmit(onSubmit)}>...</form>;
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div>
+        <input {...register('email')} />
+        {errors.email && <span className="text-red-500">{errors.email.message}</span>}
+      </div>
+      <div>
+        <input {...register('name')} />
+        {errors.name && <span className="text-red-500">{errors.name.message}</span>}
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+  );
 }
 ```
 
