@@ -134,7 +134,7 @@ async function insertPreviewRows(hasura: HasuraClient, previewId: string, rows: 
           objects: $objects,
           on_conflict: {
             constraint: directory_import_preview_rows_preview_id_email_key,
-            update_columns: [contact_type]
+          update_columns: [contact_type, action]
           }
         ) { affected_rows }
       }`,
@@ -143,6 +143,7 @@ async function insertPreviewRows(hasura: HasuraClient, previewId: string, rows: 
           preview_id: previewId,
           email: row.email,
           contact_type: row.contact_type,
+          action: row.action ?? 'upsert',
         })),
       }
     );
@@ -162,8 +163,8 @@ async function insertQuarantineRows(hasura: HasuraClient, previewId: string, row
         objects: slice.map((row) => ({
           preview_id: previewId,
           row_number: row.rowNumber,
-          raw: piiPolicy.storeRawQuarantine ? row.raw : {},
-          raw_redacted: row.raw_redacted ?? redactQuarantineRow(row.raw, piiPolicy),
+          raw: {},
+          raw_redacted: row.raw,
           reason: row.reason,
         })),
       }
@@ -184,8 +185,9 @@ export async function createDirectoryPreviewFromRows(params: {
   sampleLimit?: number;
   sourceHash?: string | null;
   metadata?: Record<string, any> | null;
-  piiPolicy?: PiiPolicy;
-  initialInvalidRows?: DirectoryInvalidRow[];
+  mode?: 'snapshot' | 'delta';
+  piiPolicySnapshot?: Record<string, any> | null;
+  scopesSnapshot?: Record<string, any> | null;
 }) {
   const {
     hasura,
@@ -200,8 +202,9 @@ export async function createDirectoryPreviewFromRows(params: {
     sampleLimit = MAX_DIFF_SAMPLES,
     sourceHash: providedSourceHash = null,
     metadata = null,
-    piiPolicy = DEFAULT_PII_POLICY,
-    initialInvalidRows = [],
+    mode = 'snapshot',
+    piiPolicySnapshot = null,
+    scopesSnapshot = null,
   } = params;
 
   const effectiveSampleLimit = Number.isFinite(Number(sampleLimit)) && Number(sampleLimit) > 0 ? Number(sampleLimit) : MAX_DIFF_SAMPLES;
@@ -256,7 +259,9 @@ export async function createDirectoryPreviewFromRows(params: {
         diff,
         stats,
         errors: validation.errors,
-        pii_policy_snapshot: piiPolicy,
+        mode,
+        pii_policy_snapshot: piiPolicySnapshot ?? {},
+        scopes_snapshot: scopesSnapshot ?? {},
       },
     }
   );
@@ -329,33 +334,9 @@ export async function createDirectoryPreviewFromContacts(params: {
   sampleLimit?: number;
   sourceHash?: string | null;
   metadata?: Record<string, any> | null;
-  piiPolicy?: PiiPolicy;
-  dataguardMode?: 'auto' | 'on' | 'off';
-  sourceType?: string;
+  scopesSnapshot?: Record<string, any> | null;
+  mode?: 'snapshot' | 'delta';
 }) {
-  const piiPolicy = params.piiPolicy ?? DEFAULT_PII_POLICY;
-  const invalidRows: DirectoryInvalidRow[] = [];
-  const sanitizedContacts: DirectoryContact[] = [];
-
-  params.contacts.forEach((contact, idx) => {
-    const sanitized = sanitizeContact(contact, piiPolicy, {
-      dataguardMode: params.dataguardMode,
-      sourceType: params.sourceType,
-    });
-
-    if (sanitized.valid && sanitized.contact) {
-      sanitizedContacts.push(sanitized.contact);
-      return;
-    }
-
-    invalidRows.push({
-      rowNumber: idx + 1,
-      raw: piiPolicy.storeRawQuarantine ? (contact as any) : {},
-      raw_redacted: sanitized.raw_redacted ?? redactQuarantineRow(contact as any, piiPolicy),
-      reason: sanitized.reason || 'invalid_contact',
-    });
-  });
-
-  const rows = mapDirectoryContactsToRows(sanitizedContacts);
-  return createDirectoryPreviewFromRows({ ...params, rows, piiPolicy, initialInvalidRows: invalidRows });
+  const rows = mapDirectoryContactsToRows(params.contacts);
+  return createDirectoryPreviewFromRows({ ...params, rows, mode: params.mode });
 }

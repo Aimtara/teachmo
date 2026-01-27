@@ -17,6 +17,7 @@ const AdminDirectoryApprovals = lazy(() => import('./AdminDirectoryApprovals.jsx
 const AdminDirectoryApprovalDetail = lazy(() => import('./AdminDirectoryApprovalDetail.jsx'));
 const AdminDirectoryOpsDashboard = lazy(() => import('./AdminDirectoryOpsDashboard.jsx'));
 const AdminDirectoryJobDetail = lazy(() => import('./AdminDirectoryJobDetail.jsx'));
+const AdminDataScopes = lazy(() => import('./AdminDataScopes.jsx'));
 const Notifications = lazy(() => import('./Notifications.jsx'));
 const NotificationPreferences = lazy(() => import('./NotificationPreferences.jsx'));
 
@@ -58,6 +59,13 @@ export default function Pages() {
       key: 'index',
       index: true,
       element: <RoleRedirect />
+    },
+    {
+      key: 'admin-data-scopes',
+      path: '/admin/data-scopes',
+      Component: AdminDataScopes,
+      allowedRoles: ['district_admin', 'system_admin', 'admin'],
+      requiresAuth: true
     },
     {
       key: 'admin-directory-ops-dashboard',

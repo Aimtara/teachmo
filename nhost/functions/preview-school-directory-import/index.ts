@@ -1,5 +1,6 @@
 import { createDirectoryImportPreview } from '../_shared/directoryImportCore';
 import { getActorScope } from '../_shared/tenantScope';
+import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
@@ -48,6 +49,9 @@ export default async (req: any, res: any) => {
   }
 
   try {
+    const scopes = await getEffectiveScopes({ hasura, districtId: scope.districtId ?? null, schoolId: sid });
+    assertScope(scopes, 'directory.email', true);
+
     const result = await createDirectoryImportPreview({
       hasura,
       actorId,
@@ -58,6 +62,7 @@ export default async (req: any, res: any) => {
       deactivateMissing: Boolean(deactivateMissing),
       sourceId: sourceId ?? null,
       sourceRef: sourceRef ?? null,
+      scopesSnapshot: scopes,
     });
 
     return res.status(200).json({
