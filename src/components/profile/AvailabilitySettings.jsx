@@ -12,6 +12,7 @@ import { Clock, Calendar, Target, Zap, AlertCircle, CheckCircle2, Save, Loader2,
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/components/ui/use-toast";
 
 const WEEKDAY_TIME_SLOTS = [
   { id: 'early_morning', label: 'Early Morning (6-8am)', description: 'Before the day gets busy' },
@@ -93,6 +94,7 @@ const DEFAULT_PREFERENCES = {
 };
 
 export default function AvailabilitySettings({ user }) {
+  const { toast } = useToast();
   const [preferences, setPreferences] = useState(user.scheduling_preferences || DEFAULT_PREFERENCES);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -157,11 +159,18 @@ export default function AvailabilitySettings({ user }) {
       }));
 
       // In real implementation, would open popup/redirect
-      alert(`Calendar sync with ${provider} would be initiated here. For this demo, it's marked as connected.`);
+      toast({
+        title: 'Calendar sync enabled',
+        description: `Calendar sync with ${provider} has been configured. In production, this would complete OAuth authorization.`
+      });
       
     } catch (error) {
       console.error('Calendar connection error:', error);
-      alert('Failed to connect calendar. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Connection failed',
+        description: 'Failed to connect calendar. Please try again.'
+      });
     }
   };
 
