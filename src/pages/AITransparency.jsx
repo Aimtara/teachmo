@@ -42,6 +42,7 @@ export default function AITransparency() {
         </header>
 
         <section className="grid gap-6">
+          <h2 className="sr-only">Transparency documents</h2>
           {(docsQuery.data ?? []).length === 0 ? (
             <Card>
               <CardContent className="py-8 text-sm text-slate-600">

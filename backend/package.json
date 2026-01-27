@@ -5,19 +5,27 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "migrate": "node migrate.js",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "snapshot:daily": "node jobs/snapshotDailyMetrics.js 14",
+    "snapshot:hourly": "node jobs/snapshotHourlyMetrics.js 48",
+    "mitigation:reap": "node jobs/mitigationReaper.js",
+    "tick:daily": "node jobs/orchestratorTick.js daily",
+    "tick:weekly": "node jobs/orchestratorTick.js weekly"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "jose": "^5.6.3",
     "pdfkit": "^0.15.0",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22",
     "jest": "^30.0.5",
+    "nodemon": "^2.0.22",
     "supertest": "^7.1.4"
   }
 }

@@ -87,3 +87,5 @@ export default function AdaptiveDashboard({ role, widgetLoaders, fallbackWidget 
     </section>
   );
 }
+
+export { AdaptiveDashboard };

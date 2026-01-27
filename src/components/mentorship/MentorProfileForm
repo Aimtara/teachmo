@@ -232,3 +232,5 @@ export default function MentorProfileForm({ profile, onSubmit, onCancel }) {
     </form>
   );
 }
+
+export { MentorProfileForm };

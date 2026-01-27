@@ -61,3 +61,5 @@ export default function ShortsFeedbackBar({ shortId }) {
     </div>
   );
 }
+
+export { ShortsFeedbackBar };

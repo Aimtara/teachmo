@@ -93,3 +93,5 @@ export default function AskTeachmo({ defaultTab = 'overview', onIntentHandled, n
     </div>
   );
 }
+
+export { AskTeachmo };

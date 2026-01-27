@@ -1,0 +1,30 @@
+name: Generate weekly briefs
+
+on:
+  schedule:
+    - cron: '0 10 * * 1' # Mondays 10:00 UTC
+  workflow_dispatch:
+
+jobs:
+  weekly-briefs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly brief generation
+        env:
+          FUNCTIONS_URL: ${{ secrets.WEEKLY_BRIEF_FUNCTIONS_URL || secrets.DIRECTORY_SYNC_FUNCTIONS_URL }}
+          WEEKLY_BRIEF_TOKEN: ${{ secrets.WEEKLY_BRIEF_TOKEN }}
+        run: |
+          if [ -z "$FUNCTIONS_URL" ]; then
+            echo "FUNCTIONS_URL secret (WEEKLY_BRIEF_FUNCTIONS_URL or DIRECTORY_SYNC_FUNCTIONS_URL) is required"
+            exit 1
+          fi
+
+          if [ -z "$WEEKLY_BRIEF_TOKEN" ]; then
+            echo "WEEKLY_BRIEF_TOKEN secret is required"
+            exit 1
+          fi
+
+          curl -sS -X POST "$FUNCTIONS_URL/v1/functions/generate-weekly-briefs" \
+            -H "Authorization: Bearer $WEEKLY_BRIEF_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"trigger":"cron"}'

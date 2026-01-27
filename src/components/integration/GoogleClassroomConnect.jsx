@@ -10,6 +10,8 @@ import { googleAuth } from "@/api/functions";
 import { googleClassroomSync } from "@/api/functions";
 import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('GoogleClassroomConnect');
+
 export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -17,7 +19,6 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [lastSyncTime, setLastSyncTime] = useState(null);
 
-  const logger = createLogger('GoogleClassroomConnect');
   // Store interval and listener references for cleanup
   const checkClosedRef = useRef(null);
   const messageListenerRef = useRef(null);

@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Globe, Key, Users, AlertTriangle } from 'lucide-react';
-import { EnterpriseConfig } from '@/api/entities/EnterpriseConfig';
+import { EnterpriseConfig } from '@/api/entities';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function SSOConfiguration({ organizationId, user }) {

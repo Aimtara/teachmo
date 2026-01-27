@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { createLogger } from '../_shared/logger';
+import { getHasuraErrorMessage, type HasuraResponse } from '../_shared/hasuraTypes';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
@@ -26,6 +27,8 @@ function windowStart(seconds: number): string {
   return new Date(Math.floor(now / windowMs) * windowMs).toISOString();
 }
 
+type HasuraClient = <T>(query: string, variables?: Record<string, unknown>) => Promise<HasuraResponse<T>>;
+
 function makeHasuraClient(): HasuraClient {
   const HASURA_URL = process.env.HASURA_GRAPHQL_ENDPOINT;
   const ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
@@ -47,6 +50,7 @@ function makeHasuraClient(): HasuraClient {
     if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
       throw new Error(json.errors[0].message ?? 'hasura_error');
+      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };

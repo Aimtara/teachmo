@@ -4,10 +4,13 @@ import { format } from 'date-fns';
 import { nhost } from '@/lib/nhostClient';
 import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
+import { createLogger } from '@/utils/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+const logger = createLogger('admin-audit-logs');
 
 export default function AdminAuditLogs() {
   const { data: scope } = useTenantScope();
@@ -61,7 +64,7 @@ export default function AdminAuditLogs() {
     });
 
     if (error) {
-      console.error(error);
+      logger.error('Audit export failed', error);
       return;
     }
 

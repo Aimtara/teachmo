@@ -49,7 +49,13 @@ if (process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTR
 export default defineConfig({
   plugins,
   server: {
-    allowedHosts: true
+    allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      }
+    }
   },
   resolve: {
     alias: {

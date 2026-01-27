@@ -72,6 +72,81 @@ export async function runRetentionPurge() {
       [organizationId, schoolId ?? null, policy.dsarExportDays]
     );
     purged += dsarResult.rowCount || 0;
+
+    const analyticsResult = await query(
+      `delete from public.analytics_events
+       where organization_id = $1
+         and school_id is not distinct from $2
+         and event_ts < now() - ($3::int * interval '1 day')`,
+      [organizationId, schoolId ?? null, policy.analyticsDays]
+    );
+    purged += analyticsResult.rowCount || 0;
+
+    const aiResult = await query(
+      `delete from public.ai_interactions
+       where organization_id = $1
+         and school_id is not distinct from $2
+         and created_at < now() - ($3::int * interval '1 day')`,
+      [organizationId, schoolId ?? null, policy.aiInteractionDays]
+    );
+    purged += aiResult.rowCount || 0;
+
+    const notificationEventResult = await query(
+      `delete from public.notification_events
+       where message_id in (
+        select id from public.notification_messages
+        where organization_id = $1
+          and school_id is not distinct from $2
+          and created_at < now() - ($3::int * interval '1 day')
+       )`,
+      [organizationId, schoolId ?? null, policy.notificationDays]
+    );
+    purged += notificationEventResult.rowCount || 0;
+
+    const notificationDeliveryResult = await query(
+      `delete from public.notification_deliveries
+       where message_id in (
+        select id from public.notification_messages
+        where organization_id = $1
+          and school_id is not distinct from $2
+          and created_at < now() - ($3::int * interval '1 day')
+       )`,
+      [organizationId, schoolId ?? null, policy.notificationDays]
+    );
+    purged += notificationDeliveryResult.rowCount || 0;
+
+    const notificationQueueResult = await query(
+      `delete from public.notification_queue
+       where message_id in (
+        select id from public.notification_messages
+        where organization_id = $1
+          and school_id is not distinct from $2
+          and created_at < now() - ($3::int * interval '1 day')
+       )`,
+      [organizationId, schoolId ?? null, policy.notificationDays]
+    );
+    purged += notificationQueueResult.rowCount || 0;
+
+    const notificationDeadLetterResult = await query(
+      `delete from public.notification_dead_letters
+       where message_id in (
+        select id from public.notification_messages
+        where organization_id = $1
+          and school_id is not distinct from $2
+          and created_at < now() - ($3::int * interval '1 day')
+       )`,
+      [organizationId, schoolId ?? null, policy.notificationDays]
+    );
+    purged += notificationDeadLetterResult.rowCount || 0;
+
+    const notificationMessageResult = await query(
+      `delete from public.notification_messages
+       where organization_id = $1
+         and school_id is not distinct from $2
+         and created_at < now() - ($3::int * interval '1 day')`,
+      [organizationId, schoolId ?? null, policy.notificationDays]
+    );
+    purged += notificationMessageResult.rowCount || 0;
   }
 
   return { purged };
