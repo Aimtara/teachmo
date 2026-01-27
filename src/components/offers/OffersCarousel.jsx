@@ -7,6 +7,9 @@ import { PartnerOffer } from '@/api/entities';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isAfter, parseISO } from 'date-fns';
 import { withGracefulDegradation } from '@/components/shared/apiUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('offers-carousel');
 
 export default function OffersCarousel() {
   const [offers, setOffers] = useState([]);
@@ -34,7 +37,7 @@ export default function OffersCarousel() {
       
       setOffers(offersData || []);
     } catch (err) {
-      console.warn('Failed to load offers:', err);
+      logger.warn('Failed to load offers', err);
       setOffers([]); // Graceful fallback
       setError('Unable to load special offers at this time.');
     } finally {

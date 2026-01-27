@@ -21,6 +21,91 @@ async function safeQuery(res, sql, params = []) {
   }
 }
 
+async function deleteUserRecords(res, { userId, organizationId, schoolId }) {
+  const steps = [
+    {
+      key: 'notification_queue',
+      sql: `delete from public.notification_queue where recipient_id = $1`,
+      params: [userId],
+    },
+    {
+      key: 'notification_deliveries',
+      sql: `delete from public.notification_deliveries where recipient_id = $1`,
+      params: [userId],
+    },
+    {
+      key: 'notification_events',
+      sql: `delete from public.notification_events where recipient_id = $1`,
+      params: [userId],
+    },
+    {
+      key: 'notification_dead_letters',
+      sql: `delete from public.notification_dead_letters where recipient_id = $1`,
+      params: [userId],
+    },
+    {
+      key: 'notification_preferences',
+      sql: `delete from public.notification_preferences where user_id = $1`,
+      params: [userId],
+    },
+    {
+      key: 'notification_priorities',
+      sql: `delete from public.notification_priorities where user_id = $1`,
+      params: [userId],
+    },
+    {
+      key: 'analytics_events',
+      sql: `delete from public.analytics_events where actor_id = $1 and organization_id = $2`,
+      params: [userId, organizationId],
+    },
+    {
+      key: 'ai_interactions',
+      sql: `delete from public.ai_interactions where actor_id = $1 and organization_id = $2`,
+      params: [userId, organizationId],
+    },
+    {
+      key: 'ai_review_actions',
+      sql: `delete from public.ai_review_actions where actor_id = $1`,
+      params: [userId],
+    },
+    {
+      key: 'partner_commission_events',
+      sql: `delete from public.partner_commission_events where partner_user_id = $1 and district_id = $2`,
+      params: [userId, organizationId],
+    },
+    {
+      key: 'partner_revenue_events',
+      sql: `delete from public.partner_revenue_events where partner_user_id = $1 and district_id = $2`,
+      params: [userId, organizationId],
+    },
+    {
+      key: 'partner_fraud_signals',
+      sql: `delete from public.partner_fraud_signals where partner_user_id = $1 and district_id = $2`,
+      params: [userId, organizationId],
+    },
+    {
+      key: 'partner_action_audits',
+      sql: `delete from public.partner_action_audits where partner_user_id = $1 and district_id = $2`,
+      params: [userId, organizationId],
+    },
+    {
+      key: 'partner_action_audits_actor',
+      sql: `delete from public.partner_action_audits where actor_id = $1 and district_id = $2`,
+      params: [userId, organizationId],
+    },
+  ];
+
+  const summary = {};
+
+  for (const step of steps) {
+    const result = await safeQuery(res, step.sql, step.params);
+    if (!result) return null;
+    summary[step.key] = result.rowCount || 0;
+  }
+
+  return summary;
+}
+
 router.use(requireAuth);
 router.use(requireTenant);
 router.use(requireAdmin);
@@ -202,6 +287,9 @@ router.post('/users/:id/hard-delete', async (req, res) => {
   const user = userResult.rows?.[0];
   if (!user) return res.status(404).json({ error: 'user_not_found' });
 
+  const deletionSummary = await deleteUserRecords(res, { userId, organizationId, schoolId });
+  if (!deletionSummary) return;
+
   await safeQuery(
     res,
     `delete from public.scim_group_members
@@ -234,7 +322,7 @@ router.post('/users/:id/hard-delete', async (req, res) => {
     action: 'user.hard_delete',
     entityType: 'user',
     entityId: userId,
-    metadata: { reason },
+    metadata: { reason, deletionSummary },
     before: user,
     after: null,
     containsPii: true,
@@ -242,7 +330,7 @@ router.post('/users/:id/hard-delete', async (req, res) => {
     schoolId,
   });
 
-  res.json({ status: 'deleted', userId });
+  res.json({ status: 'deleted', userId, deletionSummary });
 });
 
 export default router;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { bootstrapOrganization } from '@/domains/onboarding';
 import { createProfile } from '@/domains/auth';
 import { API_BASE_URL } from '@/config/api';
@@ -140,6 +141,19 @@ export default function AdminDashboard() {
       </form>
 
       {message && <p className="text-green-700 text-sm">{message}</p>}
+
+      <section className="bg-white rounded shadow p-4 space-y-2">
+        <h2 className="font-medium">Pilot tools</h2>
+        <p className="text-gray-600 text-sm">
+          Generate and review weekly parent briefs on demand.
+        </p>
+        <Link
+          to="/admin/weekly-briefs"
+          className="inline-flex items-center text-sm text-blue-700 hover:underline"
+        >
+          Open Weekly Briefs tool
+        </Link>
+      </section>
 
       <AuditLogViewer />
     </div>

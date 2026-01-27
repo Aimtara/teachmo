@@ -47,3 +47,5 @@ const LazyImage = ({ src, alt, className, skeletonClassName }) => {
 };
 
 export default LazyImage;
+
+export { LazyImage };

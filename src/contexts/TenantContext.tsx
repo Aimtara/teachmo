@@ -10,6 +10,25 @@ type TenantState = {
   loading: boolean;
 };
 
+type HasuraClaims = {
+  'x-hasura-organization-id'?: string;
+  'x-hasura-org-id'?: string;
+  'x-hasura-school-id'?: string;
+};
+
+type AccessTokenClaims = {
+  'https://hasura.io/jwt/claims'?: HasuraClaims;
+  'https://nhost.io/jwt/claims'?: HasuraClaims;
+  [key: string]: unknown;
+};
+
+type UserMetadata = {
+  organization_id?: string;
+  org_id?: string;
+  school_id?: string;
+  [key: string]: unknown;
+};
+
 const TenantContext = createContext<TenantState>({
   organizationId: null,
   schoolId: null,
@@ -20,13 +39,13 @@ const TenantContext = createContext<TenantState>({
  * Decode a JWT token payload. Returns the decoded claims or null if decoding fails.
  * The return type is a dictionary of claims keyed by string.
  */
-function decodeToken(token?: string | null): Record<string, any> | null {
+function decodeToken(token?: string | null): AccessTokenClaims | null {
   if (!token) return null;
   const parts = token.split('.');
   if (parts.length < 2) return null;
   try {
     const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return payload as Record<string, any>;
+    return payload as AccessTokenClaims;
   } catch (err) {
     logger.error('Failed to decode access token', err);
     return null;
@@ -38,11 +57,11 @@ function decodeToken(token?: string | null): Record<string, any> | null {
  * Accepts a user object with optional metadata and a dictionary of token claims.
  */
 function resolveTenantClaims(
-  user: { metadata?: Record<string, any> | null } | null,
-  tokenClaims: Record<string, any> | null
+  user: { metadata?: UserMetadata | null } | null,
+  tokenClaims: AccessTokenClaims | null
 ) {
-  const metadata: Record<string, any> = user?.metadata ?? {};
-  const hasuraClaims: Record<string, any> =
+  const metadata: UserMetadata = user?.metadata ?? {};
+  const hasuraClaims: HasuraClaims =
     (tokenClaims && (tokenClaims['https://hasura.io/jwt/claims'] || tokenClaims['https://nhost.io/jwt/claims'])) || {};
 
   const organizationId =

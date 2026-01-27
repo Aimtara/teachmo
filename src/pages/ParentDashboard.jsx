@@ -3,27 +3,96 @@ import { listEvents } from '@/domains/events';
 import { listActivities } from '@/domains/activities';
 import { listThreads } from '@/domains/messaging';
 import { useUserData } from '@nhost/react';
+import WeeklyFamilyBriefCard from '@/components/dashboard/WeeklyFamilyBriefCard';
+import TodayActionsCard from '@/components/dashboard/TodayActionsCard';
+import {
+  completeAction,
+  dismissAction,
+  getLatestWeeklyBrief,
+  listActions,
+  runWeeklyBrief
+} from '@/domains/orchestrator';
 
 export default function ParentDashboard() {
   const user = useUserData();
   const [events, setEvents] = useState([]);
   const [activities, setActivities] = useState([]);
   const [threads, setThreads] = useState([]);
+  const [brief, setBrief] = useState(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [actions, setActions] = useState([]);
+  const [actionsLoading, setActionsLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
-      const [eventData, activityData, threadData] = await Promise.all([
+      const familyId = user.profile_id || user.id;
+      const [eventData, activityData, threadData, briefData] = await Promise.all([
         listEvents(user.default_school_id || null).catch(() => []),
         listActivities().catch(() => []),
-        listThreads(user.profile_id || user.id).catch(() => [])
+        listThreads(user.profile_id || user.id).catch(() => []),
+        getLatestWeeklyBrief(familyId).catch(() => null)
       ]);
       setEvents(eventData);
       setActivities(activityData);
       setThreads(threadData);
+      setBrief(briefData);
+      setActionsLoading(true);
+      listActions(familyId, { status: 'queued', limit: 3 })
+        .then((r) => setActions(r.actions || []))
+        .catch(() => setActions([]))
+        .finally(() => setActionsLoading(false));
     };
     load();
   }, [user]);
+
+  const generateBrief = async () => {
+    if (!user) return;
+    const familyId = user.profile_id || user.id;
+    setBriefLoading(true);
+    try {
+      const nextBrief = await runWeeklyBrief(familyId);
+      setBrief(nextBrief);
+    } finally {
+      setBriefLoading(false);
+    }
+  };
+
+  const refreshActions = async () => {
+    if (!user) return;
+    const familyId = user.profile_id || user.id;
+    setActionsLoading(true);
+    try {
+      const r = await listActions(familyId, { status: 'queued', limit: 3 });
+      setActions(r.actions || []);
+    } finally {
+      setActionsLoading(false);
+    }
+  };
+
+  const onComplete = async (actionId) => {
+    if (!user) return;
+    const familyId = user.profile_id || user.id;
+    setActionsLoading(true);
+    try {
+      await completeAction(familyId, actionId);
+      await refreshActions();
+    } finally {
+      setActionsLoading(false);
+    }
+  };
+
+  const onDismiss = async (actionId) => {
+    if (!user) return;
+    const familyId = user.profile_id || user.id;
+    setActionsLoading(true);
+    try {
+      await dismissAction(familyId, actionId);
+      await refreshActions();
+    } finally {
+      setActionsLoading(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -33,6 +102,15 @@ export default function ParentDashboard() {
       </header>
 
       <section className="grid md:grid-cols-3 gap-4">
+        <WeeklyFamilyBriefCard brief={brief} onGenerate={generateBrief} loading={briefLoading} />
+
+        <TodayActionsCard
+          items={actions}
+          onComplete={onComplete}
+          onDismiss={onDismiss}
+          loading={actionsLoading}
+        />
+
         <div className="bg-white shadow rounded p-4">
           <h2 className="font-medium mb-2">Upcoming events</h2>
           <ul className="space-y-2 text-sm">

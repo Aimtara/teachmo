@@ -15,7 +15,7 @@ function RequestRow({ request, onApprove, onDeny, onReasonChange, isProcessing, 
     try {
       return formatDistanceToNow(new Date(request.created_at), { addSuffix: true });
     } catch (error) {
-      console.error(error);
+      logger.error('Invalid date in messaging request', error);
       return request.created_at;
     }
   }, [request?.created_at]);

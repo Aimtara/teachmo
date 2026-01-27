@@ -7,6 +7,11 @@
 ## Product Roadmaps
 - Phase 1: Procurement-Ready MVP (`phase1-procurement-ready-mvp.md`)
 - District Insights Plan (`district-insights-plan.md`)
+- Orchestrator Strategic Roadmap (`teachmo-orchestrator-roadmap.md`)
+
+## Orchestrator
+- Principles (`teachmo-orchestrator-principles.md`)
+- Business Requirements (`teachmo-orchestrator-brd.md`)
 
 ## Component Patterns
 - All UI uses `cn()` utility

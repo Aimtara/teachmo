@@ -241,6 +241,21 @@ async function resolveMetricValue({ rule, windowStart, now }) {
     return clampNumber(result.rows?.[0]?.cost_usd);
   }
 
+  if (rule.metric_key === 'ai_budget_usage') {
+    const result = await query(
+      `select monthly_limit_usd, spent_usd
+       from ai_tenant_budgets
+       where organization_id = $1
+         and school_id is not distinct from $2`,
+      [rule.organization_id, rule.school_id || null]
+    );
+    const row = result.rows?.[0];
+    const limit = clampNumber(row?.monthly_limit_usd, 0);
+    const spent = clampNumber(row?.spent_usd, 0);
+    if (!limit) return null;
+    return spent / limit;
+  }
+
   if (rule.metric_key === 'notification_bounce_rate') {
     const result = await query(
       `select count(*) as total,
