@@ -3,7 +3,7 @@ import { createLogger } from '../_shared/logger';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
-import type { HasuraClient, HasuraError, HasuraResponse } from '../_shared/hasuraTypes';
+import type { HasuraClient, HasuraResponse } from '../_shared/hasuraTypes';
 
 const logger = createLogger('block-user-from-messaging');
 
