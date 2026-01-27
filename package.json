@@ -70,6 +70,7 @@
     "express-rate-limit": "^7.0.0",
     "framer-motion": "^12.4.7",
     "googleapis": "^169.0.0",
+    "graphql": "^16.0.0",
     "i18next": "^25.5.2",
     "idb-keyval": "^6.2.2",
     "input-otp": "^1.4.2",
