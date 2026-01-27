@@ -52,7 +52,7 @@ Teachmo is a full-stack education platform built with React, Vite, Nhost (Hasura
 - `components/` - Reusable UI components
 - `domains/` - Business logic organized by domain (messaging, events, activities, etc.)
 - `hooks/` - Custom React hooks
-- `lib/` - Shared utilities and helpers (GraphQL helper at `src/lib/graphql.js`)
+- `lib/` - Shared utilities and helpers (GraphQL helper at `src/lib/graphql.ts`)
 - `contexts/` - React contexts
 - `providers/` - React providers
 - `api/` - API client configurations
@@ -97,7 +97,7 @@ Teachmo is a full-stack education platform built with React, Vite, Nhost (Hasura
 ### GraphQL Patterns
 - Keep **GraphQL queries near their usage**
 - **Avoid overfetching** - request only needed fields
-- Use the shared GraphQL helper at `src/lib/graphql.js`
+- Use the shared GraphQL helper at `src/lib/graphql.ts`
 - Organize GraphQL operations in `src/domains/**` by business domain
 - See `docs/api-schema.md` for schema documentation and typed operation generation
 
@@ -224,7 +224,7 @@ Teachmo is a full-stack education platform built with React, Vite, Nhost (Hasura
 ### GraphQL Queries
 ```javascript
 // Use the shared GraphQL helper
-import { executeGraphQL } from 'src/lib/graphql.js';
+import { executeGraphQL } from 'src/lib/graphql.ts';
 
 const query = `
   query GetProfile($userId: uuid!) {
