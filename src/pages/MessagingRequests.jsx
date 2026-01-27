@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/utils';
 import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('MessagingRequests');
+
 function RequestRow({ request, onApprove, onDeny, onReasonChange, isProcessing, reasonValue }) {
   const created = useMemo(() => {
     if (!request?.created_at) return 'just now';
@@ -75,7 +77,6 @@ export default function MessagingRequests() {
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState({});
   const [reasons, setReasons] = useState({});
-  const logger = createLogger('MessagingRequests');
 
   const load = useCallback(async () => {
     setLoading(true);
