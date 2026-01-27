@@ -7,6 +7,27 @@ import {
   executionSlices,
   executionDependencies,
 } from '../models.js';
+import { executionBoardSeed } from '../executionBoardSeedData.js';
+import {
+  epicPatchSchema,
+  gatePatchSchema,
+  slicePatchSchema,
+} from '../validation/executionBoard.js';
+
+function ensureSeeded() {
+  if (executionEpics.length === 0) {
+    executionEpics.push(...executionBoardSeed.epics);
+  }
+  if (executionGates.length === 0) {
+    executionGates.push(...executionBoardSeed.gates);
+  }
+  if (executionSlices.length === 0) {
+    executionSlices.push(...executionBoardSeed.slices);
+  }
+  if (executionDependencies.length === 0) {
+    executionDependencies.push(...executionBoardSeed.dependencies);
+  }
+}
 
 function computeGateProgress(checklist = '') {
   // checklist is a text block with "☐" and "☑" markers
@@ -98,6 +119,15 @@ executionBoardRouter.patch('/epics/:id', express.json(), (req, res) => {
   const { idx, item } = findById(executionEpics, id);
   if (!item) return res.status(404).json({ error: 'Epic not found' });
 
+  // Validate request body
+  const validation = epicPatchSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error.issues,
+    });
+  }
+
   const allowed = [
     'workstream',
     'tag',
@@ -128,6 +158,15 @@ executionBoardRouter.patch('/gates/:gate', express.json(), (req, res) => {
   const idx = executionGates.findIndex((g) => g.gate === gate);
   if (idx === -1) return res.status(404).json({ error: 'Gate not found' });
 
+  // Validate request body
+  const validation = gatePatchSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error.issues,
+    });
+  }
+
   const allowed = ['purpose', 'checklist', 'ownerRole', 'dependsOn', 'targetWindow', 'status'];
   const patch = {};
   allowed.forEach((k) => {
@@ -142,6 +181,15 @@ executionBoardRouter.patch('/slices/:id', express.json(), (req, res) => {
   const { id } = req.params;
   const { idx, item } = findById(executionSlices, id);
   if (!item) return res.status(404).json({ error: 'Slice not found' });
+
+  // Validate request body
+  const validation = slicePatchSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validation.error.issues,
+    });
+  }
 
   const allowed = ['outcome', 'primaryEpic', 'gate', 'inputs', 'deliverables', 'acceptance', 'status', 'owner', 'storyKey', 'dependsOn'];
   const patch = {};
