@@ -1,6 +1,10 @@
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
 import { notifyUserEvent } from '../_shared/notifier';
+import { createLogger } from '../_shared/logger';
+import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
+
+const logger = createLogger('request-messaging-access');
 
 const ALLOWED_TARGET_ROLES = new Set(['teacher', 'school_admin', 'district_admin', 'admin', 'system_admin', 'staff']);
 
@@ -37,6 +41,10 @@ function makeHasuraClient() {
     if (json.errors && json.errors.length > 0) {
       console.error('Hasura error', json.errors);
       throw new Error(json.errors[0].message);
+    const json = await response.json();
+    if (json.errors) {
+      logger.error('Hasura error', json.errors);
+      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };
@@ -169,7 +177,7 @@ export default async (req: any, res: any) => {
 
     return res.status(200).json({ ok: true, requestId: request.id });
   } catch (error: any) {
-    console.error('request-messaging-access failed', error);
+    logger.error('request-messaging-access failed', error);
     const message = error?.message ?? 'unexpected_error';
     return res.status(500).json({ ok: false, error: message });
   }

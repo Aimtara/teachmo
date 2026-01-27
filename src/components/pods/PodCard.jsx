@@ -286,3 +286,5 @@ export default function PodCard({ pod, onJoin, onRequest, isJoined = false, isPe
     </motion.div>
   );
 }
+
+export { PodCard };

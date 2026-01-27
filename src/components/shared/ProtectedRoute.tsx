@@ -80,3 +80,5 @@ export default function ProtectedRoute({
 
   return <>{children}</>;
 }
+
+export { ProtectedRoute };

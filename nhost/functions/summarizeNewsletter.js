@@ -7,6 +7,9 @@
 // summarise school newsletters before presenting them to parents.
 
 import { invokeAdvancedAI } from './_shared/invokeAdvancedAI.js';
+import { createLogger } from './_shared/logger.js';
+
+const logger = createLogger('summarizeNewsletter');
 
 export default async function summarizeNewsletter(req, res) {
   if (req.method && req.method !== 'POST') {
@@ -37,7 +40,7 @@ export default async function summarizeNewsletter(req, res) {
 
     return res.status(200).json({ summary: content });
   } catch (err) {
-    console.error('Error summarising newsletter', err);
+    logger.error('Error summarising newsletter', err);
     return res.status(500).json({ error: 'Failed to summarise newsletter' });
   }
 }

@@ -8,6 +8,14 @@ export async function login(page: Page) {
   const email = process.env.TEST_EMAIL;
   const password = process.env.TEST_PASSWORD;
   if (!email || !password) return;
+  await loginWithCredentials(page, { email, password });
+}
+
+export async function loginWithCredentials(
+  page: Page,
+  { email, password }: { email: string; password: string }
+) {
+  if (!email || !password) return;
 
   const candidates = ['/login', '/auth/login', '/sign-in'];
   for (const path of candidates) {

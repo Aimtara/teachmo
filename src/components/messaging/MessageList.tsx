@@ -155,3 +155,5 @@ export default function MessageList({
     </div>
   );
 }
+
+export { MessageList };

@@ -4,8 +4,10 @@ import { query } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = Router();
+const logger = createLogger('ai-explainability');
 
 router.use(requireAuth);
 router.use(requireTenant);
@@ -78,7 +80,7 @@ router.get('/:id', async (req, res) => {
 
     return res.json({ summary });
   } catch (error) {
-    console.error('Failed to fetch AI interaction explainability', error);
+    logger.error('Failed to fetch AI interaction explainability', error);
     return res.status(500).json({ error: 'internal_error' });
   }
 });

@@ -129,3 +129,5 @@ export default function AccessibilityProvider({ children }) {
     </AccessibilityContext.Provider>
   );
 }
+
+export { AccessibilityProvider };

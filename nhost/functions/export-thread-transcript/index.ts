@@ -1,5 +1,9 @@
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
+import { createLogger } from '../_shared/logger';
+import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
+
+const logger = createLogger('export-thread-transcript');
 
 type GraphQLError = {
   message: string;
@@ -34,6 +38,10 @@ function makeHasuraClient() {
     if (json.errors && json.errors.length > 0) {
       console.error('Hasura error', json.errors);
       throw new Error(json.errors[0].message);
+    const json = await response.json();
+    if (json.errors) {
+      logger.error('Hasura error', json.errors);
+      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };
@@ -122,7 +130,7 @@ export default async (req: any, res: any) => {
       messages: thread.messages || [],
     });
   } catch (error: any) {
-    console.error('export-thread-transcript failed', error);
+    logger.error('export-thread-transcript failed', error);
     const message = error?.message ?? 'unexpected_error';
     return res.status(500).json({ ok: false, error: message });
   }

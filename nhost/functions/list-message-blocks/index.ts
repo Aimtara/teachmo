@@ -1,7 +1,9 @@
 import type { Request, Response } from 'express';
 import { createLogger } from '../_shared/logger';
+import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
+import type { HasuraClient, HasuraResponse } from '../_shared/hasuraTypes';
 
 const logger = createLogger('list-message-blocks');
 
@@ -40,6 +42,7 @@ function makeHasuraClient(): HasuraClient {
     if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
       throw new Error(json.errors[0].message);
+      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };

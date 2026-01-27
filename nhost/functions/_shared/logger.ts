@@ -26,18 +26,34 @@ const formatMessage = (namespace: string, message: string) => `[${namespace}] ${
 export const createLogger = (namespace: string) => ({
   debug: (message: string, meta?: unknown) => {
     if (!shouldLog('debug')) return;
-    console.debug(formatMessage(namespace, message), meta ?? '');
+    if (meta === undefined) {
+      console.debug(formatMessage(namespace, message));
+    } else {
+      console.debug(formatMessage(namespace, message), meta);
+    }
   },
   info: (message: string, meta?: unknown) => {
     if (!shouldLog('info')) return;
-    console.info(formatMessage(namespace, message), meta ?? '');
+    if (meta === undefined) {
+      console.info(formatMessage(namespace, message));
+    } else {
+      console.info(formatMessage(namespace, message), meta);
+    }
   },
   warn: (message: string, meta?: unknown) => {
     if (!shouldLog('warn')) return;
-    console.warn(formatMessage(namespace, message), meta ?? '');
+    if (meta === undefined) {
+      console.warn(formatMessage(namespace, message));
+    } else {
+      console.warn(formatMessage(namespace, message), meta);
+    }
   },
   error: (message: string, meta?: unknown) => {
     if (!shouldLog('error')) return;
-    console.error(formatMessage(namespace, message), meta ?? '');
+    if (meta === undefined) {
+      console.error(formatMessage(namespace, message));
+    } else {
+      console.error(formatMessage(namespace, message), meta);
+    }
   },
 });
