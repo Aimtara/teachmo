@@ -29,7 +29,9 @@ ALTER TABLE public.feature_flags
 
 DROP TABLE IF EXISTS public.enterprise_configs;
 
+DROP INDEX IF EXISTS audit_log_school_id_idx;
 DROP INDEX IF EXISTS audit_log_organization_id_idx;
 
 ALTER TABLE public.audit_log
-  DROP COLUMN IF EXISTS organization_id;
+  DROP COLUMN IF EXISTS organization_id,
+  DROP COLUMN IF EXISTS school_id;

@@ -5,8 +5,6 @@ insert_permissions:
   - role: partner
     permission:
       check:
-        partner_id:
-          _eq: X-Hasura-Profile-Id
         organization_id:
           _eq: X-Hasura-Organization-Id
       set:

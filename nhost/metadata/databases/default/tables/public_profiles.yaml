@@ -76,7 +76,6 @@ insert_permissions:
     permission:
       columns:
         - full_name
-        - app_role
       check:
         user_id:
           _eq: X-Hasura-User-Id
@@ -88,7 +87,6 @@ insert_permissions:
     permission:
       columns:
         - full_name
-        - app_role
       check:
         user_id:
           _eq: X-Hasura-User-Id
@@ -100,7 +98,6 @@ insert_permissions:
     permission:
       columns:
         - full_name
-        - app_role
       check:
         user_id:
           _eq: X-Hasura-User-Id
