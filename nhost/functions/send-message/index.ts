@@ -3,7 +3,7 @@ import { createLogger } from '../_shared/logger';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
-import type { GraphQLError, HasuraResponse, HasuraClient } from '../_shared/hasuraTypes';
+import type { HasuraResponse, HasuraClient } from '../_shared/hasuraTypes';
 
 const logger = createLogger('send-message');
 
