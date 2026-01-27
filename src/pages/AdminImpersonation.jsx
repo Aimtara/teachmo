@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Page, Card, Button, Table } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { nhost } from '@/utils/nhost';
+import { useToast } from '@/components/ui/use-toast';
 
 /**
  * AdminImpersonation
@@ -9,6 +10,7 @@ import { nhost } from '@/utils/nhost';
  */
 export default function AdminImpersonation() {
   const { hasPermission } = usePermissions();
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<any[]>([]);
 
   const loadSessions = async () => {
@@ -69,7 +71,10 @@ export default function AdminImpersonation() {
         `,
         { userId }
       );
-      alert('Impersonation session started. Refresh the page to switch contexts.');
+      toast({
+        title: 'Impersonation session started',
+        description: 'Please refresh the page to switch contexts.'
+      });
       loadSessions();
     } catch (err) {
       console.error('Failed to start impersonation', err);
