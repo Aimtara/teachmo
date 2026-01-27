@@ -508,8 +508,8 @@ describe('Execution Board API', () => {
       const res = await authenticatedRequest('get', '/api/execution-board/board');
       expect(res.status).toBe(200);
       
-      // After the request, data should be seeded (if seed data exists)
-      // This test verifies that ensureSeeded() is called
+      // After the request, data should be available and the board response should be populated
+      // This test verifies that the endpoint returns the expected structure
       expect(res.body).toHaveProperty('epics');
       expect(res.body).toHaveProperty('gates');
       expect(res.body).toHaveProperty('slices');
