@@ -18,16 +18,31 @@ export const orchestratorSafetySchema = z.object({
   reasons: z.array(z.string())
 });
 
+export const orchestratorUiActionSchema = z.object({
+  label: z.string(),
+  action: z.string(),
+  actionId: z.string().optional(),
+  payload: z.record(z.unknown()).optional()
+});
+
+export const orchestratorUiOptionSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+  description: z.string().optional()
+});
+
 export const orchestratorPromptSchema = z.discriminatedUnion('type', [
   z.object({
-    type: z.literal('CHOICE'),
-    title: z.string(),
-    options: z.array(z.object({ label: z.string(), value: z.string() }))
+    type: z.literal('FOLLOWUP_QUESTION'),
+    question: z.string(),
+    placeholder: z.string().optional(),
+    actionId: z.string().optional()
   }),
   z.object({
-    type: z.literal('FOLLOWUP_QUESTION'),
-    title: z.string(),
-    placeholder: z.string().optional()
+    type: z.literal('CHOICE'),
+    title: z.string().optional(),
+    options: z.array(orchestratorUiOptionSchema),
+    actionId: z.string().optional()
   })
 ]);
 
@@ -37,16 +52,22 @@ export const orchestratorNeedsSchema = z.object({
 });
 
 export const orchestratorUiSchema = z.object({
-  type: z.enum(['CARD', 'DEEPLINK', 'CHOICE', 'FOLLOWUP_QUESTION', 'ERROR']),
+  type: z.enum(['CARD', 'DEEPLINK', 'CHOICE', 'ERROR']),
   title: z.string(),
+  subtitle: z.string().optional(),
   body: z.string().optional(),
+  message: z.string().optional(),
   deepLink: z.string().optional(),
-  primaryAction: z
-    .object({
-      label: z.string(),
-      action: z.string()
-    })
-    .optional()
+  options: z.array(orchestratorUiOptionSchema).optional(),
+  primaryAction: orchestratorUiActionSchema.optional(),
+  secondaryAction: orchestratorUiActionSchema.optional()
+});
+
+export const orchestratorArtifactSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(['MESSAGE_DRAFT', 'BRIEF', 'SUMMARY', 'DEEPLINK', 'OTHER']),
+  payload: z.record(z.unknown()),
+  expiresAt: z.string().nullable().optional()
 });
 
 export const orchestratorRequestSchema = z.object({
@@ -61,7 +82,6 @@ export const orchestratorRequestSchema = z.object({
     .object({
       childId: z.string().optional(),
       schoolId: z.string().optional(),
-      teacherId: z.string().optional(),
       threadId: z.string().optional(),
       recipientUserId: z.string().optional()
     })
@@ -69,12 +89,13 @@ export const orchestratorRequestSchema = z.object({
   metadata: z
     .object({
       locale: z.string().optional(),
-      timezone: z.string().optional()
-    })
-    .optional(),
-  recent: z
-    .object({
-      summary: z.string().optional()
+      timezone: z.string().optional(),
+      action: z
+        .object({
+          id: z.string().min(1),
+          payload: z.unknown().optional()
+        })
+        .optional()
     })
     .optional()
 });
@@ -85,9 +106,12 @@ export const orchestratorResponseSchema = z.object({
   safety: orchestratorSafetySchema,
   needs: orchestratorNeedsSchema.optional(),
   ui: orchestratorUiSchema,
-  result: z.record(z.unknown()).optional(),
-  sideEffects: z.array(z.string()).optional(),
-  success: z.boolean().optional()
+  artifact: orchestratorArtifactSchema.optional(),
+  debug: z
+    .object({
+      extractedEntities: z.record(z.unknown())
+    })
+    .optional()
 });
 
 export type OrchestratorRequestInput = z.infer<typeof orchestratorRequestSchema>;

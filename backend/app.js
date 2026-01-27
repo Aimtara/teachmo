@@ -35,6 +35,10 @@ import { captureApiMetrics } from './middleware/metrics.js';
 import integrationsRouter from './routes/integrations.js';
 import ltiRouter from './routes/lti.js';
 import orchestratorRouter from './routes/orchestrator.js';
+import opsRouter from './routes/ops.js';
+import { metricsMiddleware, getMetricsSnapshot } from './metrics.js';
+import { executionBoardRouter } from './routes/executionBoard.js';
+import commandCenterRouter from './routes/commandCenter.js';
 
 // Load environment variables
 dotenv.config();
@@ -73,6 +77,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(attachAuthContext);
+app.use(metricsMiddleware);
 app.use(captureApiMetrics);
 
 // Mount routes
@@ -107,6 +112,13 @@ app.use('/api/admin', observabilityRouter);
 app.use('/api/integrations', integrationsRouter);
 app.use('/api/lti', ltiRouter);
 app.use('/api/orchestrator', orchestratorRouter);
+app.use('/api/ops', opsRouter);
+app.use('/api/execution-board', executionBoardRouter);
+app.use('/api/command-center', commandCenterRouter);
+
+app.get('/api/metrics', (req, res) => {
+  res.json(getMetricsSnapshot());
+});
 
 // Root endpoint to verify API is running
 app.get('/api', (req, res) => {

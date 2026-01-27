@@ -1,5 +1,7 @@
 import { orchestratorRequestSchema, orchestratorResponseSchema } from '@/lib/orchestrator/schemas';
 import type { OrchestratorRequestInput, OrchestratorResponse } from '@/lib/orchestrator/types';
+import type { OrchestratorUIAction } from '@/lib/orchestrator/actionRunner';
+import { buildUIActionRequest } from '@/lib/orchestrator/actionRunner';
 
 type FetchRequestInit = globalThis.RequestInit;
 
@@ -46,4 +48,15 @@ export async function orchestrate(
 
   const json = (await response.json()) as unknown;
   return orchestratorResponseSchema.parse(json);
+}
+
+/**
+ * Convenience wrapper for round-tripping orchestrator UI actions.
+ * Call this when a user taps a card button emitted by the orchestrator response.
+ */
+export async function orchestrateAction(
+  base: OrchestratorRequestInput,
+  action: OrchestratorUIAction
+): Promise<OrchestratorResponse> {
+  return orchestrate(buildUIActionRequest(base, action));
 }

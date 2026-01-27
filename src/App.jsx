@@ -1,4 +1,7 @@
-import { NhostProvider, NhostReactProvider } from '@nhost/react';
+// Use only the modern NhostProvider. The NhostReactProvider has been deprecated
+// and can cause context issues when nested with NhostProvider. See
+// https://docs.nhost.io/reference/deprecated/react/signed-in for details.
+import { NhostProvider } from '@nhost/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster as HotToaster } from 'react-hot-toast';
@@ -28,24 +31,23 @@ function App() {
   const appContent = (
     <WebSocketProvider>
       <TypingIndicatorProvider>
+        {/* Wrap the application with NhostProvider once. NhostReactProvider has been removed */}
         <NhostProvider nhost={nhost}>
-          <NhostReactProvider nhost={nhost}>
-            <QueryClientProvider client={queryClient}>
-              <TenantProvider>
-                <TenantBrandingProvider>
-                  <FeatureFlagProvider>
-                    <Pages />
-                  </FeatureFlagProvider>
-                </TenantBrandingProvider>
-              </TenantProvider>
-              {/* Required for legacy Base44 UI components that call ultraMinimalToast() */}
-              <UltraMinimalToast />
-              {/* Shadcn-style toasts for components using useToast() */}
-              <Toaster />
-              <HotToaster position="top-right" />
-              {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
-            </QueryClientProvider>
-          </NhostReactProvider>
+          <QueryClientProvider client={queryClient}>
+            <TenantProvider>
+              <TenantBrandingProvider>
+                <FeatureFlagProvider>
+                  <Pages />
+                </FeatureFlagProvider>
+              </TenantBrandingProvider>
+            </TenantProvider>
+            {/* Required for legacy Base44 UI components that call ultraMinimalToast() */}
+            <UltraMinimalToast />
+            {/* Shadcn-style toasts for components using useToast() */}
+            <Toaster />
+            <HotToaster position="top-right" />
+            {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
+          </QueryClientProvider>
         </NhostProvider>
       </TypingIndicatorProvider>
     </WebSocketProvider>

@@ -2,7 +2,9 @@ import React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { NhostProvider } from '@nhost/react';
 import { ToastProvider } from '@/components/ui/toast';
+import { nhost } from '@/lib/nhostClient';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import './jestGlobals'; // Import Jest globals setup
 
@@ -19,9 +21,11 @@ export function renderWithProviders(
   function Wrapper({ children }) {
     return (
       <MemoryRouter initialEntries={initialEntries}>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <NhostProvider nhost={nhost}>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </NhostProvider>
       </MemoryRouter>
     );
   }

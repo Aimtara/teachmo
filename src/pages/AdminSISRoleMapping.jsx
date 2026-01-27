@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { graphqlRequest } from '@/lib/graphql';
 import { Card, Table, Select, LoadingSpinner } from '@/components/ui';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 // List of application roles available for mapping. In a real implementation
 // this might be fetched from the API.
