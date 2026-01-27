@@ -4,6 +4,10 @@ import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
 import { notifyUserEvent } from '../_shared/notifier';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
+import type { HasuraResponse, HasuraClient } from '../_shared/hasuraTypes';
+
+const logger = createLogger('block-user-from-messaging');
+
 import type { HasuraClient, HasuraResponse } from '../_shared/hasuraTypes';
 
 const logger = createLogger('block-user-from-messaging');
@@ -42,6 +46,7 @@ function makeHasuraClient(): HasuraClient {
     const json = (await response.json()) as HasuraResponse<unknown>;
     if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
+      throw new Error(json.errors[0].message ?? 'hasura_error');
       throw new Error(json.errors[0].message);
       throw new Error(getHasuraErrorMessage(json.errors));
     }
