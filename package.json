@@ -103,7 +103,7 @@
     "react-markdown": "^10.1.0",
     "react-quill": "^2.0.0",
     "react-resizable-panels": "^2.1.7",
-    "react-router-dom": "^7.2.0",
+    "react-router-dom": "^7.13.0",
     "react-shepherd": "^4.0.0",
     "reactflow": "^11.11.4",
     "recharts": "^2.15.1",
