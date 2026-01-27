@@ -54,7 +54,7 @@ describe('Execution Board API', () => {
         .patch('/api/execution-board/gates/G0')
         .set('Authorization', 'Bearer valid-token')
         .set('x-user-role', 'user')
-        .send({ status: 'Done' });
+        .send({ status: 'Planned' });
       expect(res.status).toBe(403);
     });
   });
