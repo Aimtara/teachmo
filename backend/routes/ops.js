@@ -10,7 +10,6 @@ const OPS_ADMIN_KEY = process.env.OPS_ADMIN_KEY || '';
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 200;
 const MAX_HOURS = 168;
-const MAX_TIMELINE_HOURS = 168;
 
 const clampLimit = (value, fallback = DEFAULT_LIMIT) => {
   const parsed = Number.parseInt(value ?? fallback, 10);
@@ -24,7 +23,12 @@ const clampHours = (value, fallback = 48) => {
   return Math.max(1, Math.min(MAX_HOURS, parsed));
 };
 
-const resolveOpsActor = (req) => req.get('x-ops-actor') || null;
+const opsActor = (req) => {
+  const explicit = req.get('x-ops-actor');
+  if (explicit) return explicit.slice(0, 120);
+  // Don't try to be clever; we just need a stable-ish operator label for the timeline.
+  return 'ops_admin';
+};
 
 const tableExists = async (tableName) => {
   const res = await query('SELECT to_regclass($1) as name', [`public.${tableName}`]);
@@ -105,29 +109,15 @@ const updateAnomalyStatus = async ({ familyId, anomalyType, status, note, actor 
     meta: { status },
   });
 
+  await auditEventBare({
+    eventType: 'ops_anomaly_status_change',
+    severity: 'info',
+    familyId,
+    statusCode: 200,
+    meta: { anomalyType, status, actor, note: note ?? null, at: new Date().toISOString() },
+  });
+
   return result.rows[0];
-};
-  return Math.max(1, Math.min(MAX_TIMELINE_HOURS, parsed));
-};
-
-const tableExists = async (tableName) => {
-  const res = await query(
-    `
-    SELECT 1
-    FROM information_schema.tables
-    WHERE table_schema = 'public' AND table_name = $1
-    LIMIT 1
-    `,
-    [tableName]
-  );
-  return res.rowCount > 0;
-};
-
-const opsActor = (req) => {
-  const explicit = req.get('x-ops-actor');
-  if (explicit) return explicit.slice(0, 120);
-  // Don't try to be clever; we just need a stable-ish operator label for the timeline.
-  return 'ops_admin';
 };
 
 const requireOpsAdmin = (req, res, next) => {
@@ -187,39 +177,12 @@ router.get('/families', async (req, res) => {
 
     // Fallback: derive the “directory” from family_memberships.
     // This keeps ops usable even if the optional families table wasn't created.
-    const params = [];
-
-    const hasFamilies = await tableExists('families');
-    if (hasFamilies) {
-      let where = '';
-      if (q) {
-        params.push(`%${q}%`);
-        params.push(`%${q}%`);
-        where = `WHERE id ILIKE $${params.length - 1} OR name ILIKE $${params.length}`;
-      }
-      params.push(limit);
-
-      const result = await query(
-        `
-        SELECT id, name, status, created_at, updated_at
-        FROM families
-        ${where}
-        ORDER BY updated_at DESC NULLS LAST, created_at DESC
-        LIMIT $${params.length}
-        `,
-        params
-      );
-
-      res.json({ families: result.rows || [] });
-      return;
-    }
-
     const hasMemberships = await tableExists('family_memberships');
     if (!hasMemberships) {
-      res.json({ families: [] });
-      return;
+      return res.json({ families: [] });
     }
 
+    const params = [];
     let where = '';
     if (q) {
       params.push(`%${q}%`);
@@ -229,15 +192,6 @@ router.get('/families', async (req, res) => {
 
     const result = await query(
       `
-      SELECT family_id as id,
-             NULL as name,
-             'active' as status,
-             MIN(created_at) as created_at,
-             MAX(created_at) as updated_at
-      FROM family_memberships
-      ${where}
-      GROUP BY family_id
-      ORDER BY updated_at DESC NULLS LAST, created_at DESC
       SELECT
         family_id AS id,
         NULL::text AS name,
@@ -256,7 +210,7 @@ router.get('/families', async (req, res) => {
     return res.json({ families: result.rows || [] });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
+    return res.status(400).json({ error: message });
   }
 });
 
@@ -286,10 +240,10 @@ router.get('/families/:familyId/health', async (req, res) => {
       [familyId]
     );
 
-    res.json({ daily: daily.rows?.[0] || null, hourly: hourly.rows || [] });
+    return res.json({ daily: daily.rows?.[0] || null, hourly: hourly.rows || [] });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
+    return res.status(400).json({ error: message });
   }
 });
 
@@ -317,97 +271,12 @@ router.get('/families/:familyId/anomalies', async (req, res) => {
       params
     );
 
-    res.json({ anomalies: out.rows || [] });
+    return res.json({ anomalies: out.rows || [] });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
+    return res.status(400).json({ error: message });
   }
 });
-
-router.post('/families/:familyId/anomalies/:type/ack', async (req, res) => {
-  try {
-    const { familyId, type } = req.params;
-    const note = req.body?.note ? String(req.body.note) : null;
-    const actor = resolveOpsActor(req);
-
-    const anomaly = await updateAnomalyStatus({
-      familyId,
-      anomalyType: type,
-async function writeAnomalyAction({ familyId, anomalyType, action, note, actor }) {
-  await query(
-    `
-    INSERT INTO orchestrator_anomaly_actions (family_id, anomaly_type, action, note, actor)
-    VALUES ($1, $2, $3, $4, $5)
-    `,
-    [familyId, anomalyType, action, note ?? null, actor ?? null]
-  );
-}
-
-async function updateAnomalyStatus({ familyId, anomalyType, status, note, actor }) {
-  const now = new Date();
-  const actorSafe = actor ?? 'ops_admin';
-
-  let sql;
-  let params;
-
-  if (status === 'acknowledged') {
-    sql = `
-      UPDATE orchestrator_anomalies
-      SET status = 'acknowledged',
-          acknowledged_at = now(),
-          acknowledged_by = $3,
-          status_note = COALESCE($4, status_note),
-          updated_at = now()
-      WHERE family_id = $1 AND anomaly_type = $2
-      RETURNING *
-    `;
-    params = [familyId, anomalyType, actorSafe, note ?? null];
-  } else if (status === 'closed') {
-    sql = `
-      UPDATE orchestrator_anomalies
-      SET status = 'closed',
-          closed_at = now(),
-          closed_by = $3,
-          status_note = COALESCE($4, status_note),
-          updated_at = now()
-      WHERE family_id = $1 AND anomaly_type = $2
-      RETURNING *
-    `;
-    params = [familyId, anomalyType, actorSafe, note ?? null];
-  } else {
-    // reopen -> open
-    sql = `
-      UPDATE orchestrator_anomalies
-      SET status = 'open',
-          status_note = COALESCE($3, status_note),
-          updated_at = now()
-      WHERE family_id = $1 AND anomaly_type = $2
-      RETURNING *
-    `;
-    params = [familyId, anomalyType, note ?? null];
-  }
-
-  const out = await query(sql, params);
-  if (out.rowCount === 0) return null;
-
-  await writeAnomalyAction({
-    familyId,
-    anomalyType,
-    action: status === 'open' ? 'reopen' : status === 'acknowledged' ? 'ack' : 'close',
-    note,
-    actor: actorSafe,
-  });
-
-  await auditEventBare({
-    eventType: 'ops_anomaly_status_change',
-    severity: 'info',
-    familyId,
-    statusCode: 200,
-    meta: { anomalyType, status, actor: actorSafe, note: note ?? null, at: now.toISOString() },
-  });
-
-  return out.rows[0];
-}
 
 router.post('/families/:familyId/anomalies/:anomalyType/ack', async (req, res) => {
   try {
@@ -423,67 +292,9 @@ router.post('/families/:familyId/anomalies/:anomalyType/ack', async (req, res) =
     });
 
     if (!anomaly) {
-      res.status(404).json({ error: 'anomaly_not_found' });
-      return;
+      return res.status(404).json({ error: 'anomaly_not_found' });
     }
 
-    res.json({ anomaly });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
-  }
-});
-
-router.post('/families/:familyId/anomalies/:type/close', async (req, res) => {
-  try {
-    const { familyId, type } = req.params;
-    const note = req.body?.note ? String(req.body.note) : null;
-    const actor = resolveOpsActor(req);
-
-    const anomaly = await updateAnomalyStatus({
-      familyId,
-      anomalyType: type,
-      status: 'closed',
-      note,
-      actor,
-    });
-
-    if (!anomaly) {
-      res.status(404).json({ error: 'anomaly_not_found' });
-      return;
-    }
-
-    res.json({ anomaly });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
-  }
-});
-
-router.post('/families/:familyId/anomalies/:type/reopen', async (req, res) => {
-  try {
-    const { familyId, type } = req.params;
-    const note = req.body?.note ? String(req.body.note) : null;
-    const actor = resolveOpsActor(req);
-
-    const anomaly = await updateAnomalyStatus({
-      familyId,
-      anomalyType: type,
-      status: 'open',
-      note,
-      actor,
-    });
-
-    if (!anomaly) {
-      res.status(404).json({ error: 'anomaly_not_found' });
-      return;
-    }
-
-    res.json({ anomaly });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
-    if (!anomaly) return res.status(404).json({ error: 'anomaly_not_found' });
     return res.json({ anomaly });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -537,7 +348,6 @@ router.get('/families/:familyId/alerts', async (req, res) => {
       [familyId, limit]
     );
 
-    res.json({ alerts: out.rows || [] });
     // Aggregated view for the table.
     const alerts = await query(
       `
@@ -559,10 +369,10 @@ router.get('/families/:familyId/alerts', async (req, res) => {
       [familyId, limit]
     );
 
-    res.json({ alerts: alerts.rows || [], deliveries: deliveries.rows || [] });
+    return res.json({ alerts: alerts.rows || [], deliveries: deliveries.rows || [] });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
+    return res.status(400).json({ error: message });
   }
 });
 
@@ -571,10 +381,6 @@ router.get('/families/:familyId/mitigations', async (req, res) => {
     const { familyId } = req.params;
     const out = await query(
       `
-      SELECT *
-      FROM orchestrator_mitigations
-      WHERE family_id = $1
-      ORDER BY last_updated DESC NULLS LAST
       SELECT family_id, mitigation_type, active, activated_at, expires_at, last_updated, count,
              previous_state_json, applied_patch_json, meta
       FROM orchestrator_mitigations
@@ -584,7 +390,6 @@ router.get('/families/:familyId/mitigations', async (req, res) => {
       [familyId]
     );
 
-    res.json({ mitigations: out.rows || [] });
     const mitigations = (out.rows || []).map((r) => {
       const activatedAt = r.activated_at ? new Date(r.activated_at).toISOString() : null;
       const expiresAt = r.expires_at ? new Date(r.expires_at).toISOString() : null;
@@ -605,15 +410,14 @@ router.get('/families/:familyId/mitigations', async (req, res) => {
       };
     });
 
-    res.json({ mitigations });
+    return res.json({ mitigations });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
+    return res.status(400).json({ error: message });
   }
 });
 
-router.post('/families/:familyId/mitigations/:type/clear', async (req, res) => {
-async function forceClearMitigation({ familyId, mitigationType, note, actor }) {
+const forceClearMitigation = async ({ familyId, mitigationType, note, actor }) => {
   const row = await query(
     `
     SELECT family_id, mitigation_type, active, previous_state_json, meta
@@ -684,7 +488,7 @@ async function forceClearMitigation({ familyId, mitigationType, note, actor }) {
   );
 
   return { cleared: true, mitigation: updated.rows?.[0] ?? null };
-}
+};
 
 router.post('/families/:familyId/mitigations/:mitigationType/clear', async (req, res) => {
   try {
@@ -723,7 +527,17 @@ router.post('/families/:familyId/mitigations/:mitigationType/clear', async (req,
 // Backwards-compatible aliases (older ops UI variants)
 router.get('/families/:familyId/mitigation', async (req, res) => {
   try {
-    const { familyId, type } = req.params;
+    const { familyId } = req.params;
+    const mitigationType =
+      typeof req.query.type === 'string'
+        ? req.query.type
+        : typeof req.params.type === 'string'
+          ? req.params.type
+          : null;
+
+    if (!mitigationType) {
+      return res.status(400).json({ error: 'mitigation_type_required' });
+    }
 
     const upserted = await query(
       `
@@ -736,14 +550,8 @@ router.get('/families/:familyId/mitigation', async (req, res) => {
                     last_updated = now(),
                     expires_at = NULL
       RETURNING *
-      SELECT family_id, mitigation_type, active, activated_at, expires_at, last_updated, count,
-             previous_state_json, applied_patch_json, meta
-      FROM orchestrator_mitigations
-      WHERE family_id = $1
-      ORDER BY active DESC, last_updated DESC NULLS LAST
-      LIMIT 1
       `,
-      [familyId, type]
+      [familyId, mitigationType]
     );
 
     const mitigation = upserted.rows?.[0] || null;
@@ -763,128 +571,7 @@ router.get('/families/:familyId/mitigation', async (req, res) => {
       }
     }
 
-    res.json({ mitigation });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
-  }
-});
-
-router.get('/families/:familyId/timeline', async (req, res) => {
-  try {
-    const { familyId } = req.params;
-    const hours = clampHours(req.query.hours, 48);
-
-    const hourlyRows = await query(
-      `
-      SELECT *
-      FROM orchestrator_hourly_snapshots
-      WHERE family_id = $1
-        AND hour >= now() - ($2::int * interval '1 hour')
-      ORDER BY hour DESC
-      `,
-      [familyId, hours]
-    );
-
-    const anomalies = await query(
-      `
-      SELECT *
-      FROM orchestrator_anomalies
-      WHERE family_id = $1
-        AND last_seen >= now() - ($2::int * interval '1 hour')
-      ORDER BY last_seen DESC
-      `,
-      [familyId, hours]
-    );
-
-    const actions = await query(
-      `
-      SELECT *
-      FROM orchestrator_anomaly_actions
-      WHERE family_id = $1
-        AND created_at >= now() - ($2::int * interval '1 hour')
-      ORDER BY created_at DESC
-      `,
-      [familyId, hours]
-    );
-
-    const alerts = await query(
-      `
-      SELECT d.*, e.type as endpoint_type, e.target as endpoint_target
-      FROM orchestrator_alert_deliveries d
-      LEFT JOIN orchestrator_alert_endpoints e ON d.endpoint_id = e.id
-      WHERE d.family_id = $1
-        AND d.created_at >= now() - ($2::int * interval '1 hour')
-      ORDER BY d.created_at DESC
-      `,
-      [familyId, hours]
-    );
-
-    const mitigations = await query(
-      `
-      SELECT *,
-             COALESCE(last_updated, activated_at, now()) as updated_at_safe
-      FROM orchestrator_mitigations
-      WHERE family_id = $1
-        AND COALESCE(last_updated, activated_at, now()) >= now() - ($2::int * interval '1 hour')
-      ORDER BY last_updated DESC NULLS LAST
-      `,
-      [familyId, hours]
-    );
-
-    const events = [
-      ...(anomalies.rows || []).map((row) => ({
-        ...row,
-        event_type: 'anomaly_state',
-        timestamp: row.last_seen,
-      })),
-      ...(actions.rows || []).map((row) => ({
-        ...row,
-        event_type: 'anomaly_action',
-        timestamp: row.created_at,
-      })),
-      ...(alerts.rows || []).map((row) => ({
-        ...row,
-        event_type: 'alert_delivery',
-        timestamp: row.created_at,
-      })),
-      ...(mitigations.rows || []).map((row) => ({
-        ...row,
-        event_type: 'mitigation',
-        status: row.active ? 'active' : 'cleared',
-        timestamp: row.updated_at_safe,
-      })),
-    ].sort((a, b) => {
-      const at = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-      const bt = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-      return bt - at;
-    });
-
-    res.json({
-      hours,
-      hourlyRows: hourlyRows.rows || [],
-    if (out.rowCount === 0) return res.json({ mitigation: null });
-    const r = out.rows[0];
-    const activatedAt = r.activated_at ? new Date(r.activated_at).toISOString() : null;
-    const expiresAt = r.expires_at ? new Date(r.expires_at).toISOString() : null;
-    const updatedAt = r.last_updated ? new Date(r.last_updated).toISOString() : null;
-
-    return res.json({
-      mitigation: {
-        type: r.mitigation_type,
-        active: r.active,
-        updated_at: updatedAt,
-        activated_at: activatedAt,
-        expires_at: expiresAt,
-        params: {
-          ...(r.meta ?? {}),
-          count: r.count ?? 0,
-          activatedAt,
-          expiresAt,
-          patch: r.applied_patch_json ?? null,
-        },
-      },
-    });
+    return res.json({ mitigation });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return res.status(400).json({ error: message });
@@ -1043,7 +730,7 @@ router.get('/families/:familyId/timeline', async (req, res) => {
 
     events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-    res.json({
+    return res.json({
       window: { hours, since: sinceTs },
       hourlyRows: hourly.rows || [],
       anomalies: anomalies.rows || [],
@@ -1052,7 +739,7 @@ router.get('/families/:familyId/timeline', async (req, res) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
+    return res.status(400).json({ error: message });
   }
 });
 
@@ -1150,10 +837,10 @@ router.post('/families/:familyId/test-alert', async (req, res) => {
       deliveries.push(saved.rows?.[0]);
     }
 
-    res.json({ summary: { sent, failed, skipped }, deliveries });
+    return res.json({ summary: { sent, failed, skipped }, deliveries });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(400).json({ error: message });
+    return res.status(400).json({ error: message });
   }
 });
 

@@ -24,6 +24,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Backend syntax check
+        run: node --check backend/routes/ops.js
+
       - name: Type check
         run: npm run typecheck
 
