@@ -94,3 +94,5 @@ export default function EventsTab({ initialQuery }) {
     </div>
   );
 }
+
+export { EventsTab };

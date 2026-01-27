@@ -52,3 +52,5 @@ export default function MetricCards({ metrics, ai, onSelect }) {
     </div>
   );
 }
+
+export { MetricCards };

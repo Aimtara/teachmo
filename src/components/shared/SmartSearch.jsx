@@ -479,3 +479,5 @@ export default function SmartSearch({ className = '', placeholder = 'Search ever
     </div>
   );
 }
+
+export { SmartSearch };

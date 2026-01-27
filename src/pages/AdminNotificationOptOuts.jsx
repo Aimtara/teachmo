@@ -1,31 +1,23 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  FormControl,
-  FormLabel,
-  Heading,
-  Input,
-  Table,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  Text,
-  useToast,
-} from '@chakra-ui/react';
-import { useQuery } from 'react-query';
+import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 import { graphqlRequest } from '@/lib/graphql';
 import { createLogger } from '@/utils/logger';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const logger = createLogger('AdminNotificationOptOuts');
 
 export default function AdminNotificationOptOuts() {
-  const toast = useToast();
   const [search, setSearch] = useState('');
   const { data, refetch } = useQuery(
     ['notificationOptOuts'],
@@ -44,11 +36,11 @@ export default function AdminNotificationOptOuts() {
         delete_notification_opt_outs(where: { _or: [{email: {_eq: $email}}, {phone: {_eq: $phone}}] }) { affected_rows }
       }`;
       await graphqlRequest(mutation, { email, phone });
-      toast({ title: 'User re-subscribed', status: 'success' });
+      toast.success('User re-subscribed');
       await refetch();
     } catch (err) {
       logger.error('Failed to remove opt-out', err);
-      toast({ title: 'Failed to remove', status: 'error' });
+      toast.error('Failed to remove');
     }
   };
 
@@ -58,54 +50,58 @@ export default function AdminNotificationOptOuts() {
   });
 
   return (
-    <Box p={6} maxW="5xl" mx="auto">
-      <Heading mb={4}>Notification Opt-Outs</Heading>
-      <Card mb={4}>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
+      <h1 className="text-2xl font-semibold">Notification Opt-Outs</h1>
+      <Card>
         <CardHeader>
-          <Heading size="md">Search & Manage</Heading>
+          <CardTitle>Search & Manage</CardTitle>
         </CardHeader>
-        <CardBody>
-          <FormControl>
-            <FormLabel>Search by email or phone</FormLabel>
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="user@example.com or +15555555555" />
-          </FormControl>
-        </CardBody>
+        <CardContent>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Search by email or phone</label>
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="user@example.com or +15555555555"
+            />
+          </div>
+        </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <Heading size="md">Unsubscribed Users</Heading>
+          <CardTitle>Unsubscribed Users</CardTitle>
         </CardHeader>
-        <CardBody>
+        <CardContent>
           {filtered && filtered.length > 0 ? (
-            <Table size="sm">
-              <Thead>
-                <Tr>
-                  <Th>Email</Th>
-                  <Th>Phone</Th>
-                  <Th>Opt-Out Date</Th>
-                  <Th></Th>
-                </Tr>
-              </Thead>
-              <Tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Opt-Out Date</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filtered.map((opt) => (
-                  <Tr key={`${opt.email}-${opt.phone}`}>
-                    <Td>{opt.email || '-'}</Td>
-                    <Td>{opt.phone || '-'}</Td>
-                    <Td>{new Date(opt.created_at).toLocaleDateString()}</Td>
-                    <Td>
-                      <Button size="xs" colorScheme="teal" onClick={() => handleRemove(opt.email, opt.phone)}>
+                  <TableRow key={`${opt.email}-${opt.phone}`}>
+                    <TableCell>{opt.email || '-'}</TableCell>
+                    <TableCell>{opt.phone || '-'}</TableCell>
+                    <TableCell>{new Date(opt.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="secondary" onClick={() => handleRemove(opt.email, opt.phone)}>
                         Resubscribe
                       </Button>
-                    </Td>
-                  </Tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </Tbody>
+              </TableBody>
             </Table>
           ) : (
-            <Text>No opt-outs found.</Text>
+            <p className="text-sm text-muted-foreground">No opt-outs found.</p>
           )}
-        </CardBody>
+        </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 }

@@ -108,3 +108,5 @@ export default function PTAPolls({ poll, currentUser }) {
     </div>
   );
 }
+
+export { PTAPolls };

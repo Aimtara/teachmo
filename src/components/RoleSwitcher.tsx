@@ -78,3 +78,5 @@ export default function RoleSwitcher({
     </label>
   );
 }
+
+export { RoleSwitcher };

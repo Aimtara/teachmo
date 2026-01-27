@@ -56,3 +56,5 @@ export default function RoleBasedWelcome({ onSelectRole }) {
     </div>
   );
 }
+
+export { RoleBasedWelcome };

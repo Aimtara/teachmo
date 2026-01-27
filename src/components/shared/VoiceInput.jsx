@@ -212,3 +212,5 @@ export default function VoiceInput({
     </div>
   );
 }
+
+export { VoiceInput };
