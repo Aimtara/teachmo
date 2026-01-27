@@ -3,7 +3,6 @@ import { createLogger } from '../_shared/logger';
 import { getHasuraErrorMessage } from '../_shared/hasuraTypes';
 import { assertScope, getEffectiveScopes } from '../_shared/scopes/resolveScopes';
 import { getActorScope } from '../_shared/tenantScope';
-import type { HasuraClient, HasuraResponse } from '../_shared/hasuraTypes';
 
 const logger = createLogger('list-message-blocks');
 
