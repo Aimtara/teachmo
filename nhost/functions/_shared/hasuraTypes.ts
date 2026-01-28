@@ -1,21 +1,25 @@
-export type GraphQLErrorLocation = {
-  line: number;
-  column: number;
-};
+/**
+ * Type definitions for Hasura GraphQL responses
+ */
 
-export type GraphQLError = {
+export type HasuraError = {
   message: string;
-  locations?: GraphQLErrorLocation[];
-  path?: Array<string | number>;
   extensions?: Record<string, unknown>;
+  path?: (string | number)[];
+  locations?: { line: number; column: number }[];
 };
 
 export type HasuraResponse<T> = {
   data?: T;
-  errors?: GraphQLError[];
+  errors?: HasuraError[];
 };
 
-export function getHasuraErrorMessage(errors?: GraphQLError[]): string {
+export type HasuraClient = <T>(
+  query: string,
+  variables?: Record<string, unknown>
+) => Promise<HasuraResponse<T>>;
+
+export function getHasuraErrorMessage(errors?: HasuraError[]): string {
   if (!errors || errors.length === 0) {
     return 'hasura_error';
   }

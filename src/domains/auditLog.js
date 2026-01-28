@@ -36,3 +36,24 @@ export async function writeAuditLog(input) {
   const data = await graphql(mutation, { object });
   return data?.insert_audit_log_one ?? null;
 }
+
+export async function listAuditLog({ entityType, entityId, limit = 80 } = {}) {
+  const query = `query AuditLog($where: audit_log_bool_exp!, $limit: Int!) {
+    audit_log(where: $where, order_by: { created_at: desc }, limit: $limit) {
+      id
+      created_at
+      actor_id
+      action
+      entity_type
+      entity_id
+      metadata
+    }
+  }`;
+
+  const where = {
+    ...(entityType ? { entity_type: { _eq: entityType } } : {}),
+    ...(entityId ? { entity_id: { _eq: entityId } } : {}),
+  };
+
+  return graphql(query, { where, limit });
+}

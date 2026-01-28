@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 
-const ENABLE_INTERNAL_ROUTES = import.meta.env.VITE_ENABLE_INTERNAL_ROUTES === 'true';
+// Internal routes are dev-friendly by default, but can be explicitly enabled in production.
+const ENABLE_INTERNAL_ROUTES = import.meta.env.DEV || import.meta.env.VITE_ENABLE_INTERNAL_ROUTES === 'true';
 
 export const ROUTE_DEFINITIONS = [
   {
@@ -273,6 +274,36 @@ export const ROUTE_DEFINITIONS = [
     requiredScopes: ['system:manage'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading execution board...</p>
+  },
+  {
+    name: 'AdminCommandCenter',
+    path: '/admin/command-center',
+    Component: lazy(() => import('@/pages/AdminCommandCenter.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['system_admin'],
+    requiredScopes: ['system:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading command center...</p>
+  },
+  {
+    name: 'ExecutionBoard',
+    path: '/internal/execution-board',
+    Component: lazy(() => import('@/pages/ExecutionBoard.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['system_admin'],
+    requiredScopes: ['system:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading execution board...</p>
+  },
+  {
+    name: 'CommandCenter',
+    path: '/internal/command-center',
+    Component: lazy(() => import('@/pages/CommandCenter.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['system_admin'],
+    requiredScopes: ['system:manage'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading command center...</p>
   },
   {
     name: 'AdminWeeklyBriefs',
