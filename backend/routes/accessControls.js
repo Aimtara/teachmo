@@ -28,6 +28,12 @@ router.get('/classes/:classId/students', requireRole(['teacher', 'parent']), (re
 
 const aggregateOutcomes = () => {
   const totalStudents = students.length;
+  if (totalStudents === 0) {
+    return {
+      totalStudents: 0,
+      averageProgress: 0,
+    };
+  }
   const averageProgress = students.reduce((sum, s) => sum + s.progress, 0) / totalStudents;
   return {
     totalStudents,
