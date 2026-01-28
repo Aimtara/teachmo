@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
-import { useUserRole } from '@/hooks/useUserRole';
+import { useUserRoleState } from '@/hooks/useUserRole';
 import { canAll, type Action, type Role } from '@/security/permissions';
 import { canAccess } from '@/config/rbac';
 
@@ -36,7 +36,7 @@ export default function ProtectedRoute({
 }: Props) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const location = useLocation();
-  const role = useUserRole();
+  const { role, loading: roleLoading, needsOnboarding } = useUserRoleState();
 
   const roleWhitelist = React.useMemo(() => {
     if (allowedRoles?.length) return allowedRoles;
@@ -54,7 +54,7 @@ export default function ProtectedRoute({
     [requireAuth, requiresAuth]
   );
 
-  if (isLoading) {
+  if (isLoading || roleLoading) {
     return (
       loadingFallback || (
         <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
@@ -64,6 +64,16 @@ export default function ProtectedRoute({
 
   if (!isAuthenticated && mustBeAuthed) {
     return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
+  }
+
+  // G1: force onboarding for authenticated users missing required identity fields.
+  if (
+    isAuthenticated &&
+    needsOnboarding &&
+    location.pathname !== '/onboarding' &&
+    location.pathname !== '/auth/callback'
+  ) {
+    return <Navigate to="/onboarding" replace state={{ from: location.pathname }} />;
   }
 
   if (roleWhitelist.length && !canAccess({ role, allowedRoles: roleWhitelist, requiredScopes })) {

@@ -1,19 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
+import { useNavigate } from 'react-router-dom';
 import { bootstrapOrganization, completeOnboarding } from '@/domains/onboarding';
+import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
 import { trackEvent } from '@/observability/telemetry';
 
 export default function Onboarding() {
-  const { isAuthenticated } = useAuthenticationStatus();
+  const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const user = useUserData();
+  const navigate = useNavigate();
+  const { role, loading: roleLoading, needsOnboarding } = useUserRoleState();
+
+  const isPrivilegedBootstrap = useMemo(() => role === 'system_admin', [role]);
+
   const [form, setForm] = useState({
     fullName: '',
-    appRole: 'parent',
     organizationName: 'Demo District',
     schoolName: 'Demo School'
   });
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (isLoading || roleLoading) return;
+    // If the user is already onboarded, bounce them to their default home.
+    if (!needsOnboarding) navigate(getDefaultPathForRole(role), { replace: true });
+  }, [isAuthenticated, isLoading, roleLoading, needsOnboarding, role, navigate]);
+
+  if (isLoading || roleLoading) {
+    return <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
+  }
 
   if (!isAuthenticated) return <p className="p-6">Please sign in to start onboarding.</p>;
 
@@ -23,39 +40,45 @@ export default function Onboarding() {
 
   const handleSubmit = async (evt) => {
     evt.preventDefault();
-    setStatus('Setting up your organization…');
+    setStatus(isPrivilegedBootstrap ? 'Setting up your organization…' : 'Saving your profile…');
     setError('');
 
     void trackEvent({
       eventName: 'onboarding.started',
       entityType: 'user',
       entityId: user?.id,
-      metadata: { role: form.appRole, organizationName: form.organizationName, schoolName: form.schoolName },
+      metadata: { role, organizationName: form.organizationName, schoolName: form.schoolName },
     });
 
     try {
-      const org = await bootstrapOrganization({
-        organizationName: form.organizationName,
-        schoolName: form.schoolName
-      });
+      let org = null;
+      if (isPrivilegedBootstrap) {
+        org = await bootstrapOrganization({
+          organizationName: form.organizationName,
+          schoolName: form.schoolName
+        });
+      }
 
-      setStatus('Creating your profile…');
+      setStatus('Updating your profile…');
       await completeOnboarding({
         userId: user?.id,
         fullName: form.fullName,
-        appRole: form.appRole,
+        appRole: role,
         organizationId: org?.organization?.id,
-        schoolId: org?.school?.id
+        schoolId: org?.school?.id,
+        allowTenantWrite: Boolean(isPrivilegedBootstrap && org?.organization?.id),
+        privilegedInsert: Boolean(isPrivilegedBootstrap)
       });
 
       void trackEvent({
         eventName: 'onboarding.completed',
         entityType: 'user',
         entityId: user?.id,
-        metadata: { role: form.appRole, organizationId: org?.organization?.id ?? null, schoolId: org?.school?.id ?? null },
+        metadata: { role, organizationId: org?.organization?.id ?? null, schoolId: org?.school?.id ?? null },
       });
 
-      setStatus('Onboarding complete! You can continue to your dashboard.');
+      setStatus('Onboarding complete! Redirecting…');
+      navigate(getDefaultPathForRole(role), { replace: true });
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -87,42 +110,41 @@ export default function Onboarding() {
           />
         </label>
 
-        <label className="block">
-          <span className="text-sm font-medium text-gray-700">Role</span>
-          <select
-            name="appRole"
-            value={form.appRole}
-            onChange={handleChange}
-            className="mt-1 w-full border rounded px-3 py-2"
-          >
-            <option value="parent">Parent</option>
-            <option value="teacher">Teacher</option>
-            <option value="partner">Partner</option>
-            <option value="system_admin">System Admin</option>
-          </select>
-        </label>
+        <div className="rounded border bg-gray-50 p-3 text-sm text-gray-700">
+          <div className="font-medium">Detected role</div>
+          <div className="mt-1">{role}</div>
+          {!isPrivilegedBootstrap && (
+            <p className="mt-2 text-xs text-gray-600">
+              Your organization and school are assigned by your invitation/tenant configuration.
+            </p>
+          )}
+        </div>
 
-        <label className="block">
-          <span className="text-sm font-medium text-gray-700">Organization</span>
-          <input
-            name="organizationName"
-            value={form.organizationName}
-            onChange={handleChange}
-            className="mt-1 w-full border rounded px-3 py-2"
-            required
-          />
-        </label>
+        {isPrivilegedBootstrap && (
+          <>
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Organization</span>
+              <input
+                name="organizationName"
+                value={form.organizationName}
+                onChange={handleChange}
+                className="mt-1 w-full border rounded px-3 py-2"
+                required
+              />
+            </label>
 
-        <label className="block">
-          <span className="text-sm font-medium text-gray-700">School</span>
-          <input
-            name="schoolName"
-            value={form.schoolName}
-            onChange={handleChange}
-            className="mt-1 w-full border rounded px-3 py-2"
-            required
-          />
-        </label>
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">School</span>
+              <input
+                name="schoolName"
+                value={form.schoolName}
+                onChange={handleChange}
+                className="mt-1 w-full border rounded px-3 py-2"
+                required
+              />
+            </label>
+          </>
+        )}
 
         <button
           type="submit"

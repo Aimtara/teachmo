@@ -121,32 +121,41 @@ update_permissions:
     permission:
       columns:
         - full_name
+        - app_role
       filter:
-        id:
-          _eq: X-Hasura-Profile-Id
+        user_id:
+          _eq: X-Hasura-User-Id
       check:
-        id:
-          _eq: X-Hasura-Profile-Id
+        user_id:
+          _eq: X-Hasura-User-Id
+        app_role:
+          _eq: X-Hasura-Role
   - role: teacher
     permission:
       columns:
         - full_name
+        - app_role
       filter:
-        id:
-          _eq: X-Hasura-Profile-Id
+        user_id:
+          _eq: X-Hasura-User-Id
       check:
-        id:
-          _eq: X-Hasura-Profile-Id
+        user_id:
+          _eq: X-Hasura-User-Id
+        app_role:
+          _eq: X-Hasura-Role
   - role: partner
     permission:
       columns:
         - full_name
+        - app_role
       filter:
-        id:
-          _eq: X-Hasura-Profile-Id
+        user_id:
+          _eq: X-Hasura-User-Id
       check:
-        id:
-          _eq: X-Hasura-Profile-Id
+        user_id:
+          _eq: X-Hasura-User-Id
+        app_role:
+          _eq: X-Hasura-Role
   - role: system_admin
     permission:
       columns: '*'
