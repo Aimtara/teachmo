@@ -70,6 +70,7 @@ function requireInternalKey(req, res, next) {
 }
 
 function enrichBoard() {
+  ensureSeeded();
   const epicById = new Map(executionEpics.map((e) => [e.id, e]));
 
   const deps = executionDependencies.map((d) => ({
