@@ -48,24 +48,43 @@ export async function bootstrapOrganization({ organizationName, schoolName }) {
 export async function completeOnboarding({
   userId,
   fullName,
-  appRole,
   organizationId,
   schoolId,
-  allowTenantWrite = false,
-  privilegedInsert = false
+  allowTenantWrite = false
 }) {
   if (!userId) throw new Error('Missing userId');
   if (!fullName) throw new Error('Missing fullName');
-  if (!appRole) throw new Error('Missing appRole');
 
-  // 1) Prefer update (works for most users since a profile row is created on auth.user insert)
+  const insertQuery = `mutation InsertMyProfile($input: profiles_insert_input!) {
+    insert_profiles_one(object: $input) {
+      id
+      user_id
+      full_name
+      app_role
+      organization_id
+      school_id
+    }
+  }`;
+
+  try {
+    const insertData = await graphqlRequest({
+      query: insertQuery,
+      variables: { input: { full_name: fullName } }
+    });
+
+    if (insertData?.insert_profiles_one) {
+      return insertData.insert_profiles_one;
+    }
+  } catch (error) {
+    // Fall through to update when the profile already exists.
+  }
+
   const updateQuery = allowTenantWrite
-    ? `mutation UpdateMyProfileTenant($userId: uuid!, $fullName: String!, $appRole: String!, $orgId: uuid, $schoolId: uuid) {
+    ? `mutation UpdateMyProfileTenant($userId: uuid!, $fullName: String!, $orgId: uuid, $schoolId: uuid) {
         update_profiles(
           where: { user_id: { _eq: $userId } }
-          _set: { full_name: $fullName, app_role: $appRole, organization_id: $orgId, school_id: $schoolId }
+          _set: { full_name: $fullName, organization_id: $orgId, school_id: $schoolId }
         ) {
-          affected_rows
           returning {
             id
             user_id
@@ -76,12 +95,11 @@ export async function completeOnboarding({
           }
         }
       }`
-    : `mutation UpdateMyProfileBasics($userId: uuid!, $fullName: String!, $appRole: String!) {
+    : `mutation UpdateMyProfileBasics($userId: uuid!, $fullName: String!) {
         update_profiles(
           where: { user_id: { _eq: $userId } }
-          _set: { full_name: $fullName, app_role: $appRole }
+          _set: { full_name: $fullName }
         ) {
-          affected_rows
           returning {
             id
             user_id
@@ -94,58 +112,13 @@ export async function completeOnboarding({
       }`;
 
   const updateVars = allowTenantWrite
-    ? { userId, fullName, appRole, orgId: organizationId ?? null, schoolId: schoolId ?? null }
-    : { userId, fullName, appRole };
+    ? { userId, fullName, orgId: organizationId ?? null, schoolId: schoolId ?? null }
+    : { userId, fullName };
 
   const updateData = await graphqlRequest({
     query: updateQuery,
     variables: updateVars
   });
 
-  const updated = updateData?.update_profiles?.returning?.[0] ?? null;
-  if (updated) return updated;
-
-  // 2) Fallback insert (rare but useful if trigger/seed didn't create a row)
-  const insertQuery = privilegedInsert
-    ? `mutation InsertMyProfilePrivileged($input: profiles_insert_input!) {
-        insert_profiles_one(object: $input) {
-          id
-          user_id
-          full_name
-          app_role
-          organization_id
-          school_id
-        }
-      }`
-    : `mutation InsertMyProfile($input: profiles_insert_input!) {
-        insert_profiles_one(object: $input) {
-          id
-          user_id
-          full_name
-          app_role
-          organization_id
-          school_id
-        }
-      }`;
-
-  const insertInput = privilegedInsert
-    ? {
-        user_id: userId,
-        full_name: fullName,
-        app_role: appRole,
-        organization_id: organizationId ?? null,
-        school_id: schoolId ?? null
-      }
-    : {
-        // user_id / org_id / school_id are set via Hasura permission presets for non-privileged roles.
-        full_name: fullName,
-        app_role: appRole
-      };
-
-  const insertData = await graphqlRequest({
-    query: insertQuery,
-    variables: { input: insertInput }
-  });
-
-  return insertData?.insert_profiles_one ?? null;
+  return updateData?.update_profiles?.returning?.[0] ?? null;
 }

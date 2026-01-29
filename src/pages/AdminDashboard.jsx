@@ -1,36 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { bootstrapOrganization } from '@/domains/onboarding';
 import { createProfile } from '@/domains/auth';
-import { API_BASE_URL } from '@/config/api';
-import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
+import { graphqlRequest } from '@/lib/graphql';
 import { useTelemetry } from '@/utils/useTelemetry';
-import { useTenant } from '@/contexts/TenantContext';
-import { nhost } from '@/lib/nhostClient';
 
 export default function AdminDashboard() {
   const [orgForm, setOrgForm] = useState({ organizationName: '', schoolName: '' });
   const [userForm, setUserForm] = useState({ userId: '', fullName: '', role: 'teacher', organizationId: '', schoolId: '' });
   const [message, setMessage] = useState('');
-  const [metrics, setMetrics] = useState({});
   const { log } = useTelemetry();
-  const tenant = useTenant();
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ['admin-dashboard-metrics'],
+    queryFn: async () => {
+      const query = `query AdminDashboardMetrics {
+        organizations_aggregate {
+          aggregate {
+            count
+          }
+        }
+        schools_aggregate {
+          aggregate {
+            count
+          }
+        }
+        profiles_aggregate {
+          aggregate {
+            count
+          }
+        }
+        classrooms_aggregate {
+          aggregate {
+            count
+          }
+        }
+      }`;
 
-  useEffect(() => {
-    if (tenant.loading || !tenant.organizationId) return;
-    const load = async () => {
-      const token = await nhost.auth.getAccessToken();
-      const headers = {};
-      if (token) headers.authorization = `Bearer ${token}`;
-      headers['x-teachmo-org-id'] = tenant.organizationId;
-      if (tenant.schoolId) headers['x-teachmo-school-id'] = tenant.schoolId;
-      fetch(`${API_BASE_URL}/admin/metrics`, { headers })
-        .then((res) => res.json())
-        .then(setMetrics)
-        .catch(() => setMetrics({}));
-    };
-    load();
-  }, [tenant.loading, tenant.organizationId, tenant.schoolId]);
+      return graphqlRequest({ query });
+    },
+    staleTime: 1000 * 60 * 5
+  });
 
   const handleOrgSubmit = async (evt) => {
     evt.preventDefault();
@@ -72,10 +82,22 @@ export default function AdminDashboard() {
       </header>
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Active Parents (7d)" value={metrics.active_parents} />
-        <Stat label="Messages Sent (24h)" value={metrics.messages_sent} />
-        <Stat label="Workflows Run (total)" value={metrics.workflows_run} />
-        <Stat label="Average AI Latency (ms)" value={metrics.ai_latency} />
+        <Stat
+          label="Organizations"
+          value={metricsLoading ? '—' : metrics?.organizations_aggregate?.aggregate?.count}
+        />
+        <Stat
+          label="Schools"
+          value={metricsLoading ? '—' : metrics?.schools_aggregate?.aggregate?.count}
+        />
+        <Stat
+          label="Profiles"
+          value={metricsLoading ? '—' : metrics?.profiles_aggregate?.aggregate?.count}
+        />
+        <Stat
+          label="Classrooms"
+          value={metricsLoading ? '—' : metrics?.classrooms_aggregate?.aggregate?.count}
+        />
       </section>
 
       <form onSubmit={handleOrgSubmit} className="bg-white rounded shadow p-4 space-y-3">
@@ -155,7 +177,13 @@ export default function AdminDashboard() {
         </Link>
       </section>
 
-      <AuditLogViewer />
+      <section className="bg-white rounded shadow p-4 space-y-2">
+        <h2 className="font-medium">Audit logs</h2>
+        <p className="text-sm text-gray-600">
+          Audit log reporting is migrating to Nhost. Enable the audit log feature flag once the
+          data pipeline is ready.
+        </p>
+      </section>
     </div>
   );
 }

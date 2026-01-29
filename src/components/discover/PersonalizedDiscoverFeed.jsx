@@ -2,32 +2,60 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useUserData } from '@nhost/react';
 import { RefreshCw, Sparkles } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { showToast } from '@/components/shared/UltraMinimalToast';
+import { graphqlRequest } from '@/lib/graphql';
 import RecommendationCard from './RecommendationCard';
+
+const RECOMMENDATION_QUERY = `query DiscoverRecommendations($limit: Int) {
+  activities(order_by: { created_at: desc }, limit: $limit) {
+    id
+    title
+    description
+    subject
+    grade_level
+    category
+    library_items(limit: 1) {
+      id
+      url
+      format
+    }
+  }
+}`;
+
+const buildRecommendation = (activity) => {
+  const libraryItem = activity?.library_items?.[0] ?? null;
+  const tags = [activity?.category, libraryItem?.format].filter(Boolean);
+
+  return {
+    id: activity?.id,
+    title: activity?.title,
+    summary: activity?.description,
+    subject: activity?.subject,
+    gradeLevel: activity?.grade_level,
+    tags,
+    ctaLabel: libraryItem?.url ? 'Open resource' : 'View details',
+    ctaHref: libraryItem?.url ?? undefined
+  };
+};
 
 const fetchRecommendations = async (userId) => {
   if (!userId) return { items: [], unavailable: true };
 
   try {
-    const response = await base44.functions.invoke('personalizedDiscoverFeed', { userId });
-    const recommendations = response?.recommendations || response?.data || response || [];
+    const data = await graphqlRequest({
+      query: RECOMMENDATION_QUERY,
+      variables: { limit: 6 }
+    });
+    const activities = data?.activities ?? [];
 
     return {
-      items: Array.isArray(recommendations) ? recommendations : [],
+      items: activities.map(buildRecommendation),
       unavailable: false
     };
   } catch (error) {
-    const message = String(error?.message || '').toLowerCase();
-    const unavailable =
-      message.includes('not found') ||
-      message.includes('404') ||
-      message.includes('missing') ||
-      message.includes('route not found');
-
-    return { items: [], unavailable, error };
+    return { items: [], unavailable: false, error };
   }
 };
 
@@ -96,8 +124,8 @@ export default function PersonalizedDiscoverFeed() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-gray-600">
             <p>
-              We’ll surface personalized ideas once the recommendation function is live for your
-              account.
+              We’ll surface personalized ideas as soon as your activity and library data are
+              available.
             </p>
             <div>
               <Button
