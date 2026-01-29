@@ -4,14 +4,23 @@ import { useNavigate } from 'react-router-dom';
 import { bootstrapOrganization, completeOnboarding } from '@/domains/onboarding';
 import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
 import { trackEvent } from '@/observability/telemetry';
+import { useTenantScope } from '@/hooks/useTenantScope';
+import { nhost } from '@/lib/nhostClient';
 
 export default function Onboarding() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const user = useUserData();
   const navigate = useNavigate();
   const { role, loading: roleLoading, needsOnboarding } = useUserRoleState();
+  const tenant = useTenantScope();
 
-  const isPrivilegedBootstrap = useMemo(() => role === 'system_admin', [role]);
+  const isPrivilegedBootstrap = useMemo(
+    () => role === 'system_admin' || role === 'admin',
+    [role]
+  );
+  const allowTenantBootstrap = Boolean(
+    isPrivilegedBootstrap && (!tenant.data?.organizationId || !tenant.data?.schoolId)
+  );
 
   const [form, setForm] = useState({
     fullName: '',
@@ -23,12 +32,12 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (isLoading || roleLoading) return;
+    if (isLoading || roleLoading || tenant.isLoading) return;
     // If the user is already onboarded, bounce them to their default home.
     if (!needsOnboarding) navigate(getDefaultPathForRole(role), { replace: true });
-  }, [isAuthenticated, isLoading, roleLoading, needsOnboarding, role, navigate]);
+  }, [isAuthenticated, isLoading, roleLoading, tenant.isLoading, needsOnboarding, role, navigate]);
 
-  if (isLoading || roleLoading) {
+  if (isLoading || roleLoading || tenant.isLoading) {
     return <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
   }
 
@@ -40,19 +49,21 @@ export default function Onboarding() {
 
   const handleSubmit = async (evt) => {
     evt.preventDefault();
-    setStatus(isPrivilegedBootstrap ? 'Setting up your organization…' : 'Saving your profile…');
+    setStatus(allowTenantBootstrap ? 'Setting up your organization…' : 'Saving your profile…');
     setError('');
 
     void trackEvent({
       eventName: 'onboarding.started',
       entityType: 'user',
       entityId: user?.id,
-      metadata: { role, organizationName: form.organizationName, schoolName: form.schoolName },
+      metadata: allowTenantBootstrap
+        ? { role, organizationName: form.organizationName, schoolName: form.schoolName }
+        : { role },
     });
 
     try {
       let org = null;
-      if (isPrivilegedBootstrap) {
+      if (allowTenantBootstrap) {
         org = await bootstrapOrganization({
           organizationName: form.organizationName,
           schoolName: form.schoolName
@@ -63,18 +74,22 @@ export default function Onboarding() {
       await completeOnboarding({
         userId: user?.id,
         fullName: form.fullName,
-        appRole: role,
-        organizationId: org?.organization?.id,
-        schoolId: org?.school?.id,
-        allowTenantWrite: Boolean(isPrivilegedBootstrap && org?.organization?.id),
-        privilegedInsert: Boolean(isPrivilegedBootstrap)
+        organizationId: org?.organization?.id ?? tenant.data?.organizationId ?? null,
+        schoolId: org?.school?.id ?? tenant.data?.schoolId ?? null,
+        allowTenantWrite: Boolean(allowTenantBootstrap && org?.organization?.id)
       });
+
+      await nhost.auth.refreshSession();
 
       void trackEvent({
         eventName: 'onboarding.completed',
         entityType: 'user',
         entityId: user?.id,
-        metadata: { role, organizationId: org?.organization?.id ?? null, schoolId: org?.school?.id ?? null },
+        metadata: {
+          role,
+          organizationId: org?.organization?.id ?? tenant.data?.organizationId ?? null,
+          schoolId: org?.school?.id ?? tenant.data?.schoolId ?? null
+        },
       });
 
       setStatus('Onboarding complete! Redirecting…');
@@ -113,14 +128,14 @@ export default function Onboarding() {
         <div className="rounded border bg-gray-50 p-3 text-sm text-gray-700">
           <div className="font-medium">Detected role</div>
           <div className="mt-1">{role}</div>
-          {!isPrivilegedBootstrap && (
+          {!allowTenantBootstrap && (
             <p className="mt-2 text-xs text-gray-600">
               Your organization and school are assigned by your invitation/tenant configuration.
             </p>
           )}
         </div>
 
-        {isPrivilegedBootstrap && (
+        {allowTenantBootstrap && (
           <>
             <label className="block">
               <span className="text-sm font-medium text-gray-700">Organization</span>

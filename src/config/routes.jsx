@@ -139,6 +139,7 @@ export const ROUTE_DEFINITIONS = [
     Component: lazy(() => import('@/pages/onboarding/parent')),
     requiresAuth: true,
     allowedRoles: ['parent'],
+    internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading parent onboarding...</p>
   },
   {
@@ -147,6 +148,7 @@ export const ROUTE_DEFINITIONS = [
     Component: lazy(() => import('@/pages/onboarding/teacher')),
     requiresAuth: true,
     allowedRoles: ['teacher'],
+    internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading teacher onboarding...</p>
   },
   {

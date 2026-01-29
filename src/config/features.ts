@@ -2,7 +2,7 @@ import { useStore } from '@/components/hooks/useStore';
 
 export const FEATURES = {
   DISCOVER: true,
-  COMMUNITY: true,
+  COMMUNITY: false,
 
   CALENDAR: false,
   MESSAGING: false,

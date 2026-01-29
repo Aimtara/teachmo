@@ -67,12 +67,8 @@ export default function ProtectedRoute({
   }
 
   // G1: force onboarding for authenticated users missing required identity fields.
-  if (
-    isAuthenticated &&
-    needsOnboarding &&
-    location.pathname !== '/onboarding' &&
-    location.pathname !== '/auth/callback'
-  ) {
+  const onboardingAllowedPaths = new Set(['/onboarding', '/auth/callback', '/logout']);
+  if (isAuthenticated && needsOnboarding && !onboardingAllowedPaths.has(location.pathname)) {
     return <Navigate to="/onboarding" replace state={{ from: location.pathname }} />;
   }
 

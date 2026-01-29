@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { listEvents } from '@/domains/events';
 import { listActivities } from '@/domains/activities';
 import { listThreads } from '@/domains/messaging';
-import { useUserData } from '@nhost/react';
+import { useUserId } from '@nhost/react';
+import { useTenantScope } from '@/hooks/useTenantScope';
 import WeeklyFamilyBriefCard from '@/components/dashboard/WeeklyFamilyBriefCard';
 import TodayActionsCard from '@/components/dashboard/TodayActionsCard';
 import {
@@ -14,7 +15,8 @@ import {
 } from '@/domains/orchestrator';
 
 export default function ParentDashboard() {
-  const user = useUserData();
+  const userId = useUserId();
+  const tenant = useTenantScope();
   const [events, setEvents] = useState([]);
   const [activities, setActivities] = useState([]);
   const [threads, setThreads] = useState([]);
@@ -25,12 +27,12 @@ export default function ParentDashboard() {
 
   useEffect(() => {
     const load = async () => {
-      if (!user) return;
-      const familyId = user.profile_id || user.id;
+      if (!userId || tenant.isLoading) return;
+      const familyId = tenant.data?.profileId || userId;
       const [eventData, activityData, threadData, briefData] = await Promise.all([
-        listEvents(user.default_school_id || null).catch(() => []),
+        listEvents(tenant.data?.schoolId || null).catch(() => []),
         listActivities().catch(() => []),
-        listThreads(user.profile_id || user.id).catch(() => []),
+        tenant.data?.profileId ? listThreads(tenant.data.profileId).catch(() => []) : Promise.resolve([]),
         getLatestWeeklyBrief(familyId).catch(() => null)
       ]);
       setEvents(eventData);
@@ -44,11 +46,11 @@ export default function ParentDashboard() {
         .finally(() => setActionsLoading(false));
     };
     load();
-  }, [user]);
+  }, [userId, tenant.isLoading, tenant.data?.profileId, tenant.data?.schoolId]);
 
   const generateBrief = async () => {
-    if (!user) return;
-    const familyId = user.profile_id || user.id;
+    if (!userId) return;
+    const familyId = tenant.data?.profileId || userId;
     setBriefLoading(true);
     try {
       const nextBrief = await runWeeklyBrief(familyId);
@@ -59,8 +61,8 @@ export default function ParentDashboard() {
   };
 
   const refreshActions = async () => {
-    if (!user) return;
-    const familyId = user.profile_id || user.id;
+    if (!userId) return;
+    const familyId = tenant.data?.profileId || userId;
     setActionsLoading(true);
     try {
       const r = await listActions(familyId, { status: 'queued', limit: 3 });
@@ -71,8 +73,8 @@ export default function ParentDashboard() {
   };
 
   const onComplete = async (actionId) => {
-    if (!user) return;
-    const familyId = user.profile_id || user.id;
+    if (!userId) return;
+    const familyId = tenant.data?.profileId || userId;
     setActionsLoading(true);
     try {
       await completeAction(familyId, actionId);
@@ -83,8 +85,8 @@ export default function ParentDashboard() {
   };
 
   const onDismiss = async (actionId) => {
-    if (!user) return;
-    const familyId = user.profile_id || user.id;
+    if (!userId) return;
+    const familyId = tenant.data?.profileId || userId;
     setActionsLoading(true);
     try {
       await dismissAction(familyId, actionId);
