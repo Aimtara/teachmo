@@ -8,6 +8,10 @@ import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import FeatureGate from '@/components/shared/FeatureGate';
 import Landing from './Landing.jsx';
 import { TelemetryBootstrap } from '@/observability/TelemetryBootstrap';
+import Healthz from './Healthz.tsx';
+import Maintenance from './Maintenance.tsx';
+
+const MAINTENANCE_MODE = String(import.meta.env.VITE_MAINTENANCE_MODE ?? '').toLowerCase() === 'true';
 
 function RoleRedirect() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -57,12 +61,27 @@ function buildRouteElement(route) {
 }
 
 export default function Pages() {
+  // Emergency kill switch: keep /healthz accessible so ops can verify deploys.
+  if (MAINTENANCE_MODE) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/healthz" element={<Healthz />} />
+          <Route path="*" element={<Maintenance />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter>
       <TelemetryBootstrap />
       <Routes>
         {/* Root: smart redirect (auth -> role home, unauth -> marketing landing) */}
         <Route path="/" element={<RoleRedirect />} />
+
+        {/* Public health endpoint */}
+        <Route path="/healthz" element={<Healthz />} />
 
         {/* Config-driven routes */}
         {ROUTE_CONFIG.filter((r) => r.path !== '/').map((route) => (

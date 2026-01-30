@@ -23,6 +23,11 @@
     "e2e": "playwright test",
     "e2e:a11y": "PLAYWRIGHT_WEB_SERVER=true playwright test tests/e2e/a11y.spec.ts",
     "e2e:ui": "playwright test --ui",
+    "prebuild": "node scripts/generate-build-meta.mjs",
+    "preflight:example": "node scripts/preflight-env.mjs --example",
+    "preflight:env": "node scripts/preflight-env.mjs",
+    "start": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
+    "release:info": "node scripts/generate-build-meta.mjs && node -e \"console.log(require(\\\"./src/generated/buildMeta.ts\\\"))\"",
     "smoke:hasura-permissions": "node scripts/hasura-permissions-smoke.mjs"
   },
   "dependencies": {
