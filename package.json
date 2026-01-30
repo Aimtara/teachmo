@@ -21,6 +21,7 @@
     "preview": "vite preview",
     "prepare": "husky install",
     "e2e": "playwright test",
+    "e2e:ops": "playwright test --grep @launch-gates",
     "e2e:a11y": "PLAYWRIGHT_WEB_SERVER=true playwright test tests/e2e/a11y.spec.ts",
     "e2e:ui": "playwright test --ui",
     "prebuild": "node scripts/generate-build-meta.mjs",
