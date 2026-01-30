@@ -53,10 +53,40 @@ export default function ServiceConnect({
     }
   };
 
-  const handleDisconnect = () => {
-    if (window.confirm(`Disconnect ${serviceName}?`)) {
+  const handleDisconnect = async () => {
+    const confirmed = window.confirm(`Disconnect ${serviceName}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setIsConnecting(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/integrations/${serviceKey}/disconnect`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to disconnect service');
+      }
+
       setIsConnected(false);
       ultraMinimalToast(`Disconnected ${serviceName}`);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      ultraMinimalToast(
+        `Failed to disconnect ${serviceName}. Please try again.`,
+        'error'
+      );
+    } finally {
+      setIsConnecting(false);
     }
   };
 
