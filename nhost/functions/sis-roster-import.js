@@ -289,20 +289,25 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
   const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
     insert_sis_import_jobs_one(object: $object) { id }
   }`;
-  const res = await hasuraRequest({
-    query: insertJob,
-    variables: {
-      object: {
-        organization_id: orgId,
-        school_id: schoolId,
-        roster_type: type,
-        source,
-        status: 'processing',
-        metadata: { file_name: fileName, file_size: fileSize, record_count: count }
+  try {
+    const res = await hasuraRequest({
+      query: insertJob,
+      variables: {
+        object: {
+          organization_id: orgId,
+          school_id: schoolId,
+          roster_type: type,
+          source,
+          status: 'processing',
+          metadata: { file_name: fileName, file_size: fileSize, record_count: count }
+        }
       }
-    }
-  });
-  return res?.insert_sis_import_jobs_one?.id;
+    });
+    return res?.insert_sis_import_jobs_one?.id;
+  } catch (err) {
+    console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
+    return null;
+  }
 }
 
 async function updateImportJob(id, changes) {
