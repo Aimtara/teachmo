@@ -72,6 +72,24 @@ export default async function sisRosterImport(req, res) {
       return res.status(200).json({ ok: true, inserted: 0, skipped: 0 });
     }
 
+    // --- Validate roster type BEFORE creating job (Fix #3) ---
+    const normalizedType = String(rosterType).toLowerCase();
+    let table = null;
+
+    if (normalizedType === 'students') {
+      table = 'sis_roster_students';
+    } else if (normalizedType === 'teachers') {
+      table = 'sis_roster_teachers';
+    } else if (normalizedType === 'classes') {
+      table = 'sis_roster_classes';
+    } else if (normalizedType === 'enrollments') {
+      table = 'sis_roster_enrollments';
+    } else if (normalizedType === 'users') {
+      table = 'sis_roster_users';
+    } else {
+      return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
+    }
+
     // --- Validation Phase (Risk Mitigation) ---
     const validObjects = [];
     let skippedCount = 0;
@@ -88,11 +106,26 @@ export default async function sisRosterImport(req, res) {
     );
     if (!jobId) return res.status(500).json({ error: 'Failed to create import job' });
 
-    const normalizedType = String(rosterType).toLowerCase();
-    let table = null;
-
-    if (normalizedType === 'students') {
-      table = 'sis_roster_students';
+    if (normalizedType === 'users') {
+      rawRecords.forEach((record, idx) => {
+        const extId = resolveExternalId(record, ['sourcedId', 'id', 'user_id', 'external_id']);
+        if (!extId) {
+          skippedCount++;
+          errors.push(`Row ${idx + 2}: Missing user ID`);
+          return;
+        }
+        validObjects.push({
+          job_id: jobId,
+          organization_id: organizationId,
+          school_id: effectiveSchoolId,
+          external_id: extId,
+          email: record.email || record.emailAddress || null,
+          full_name: buildFullName(record),
+          role: record.role || record.userType || null,
+          data: record
+        });
+      });
+    } else if (normalizedType === 'students') {
       rawRecords.forEach((record, idx) => {
         const extId = resolveExternalId(record, ['sourcedId', 'id', 'student_id', 'external_id']);
         if (!extId) {
@@ -169,20 +202,15 @@ export default async function sisRosterImport(req, res) {
           data: record
         });
       });
-    } else {
-      return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
     // --- Execution Phase ---
+    // Note: Without unique constraints on natural keys (org_id, school_id, external_id),
+    // on_conflict won't prevent duplicates. Database migration needed to add constraints.
+    // For now, remove on_conflict to avoid misleading "duplicate-safe" claim.
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
-      insert_${table}(
-        objects: $objects,
-        on_conflict: { constraint: ${table}_pkey, update_columns: [data] }
-      ) { affected_rows }
+      insert_${table}(objects: $objects) { affected_rows }
     }`;
-
-    // Note: The on_conflict constraint name assumes standard naming (${table}_pkey).
-    // If your schema differs, remove the on_conflict block.
 
     const chunked = [];
     const chunkSize = 500;
