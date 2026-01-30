@@ -93,7 +93,7 @@ export default function ReportUploadWizard({ onComplete }) {
   const handleIngest = async () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     if (file) {
-      ultraMinimalToast(`Successfully imported ${file.name}`);
+      ultraMinimalToast.success(`Successfully imported ${file.name}`);
     }
     setStep(STEPS.COMPLETE);
     if (onComplete) {
