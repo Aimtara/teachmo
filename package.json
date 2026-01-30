@@ -22,7 +22,8 @@
     "prepare": "husky install",
     "e2e": "playwright test",
     "e2e:a11y": "PLAYWRIGHT_WEB_SERVER=true playwright test tests/e2e/a11y.spec.ts",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "smoke:hasura-permissions": "node scripts/hasura-permissions-smoke.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.1.2",

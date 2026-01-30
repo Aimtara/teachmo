@@ -1,5 +1,6 @@
 import { getActorScope } from '../_shared/tenantScope';
 import { hasActionName } from '../_shared/rbac';
+import { isUuid, sanitizeEventName, sanitizeTelemetryMetadata } from '../_shared/pii/telemetry';
 
 /**
  * Future-grade workflow runner:
@@ -23,6 +24,7 @@ const json = (status: number, body: unknown) =>
   });
 
 const WORKFLOW_MAX_STEPS = 50;
+const MAX_BODY_BYTES = 32_768; // 32KB
 
 export default async function handler(req: Request) {
   if (req.method !== 'POST') {
@@ -41,16 +43,25 @@ export default async function handler(req: Request) {
     return json(401, { error: 'Not authenticated' });
   }
 
+  const contentLength = Number(req.headers.get('content-length') || '0');
+  if (contentLength && contentLength > MAX_BODY_BYTES) {
+    return json(413, { error: 'Payload too large' });
+  }
+
   let payload: EventPayload;
   try {
-    payload = (await req.json()) as EventPayload;
+    const raw = await req.text();
+    if (raw.length > MAX_BODY_BYTES) {
+      return json(413, { error: 'Payload too large' });
+    }
+    payload = JSON.parse(raw) as EventPayload;
   } catch {
     return json(400, { error: 'Invalid JSON' });
   }
 
-  const eventName = typeof payload.eventName === 'string' ? payload.eventName.trim() : '';
+  const eventName = sanitizeEventName((payload as any)?.eventName);
   if (!eventName) {
-    return json(400, { error: 'eventName required' });
+    return json(400, { error: 'Invalid eventName' });
   }
 
   const scope = await getActorScope(
@@ -60,13 +71,29 @@ export default async function handler(req: Request) {
     actorUserId
   );
 
+  const metaResult = sanitizeTelemetryMetadata((payload as any)?.metadata || {}, { maxBytes: 8192 });
+  const clientMeta =
+    metaResult.value && typeof metaResult.value === 'object' && !Array.isArray(metaResult.value)
+      ? (metaResult.value as Record<string, unknown>)
+      : { value: metaResult.value };
+
   const metadata: Record<string, unknown> = {
-    ...(payload.metadata || {}),
+    ...clientMeta,
     actor_role: scope.role,
     actor_district_id: scope.districtId || null,
     actor_school_id: scope.schoolId || null,
     source: 'client',
+    ...(metaResult.truncated ? { meta_truncated: true } : {}),
+    ...(metaResult.redacted ? { meta_redacted: true } : {}),
   };
+
+  const entityId = isUuid((payload as any)?.entityId) ? (payload as any)?.entityId : null;
+  if ((payload as any)?.entityId && !entityId) {
+    metadata.entity_id_raw = String((payload as any).entityId).slice(0, 200);
+  }
+
+  const entityType =
+    typeof (payload as any)?.entityType === 'string' ? String((payload as any).entityType).slice(0, 64) : null;
 
   // Guard “power” meta flags so they aren't quietly abused by any authenticated user.
   if (metadata?.replayed === true || metadata?.replayed_from_run_id) {
@@ -89,8 +116,8 @@ export default async function handler(req: Request) {
       actor_user_id: actorUserId,
       district_id: scope.districtId,
       school_id: scope.schoolId,
-      entity_type: payload.entityType || null,
-      entity_id: payload.entityId || null,
+      entity_type: entityType,
+      entity_id: entityId,
       metadata,
     },
   });
