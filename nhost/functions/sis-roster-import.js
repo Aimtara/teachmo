@@ -229,11 +229,9 @@ export default async function sisRosterImport(req, res) {
 
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
-        objects: $objects,
-        on_conflict: { constraint: ${table}_pkey, update_columns: ${updateColumns} }
+        objects: $objects
       ) { affected_rows }
     }`;
-
     const chunked = [];
     const chunkSize = 500;
     for (let i = 0; i < validObjects.length; i += chunkSize) {
