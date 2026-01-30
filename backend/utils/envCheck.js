@@ -10,7 +10,7 @@ const INTEGRATION_VARS = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_AP
 /**
  * Validates database connection configuration.
  * Requires either DATABASE_URL or all discrete DB_* variables.
- * @returns {string[]} Array of missing variable names, or empty array if valid
+ * @returns {{ isValid: boolean, errorMessage?: string }} Validation result
  */
 function validateDatabaseConfig() {
   const hasDatabaseUrl = !!process.env.DATABASE_URL;
@@ -23,12 +23,13 @@ function validateDatabaseConfig() {
   );
 
   if (!hasDatabaseUrl && !hasDiscreteVars) {
-    if (!hasDatabaseUrl) {
-      return ['DATABASE_URL or (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'];
-    }
+    return {
+      isValid: false,
+      errorMessage: 'Database configuration: Requires either DATABASE_URL or all of (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'
+    };
   }
 
-  return [];
+  return { isValid: true };
 }
 
 /**
@@ -48,25 +49,30 @@ export function performStartupCheck() {
   const isProd = process.env.NODE_ENV === 'production';
   const missing = [];
   const warnings = [];
+  const dbValidation = validateDatabaseConfig();
 
   // Check core required variables
   REQUIRED_VARS.forEach((key) => {
     if (!process.env[key]) missing.push(key);
   });
 
-  // Check database configuration (critical for migrations and schedulers)
-  const dbErrors = validateDatabaseConfig();
-  if (dbErrors.length > 0) {
-    missing.push(...dbErrors);
-  }
-
   // Check integration variables
   INTEGRATION_VARS.forEach((key) => {
     if (!process.env[key]) warnings.push(key);
   });
 
+  // Report missing required variables
   if (missing.length > 0) {
     logger.error('❌ FATAL: Missing required environment variables:', missing);
+  }
+
+  // Report database configuration error separately for clarity
+  if (!dbValidation.isValid) {
+    logger.error('❌ FATAL:', dbValidation.errorMessage);
+  }
+
+  // Exit or warn based on environment
+  if (missing.length > 0 || !dbValidation.isValid) {
     if (isProd) {
       logger.error('Server cannot start in production without these variables.');
       process.exit(1);
@@ -83,7 +89,7 @@ export function performStartupCheck() {
     }
   }
 
-  if (missing.length === 0) {
+  if (missing.length === 0 && dbValidation.isValid) {
     logger.info('✅ Environment configuration check passed.');
   }
 }

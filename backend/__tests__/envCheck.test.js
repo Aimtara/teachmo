@@ -86,8 +86,8 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(mockLogger.error).toHaveBeenCalledWith(
-      '❌ FATAL: Missing required environment variables:',
-      expect.arrayContaining(['DATABASE_URL or (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'])
+      '❌ FATAL:',
+      'Database configuration: Requires either DATABASE_URL or all of (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'
     );
     expect(mockLogger.error).toHaveBeenCalledWith(
       '⚠️  Continuing in non-production mode, but operations like migrations and database-dependent schedulers will fail.'
@@ -107,8 +107,8 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(mockLogger.error).toHaveBeenCalledWith(
-      '❌ FATAL: Missing required environment variables:',
-      expect.arrayContaining(['DATABASE_URL or (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'])
+      '❌ FATAL:',
+      'Database configuration: Requires either DATABASE_URL or all of (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'
     );
     expect(mockLogger.error).toHaveBeenCalledWith(
       'Server cannot start in production without these variables.'
@@ -116,6 +116,27 @@ describe('performStartupCheck', () => {
     expect(mockExit).toHaveBeenCalledWith(1);
 
     mockExit.mockRestore();
+  });
+
+  it('should error when only some discrete DB variables are present', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.NHOST_ADMIN_SECRET = 'secret';
+    process.env.NHOST_SUBDOMAIN = 'subdomain';
+    process.env.NHOST_REGION = 'region';
+    process.env.AUTH_JWKS_URL = 'https://example.com';
+    // Partial discrete vars - missing DB_USER, DB_PASSWORD, DB_NAME
+    process.env.DB_HOST = 'localhost';
+    process.env.DB_PORT = '5432';
+
+    performStartupCheck();
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      '❌ FATAL:',
+      'Database configuration: Requires either DATABASE_URL or all of (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'
+    );
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      '⚠️  Continuing in non-production mode, but operations like migrations and database-dependent schedulers will fail.'
+    );
   });
 
   it('should warn about missing integration vars in production', () => {
