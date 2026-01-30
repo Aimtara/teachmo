@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import * as Sentry from '@sentry/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
@@ -35,20 +36,41 @@ export default class GlobalErrorBoundary extends Component {
   }
 
   async componentDidCatch(error, errorInfo) {
-    logger.error('Global Error Boundary caught an error', { error, errorInfo });
-    
+    logger.error('Global Error Boundary caught an error', {
+      errorId: this.state.errorId,
+      name: error?.name,
+      message: error?.message,
+      path: typeof window !== 'undefined' ? window.location?.pathname : undefined
+    });
+
     this.setState({ errorInfo });
+
+    const componentHint =
+      errorInfo?.componentStack
+        ?.split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)[0] || 'unknown';
+
+    try {
+      Sentry.captureException(error, {
+        tags: { errorId: this.state.errorId || 'unknown' },
+        extra: { component: componentHint, boundary: 'GlobalErrorBoundary' }
+      });
+    } catch (_) {
+      // ignore
+    }
 
     // Log error to audit system
     try {
       await logAuditEvent({
         action: 'ui.error',
         resource_type: 'component',
-        resource_id: errorInfo.componentStack?.split('\n')[1] || 'unknown',
+        resource_id: componentHint,
         details: {
-          error: error.message,
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
+          error: error?.message,
+          name: error?.name,
+          errorId: this.state.errorId,
+          path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
           errorBoundary: 'GlobalErrorBoundary'
         },
         severity: 'high'
