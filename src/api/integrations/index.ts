@@ -151,7 +151,8 @@ export async function googleAuth(params: { action: string }) {
       throw new Error(`Google Auth Error: ${res.statusText}`);
     }
 
-    return res.json();
+    const data = await res.json();
+    return data;
   } catch (error) {
     console.error("Google Auth Failed:", error);
     throw error;

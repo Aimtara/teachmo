@@ -9,7 +9,6 @@ import { Users, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/components/hooks/useAuth';
 import { Course, Enrollment } from '@/api/entities';
 import UniversalEmptyState from '@/components/shared/UniversalEmptyState';
-import LiveSupportWidget from '@/components/support/LiveSupportWidget';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 
 export default function TeacherClasses() {
@@ -118,9 +117,6 @@ export default function TeacherClasses() {
             </div>
           )}
         </div>
-
-        {/* Real support widget instead of dead-end button */}
-        <LiveSupportWidget />
       </div>
     </ProtectedRoute>
   );
