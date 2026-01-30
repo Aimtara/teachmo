@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Check, ExternalLink, Loader2, X } from 'lucide-react';
+import PropTypes from 'prop-types';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
@@ -17,6 +28,17 @@ export default function ServiceConnect({
 }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(connected);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const intervalRef = useRef(null);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
   const timerRef = useRef(null);
 
   // Cleanup interval timer on unmount
@@ -50,6 +72,8 @@ export default function ServiceConnect({
     setIsConnecting(true);
 
     try {
+      // Use mock auth URL directly, since no backend auth endpoint exists yet.
+      const data = { authUrl: `https://${serviceKey}.com/login?mock=true` };
       const headers = await getIntegrationHeaders();
 
       const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
@@ -72,6 +96,10 @@ export default function ServiceConnect({
         `width=${width},height=${height},left=${left},top=${top}`,
       );
 
+      intervalRef.current = window.setInterval(() => {
+        if (popup?.closed) {
+          window.clearInterval(intervalRef.current);
+          intervalRef.current = null;
       // Check if popup was blocked
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         setIsConnecting(false);
@@ -89,6 +117,9 @@ export default function ServiceConnect({
           window.clearInterval(timerRef.current);
           timerRef.current = null;
           setIsConnecting(false);
+          
+          // TODO: Verify authentication success via callback, postMessage, or polling endpoint
+          // Currently assumes success when popup closes, which could be user cancellation
           setIsConnected(true);
           ultraMinimalToast.success(`Connected to ${serviceName}!`);
         }
@@ -101,6 +132,7 @@ export default function ServiceConnect({
   };
 
   const handleDisconnect = async () => {
+    setShowDisconnectDialog(false);
     const confirmed = window.confirm(`Disconnect ${serviceName}?`);
     if (!confirmed) {
       return;
@@ -124,6 +156,11 @@ export default function ServiceConnect({
 
       setIsConnected(false);
       ultraMinimalToast.success(`Disconnected ${serviceName}`);
+    } catch (error) {
+      console.error(error);
+      ultraMinimalToast.error(
+        `Failed to disconnect ${serviceName}. Please try again.`
+      ultraMinimalToast(`Disconnected ${serviceName}`);
     } catch (error) {
       logger.error(error);
       ultraMinimalToast.error(
@@ -172,7 +209,7 @@ export default function ServiceConnect({
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleDisconnect}
+              onClick={() => setShowDisconnectDialog(true)}
               className="text-red-500 hover:text-red-700 hover:bg-red-50"
             >
               <X className="w-4 h-4" />
@@ -187,6 +224,30 @@ export default function ServiceConnect({
           </Button>
         )}
       </div>
+
+      <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect {serviceName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will stop syncing data from {serviceName}. You can reconnect at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisconnect}>
+              Disconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
+ServiceConnect.propTypes = {
+  serviceKey: PropTypes.string.isRequired,
+  serviceName: PropTypes.string.isRequired,
+  icon: PropTypes.elementType,
+  connected: PropTypes.bool,
+};

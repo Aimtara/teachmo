@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, CheckCircle, UploadCloud } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,6 +80,9 @@ export default function ReportUploadWizard({ onComplete }) {
       return;
     }
 
+    const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit to prevent browser hangs
+    if (uploadedFile.size > MAX_FILE_SIZE_BYTES) {
+      ultraMinimalToast.error('File too large. Please upload a CSV file smaller than 5MB.');
     // Validate file type - check both extension and MIME type
     const fileName = uploadedFile.name.toLowerCase();
     const validExtension = fileName.endsWith('.csv');
@@ -112,8 +116,10 @@ export default function ReportUploadWizard({ onComplete }) {
       }
       return;
     }
+
     setFile(uploadedFile);
     const reader = new FileReader();
+    
     reader.onload = (fileEvent) => {
       const text = fileEvent.target.result;
       const lines = text
@@ -122,6 +128,36 @@ export default function ReportUploadWizard({ onComplete }) {
         .filter((line) => line);
 
       if (lines.length > 0) {
+        // Parse CSV with support for quoted values containing commas and escaped quotes (RFC 4180)
+        const parseCSVLine = (line) => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+            
+            if (char === '"') {
+              if (inQuotes && nextChar === '"') {
+                // Escaped quote: two consecutive quotes become one quote character
+                current += '"';
+                i++; // Skip the next quote
+              } else {
+                // Toggle quote state
+                inQuotes = !inQuotes;
+              }
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        };
+        
         const headers = parseCSVLine(lines[0]);
         const data = lines.slice(1, 6).map((line) => {
           const values = parseCSVLine(line);
@@ -142,6 +178,9 @@ export default function ReportUploadWizard({ onComplete }) {
         setStep(STEPS.MAPPING);
       }
     };
+    
+    reader.onerror = () => {
+      ultraMinimalToast.error('Failed to read file. Please try again with a valid CSV.');
     reader.onerror = () => {
       ultraMinimalToast.error('Failed to read file. Please try again with a valid CSV.');
       setFile(null);
@@ -149,6 +188,7 @@ export default function ReportUploadWizard({ onComplete }) {
       setPreviewData([]);
       setStep(STEPS.UPLOAD);
     };
+    
     reader.readAsText(uploadedFile);
   };
 
@@ -157,6 +197,8 @@ export default function ReportUploadWizard({ onComplete }) {
   };
 
   const handleIngest = async () => {
+    // TODO: Replace with actual API call to persist imported data
+    // Currently simulates import for UI demonstration purposes
     await new Promise((resolve) => setTimeout(resolve, 1500));
     if (file) {
       ultraMinimalToast.success(`Successfully imported ${file.name}`);
@@ -267,6 +309,12 @@ export default function ReportUploadWizard({ onComplete }) {
             </div>
             <Button
               className="w-full"
+              onClick={() => setStep(STEPS.PREVIEW)}
+              disabled={
+                !mapping ||
+                !mapping.studentName ||
+                !(mapping.score || mapping.date || mapping.activityName)
+              }
               onClick={() => {
                 // Check if at least one field is mapped and the mapped value exists in csvHeaders
                 const validMappings = Object.values(mapping).filter((value) => 
@@ -328,6 +376,9 @@ export default function ReportUploadWizard({ onComplete }) {
             <p className="text-gray-600 mt-2">
               Your report data has been added to student records.
             </p>
+            <p className="text-xs text-gray-500 mt-4 italic">
+              Note: This is a demonstration UI. Actual data persistence requires backend implementation.
+            </p>
             <Button
               className="mt-6"
               variant="outline"
@@ -353,3 +404,7 @@ export default function ReportUploadWizard({ onComplete }) {
     </Card>
   );
 }
+
+ReportUploadWizard.propTypes = {
+  onComplete: PropTypes.func,
+};
