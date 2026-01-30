@@ -17,16 +17,9 @@ dotenv.config();
 const PORT = process.env.PORT || 4000;
 const logger = createLogger('server');
 
-// Validate critical environment variables at startup.
-// In production, missing required vars will cause immediate exit.
-// In development, warnings are logged but server continues to allow local iteration.
-// Note: Some subsequent operations (migrations, schedulers) may still fail
-// if their specific dependencies are missing, even in non-production mode.
 // 1. Verify Environment Integrity (Launch Readiness Patch)
 performStartupCheck();
 
-// Seed demo data ONLY when explicitly enabled.
-// Never seed in production.
 const shouldSeedDemo =
   String(process.env.ENABLE_DEMO_SEED || '').toLowerCase() === 'true' &&
   (process.env.NODE_ENV || 'development').toLowerCase() !== 'production';
@@ -42,7 +35,7 @@ startRetentionPurgeScheduler();
 startNotificationQueueScheduler();
 startObservabilitySchedulers();
 startRosterSyncScheduler();
-// Start the server
+
 app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);
 });

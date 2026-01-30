@@ -5,8 +5,8 @@ import { nhost } from "@/lib/nhostClient";
 const getHeaders = () => {
   const token = nhost.auth.getAccessToken();
   return {
-    "Content-Type": "application/json",
-    Authorization: token ? `Bearer ${token}` : "",
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : '',
   };
 };
 
@@ -20,19 +20,12 @@ export type LLMRequest = {
  * Invokes the backend AI completion endpoint.
  * Replaces the static "Echo" stub with a real call to /api/ai/completion.
  */
-export async function InvokeLLM({
-  prompt = "",
-  context = {},
-  model,
-}: LLMRequest = {}): Promise<{
-  response: string;
-  context: Record<string, unknown>;
-}> {
+export async function InvokeLLM({ prompt = '', context = {}, model }: LLMRequest = {}): Promise<{ response: string; context: Record<string, unknown> }> {
   try {
     const res = await fetch(`${API_BASE_URL}/ai/completion`, {
-      method: "POST",
+      method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ prompt, context, model }),
+      body: JSON.stringify({ prompt, context, model })
     });
 
     if (!res.ok) {
@@ -42,10 +35,10 @@ export async function InvokeLLM({
     const data = await res.json();
     return {
       response: data.content || data.response,
-      context: data.context || context,
+      context: data.context || context
     };
   } catch (error) {
-    console.error("LLM Invocation Failed:", error);
+    console.error('LLM Invocation Failed:', error);
     throw error;
   }
 }
@@ -53,8 +46,7 @@ export async function InvokeLLM({
 export type UploadFileResult = { url: string | null };
 
 /**
- * Uploads a file to Nhost Storage via the backend presigned URL flow
- * or direct storage upload if configured.
+ * Uploads a file to Nhost Storage.
  */
 export async function UploadFile(file?: File): Promise<UploadFileResult> {
   if (!file) return { url: null };
@@ -67,11 +59,10 @@ export async function UploadFile(file?: File): Promise<UploadFileResult> {
       throw error;
     }
 
-    // Return the public URL for the uploaded file
     const url = nhost.storage.getPublicUrl({ fileId: fileMetadata.id });
     return { url };
   } catch (error) {
-    console.error("File Upload Failed:", error);
+    console.error('File Upload Failed:', error);
     throw error;
   }
 }
@@ -80,18 +71,13 @@ export type EmailRequest = { to: string; subject: string; body: string };
 
 /**
  * Sends a transactional email via the backend.
- * Replaces the console.log stub.
  */
-export async function SendEmail({
-  to,
-  subject,
-  body,
-}: EmailRequest): Promise<{ sent: boolean; to: string }> {
+export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ sent: boolean; to: string }> {
   try {
     const res = await fetch(`${API_BASE_URL}/integrations/email/send`, {
-      method: "POST",
+      method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ to, subject, body }),
+      body: JSON.stringify({ to, subject, body })
     });
 
     if (!res.ok) {
@@ -100,7 +86,7 @@ export async function SendEmail({
 
     return { sent: true, to };
   } catch (error) {
-    console.error("Email Send Failed:", error);
+    console.error('Email Send Failed:', error);
     return { sent: false, to };
   }
 }
@@ -109,21 +95,18 @@ export async function SendEmail({
 
 export async function googleAuth(params: { action: string }) {
   const res = await fetch(`${API_BASE_URL}/integrations/google/auth`, {
-    method: "POST",
+    method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify(params),
+    body: JSON.stringify(params)
   });
   return res.json();
 }
 
-export async function googleClassroomSync(params: {
-  action: string;
-  courseId?: string;
-}) {
+export async function googleClassroomSync(params: { action: string; courseId?: string }) {
   const res = await fetch(`${API_BASE_URL}/integrations/google/sync`, {
-    method: "POST",
+    method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify(params),
+    body: JSON.stringify(params)
   });
   return res.json();
 }

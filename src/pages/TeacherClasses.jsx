@@ -29,7 +29,7 @@ export default function TeacherClasses() {
               const enrollments = await Enrollment.filter({ course_id: course.id });
               return {
                 ...course,
-                studentCount: Array.isArray(enrollments) ? enrollments.length : 0,
+                studentCount: Array.isArray(enrollments) ? enrollments.length : 0
               };
             } catch (err) {
               return { ...course, studentCount: 0 };
@@ -55,7 +55,6 @@ export default function TeacherClasses() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('teacher_classes.title')}</h1>
               <p className="text-gray-600">{t('teacher_classes.description')}</p>
             </div>
-
             <Link to="/settings?tab=integrations">
               <Button variant="outline" className="gap-2">
                 <RefreshCw className="w-4 h-4" />
@@ -66,9 +65,7 @@ export default function TeacherClasses() {
 
           {loading && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-48 bg-gray-100 rounded-xl animate-pulse" />
-              ))}
+              {[1, 2, 3].map(i => <div key={i} className="h-48 bg-gray-100 rounded-xl animate-pulse" />)}
             </div>
           )}
 
@@ -80,13 +77,10 @@ export default function TeacherClasses() {
             />
           )}
 
-          {!loading && classes && classes.length > 0 && (
+          {(!loading) && classes && classes.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {classes.map((cls) => (
-                <Card
-                  key={cls.id}
-                  className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-                >
+                <Card key={cls.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
@@ -100,14 +94,10 @@ export default function TeacherClasses() {
 
                     <div className="grid grid-cols-2 gap-2 pt-2">
                       <Link to={createPageUrl(`TeacherAssignments?course_id=${cls.id}`)} className="w-full">
-                        <Button size="sm" variant="outline" className="w-full">
-                          Assignments
-                        </Button>
+                        <Button size="sm" variant="outline" className="w-full">Assignments</Button>
                       </Link>
                       <Link to={createPageUrl(`TeacherMessages?course_id=${cls.id}`)} className="w-full">
-                        <Button size="sm" variant="outline" className="w-full">
-                          Message
-                        </Button>
+                        <Button size="sm" variant="outline" className="w-full">Message</Button>
                       </Link>
                     </div>
                   </CardContent>
@@ -116,8 +106,6 @@ export default function TeacherClasses() {
             </div>
           )}
         </div>
-
-        {/* Real support widget instead of dead-end button */}
         <LiveSupportWidget />
       </div>
     </ProtectedRoute>
