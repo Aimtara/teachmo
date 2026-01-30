@@ -326,7 +326,21 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
         status: 'processing',
         metadata: { file_name: fileName, file_size: fileSize, record_count: count }
       }
-    }
+    });
+    return res?.insert_sis_import_jobs_one?.id;
+  } catch (error) {
+    console.error('Failed to create import job:', {
+      error,
+      orgId,
+      schoolId,
+      type,
+      source
+    });
+  } catch (err) {
+    console.error('Failed to create SIS import job', { orgId, type, error: err.message });
+    console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
+    return null;
+  }
   });
   return res?.insert_sis_import_jobs_one?.id;
 }
