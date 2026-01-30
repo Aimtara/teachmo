@@ -236,11 +236,11 @@ export default function AdminLMSIntegration() {
             serviceName="Khan Academy"
             icon={Globe}
           />
+          {/* Connection status for Clever should be driven by real state, not hardcoded */}
           <ServiceConnect
             serviceKey="clever"
             serviceName="Clever (District)"
             icon={Server}
-            connected
           />
         </TabsContent>
       </Tabs>
