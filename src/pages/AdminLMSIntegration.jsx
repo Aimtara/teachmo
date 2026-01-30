@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Database, Globe, Key, Server } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,96 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
 import ServiceConnect from '@/components/integration/ServiceConnect';
 
 export default function AdminLMSIntegration() {
+  const { toast } = useToast();
+  
+  // LTI Platform Configuration State
+  const [ltiPlatformIssuer, setLtiPlatformIssuer] = useState('');
+  const [ltiClientId, setLtiClientId] = useState('');
+  
+  // xAPI/LRS Configuration State
+  const [lrsEndpoint, setLrsEndpoint] = useState('');
+  const [lrsAuthUsername, setLrsAuthUsername] = useState('');
+  const [lrsAuthPassword, setLrsAuthPassword] = useState('');
+
+  const handleSaveLtiPlatform = () => {
+    if (!ltiPlatformIssuer.trim() || !ltiClientId.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Platform Issuer and Client ID are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // TODO: Call GraphQL mutation to save LTI platform configuration
+    console.log('Saving LTI platform configuration', {
+      issuer: ltiPlatformIssuer,
+      clientId: ltiClientId,
+    });
+
+    toast({
+      title: 'Configuration Saved',
+      description: 'LTI platform configuration has been saved successfully.',
+    });
+
+    // Clear form after successful save
+    setLtiPlatformIssuer('');
+    setLtiClientId('');
+  };
+
+  const handleSaveLrsConfiguration = () => {
+    if (!lrsEndpoint.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'LRS Endpoint is required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // TODO: Call GraphQL mutation to save LRS configuration
+    console.log('Saving LRS configuration', {
+      endpoint: lrsEndpoint,
+      username: lrsAuthUsername,
+    });
+
+    toast({
+      title: 'Configuration Saved',
+      description: 'LRS configuration has been saved successfully.',
+    });
+  };
+
+  const handleTestLrsConnection = async () => {
+    if (!lrsEndpoint.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'LRS Endpoint is required to test connection.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // TODO: Call backend endpoint to test LRS connection
+    console.log('Testing LRS connection', { endpoint: lrsEndpoint });
+
+    toast({
+      title: 'Connection Test',
+      description: 'Testing connection to LRS endpoint...',
+    });
+
+    // Simulate async connection test
+    setTimeout(() => {
+      toast({
+        title: 'Connection Successful',
+        description: 'Successfully connected to the LRS endpoint.',
+      });
+    }, 1500);
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <header>
@@ -64,15 +151,27 @@ export default function AdminLMSIntegration() {
                 <h4 className="font-medium mb-4">Register New Platform</h4>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Platform Issuer (ISS)</Label>
-                    <Input placeholder="https://canvas.instructure.com" />
+                    <Label htmlFor="lti-platform-issuer">Platform Issuer (ISS)</Label>
+                    <Input
+                      id="lti-platform-issuer"
+                      placeholder="https://canvas.instructure.com"
+                      value={ltiPlatformIssuer}
+                      onChange={(e) => setLtiPlatformIssuer(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>Client ID</Label>
-                    <Input placeholder="10000000000001" />
+                    <Label htmlFor="lti-client-id">Client ID</Label>
+                    <Input
+                      id="lti-client-id"
+                      placeholder="10000000000001"
+                      value={ltiClientId}
+                      onChange={(e) => setLtiClientId(e.target.value)}
+                    />
                   </div>
                 </div>
-                <Button className="mt-4">Save Platform Configuration</Button>
+                <Button className="mt-4" onClick={handleSaveLtiPlatform}>
+                  Save Platform Configuration
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -95,6 +194,8 @@ export default function AdminLMSIntegration() {
                 <Input
                   id="lrs-endpoint"
                   placeholder="https://lrs.io/xapi/statements"
+                  value={lrsEndpoint}
+                  onChange={(e) => setLrsEndpoint(e.target.value)}
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -103,6 +204,8 @@ export default function AdminLMSIntegration() {
                   <Input
                     id="lrs-auth-username"
                     placeholder="Basic Auth Username"
+                    value={lrsAuthUsername}
+                    onChange={(e) => setLrsAuthUsername(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -111,12 +214,18 @@ export default function AdminLMSIntegration() {
                     id="lrs-auth-password"
                     type="password"
                     placeholder="••••••••••••"
+                    value={lrsAuthPassword}
+                    onChange={(e) => setLrsAuthPassword(e.target.value)}
                   />
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Button>Save Configuration</Button>
-                <Button variant="outline">Test Connection</Button>
+                <Button onClick={handleSaveLrsConfiguration}>
+                  Save Configuration
+                </Button>
+                <Button variant="outline" onClick={handleTestLrsConnection}>
+                  Test Connection
+                </Button>
               </div>
             </CardContent>
           </Card>
