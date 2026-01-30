@@ -1,9 +1,32 @@
 import { hasuraRequest } from './lib/hasura.js';
+import { parse } from 'csv-parse/sync';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
 function parseCsv(text) {
   if (!text) return [];
+  
+  try {
+    // Use RFC 4180-compliant CSV parser that properly handles:
+    // - Commas inside quoted fields (e.g., "Smith, John")
+    // - Newlines inside quoted fields
+    // - Escaped quotes inside quoted fields (e.g., "He said ""hello""")
+    const records = parse(text, {
+      columns: true, // First row is headers, returns array of objects
+      skip_empty_lines: true,
+      trim: true,
+      relax_quotes: true, // More lenient with quotes for real-world CSVs
+      relax_column_count: true // Handle rows with varying column counts
+    });
+    
+    return records;
+  } catch (err) {
+    // Log detailed error information to help diagnose parsing issues
+    const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+    console.error('CSV parsing failed:', {
+      error: err.message,
+      preview,
+      textLength: text.length
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
   const headers = lines[0].split(',').map((h) => h.trim());
@@ -20,6 +43,8 @@ function parseCsv(text) {
       record.__lineNumber = originalLineNumber; // Attach original line number to each record
       return record;
     });
+    return [];
+  }
 }
 
 function resolveExternalId(record, keys) {
