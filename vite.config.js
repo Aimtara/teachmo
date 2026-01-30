@@ -50,12 +50,7 @@ export default defineConfig({
   plugins,
   server: {
     allowedHosts: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:4000',
-        changeOrigin: true
-      }
-    }
+    // G0 Compliance: Proxy removed to enforce Nhost/Hasura usage.
   },
   resolve: {
     alias: {
