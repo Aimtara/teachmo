@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 import { API_BASE_URL } from '@/config/api';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ServiceConnect');
 
 export default function ServiceConnect({
   serviceKey,
@@ -84,7 +87,7 @@ export default function ServiceConnect({
         }
       }, 500);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       setIsConnecting(false);
       ultraMinimalToast('Connection failed. Please try again.', 'error');
     }
@@ -116,8 +119,7 @@ export default function ServiceConnect({
       setIsConnected(false);
       ultraMinimalToast(`Disconnected ${serviceName}`);
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error);
+      logger.error(error);
       ultraMinimalToast(
         `Failed to disconnect ${serviceName}. Please try again.`,
         'error'
