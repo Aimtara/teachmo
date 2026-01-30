@@ -96,7 +96,38 @@ export async function SendEmail({
     });
 
     if (!res.ok) {
-      throw new Error(`Email Service Error: ${res.statusText}`);
+      let errorDetails = "";
+      try {
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          const jsonBody = await res.json();
+          if (jsonBody && typeof jsonBody === "object") {
+            const message =
+              (jsonBody as { message?: string }).message ??
+              JSON.stringify(jsonBody);
+            errorDetails = message;
+          }
+        } else {
+          const textBody = await res.text();
+          if (textBody) {
+            // Avoid extremely large error messages
+            errorDetails = textBody.slice(0, 500);
+          }
+        }
+      } catch {
+        // Swallow body parsing errors; we'll still throw a status-based error below.
+      }
+
+      const statusInfo = `${res.status} ${res.statusText || ""}`.trim();
+      const parts = ["Email Service Error"];
+      if (statusInfo) {
+        parts.push(statusInfo);
+      }
+      if (errorDetails) {
+        parts.push(errorDetails);
+      }
+
+      throw new Error(parts.join(" - "));
     }
 
     return { to };
