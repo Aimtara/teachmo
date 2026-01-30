@@ -394,6 +394,7 @@ describe('writeAuditLog', () => {
       expect(inserted.metadata.user.email).toBe('[REDACTED]');
       expect(inserted.metadata.user.password).toBe('[REDACTED]');
       expect(inserted.metadata.logs).toHaveLength(31); // 30 + TRUNCATED marker
+      expect(inserted.metadata.logs[30]).toBe('[TRUNCATED_ARRAY]');
       expect(inserted.metadata.token).toBe('[REDACTED]');
       expect(inserted.metadata.meta_truncated).toBe(true);
       expect(inserted.metadata.meta_redacted).toBe(true);
