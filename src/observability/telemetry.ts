@@ -20,7 +20,8 @@ const SENSITIVE_KEY_RE =
   /(password|passcode|secret|token|jwt|authorization|cookie|set-cookie|session|api[_-]?key|bearer|refresh|access[_-]?token|id[_-]?token|ssn|social|message|body|content|prompt|transcript|stack|componentstack)/i;
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
-const PHONE_RE = /(?:\+?\d[\d()\s-]{6,}\d)/;
+// More restrictive phone pattern to reduce false positives while still catching common phone formats
+const PHONE_RE = /\b(?:\+\d{1,3}[\s-]?)?(?:\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{4})\b/;
 const LONG_TOKEN_RE = /[A-Za-z0-9+/_=-]{32,}/;
 
 const MAX_METADATA_DEPTH = 4;
