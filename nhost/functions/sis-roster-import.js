@@ -249,7 +249,7 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
     return res?.insert_sis_import_jobs_one?.id;
   } catch (error) {
     console.error('Failed to create import job:', {
-      error: error.message,
+      error,
       orgId,
       schoolId,
       type,
