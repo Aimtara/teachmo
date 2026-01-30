@@ -1,24 +1,15 @@
 version: '3.8'
 
 services:
-  api:
-    build: .
+  web:
+    build:
+      context: .
+      args:
+        # Required for Vite build
+        VITE_NHOST_BACKEND_URL: ${VITE_NHOST_BACKEND_URL}
     ports:
-      - "${PORT:-4000}:4000"
+      - "${PORT:-4173}:4173"
     env_file:
       - .env
-    depends_on:
-      - db
-  db:
-    image: postgres:15
     environment:
-      POSTGRES_DB: ${DB_NAME:-teachmo}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
+      - PORT=4173

@@ -2,6 +2,7 @@ node_modules/
 backend/node_modules/
 .env
 .env.*
+!/.env.example
 _base44_export/
 public/icon.png
 public/pwa-192x192.png

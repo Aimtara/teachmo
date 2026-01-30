@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Preflight (env example)
+        run: npm run preflight:example
+
       - name: Backend syntax check
         run: npm run backend:check
 

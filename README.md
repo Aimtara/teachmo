@@ -14,6 +14,11 @@ npm install
 npm run dev
 ```
 
+### Health & maintenance
+
+- `/healthz` is a public deploy verification endpoint (build SHA + minimal config checks).
+- Set `VITE_MAINTENANCE_MODE=true` to enable the emergency maintenance screen (except `/healthz`).
+
 ## Backend (Nhost + Hasura)
 - Core schema migration: `nhost/migrations/001_teachmo_core/up.sql`
 - Serverless functions: `nhost/functions/health.js`, `nhost/functions/track-event.js`
@@ -82,4 +87,4 @@ Coding and UX guidelines live in `docs/contributor-guidelines.md`.
 npm run build
 ```
 
-For Vercel, keep `VITE_NHOST_BACKEND_URL` set in project settings; the included `vercel.json` handles SPA rewrites.
+For Vercel, keep `VITE_NHOST_BACKEND_URL` set in project settings; the included `vercel.json` handles SPA rewrites and runs `npm run preflight:env` during builds.

@@ -25,3 +25,11 @@
 ## Storybook
 - Run Storybook to document Button, Card, and Tag components.
 - Use stories to capture props, accessibility, and state variations.
+
+## Runbooks (Launch Gate G4)
+
+- Release checklist: `runbooks/G4_RELEASE_CHECKLIST.md`
+- Rollback: `runbooks/G4_ROLLBACK.md`
+- Backup/restore drills: `runbooks/G4_BACKUP_RESTORE.md`
+- Incident response: `runbooks/G4_INCIDENT_RESPONSE.md`
+- Environment & secrets: `runbooks/G4_ENVIRONMENT.md`
