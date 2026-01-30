@@ -23,15 +23,6 @@ describe('performStartupCheck', () => {
     // Save original environment
     originalEnv = { ...process.env };
 
-    // Initialize mockLogger if not already done
-    if (!mockLogger) {
-      mockLogger = {
-        error: jest.fn(),
-        warn: jest.fn(),
-        info: jest.fn(),
-      };
-    }
-
     // Reset logger mocks
     mockLogger.error.mockClear();
     mockLogger.warn.mockClear();
@@ -118,6 +109,9 @@ describe('performStartupCheck', () => {
         '⚠️  WARNING: Missing integration keys in production. Features will fail:',
         expect.arrayContaining(['GOOGLE_CLIENT_ID', 'OPENAI_API_KEY'])
       );
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        '✅ Environment configuration check passed.'
+      );
       expect(mockExit).not.toHaveBeenCalled();
     });
 
@@ -131,6 +125,9 @@ describe('performStartupCheck', () => {
       expect(mockLogger.info).toHaveBeenCalledWith(
         'ℹ️  Missing integration keys (acceptable for local dev):',
         expect.arrayContaining(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'])
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        '✅ Environment configuration check passed.'
       );
       expect(mockExit).not.toHaveBeenCalled();
     });
