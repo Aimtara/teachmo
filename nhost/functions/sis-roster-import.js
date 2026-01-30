@@ -209,6 +209,17 @@ export default async function sisRosterImport(req, res) {
       }
     }
 
+    // Store up to 50 errors in metadata for auditing and diagnostics.
+    // If there are more errors, log the total count to help identify systemic issues.
+    const maxStoredErrors = 50;
+    const storedErrors = errors.slice(0, maxStoredErrors);
+    if (errors.length > maxStoredErrors) {
+      console.warn(`SIS import exceeded error limit: ${errors.length} total errors, only ${maxStoredErrors} stored`, {
+        jobId,
+        totalErrors: errors.length
+      });
+    }
+
     try {
       await updateImportJob(jobId, {
         status: errors.length > 0 ? 'completed_with_errors' : 'completed',
@@ -218,7 +229,8 @@ export default async function sisRosterImport(req, res) {
           record_count: rawRecords.length,
           inserted_count: inserted,
           skipped_count: skippedCount,
-          errors: errors.slice(0, 50)
+          errors: storedErrors,
+          total_errors: errors.length
         },
         finished_at: new Date().toISOString()
       });
@@ -226,12 +238,15 @@ export default async function sisRosterImport(req, res) {
       console.error('Failed to update SIS import job metadata', { jobId, error: err });
     }
 
+    // Return the same error list in the response for consistency.
+    // Include total error count so API consumers know if errors were truncated.
     return res.status(200).json({
       ok: true,
       inserted,
       skipped: skippedCount,
       jobId,
-      warnings: errors.length > 0 ? errors.slice(0, 5) : []
+      warnings: storedErrors,
+      totalErrors: errors.length
     });
   } catch (err) {
     console.error('SIS Import Fatal Error:', err);
