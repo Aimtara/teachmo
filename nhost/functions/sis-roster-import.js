@@ -349,7 +349,7 @@ export default async function sisRosterImport(req, res) {
           organization_id: organizationId,
           school_id: effectiveSchoolId,
           external_id: extId,
-          name: record.name || record.title || record.className || `Class ${extId}`,
+          name: record.name || record.title || record.className || 'Untitled Class',
           teacher_external_id: teacherId,
           data: cleanRecord
         });
