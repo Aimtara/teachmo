@@ -18,8 +18,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install ts-node
-        run: npm install --no-save ts-node typescript
+      - name: Install dependencies
+        run: npm ci
       - name: Run permissions smoke tests
         env:
           HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT }}
