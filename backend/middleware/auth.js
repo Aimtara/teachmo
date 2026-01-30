@@ -61,6 +61,7 @@ async function verifyBearerToken(token) {
     if (!secret) throw new Error('AUTH_MOCK_SECRET is required when AUTH_MODE=mock');
     const { payload } = await jwtVerify(token, textEncoder.encode(secret), {
       // no issuer/audience constraints in mock mode
+      algorithms: ['HS256'],
     });
     return payload;
   }
