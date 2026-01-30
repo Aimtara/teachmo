@@ -1,6 +1,7 @@
 /* eslint-env node */
 import { resolveRoleScopes } from '../rbac.js';
 import { evaluateEntityPermission, getTenantPolicy, resolvePolicyScopes } from '../utils/policyEngine.js';
+import { auditEvent } from '../security/audit.js';
 
 async function loadTenantPolicy(req) {
   if (req.policy) return req.policy;
@@ -47,20 +48,56 @@ export function requireAnyScope(scopes) {
   return enforceScopes(scopes, { any: true });
 }
 
-export function requirePermission({ entityType, action, scope }) {
+export function requirePermission(actionOrConfig, entityType) {
+  const config =
+    typeof actionOrConfig === 'object' && actionOrConfig !== null
+      ? actionOrConfig
+      : { action: actionOrConfig, entityType };
+
   return async (req, res, next) => {
     try {
       const policy = await loadTenantPolicy(req);
-      const decision = evaluateEntityPermission({ policy, entityType, action });
-      if (decision === false) return res.status(403).json({ error: 'forbidden' });
-      if (decision === true) return next();
-      if (scope) {
-        const scopes = await resolveScopes(req);
-        if (!scopes.includes(scope)) return res.status(403).json({ error: 'forbidden' });
+      const action = config?.action;
+      const resolvedEntityType = config?.entityType || 'feature';
+      const decision = evaluateEntityPermission({
+        policy,
+        entityType: resolvedEntityType,
+        action,
+      });
+
+      const scopes = await resolveScopes(req);
+      req.permissions = {
+        allowed: decision !== false,
+        scopes,
+      };
+
+      if (decision === false) {
+        await auditEvent(req, {
+          eventType: 'access_denied_policy',
+          severity: 'warn',
+          meta: { action, entityType: resolvedEntityType, role: req.auth?.role },
+        });
+        return res.status(403).json({ error: 'forbidden' });
       }
+
+      if (config?.scope && !scopes.includes(config.scope)) {
+        return res.status(403).json({ error: 'forbidden' });
+      }
+
       return next();
     } catch (error) {
+      console.error('Policy enforcement failed:', error);
       return res.status(500).json({ error: 'policy_error' });
     }
+  };
+}
+
+export function requireRole(allowedRoles) {
+  return (req, res, next) => {
+    const userRole = req.auth?.role;
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+    return next();
   };
 }

@@ -1,17 +1,18 @@
 /* eslint-env node */
 import { Router } from 'express';
 import { query } from '../db.js';
-import { requireAdmin, requireAuth } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { enqueueMessage } from '../jobs/notificationQueue.js';
+import { requirePermission } from '../middleware/permissions.js';
+import { auditEvent } from '../security/audit.js';
 
 const router = Router();
 
 router.use(requireAuth);
 router.use(requireTenant);
-router.use(requireAdmin);
 
-router.get('/notifications/announcements', async (req, res) => {
+router.get('/notifications/announcements', requirePermission('view', 'notifications'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const result = await query(
     `select m.*,
@@ -39,7 +40,7 @@ router.get('/notifications/announcements', async (req, res) => {
   res.json({ announcements: result.rows || [] });
 });
 
-router.post('/notifications/announcements', async (req, res) => {
+router.post('/notifications/announcements', requirePermission('create', 'notifications'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const { channel, title, body, segment, send_at, payload } = req.body || {};
   if (!channel || !['email', 'sms', 'push'].includes(channel)) {
@@ -47,6 +48,9 @@ router.post('/notifications/announcements', async (req, res) => {
   }
   if (!body) {
     return res.status(400).json({ error: 'body is required' });
+  }
+  if (!segment || (!segment.roles && !segment.user_ids && !segment.school_ids)) {
+    return res.status(400).json({ error: 'segment is required' });
   }
 
   const sendAt = send_at ? new Date(send_at) : null;
@@ -73,10 +77,17 @@ router.post('/notifications/announcements', async (req, res) => {
   if (status === 'pending' && message?.id) {
     await enqueueMessage({ messageId: message.id });
   }
+  if (message?.id) {
+    await auditEvent(req, {
+      eventType: 'announcement_created',
+      severity: 'info',
+      meta: { messageId: message.id, channel, sendAt: send_at || null },
+    });
+  }
   res.json({ announcement: message });
 });
 
-router.get('/notifications/announcements/:id', async (req, res) => {
+router.get('/notifications/announcements/:id', requirePermission('view', 'notifications'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const result = await query(
     `select m.*,
@@ -109,7 +120,7 @@ router.get('/notifications/announcements/:id', async (req, res) => {
   res.json({ announcement: result.rows[0] });
 });
 
-router.get('/notifications/metrics', async (req, res) => {
+router.get('/notifications/metrics', requirePermission('view_metrics', 'notifications'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const { start, end, channel } = req.query || {};
   const params = [organizationId, schoolId ?? null];
