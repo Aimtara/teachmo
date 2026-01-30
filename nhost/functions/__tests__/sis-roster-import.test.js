@@ -528,34 +528,28 @@ student-2,Bob,Johnson,5`,
       );
     });
 
-    test('imports classes with null teacher_external_id when not provided', async () => {
+    test('skips classes with missing teacher IDs', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-class-no-teachers' } })
-        .mockResolvedValueOnce({ insert_sis_roster_classes: { affected_rows: 1 } })
+        .mockResolvedValueOnce({ insert_sis_roster_classes: { affected_rows: 0 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-class-no-teachers' } });
 
       req.body = {
         rosterType: 'classes',
         records: [
-          { sourcedId: 'class-3', name: 'Science 101' }, // No teacher ID
+          { sourcedId: 'class-3', name: 'Science 101' }, // Missing teacher ID
         ],
       };
 
       await sisRosterImport(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      
-      const insertCall = hasuraRequest.mock.calls.find((call) =>
-        call[0].query.includes('mutation InsertRoster')
-      );
-      expect(insertCall[0].variables.objects).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ 
-            external_id: 'class-3',
-            name: 'Science 101',
-            teacher_external_id: null,
-          }),
-        ])
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ok: true,
+          inserted: 0,
+          skipped: 1,
+        })
       );
     });
   });
