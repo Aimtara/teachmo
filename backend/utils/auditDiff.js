@@ -35,7 +35,9 @@ export function redactPii(obj, piiFields = ['password', 'token', 'secret', 'ssn'
   if (!obj) return obj;
   const clean = { ...obj };
   piiFields.forEach((field) => {
-    if (clean[field]) clean[field] = '[REDACTED]';
+    if (Object.prototype.hasOwnProperty.call(clean, field)) {
+      clean[field] = '[REDACTED]';
+    }
   });
   return clean;
 }

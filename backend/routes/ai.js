@@ -58,13 +58,15 @@ async function loadBudget(organizationId, schoolId) {
   return budget;
 }
 
-async function updateBudgetSpend({ organizationId, schoolId, costUsd }) {
+async function updateBudgetSpend({ organizationId, schoolId, costUsd, budget }) {
   if (!costUsd) return null;
-  const budget = await loadBudget(organizationId, schoolId);
-  if (!budget) return null;
+  
+  // If budget is not provided, load it
+  const currentBudget = budget || await loadBudget(organizationId, schoolId);
+  if (!currentBudget) return null;
 
-  const spent = Number(budget.spent_usd || 0) + Number(costUsd || 0);
-  const resetAt = budget.reset_at || getNextResetAt();
+  const spent = Number(currentBudget.spent_usd || 0) + Number(costUsd || 0);
+  const resetAt = currentBudget.reset_at || getNextResetAt();
   const update = await query(
     `update ai_tenant_budgets
      set spent_usd = $3, reset_at = $4, updated_at = now()
@@ -72,7 +74,7 @@ async function updateBudgetSpend({ organizationId, schoolId, costUsd }) {
      returning organization_id, school_id, monthly_limit_usd, spent_usd, reset_at, fallback_policy`,
     [organizationId, schoolId || null, spent, resetAt]
   );
-  return update.rows?.[0] ?? budget;
+  return update.rows?.[0] ?? currentBudget;
 }
 
 async function loadModelPolicy(organizationId, schoolId) {
@@ -209,7 +211,7 @@ router.post('/completion', requirePermission('generate', 'ai'), async (req, res)
          values ($1, $2, $3, $4, $5, $6)`,
         [organizationId, schoolId || null, interactionId, budgetResult.model, tokenTotal || null, costUsd]
       );
-      await updateBudgetSpend({ organizationId, schoolId, costUsd });
+      await updateBudgetSpend({ organizationId, schoolId, costUsd, budget });
     }
 
     return res.json({ content: response?.content ?? null, model: budgetResult.model, usage });

@@ -1,4 +1,5 @@
 /* eslint-env node */
+import { openaiChat } from '../utils/openai.js';
 
 const DEFAULT_TIMEOUT_MS = 25_000;
 
@@ -21,42 +22,12 @@ function buildMessages({ prompt, context }) {
 
 export async function invokeLLM({ prompt, model, context, user, timeoutMs = DEFAULT_TIMEOUT_MS }) {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('missing OPENAI_API_KEY');
-  }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: buildMessages({ prompt, context }),
-        user: user || undefined,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(`OpenAI HTTP ${response.status}: ${text.slice(0, 800)}`);
-    }
-
-    const json = await response.json();
-    const content = json?.choices?.[0]?.message?.content ?? null;
-
-    return {
-      content,
-      model: json?.model ?? model,
-      usage: json?.usage ?? {},
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
+  return openaiChat({
+    apiKey,
+    model,
+    messages: buildMessages({ prompt, context }),
+    user,
+    timeoutMs,
+  });
 }
