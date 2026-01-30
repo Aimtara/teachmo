@@ -171,6 +171,19 @@ export default async function sisRosterImport(req, res) {
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
+    // Whitelist validation: Ensure the table name is one of the allowed SIS roster tables.
+    // This guards against potential GraphQL injection if the logic above is modified.
+    const ALLOWED_TABLES = new Set([
+      'sis_roster_students',
+      'sis_roster_teachers',
+      'sis_roster_classes',
+      'sis_roster_enrollments'
+    ]);
+
+    if (!table || !ALLOWED_TABLES.has(table)) {
+      return res.status(500).json({ error: 'Invalid table name for roster import' });
+    }
+
     // Determine which columns should be updated on conflict.
     // Default to updating only the JSONB "data" field to preserve existing behavior.
     // For tables where we have explicit normalized columns in this file, include them
