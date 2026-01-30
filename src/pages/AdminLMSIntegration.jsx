@@ -64,9 +64,7 @@ export default function AdminLMSIntegration() {
       // TODO: Implement backend API call to save LRS configuration
       await new Promise((resolve) => setTimeout(resolve, 1000));
       ultraMinimalToast.success('LRS configuration saved');
-      setLrsEndpoint('');
-      setLrsUsername('');
-      setLrsPassword('');
+      // Keep fields populated so users can test connection after saving
     } catch (error) {
       console.error(error);
       ultraMinimalToast.error('Failed to save configuration. Please try again.');
