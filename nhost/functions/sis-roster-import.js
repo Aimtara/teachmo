@@ -228,8 +228,8 @@ export default async function sisRosterImport(req, res) {
     }
 
     // SAFETY: The `table` variable is guaranteed to be safe for use in this GraphQL mutation
-    // because it has been validated against ALLOWED_TABLES whitelist above (lines 213-217).
-    // The table can only be one of: sis_roster_students, sis_roster_teachers,
+    // because it has been validated against the ALLOWED_TABLES whitelist defined at the top
+    // of this file. The table can only be one of: sis_roster_students, sis_roster_teachers,
     // sis_roster_classes, or sis_roster_enrollments.
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
