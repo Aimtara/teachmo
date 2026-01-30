@@ -1,5 +1,8 @@
 name: Hasura permissions smoke tests
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
   schedule:
