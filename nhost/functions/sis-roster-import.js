@@ -504,7 +504,18 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
         finished_at: new Date().toISOString()
       });
     } catch (err) {
-      console.error('Failed to update SIS import job metadata', { jobId, error: err });
+      console.error('Failed to update SIS import job metadata', { 
+        jobId, 
+        error: err.message || String(err),
+        stack: err.stack 
+      });
+      return res.status(500).json({
+        error: 'Import completed but failed to update job metadata',
+        jobId,
+        inserted,
+        skipped: skippedCount,
+        details: 'Job record may be in incorrect state. Contact system administrator.'
+      });
     }
 
     // Return the same error list in the response for consistency.
