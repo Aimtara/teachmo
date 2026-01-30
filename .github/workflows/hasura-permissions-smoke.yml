@@ -1,4 +1,4 @@
-name: Hasura permissions smoke tests
+name: Scheduled Hasura Permissions Check
 
 permissions:
   contents: read
