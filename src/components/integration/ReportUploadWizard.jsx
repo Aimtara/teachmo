@@ -47,6 +47,38 @@ export default function ReportUploadWizard({ onComplete }) {
       return;
     }
 
+    // Validate file type - check both extension and MIME type
+    const fileName = uploadedFile.name.toLowerCase();
+    const validExtension = fileName.endsWith('.csv');
+    // MIME type can be 'text/csv', 'application/vnd.ms-excel', or empty (some browsers don't set it)
+    const validMimeType = uploadedFile.type === '' || uploadedFile.type === 'text/csv' || uploadedFile.type === 'application/vnd.ms-excel';
+
+    if (!validExtension) {
+      ultraMinimalToast({
+        title: 'Invalid file type',
+        description: 'Please upload a valid CSV file (.csv extension required).',
+        variant: 'destructive',
+      });
+      // Reset the input so the user can try again
+      if (event.target) {
+        event.target.value = '';
+      }
+      return;
+    }
+
+    if (!validMimeType) {
+      ultraMinimalToast({
+        title: 'Invalid file type',
+        description: 'The file type is not recognized as a CSV file. Please ensure you are uploading a valid CSV file.',
+        variant: 'destructive',
+      });
+      // Reset the input so the user can try again
+      if (event.target) {
+        event.target.value = '';
+      }
+      return;
+    }
+
     const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit to prevent browser hangs
     if (uploadedFile.size > MAX_FILE_SIZE_BYTES) {
       ultraMinimalToast({
