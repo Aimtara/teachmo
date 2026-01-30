@@ -142,7 +142,8 @@ export async function googleClassroomSync(params: {
       throw new Error(`Google Classroom Sync Error: ${res.statusText}`);
     }
 
-    return res.json();
+    const data = await res.json();
+    return data;
   } catch (error) {
     console.error("Google Classroom Sync Failed:", error);
     throw error;
