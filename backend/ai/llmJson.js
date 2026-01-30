@@ -3,6 +3,7 @@
 // Uses global fetch (Node 18+). No SDK dependency.
 
 import { z } from 'zod';
+import { openaiChat } from '../utils/openai.js';
 
 const DEFAULT_TIMEOUT_MS = 25_000;
 
@@ -29,42 +30,6 @@ export function safeJsonParse(text) {
   }
 
   return { ok: false, error: 'no_json_object' };
-}
-
-async function openaiChat({ apiKey, model, messages, temperature = 0.2, timeoutMs = DEFAULT_TIMEOUT_MS }) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: 1200,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      throw new Error(`OpenAI HTTP ${resp.status}: ${text.slice(0, 800)}`);
-    }
-
-    const json = await resp.json();
-    const content = json?.choices?.[0]?.message?.content;
-    if (typeof content !== 'string') {
-      throw new Error('OpenAI response missing choices[0].message.content');
-    }
-    return { content, model: json?.model ?? model };
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 /**
@@ -136,6 +101,7 @@ OUTPUT RULES:
         model,
         messages,
         temperature: attempt === 0 ? temperature : 0,
+        max_tokens: 1200,
         timeoutMs,
       });
       usedModel = m;
