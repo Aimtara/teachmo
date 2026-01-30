@@ -1,0 +1,2 @@
+import{R as i,j as s}from"./index-BPP-_OMN.js";const a=i.forwardRef(({className:e="",...o},r)=>s.jsx("textarea",{className:["flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2","text-sm ring-offset-background placeholder:text-muted-foreground","focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring","focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",e].filter(Boolean).join(" "),ref:r,...o}));a.displayName="Textarea";export{a as T};
+//# sourceMappingURL=textarea-Be6YKw6o.js.map
