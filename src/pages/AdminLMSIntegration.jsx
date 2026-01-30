@@ -45,7 +45,6 @@ export default function AdminLMSIntegration() {
       setLtiIssuer('');
       setLtiClientId('');
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error(error);
       ultraMinimalToast.error('Failed to save configuration. Please try again.');
     } finally {
@@ -65,7 +64,6 @@ export default function AdminLMSIntegration() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       ultraMinimalToast.success('LRS configuration saved');
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error(error);
       ultraMinimalToast.error('Failed to save configuration. Please try again.');
     } finally {
@@ -85,7 +83,6 @@ export default function AdminLMSIntegration() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       ultraMinimalToast.success('LRS connection test successful');
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error(error);
       ultraMinimalToast.error('Connection test failed. Please check your credentials.');
     } finally {

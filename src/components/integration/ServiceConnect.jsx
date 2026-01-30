@@ -68,7 +68,6 @@ export default function ServiceConnect({
         }
       }, 500);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error(error);
       setIsConnecting(false);
       ultraMinimalToast.error('Connection failed. Please try again.');
@@ -97,7 +96,6 @@ export default function ServiceConnect({
       setIsConnected(false);
       ultraMinimalToast.success(`Disconnected ${serviceName}`);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error(error);
       ultraMinimalToast.error(
         `Failed to disconnect ${serviceName}. Please try again.`
