@@ -171,10 +171,23 @@ export default async function sisRosterImport(req, res) {
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
+    // Determine which columns should be updated on conflict.
+    // For tables with normalized columns, update them to stay in sync with the latest CSV.
+    let updateColumns = '[data]';
+    if (table === 'sis_roster_students') {
+      updateColumns = '[first_name, last_name, grade, data]';
+    } else if (table === 'sis_roster_teachers') {
+      updateColumns = '[first_name, last_name, email, data]';
+    } else if (table === 'sis_roster_classes') {
+      updateColumns = '[name, teacher_external_id, data]';
+    } else if (table === 'sis_roster_enrollments') {
+      updateColumns = '[data]';
+    }
+
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
         objects: $objects,
-        on_conflict: { constraint: ${table}_pkey, update_columns: [data] }
+        on_conflict: { constraint: ${table}_pkey, update_columns: ${updateColumns} }
       ) { affected_rows }
     }`;
 
@@ -229,23 +242,28 @@ export default async function sisRosterImport(req, res) {
 }
 
 async function createImportJob(orgId, schoolId, type, source, fileName, fileSize, count) {
-  const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
-    insert_sis_import_jobs_one(object: $object) { id }
-  }`;
-  const res = await hasuraRequest({
-    query: insertJob,
-    variables: {
-      object: {
-        organization_id: orgId,
-        school_id: schoolId,
-        roster_type: type,
-        source,
-        status: 'processing',
-        metadata: { file_name: fileName, file_size: fileSize, record_count: count }
+  try {
+    const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
+      insert_sis_import_jobs_one(object: $object) { id }
+    }`;
+    const res = await hasuraRequest({
+      query: insertJob,
+      variables: {
+        object: {
+          organization_id: orgId,
+          school_id: schoolId,
+          roster_type: type,
+          source,
+          status: 'processing',
+          metadata: { file_name: fileName, file_size: fileSize, record_count: count }
+        }
       }
-    }
-  });
-  return res?.insert_sis_import_jobs_one?.id;
+    });
+    return res?.insert_sis_import_jobs_one?.id;
+  } catch (err) {
+    console.error('Failed to create SIS import job', { orgId, type, error: err.message });
+    return null;
+  }
 }
 
 async function updateImportJob(id, changes) {
