@@ -52,7 +52,7 @@ export default function AdminLMSIntegration() {
   };
 
   const handleSaveLrsConfiguration = async () => {
-    if (!lrsEndpoint.trim()) {
+    if (!lrsEndpoint.trim() || !lrsAuthUsername.trim() || !lrsAuthPassword.trim()) {
       ultraMinimalToast.error('Please fill in all required fields');
       return;
     }
@@ -72,8 +72,8 @@ export default function AdminLMSIntegration() {
   };
 
   const handleTestLrsConnection = async () => {
-    if (!lrsEndpoint.trim()) {
-      ultraMinimalToast.error('Please save configuration before testing');
+    if (!lrsEndpoint.trim() || !lrsAuthUsername.trim() || !lrsAuthPassword.trim()) {
+      ultraMinimalToast.error('Please fill in all required fields before testing');
       return;
     }
     
