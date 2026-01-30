@@ -337,7 +337,10 @@ export default async function sisRosterImport(req, res) {
         ]);
         if (!teacherId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID for class ${extId}`);
+          errors.push(
+            `Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID for class ${extId}. ` +
+              'Classes now require a teacher_id in the CSV; records without a teacher will be skipped.'
+          );
           return;
         }
         const { __lineNumber, ...cleanRecord } = record;
