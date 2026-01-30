@@ -38,20 +38,28 @@ export default function AdminLMSIntegration() {
       return;
     }
 
-    // TODO: Call GraphQL mutation to save LTI platform configuration
-    console.log('Saving LTI platform configuration', {
-      issuer: ltiPlatformIssuer,
-      clientId: ltiClientId,
-    });
+    try {
+      // TODO: Call GraphQL mutation to save LTI platform configuration
+      
+      toast({
+        title: 'Configuration Saved',
+        description: 'LTI platform configuration has been saved successfully.',
+      });
 
-    toast({
-      title: 'Configuration Saved',
-      description: 'LTI platform configuration has been saved successfully.',
-    });
-
-    // Clear form after successful save
-    setLtiPlatformIssuer('');
-    setLtiClientId('');
+      // Clear form after successful save
+      setLtiPlatformIssuer('');
+      setLtiClientId('');
+    } catch (error) {
+      // Clear sensitive data even on error
+      setLtiPlatformIssuer('');
+      setLtiClientId('');
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to save LTI platform configuration.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSaveLrsConfiguration = () => {
@@ -64,21 +72,30 @@ export default function AdminLMSIntegration() {
       return;
     }
 
-    // TODO: Call GraphQL mutation to save LRS configuration
-    console.log('Saving LRS configuration', {
-      endpoint: lrsEndpoint,
-      username: lrsAuthUsername,
-    });
+    try {
+      // TODO: Call GraphQL mutation to save LRS configuration
+      
+      toast({
+        title: 'Configuration Saved',
+        description: 'LRS configuration has been saved successfully.',
+      });
 
-    toast({
-      title: 'Configuration Saved',
-      description: 'LRS configuration has been saved successfully.',
-    });
-
-    // Clear form after successful save
-    setLrsEndpoint('');
-    setLrsAuthUsername('');
-    setLrsAuthPassword('');
+      // Clear form after successful save
+      setLrsEndpoint('');
+      setLrsAuthUsername('');
+      setLrsAuthPassword('');
+    } catch (error) {
+      // Clear sensitive data even on error
+      setLrsEndpoint('');
+      setLrsAuthUsername('');
+      setLrsAuthPassword('');
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to save LRS configuration.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleTestLrsConnection = () => {
@@ -92,7 +109,6 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call backend endpoint to test LRS connection
-    console.log('Testing LRS connection', { endpoint: lrsEndpoint });
 
     toast({
       title: 'Feature Not Implemented',
