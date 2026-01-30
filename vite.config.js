@@ -50,7 +50,14 @@ export default defineConfig({
   plugins,
   server: {
     allowedHosts: true,
-    // G0 Compliance: Proxy removed to enforce Nhost/Hasura usage.
+    proxy: {
+      // Local development: proxy API requests from Vite dev server (5173) to backend (4000)
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   resolve: {
     alias: {
