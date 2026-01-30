@@ -51,11 +51,13 @@ export default defineConfig({
   server: {
     allowedHosts: true,
     proxy: {
+      // Local development: proxy API requests from Vite dev server (5173) to backend (4000)
       '/api': {
         target: 'http://localhost:4000',
-        changeOrigin: true
-      }
-    }
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   resolve: {
     alias: {
