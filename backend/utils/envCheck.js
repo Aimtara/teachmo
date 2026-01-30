@@ -10,6 +10,18 @@ const REQUIRED_VARS = ['AUTH_JWKS_URL'];
 const REQUIRED_VARS = ['NHOST_ADMIN_SECRET', 'AUTH_JWKS_URL'];
 
 const INTEGRATION_VARS = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'];
+const REQUIRED_VARS = [
+  'NHOST_ADMIN_SECRET',
+  'NHOST_SUBDOMAIN',
+  'NHOST_REGION',
+  'AUTH_JWKS_URL'
+];
+
+const INTEGRATION_VARS = [
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'OPENAI_API_KEY'
+];
 
 export function performStartupCheck() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -29,10 +41,12 @@ export function performStartupCheck() {
   }
 
   // Check other required vars
+  // Critical Core
   REQUIRED_VARS.forEach((key) => {
     if (!process.env[key]) missing.push(key);
   });
 
+  // Integrations (Warn only in dev, Error in Prod if critical)
   INTEGRATION_VARS.forEach((key) => {
     if (!process.env[key]) warnings.push(key);
   });
