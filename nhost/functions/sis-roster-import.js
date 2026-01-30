@@ -120,7 +120,8 @@ export default async function sisRosterImport(req, res) {
           return;
         }
         // Strip __lineNumber from record before storing in database.
-        // Note: __lineNumber may not exist depending on CSV parsing method used.
+        // Note: __lineNumber is not added by the current CSV parser but may be present
+        // if records are pre-processed or sent directly from API consumers.
         // If present, it's used for error reporting; if not, we fall back to idx + 2.
         const { __lineNumber, ...cleanRecord } = record;
         validObjects.push({
@@ -171,7 +172,10 @@ export default async function sisRosterImport(req, res) {
         ]);
         if (!teacherId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID for class ${extId}`);
+          errors.push(
+            `Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID for class ${extId}. ` +
+              'Classes now require a teacher_id in the CSV; records without a teacher will be skipped.'
+          );
           return;
         }
         const { __lineNumber, ...cleanRecord } = record;
@@ -323,34 +327,25 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
   const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
     insert_sis_import_jobs_one(object: $object) { id }
   }`;
-  const res = await hasuraRequest({
-    query: insertJob,
-    variables: {
-      object: {
-        organization_id: orgId,
-        school_id: schoolId,
-        roster_type: type,
-        source,
-        status: 'processing',
-        metadata: { file_name: fileName, file_size: fileSize, record_count: count }
+  try {
+    const res = await hasuraRequest({
+      query: insertJob,
+      variables: {
+        object: {
+          organization_id: orgId,
+          school_id: schoolId,
+          roster_type: type,
+          source,
+          status: 'processing',
+          metadata: { file_name: fileName, file_size: fileSize, record_count: count }
+        }
       }
     });
     return res?.insert_sis_import_jobs_one?.id;
-  } catch (error) {
-    console.error('Failed to create import job:', {
-      error,
-      orgId,
-      schoolId,
-      type,
-      source
-    });
   } catch (err) {
-    console.error('Failed to create SIS import job', { orgId, type, error: err.message });
     console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
     return null;
   }
-  });
-  return res?.insert_sis_import_jobs_one?.id;
 }
 
 async function updateImportJob(id, changes) {
