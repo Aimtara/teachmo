@@ -91,17 +91,27 @@ export default function AdminLMSIntegration() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>LRS Endpoint</Label>
-                <Input placeholder="https://lrs.io/xapi/statements" />
+                <Label htmlFor="lrs-endpoint">LRS Endpoint</Label>
+                <Input
+                  id="lrs-endpoint"
+                  placeholder="https://lrs.io/xapi/statements"
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Auth Key / Username</Label>
-                  <Input placeholder="Basic Auth Username" />
+                  <Label htmlFor="lrs-auth-username">Auth Key / Username</Label>
+                  <Input
+                    id="lrs-auth-username"
+                    placeholder="Basic Auth Username"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Auth Secret / Password</Label>
-                  <Input type="password" placeholder="••••••••••••" />
+                  <Label htmlFor="lrs-auth-password">Auth Secret / Password</Label>
+                  <Input
+                    id="lrs-auth-password"
+                    type="password"
+                    placeholder="••••••••••••"
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
