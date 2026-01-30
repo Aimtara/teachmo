@@ -9,8 +9,24 @@ describe('telemetry sanitizer', () => {
   });
 
   it('validates uuid values', () => {
-    expect(isUuid('550e8400-e29b-41d4-a716-446655440000')).toBe(true);
+    // Valid UUIDs in canonical format
+    expect(isUuid('550e8400-e29b-41d4-a716-446655440000')).toBe(true); // v4
+    expect(isUuid('6ba7b810-9dad-11d1-80b4-00c04fd430c8')).toBe(true); // v1
+    expect(isUuid('00000000-0000-0000-0000-000000000000')).toBe(true); // nil UUID
+    expect(isUuid('550E8400-E29B-41D4-A716-446655440000')).toBe(true); // uppercase
+    expect(isUuid('550e8400-E29B-41d4-A716-446655440000')).toBe(true); // mixed case
+    expect(isUuid('  550e8400-e29b-41d4-a716-446655440000  ')).toBe(true); // with whitespace (trimmed)
+    
+    // Invalid formats
     expect(isUuid('not-a-uuid')).toBe(false);
+    expect(isUuid('550e8400-e29b-41d4-a716-44665544000')).toBe(false); // too short
+    expect(isUuid('550e8400-e29b-41d4-a716-4466554400000')).toBe(false); // too long
+    expect(isUuid('550e8400e29b41d4a716446655440000')).toBe(false); // no dashes
+    expect(isUuid('550e8400-e29b-41d4-a716-44665544000g')).toBe(false); // invalid character
+    expect(isUuid('')).toBe(false); // empty string
+    expect(isUuid(null)).toBe(false); // null
+    expect(isUuid(undefined)).toBe(false); // undefined
+    expect(isUuid(123)).toBe(false); // number
   });
 
   it('redacts sensitive keys and values', () => {

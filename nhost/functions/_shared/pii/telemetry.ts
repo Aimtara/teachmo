@@ -15,8 +15,9 @@ const DEFAULT_LIMITS = {
 };
 
 const EVENT_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
-// Permissive UUID pattern that accepts all valid UUID formats (v1-v5)
-// Consistent with validation used across the codebase
+// Validates canonical UUID string format (8-4-4-4-12 hexadecimal pattern).
+// Accepts any hex UUID including nil UUID, does not enforce RFC 4122 version/variant bits.
+// Consistent with validation used across the codebase.
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 const SENSITIVE_KEY_RE =
