@@ -84,7 +84,7 @@ export default function ReportUploadWizard({ onComplete }) {
       }
     };
     reader.onerror = () => {
-      ultraMinimalToast('Failed to read file. Please try again with a valid CSV.');
+      ultraMinimalToast.error('Failed to read file. Please try again with a valid CSV.');
       setFile(null);
       setCsvHeaders([]);
       setPreviewData([]);
@@ -206,7 +206,20 @@ export default function ReportUploadWizard({ onComplete }) {
                 </Select>
               </div>
             </div>
-            <Button className="w-full" onClick={() => setStep(STEPS.PREVIEW)}>
+            <Button
+              className="w-full"
+              onClick={() => {
+                const hasAnyMapping =
+                  mapping && Object.values(mapping).some((value) => Boolean(value));
+                if (!hasAnyMapping) {
+                  ultraMinimalToast.error(
+                    'Please map at least one column before reviewing the data.'
+                  );
+                  return;
+                }
+                setStep(STEPS.PREVIEW);
+              }}
+            >
               Review Data <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>

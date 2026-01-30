@@ -95,16 +95,16 @@ export default function AdminLMSIntegration() {
     console.log('Testing LRS connection', { endpoint: lrsEndpoint });
 
     toast({
-      title: 'Feature Not Implemented',
-      description: 'Connection testing will be available once the backend endpoint is implemented.',
-      variant: 'destructive',
+      title: 'Connection Test Coming Soon',
+      description:
+        'LRS connection testing is not yet available in this environment. This feature will be enabled once the backend endpoint is implemented.',
     });
   };
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <header>
-        <h1 className="text-3xl font-bold text-gray-900">Integrations &amp; Data</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Integrations & Data</h1>
         <p className="text-gray-600">
           Configure LTI providers, xAPI stores, and third-party content services.
         </p>

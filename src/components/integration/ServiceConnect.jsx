@@ -80,13 +80,13 @@ export default function ServiceConnect({
           timerRef.current = null;
           setIsConnecting(false);
           setIsConnected(true);
-          ultraMinimalToast(`Connected to ${serviceName}!`);
+          ultraMinimalToast.success(`Connected to ${serviceName}!`);
         }
       }, 500);
     } catch (error) {
       console.error(error);
       setIsConnecting(false);
-      ultraMinimalToast('Connection failed. Please try again.', 'error');
+      ultraMinimalToast.error('Connection failed. Please try again.');
     }
   };
 
@@ -114,13 +114,11 @@ export default function ServiceConnect({
       }
 
       setIsConnected(false);
-      ultraMinimalToast(`Disconnected ${serviceName}`);
+      ultraMinimalToast.success(`Disconnected ${serviceName}`);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error(error);
-      ultraMinimalToast(
-        `Failed to disconnect ${serviceName}. Please try again.`,
-        'error'
+      ultraMinimalToast.error(
+        `Failed to disconnect ${serviceName}. Please try again.`
       );
     } finally {
       setIsConnecting(false);
