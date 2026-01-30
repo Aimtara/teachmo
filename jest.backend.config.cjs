@@ -2,7 +2,11 @@
 module.exports = {
   testEnvironment: 'node',
   // Run ONLY backend tests here (no DOM setupFilesAfterEnv from the frontend config).
-  testMatch: ['<rootDir>/backend/__tests__/**/*.(test|spec).(js|ts)'],
+  testMatch: [
+    '<rootDir>/backend/__tests__/**/*.(test|spec).(js|ts)',
+    '<rootDir>/nhost/functions/__tests__/**/*.(test|spec).(js|ts)',
+    '<rootDir>/nhost/functions/lib/__tests__/**/*.(test|spec).(js|ts)',
+  ],
   transform: {
     '^.+\\.(js|ts)$': 'babel-jest',
   },
