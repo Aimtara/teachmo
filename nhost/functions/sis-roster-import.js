@@ -130,9 +130,10 @@ export default async function sisRosterImport(req, res) {
           errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing student ID`);
           return;
         }
-        // Strip __lineNumber from the record before storing in the database (if present).
-        // Note: csv-parse doesn't add __lineNumber by default; the code uses idx + 2 as fallback
-        // to calculate line numbers. The destructuring safely handles both cases.
+        // Strip __lineNumber from the record before storing in the database.
+        // Note: The primary csv-parse library doesn't add __lineNumber; we use idx+2 as fallback
+        // for line number reporting. If csv-parse had line info, it would be in __lineNumber.
+        // The destructuring safely handles both cases (present or undefined).
         const { __lineNumber, ...cleanRecord } = record;
         validObjects.push({
           job_id: jobId,
@@ -252,7 +253,7 @@ export default async function sisRosterImport(req, res) {
 
     // SAFETY: The `table` variable is guaranteed to be safe for use in this GraphQL mutation
     // because it has been validated against the ALLOWED_TABLES whitelist in the check at
-    // lines 248-250 above. The table can only be one of: sis_roster_students, sis_roster_teachers,
+    // lines 249-250 above. The table can only be one of: sis_roster_students, sis_roster_teachers,
     // sis_roster_classes, or sis_roster_enrollments.
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
