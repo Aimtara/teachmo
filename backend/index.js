@@ -9,12 +9,21 @@ import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
 import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
 import { createLogger } from './utils/logger.js';
 import { runMigrations } from './migrate.js';
+import { performStartupCheck } from './utils/envCheck.js';
 
 // Load environment variables
 dotenv.config();
 
 const PORT = process.env.PORT || 4000;
 const logger = createLogger('server');
+
+// Validate critical environment variables at startup.
+// In production, missing required vars will cause immediate exit.
+// In development, warnings are logged but server continues to allow local iteration.
+// Note: Some subsequent operations (migrations, schedulers) may still fail
+// if their specific dependencies are missing, even in non-production mode.
+// 1. Verify Environment Integrity (Launch Readiness Patch)
+performStartupCheck();
 
 // Seed demo data ONLY when explicitly enabled.
 // Never seed in production.

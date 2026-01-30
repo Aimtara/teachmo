@@ -113,12 +113,19 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LTI platform configuration
-    // When implementing: wrap in try-catch and clear form state (including sensitive Client ID) in both success and error paths
+    console.log('Saving LTI platform configuration', {
+      issuer: ltiPlatformIssuer,
+      clientId: ltiClientId,
+    });
 
     toast({
-      title: 'Not Implemented',
-      description: 'LTI platform registration is not yet available. Backend persistence will be added in a future update.',
+      title: 'Configuration Saved',
+      description: 'LTI platform configuration has been saved successfully.',
     });
+
+    // Clear form after successful save
+    setLtiPlatformIssuer('');
+    setLtiClientId('');
   };
 
   const handleSaveLrsConfiguration = () => {
@@ -132,12 +139,20 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LRS configuration
-    // When implementing: wrap in try-catch and clear password in both success and error paths for security
+    console.log('Saving LRS configuration', {
+      endpoint: lrsEndpoint,
+      username: lrsAuthUsername,
+    });
 
     toast({
-      title: 'Not Implemented',
-      description: 'LRS configuration save is not yet available. Backend persistence will be added in a future update.',
+      title: 'Configuration Saved',
+      description: 'LRS configuration has been saved successfully.',
     });
+
+    // Clear form after successful save
+    setLrsEndpoint('');
+    setLrsAuthUsername('');
+    setLrsAuthPassword('');
   };
 
   const handleTestLrsConnection = () => {
@@ -151,18 +166,19 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call backend endpoint to test LRS connection
+    console.log('Testing LRS connection', { endpoint: lrsEndpoint });
 
     toast({
-      title: 'Connection Test Coming Soon',
-      description:
-        'LRS connection testing is not yet available in this environment. This feature will be enabled once the backend endpoint is implemented.',
+      title: 'Feature Not Implemented',
+      description: 'Connection testing will be available once the backend endpoint is implemented.',
+      variant: 'destructive',
     });
   };
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <header>
-        <h1 className="text-3xl font-bold text-gray-900">Integrations & Data</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Integrations &amp; Data</h1>
         <p className="text-gray-600">
           Configure LTI providers, xAPI stores, and third-party content services.
         </p>

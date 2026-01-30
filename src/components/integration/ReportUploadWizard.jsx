@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ArrowRight, CheckCircle, UploadCloud } from 'lucide-react';
-import PropTypes from 'prop-types';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -116,10 +115,8 @@ export default function ReportUploadWizard({ onComplete }) {
       }
       return;
     }
-
     setFile(uploadedFile);
     const reader = new FileReader();
-    
     reader.onload = (fileEvent) => {
       const text = fileEvent.target.result;
       const lines = text
