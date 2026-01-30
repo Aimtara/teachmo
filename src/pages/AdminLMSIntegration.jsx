@@ -73,9 +73,14 @@ export default function AdminLMSIntegration() {
       title: 'Configuration Saved',
       description: 'LRS configuration has been saved successfully.',
     });
+
+    // Clear form after successful save
+    setLrsEndpoint('');
+    setLrsAuthUsername('');
+    setLrsAuthPassword('');
   };
 
-  const handleTestLrsConnection = async () => {
+  const handleTestLrsConnection = () => {
     if (!lrsEndpoint.trim()) {
       toast({
         title: 'Validation Error',
@@ -90,16 +95,8 @@ export default function AdminLMSIntegration() {
 
     toast({
       title: 'Connection Test',
-      description: 'Testing connection to LRS endpoint...',
+      description: 'Connection testing is not yet implemented. Configure the endpoint and credentials, then save.',
     });
-
-    // Simulate async connection test
-    setTimeout(() => {
-      toast({
-        title: 'Connection Successful',
-        description: 'Successfully connected to the LRS endpoint.',
-      });
-    }, 1500);
   };
 
   return (
