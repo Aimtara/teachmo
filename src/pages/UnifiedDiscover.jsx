@@ -7,7 +7,9 @@ import { navigateToDashboard } from '@/components/utils/navigationHelpers';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ActivityGridSkeleton } from '@/components/shared/ImprovedSkeletons';
 
+// Lazy load tab contents
 const PersonalizedDiscoverFeed = React.lazy(() => import('@/components/discover/PersonalizedDiscoverFeed'));
 const ActivitiesTab = React.lazy(() => import('@/components/discover/ActivitiesTab'));
 const EventsTab = React.lazy(() => import('@/components/discover/EventsTab'));
@@ -17,22 +19,12 @@ export default function UnifiedDiscover() {
   const navigate = useNavigate();
   const user = useUserData();
   const [searchParams, setSearchParams] = useSearchParams();
+
   const currentTab = searchParams.get('tab') || 'foryou';
 
   const handleTabChange = (value) => {
     setSearchParams({ tab: value });
   };
-
-  const TabLoading = () => (
-    <div className="space-y-4 mt-4">
-      <Skeleton className="h-32 w-full rounded-lg" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Skeleton className="h-48 w-full rounded-lg" />
-        <Skeleton className="h-48 w-full rounded-lg" />
-        <Skeleton className="h-48 w-full rounded-lg" />
-      </div>
-    </div>
-  );
 
   return (
     <div className="p-6 space-y-6 min-h-screen bg-gray-50/50">
@@ -92,16 +84,26 @@ export default function UnifiedDiscover() {
         </div>
 
         <div className="min-h-[500px]">
-          <Suspense fallback={<TabLoading />}>
+          <Suspense
+            fallback={
+              <div className="space-y-8">
+                <Skeleton className="h-64 w-full rounded-xl" />
+                <ActivityGridSkeleton count={3} />
+              </div>
+            }
+          >
             <TabsContent value="foryou" className="mt-0 focus-visible:outline-none">
               <PersonalizedDiscoverFeed />
             </TabsContent>
+
             <TabsContent value="activities" className="mt-0 focus-visible:outline-none">
               <ActivitiesTab />
             </TabsContent>
+
             <TabsContent value="events" className="mt-0 focus-visible:outline-none">
               <EventsTab />
             </TabsContent>
+
             <TabsContent value="library" className="mt-0 focus-visible:outline-none">
               <LibraryTab />
             </TabsContent>
