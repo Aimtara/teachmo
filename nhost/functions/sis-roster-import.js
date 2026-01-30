@@ -415,7 +415,7 @@ export default async function sisRosterImport(req, res) {
       insert_${table}(
         objects: $objects,
         on_conflict: {
-          constraint: ${table}_external_id_key,
+          constraint: ${table}_pkey,
           update_columns: [data]
         }
       ) { affected_rows }
