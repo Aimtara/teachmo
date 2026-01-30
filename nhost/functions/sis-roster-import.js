@@ -337,7 +337,10 @@ export default async function sisRosterImport(req, res) {
         ]);
         if (!teacherId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID for class ${extId}`);
+          errors.push(
+            `Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID for class ${extId}. ` +
+              'Classes now require a teacher_id in the CSV; records without a teacher will be skipped.'
+          );
           return;
         }
         const { __lineNumber, ...cleanRecord } = record;
@@ -346,7 +349,7 @@ export default async function sisRosterImport(req, res) {
           organization_id: organizationId,
           school_id: effectiveSchoolId,
           external_id: extId,
-          name: record.name || record.title || record.className || `Class ${extId}`,
+          name: record.name || record.title || record.className || 'Untitled Class',
           teacher_external_id: teacherId,
           data: cleanRecord
         });
@@ -388,7 +391,12 @@ export default async function sisRosterImport(req, res) {
           variables: { job_id: jobId }
         });
       } catch (e) {
-        // If updating the job fails, continue returning the 400 response.
+        // If updating the job fails, log the error but continue returning the 400 response.
+        console.error('Failed to mark SIS roster import job as failed for unknown roster type', {
+          jobId,
+          rosterType,
+          error: e instanceof Error ? e.message : e
+        });
       }
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
@@ -400,8 +408,8 @@ export default async function sisRosterImport(req, res) {
     }
 
     // SAFETY: The `table` variable is guaranteed to be safe for use in this GraphQL mutation
-    // because it has been validated against the ALLOWED_TABLES whitelist above.
-    // The table can only be one of: sis_roster_students, sis_roster_teachers,
+    // because it has been validated against the ALLOWED_TABLES whitelist in the check at
+    // lines 398-400 above. The table can only be one of: sis_roster_students, sis_roster_teachers,
     // sis_roster_classes, or sis_roster_enrollments.
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
