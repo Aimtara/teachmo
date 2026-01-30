@@ -1,8 +1,13 @@
 name: Permissions smoke tests
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * *'
 
 jobs:
   smoke:
