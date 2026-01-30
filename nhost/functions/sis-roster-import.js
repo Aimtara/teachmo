@@ -1,9 +1,32 @@
 import { hasuraRequest } from './lib/hasura.js';
+import { parse } from 'csv-parse/sync';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
 function parseCsv(text) {
   if (!text) return [];
+  
+  try {
+    // Use RFC 4180-compliant CSV parser that properly handles:
+    // - Commas inside quoted fields (e.g., "Smith, John")
+    // - Newlines inside quoted fields
+    // - Escaped quotes inside quoted fields (e.g., "He said ""hello""")
+    const records = parse(text, {
+      columns: true, // First row is headers, returns array of objects
+      skip_empty_lines: true,
+      trim: true,
+      relax_quotes: true, // More lenient with quotes for real-world CSVs
+      relax_column_count: true // Handle rows with varying column counts
+    });
+    
+    return records;
+  } catch (err) {
+    // Log detailed error information to help diagnose parsing issues
+    const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+    console.error('CSV parsing failed:', {
+      error: err.message,
+      preview,
+      textLength: text.length
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
   const headers = lines[0].split(',').map((h) => h.trim());
@@ -20,6 +43,8 @@ function parseCsv(text) {
       record.__lineNumber = originalLineNumber; // Attach original line number to each record
       return record;
     });
+    return [];
+  }
 }
 
 function resolveExternalId(record, keys) {
@@ -206,6 +231,21 @@ export default async function sisRosterImport(req, res) {
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
+    // Determine which columns should be updated on conflict.
+    // For tables with normalized columns, update them to stay in sync with the latest CSV.
+    let updateColumns = '[data]';
+    if (table === 'sis_roster_students') {
+      updateColumns = '[first_name, last_name, grade, data]';
+    } else if (table === 'sis_roster_teachers') {
+      updateColumns = '[first_name, last_name, email, data]';
+    } else if (table === 'sis_roster_classes') {
+      updateColumns = '[name, teacher_external_id, data]';
+    }
+
+    const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
+      insert_${table}(
+        objects: $objects,
+        on_conflict: { constraint: ${table}_pkey, update_columns: ${updateColumns} }
     // Whitelist validation: Ensure the table name is one of the allowed SIS roster tables.
     // This guards against potential GraphQL injection if the logic above is modified.
     if (!table || !ALLOWED_TABLES.has(table)) {
@@ -298,6 +338,10 @@ export default async function sisRosterImport(req, res) {
 }
 
 async function createImportJob(orgId, schoolId, type, source, fileName, fileSize, count) {
+  try {
+    const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
+      insert_sis_import_jobs_one(object: $object) { id }
+    }`;
   const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
     insert_sis_import_jobs_one(object: $object) { id }
   }`;
@@ -317,6 +361,7 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
     });
     return res?.insert_sis_import_jobs_one?.id;
   } catch (err) {
+    console.error('Failed to create SIS import job', { orgId, type, error: err.message });
     console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
     return null;
   }
