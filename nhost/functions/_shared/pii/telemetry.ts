@@ -9,7 +9,7 @@ export type SanitizerOptions = {
 const DEFAULT_LIMITS = {
   maxDepth: 4,
   maxKeys: 60,
-  maxArray: 40,
+  maxArray: 30,
   maxString: 400,
   maxBytes: 8192,
 };
