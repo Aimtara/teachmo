@@ -81,12 +81,13 @@ export type EmailRequest = { to: string; subject: string; body: string };
 /**
  * Sends a transactional email via the backend.
  * Replaces the console.log stub.
+ * @throws Error if the email send fails
  */
 export async function SendEmail({
   to,
   subject,
   body,
-}: EmailRequest): Promise<{ sent: boolean; to: string }> {
+}: EmailRequest): Promise<{ to: string }> {
   try {
     const res = await fetch(`${API_BASE_URL}/integrations/email/send`, {
       method: "POST",
@@ -98,7 +99,7 @@ export async function SendEmail({
       throw new Error(`Email Service Error: ${res.statusText}`);
     }
 
-    return { sent: true, to };
+    return { to };
   } catch (error) {
     console.error("Email Send Failed:", error);
     throw error;

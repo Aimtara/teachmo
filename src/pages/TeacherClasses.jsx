@@ -76,7 +76,7 @@ export default function TeacherClasses() {
 
           {!loading && (!classes || classes.length === 0) && (
             <UniversalEmptyState
-              context="no-classes"
+              context="no-calendar-events"
               userType="teacher"
               className="bg-white border-dashed border-2"
             />
