@@ -117,11 +117,6 @@ export default function ServiceConnect({
 
   const handleDisconnect = async () => {
     setShowDisconnectDialog(false);
-    const confirmed = window.confirm(`Disconnect ${serviceName}?`);
-    if (!confirmed) {
-      return;
-    }
-
     setIsConnecting(true);
 
     try {
