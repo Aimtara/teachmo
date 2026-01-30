@@ -44,4 +44,16 @@ describe('telemetry sanitizer', () => {
     expect(result.truncated).toBe(true);
     expect(result.value).toEqual(expect.anything());
   });
+
+  it('truncates arrays exceeding maxArray limit', () => {
+    const largeArray = Array.from({ length: 50 }, (_, i) => i);
+    
+    const result = sanitizeTelemetryMetadata({ items: largeArray });
+    expect(result.truncated).toBe(true);
+    expect(Array.isArray(result.value.items)).toBe(true);
+    expect(result.value.items.length).toBe(31); // 30 items + '[TRUNCATED_ARRAY]' marker
+    expect(result.value.items[30]).toBe('[TRUNCATED_ARRAY]');
+    expect(result.value.items[0]).toBe(0);
+    expect(result.value.items[29]).toBe(29);
+  });
 });
