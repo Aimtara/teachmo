@@ -90,13 +90,14 @@ export default async function sisRosterImport(req, res) {
 
     if (normalizedType === 'students') {
       table = 'sis_roster_students';
-      rawRecords.forEach((record) => {
+      rawRecords.forEach((record, idx) => {
         const extId = resolveExternalId(record, ['sourcedId', 'id', 'student_id', 'external_id']);
         if (!extId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber}: Missing student ID`);
+          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing student ID`);
           return;
         }
+        const { __lineNumber, ...cleanRecord } = record;
         validObjects.push({
           job_id: jobId,
           organization_id: organizationId,
@@ -105,18 +106,19 @@ export default async function sisRosterImport(req, res) {
           first_name: record.first_name || record.givenName || record.firstName || null,
           last_name: record.last_name || record.familyName || record.lastName || null,
           grade: record.grade || record.grade_level || record.gradeLevel || null,
-          data: record
+          data: cleanRecord
         });
       });
     } else if (normalizedType === 'teachers') {
       table = 'sis_roster_teachers';
-      rawRecords.forEach((record) => {
+      rawRecords.forEach((record, idx) => {
         const extId = resolveExternalId(record, ['sourcedId', 'id', 'teacher_id', 'external_id']);
         if (!extId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber}: Missing teacher ID`);
+          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID`);
           return;
         }
+        const { __lineNumber, ...cleanRecord } = record;
         validObjects.push({
           job_id: jobId,
           organization_id: organizationId,
@@ -125,16 +127,16 @@ export default async function sisRosterImport(req, res) {
           first_name: record.first_name || record.givenName || record.firstName || null,
           last_name: record.last_name || record.familyName || record.lastName || null,
           email: record.email || record.emailAddress || null,
-          data: record
+          data: cleanRecord
         });
       });
     } else if (normalizedType === 'classes') {
       table = 'sis_roster_classes';
-      rawRecords.forEach((record) => {
+      rawRecords.forEach((record, idx) => {
         const extId = resolveExternalId(record, ['sourcedId', 'id', 'class_id', 'external_id']);
         if (!extId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber}: Missing class ID`);
+          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing class ID`);
           return;
         }
         const teacherId = resolveExternalId(record, [
@@ -144,9 +146,10 @@ export default async function sisRosterImport(req, res) {
         ]);
         if (!teacherId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber}: Missing teacher ID for class ${extId}`);
+          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID for class ${extId}`);
           return;
         }
+        const { __lineNumber, ...cleanRecord } = record;
         validObjects.push({
           job_id: jobId,
           organization_id: organizationId,
@@ -154,26 +157,27 @@ export default async function sisRosterImport(req, res) {
           external_id: extId,
           name: record.name || record.title || record.className || `Class ${extId}`,
           teacher_external_id: teacherId,
-          data: record
+          data: cleanRecord
         });
       });
     } else if (normalizedType === 'enrollments') {
       table = 'sis_roster_enrollments';
-      rawRecords.forEach((record) => {
+      rawRecords.forEach((record, idx) => {
         const classId = resolveExternalId(record, ['classSourcedId', 'class_id', 'classExternalId']);
         const studentId = resolveExternalId(record, ['userSourcedId', 'student_id', 'studentExternalId']);
         if (!classId || !studentId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber}: Missing class ID or student ID`);
+          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing class ID or student ID`);
           return;
         }
+        const { __lineNumber, ...cleanRecord } = record;
         validObjects.push({
           job_id: jobId,
           organization_id: organizationId,
           school_id: effectiveSchoolId,
           class_external_id: classId,
           student_external_id: studentId,
-          data: record
+          data: cleanRecord
         });
       });
     } else {
