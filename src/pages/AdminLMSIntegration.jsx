@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceConnect from '@/components/integration/ServiceConnect';
+import { LTI_LAUNCH_URL, LTI_JWKS_URL } from '@/config/api';
 
 export default function AdminLMSIntegration() {
   return (
@@ -47,7 +48,7 @@ export default function AdminLMSIntegration() {
                   <Label>Tool Launch URL</Label>
                   <Input
                     readOnly
-                    value="https://api.teachmo.com/lti/launch"
+                    value={LTI_LAUNCH_URL}
                     className="bg-gray-50"
                   />
                 </div>
@@ -55,7 +56,7 @@ export default function AdminLMSIntegration() {
                   <Label>Public JWKS URL</Label>
                   <Input
                     readOnly
-                    value="https://api.teachmo.com/.well-known/jwks.json"
+                    value={LTI_JWKS_URL}
                     className="bg-gray-50"
                   />
                 </div>
