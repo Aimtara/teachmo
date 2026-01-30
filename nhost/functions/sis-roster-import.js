@@ -301,28 +301,38 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
   const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
     insert_sis_import_jobs_one(object: $object) { id }
   }`;
-  const res = await hasuraRequest({
-    query: insertJob,
-    variables: {
-      object: {
-        organization_id: orgId,
-        school_id: schoolId,
-        roster_type: type,
-        source,
-        status: 'processing',
-        metadata: { file_name: fileName, file_size: fileSize, record_count: count }
+  try {
+    const res = await hasuraRequest({
+      query: insertJob,
+      variables: {
+        object: {
+          organization_id: orgId,
+          school_id: schoolId,
+          roster_type: type,
+          source,
+          status: 'processing',
+          metadata: { file_name: fileName, file_size: fileSize, record_count: count }
+        }
       }
-    }
-  });
-  return res?.insert_sis_import_jobs_one?.id;
+    });
+    return res?.insert_sis_import_jobs_one?.id;
+  } catch (err) {
+    console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
+    return null;
+  }
 }
 
 async function updateImportJob(id, changes) {
   const updateJob = `mutation UpdateJob($id: uuid!, $changes: sis_import_jobs_set_input!) {
     update_sis_import_jobs_by_pk(pk_columns: { id: $id }, _set: $changes) { id }
   }`;
-  await hasuraRequest({
-    query: updateJob,
-    variables: { id, changes }
-  });
+  try {
+    await hasuraRequest({
+      query: updateJob,
+      variables: { id, changes }
+    });
+  } catch (err) {
+    console.error('Failed to update SIS import job', { id, error: err });
+    throw err; // Re-throw to allow caller to handle
+  }
 }
