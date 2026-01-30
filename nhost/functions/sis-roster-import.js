@@ -171,10 +171,21 @@ export default async function sisRosterImport(req, res) {
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
+    // Determine which columns should be updated on conflict.
+    // Default to updating only the JSONB "data" field to preserve existing behavior.
+    // For tables where we have explicit normalized columns in this file, include them
+    // so they stay in sync with the latest CSV on re-import.
+    let updateColumns = '[data]';
+    if (table === 'sis_roster_classes') {
+      // For classes, "name" and "teacher_external_id" are normalized, non-key fields
+      // that should be updated when the source roster changes.
+      updateColumns = '[name, teacher_external_id, data]';
+    }
+
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
         objects: $objects,
-        on_conflict: { constraint: ${table}_pkey, update_columns: [data] }
+        on_conflict: { constraint: ${table}_pkey, update_columns: ${updateColumns} }
       ) { affected_rows }
     }`;
 
