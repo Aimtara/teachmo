@@ -41,6 +41,38 @@ export default function ReportUploadWizard({ onComplete }) {
     activityName: '',
   });
 
+  const parseCSVLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    // Add the last field
+    result.push(current.trim());
+    return result;
+  };
+
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
     if (!uploadedFile) {
@@ -90,11 +122,11 @@ export default function ReportUploadWizard({ onComplete }) {
         .filter((line) => line);
 
       if (lines.length > 0) {
-        const headers = lines[0].split(',').map((header) => header.trim());
+        const headers = parseCSVLine(lines[0]);
         const data = lines.slice(1, 6).map((line) => {
-          const values = line.split(',');
+          const values = parseCSVLine(line);
           return headers.reduce((acc, header, index) => {
-            acc[header] = values[index];
+            acc[header] = values[index] || '';
             return acc;
           }, {});
         });
