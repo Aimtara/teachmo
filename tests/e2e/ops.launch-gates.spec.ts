@@ -1,55 +1,66 @@
 import { test, expect } from '@playwright/test';
-import * as jose from 'jose';
+import { SignJWT } from 'jose';
 
-test.describe('G3 Gate: Ops Operational Readiness', { tag: '@launch-gates' }, () => {
-  test('System Admin can access Ops Dashboard (Smoke)', async ({ page }) => {
-    const secret = new TextEncoder().encode(process.env.AUTH_MOCK_SECRET || 'launch-gates-secret');
-    const token = await new jose.SignJWT({
-      'https://hasura.io/jwt/claims': {
-        'x-hasura-allowed-roles': ['system_admin'],
-        'x-hasura-default-role': 'system_admin',
-        'x-hasura-user-id': 'admin-smoke-test'
-      },
-      sub: 'admin-smoke-test',
-      role: 'system_admin'
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(secret);
+const E2E_SESSION_KEY = 'teachmo_e2e_session';
 
-    const mockUser = {
-      id: 'admin-smoke-test',
-      displayName: 'Admin Smoke',
-      email: 'admin@teachmo.local',
+async function mintMockToken({
+  role,
+  userId,
+  secret,
+}: {
+  role: string;
+  userId: string;
+  secret: string;
+}) {
+  return new SignJWT({
+    'https://hasura.io/jwt/claims': {
+      'x-hasura-user-id': userId,
+      'x-hasura-default-role': role,
+      'x-hasura-allowed-roles': [role],
+    },
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('15m')
+    .sign(new TextEncoder().encode(secret));
+}
+
+async function setE2ESession(page, session: { role: string; accessToken: string; userId: string }) {
+  await page.addInitScript(
+    ([key, value]) => {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    },
+    [E2E_SESSION_KEY, session] as any
+  );
+}
+
+test.describe('@launch-gates ops auth smoke', () => {
+  test('system_admin can access Ops Orchestrator', async ({ page, baseURL }) => {
+    const secret = process.env.AUTH_MOCK_SECRET || 'launch-gates-secret';
+    const token = await mintMockToken({
       role: 'system_admin',
-      metadata: { preferred_active_role: 'system_admin' }
-    };
+      userId: 'user_admin',
+      secret,
+    });
 
-    await page.addInitScript(({ user, token: jwt }) => {
-      window.localStorage.setItem('e2e_mock_user', JSON.stringify(user));
-      window.localStorage.setItem('e2e_mock_token', jwt);
-    }, { user: mockUser, token });
+    await setE2ESession(page, { role: 'system_admin', accessToken: token, userId: 'user_admin' });
 
-    await page.goto('/ops/orchestrator');
-
-    await expect(page).not.toHaveURL(/login/);
-    await expect(page.getByText(/Ops Orchestrator|Families|System Health/i).first()).toBeVisible();
+    await page.goto(`${baseURL}/ops/orchestrator`);
+    await expect(page.getByRole('heading', { name: /Ops Orchestrator Timeline/i })).toBeVisible();
   });
 
-  test('Regular User is denied access', async ({ page }) => {
-    const mockUser = {
-      id: 'parent-user',
+  test('non-admin is blocked from Ops Orchestrator', async ({ page, baseURL }) => {
+    const secret = process.env.AUTH_MOCK_SECRET || 'launch-gates-secret';
+    const token = await mintMockToken({
       role: 'parent',
-      metadata: { preferred_active_role: 'parent' }
-    };
+      userId: 'user_parent',
+      secret,
+    });
 
-    await page.addInitScript(({ user }) => {
-      window.localStorage.setItem('e2e_mock_user', JSON.stringify(user));
-    }, { user: mockUser });
+    await setE2ESession(page, { role: 'parent', accessToken: token, userId: 'user_parent' });
 
-    await page.goto('/ops/orchestrator');
+    await page.goto(`${baseURL}/ops/orchestrator`);
 
-    await expect(page).toHaveURL(/dashboard|login/);
+    await expect(page).toHaveURL(/unauthorized|login|sign-in/i);
   });
 });
