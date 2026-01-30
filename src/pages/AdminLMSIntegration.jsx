@@ -94,8 +94,9 @@ export default function AdminLMSIntegration() {
     console.log('Testing LRS connection', { endpoint: lrsEndpoint });
 
     toast({
-      title: 'Connection Test',
-      description: 'Connection testing is not yet implemented. Configure the endpoint and credentials, then save.',
+      title: 'Feature Not Implemented',
+      description: 'Connection testing will be available once the backend endpoint is implemented.',
+      variant: 'destructive',
     });
   };
 
