@@ -2,6 +2,14 @@ import { hasuraRequest } from './lib/hasura.js';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
+// Whitelist of valid SIS roster table names to prevent GraphQL injection
+const ALLOWED_TABLES = new Set([
+  'sis_roster_students',
+  'sis_roster_teachers',
+  'sis_roster_classes',
+  'sis_roster_enrollments'
+]);
+
 function parseCsv(text) {
   if (!text) return [];
   const lines = text.trim().split(/\r?\n/);
@@ -188,7 +196,11 @@ export default async function sisRosterImport(req, res) {
             mutation MarkRosterImportJobFailed($job_id: uuid!) {
               update_sis_roster_import_jobs_by_pk(
                 pk_columns: { id: $job_id },
-                _set: { status: "failed" }
+      } catch (e) {
+        console.error(
+          'Failed to mark SIS roster import job as failed for unknown roster type',
+          { jobId, rosterType, error: e }
+        );
               ) {
                 id
               }
@@ -202,24 +214,17 @@ export default async function sisRosterImport(req, res) {
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
-    // Determine which columns should be updated on conflict.
-    // Default to updating only the JSONB "data" field to preserve existing behavior.
-    // For tables where we have explicit normalized columns in this file, include them
-    // so they stay in sync with the latest CSV on re-import.
-    let updateColumns = '[data]';
-    if (table === 'sis_roster_classes') {
-      // For classes, "name" and "teacher_external_id" are normalized, non-key fields
-      // that should be updated when the source roster changes.
-      updateColumns = '[name, teacher_external_id, data]';
+    // Whitelist validation: Ensure the table name is one of the allowed SIS roster tables.
+    // This guards against potential GraphQL injection if the logic above is modified.
+    if (!table || !ALLOWED_TABLES.has(table)) {
+      return res.status(500).json({ error: 'Invalid table name for roster import' });
     }
 
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
-        objects: $objects,
-        on_conflict: { constraint: ${table}_pkey, update_columns: ${updateColumns} }
+        objects: $objects
       ) { affected_rows }
     }`;
-
     const chunked = [];
     const chunkSize = 500;
     for (let i = 0; i < validObjects.length; i += chunkSize) {
