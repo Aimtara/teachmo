@@ -19,15 +19,10 @@ function clampLimit(value, fallback = 25) {
   return Math.max(1, Math.min(MAX_LIMIT, Math.floor(n)));
 }
 
-function getOpsAdminKey() {
-  return (process.env.OPS_ADMIN_KEY || '').trim();
-}
-
 function opsActor(req) {
   const headerActor = req.get('x-ops-actor');
   if (headerActor && String(headerActor).trim()) return String(headerActor).trim().slice(0, 200);
-  // Best-effort from auth context if present.
-  const authUser = req.auth?.user?.id || req.auth?.userId;
+  const authUser = req.auth?.userId;
   if (authUser) return String(authUser).slice(0, 200);
   return 'ops_admin';
 }
@@ -62,17 +57,23 @@ async function hasColumns(tableName, columns) {
   return columns.every((c) => cols.has(c));
 }
 
-function requireOpsAdmin(req, res, next) {
-  const expected = getOpsAdminKey();
-  const provided = String(req.get('x-ops-admin-key') || '').trim();
+function requireOpsAuth(req, res, next) {
+  const userId = req.auth?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'unauthorized_missing_token' });
+  }
 
-  // If no key is configured, default to "locked".
-  if (!expected) return res.status(403).json({ error: 'ops_admin_key_missing' });
-  if (!provided || provided !== expected) return res.status(403).json({ error: 'forbidden' });
+  const role = req.auth?.role;
+  const isSystemAdmin = role === 'system_admin';
+  if (!isSystemAdmin) {
+    console.warn(`[Security] Unauthorized ops attempt by user ${userId}`);
+    return res.status(403).json({ error: 'forbidden_insufficient_permissions' });
+  }
+
   return next();
 }
 
-router.use(requireOpsAdmin);
+router.use(requireOpsAuth);
 
 // --- Families --------------------------------------------------------------
 router.get('/families', async (req, res) => {
@@ -138,6 +139,11 @@ router.get('/families', async (req, res) => {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return res.status(400).json({ error: message });
   }
+});
+
+// --- Health --------------------------------------------------------------
+router.get('/health', (req, res) => {
+  res.json({ status: 'operable', actor: req.auth?.userId || null });
 });
 
 // --- Health ---------------------------------------------------------------
