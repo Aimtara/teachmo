@@ -464,4 +464,99 @@ student-2,Bob,Johnson,5`,
       );
     });
   });
+
+  describe('unknown roster type handling', () => {
+    test('returns 400 error for unknown roster type', async () => {
+      hasuraRequest
+        .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-unknown' } });
+
+      req.body = {
+        rosterType: 'invalid_type',
+        records: [
+          { sourcedId: 'record-1', name: 'Test' },
+        ],
+      };
+
+      await sisRosterImport(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Unknown roster type: invalid_type',
+      });
+
+      // Job should be created but not updated (remains in processing state)
+      // This is the current behavior - job is not marked as failed
+      expect(hasuraRequest).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('class records with optional teacher IDs', () => {
+    test('imports classes with teacher IDs when provided', async () => {
+      hasuraRequest
+        .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-class-teachers' } })
+        .mockResolvedValueOnce({ insert_sis_roster_classes: { affected_rows: 2 } })
+        .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-class-teachers' } });
+
+      req.body = {
+        rosterType: 'classes',
+        records: [
+          { sourcedId: 'class-1', name: 'Math 101', teacherSourcedId: 'teacher-1' },
+          { id: 'class-2', title: 'English 101', teacher_id: 'teacher-2' },
+        ],
+      };
+
+      await sisRosterImport(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      
+      const insertCall = hasuraRequest.mock.calls.find((call) =>
+        call[0].query.includes('mutation InsertRoster')
+      );
+      expect(insertCall[0].variables.objects).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ 
+            external_id: 'class-1',
+            name: 'Math 101',
+            teacher_external_id: 'teacher-1',
+          }),
+          expect.objectContaining({ 
+            external_id: 'class-2',
+            name: 'English 101',
+            teacher_external_id: 'teacher-2',
+          }),
+        ])
+      );
+    });
+
+    test('imports classes with null teacher_external_id when not provided', async () => {
+      hasuraRequest
+        .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-class-no-teachers' } })
+        .mockResolvedValueOnce({ insert_sis_roster_classes: { affected_rows: 1 } })
+        .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-class-no-teachers' } });
+
+      req.body = {
+        rosterType: 'classes',
+        records: [
+          { sourcedId: 'class-3', name: 'Science 101' }, // No teacher ID
+        ],
+      };
+
+      await sisRosterImport(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      
+      const insertCall = hasuraRequest.mock.calls.find((call) =>
+        call[0].query.includes('mutation InsertRoster')
+      );
+      expect(insertCall[0].variables.objects).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ 
+            external_id: 'class-3',
+            name: 'Science 101',
+            teacher_external_id: null,
+          }),
+        ])
+      );
+    });
+  });
 });
