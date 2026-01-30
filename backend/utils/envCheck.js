@@ -3,7 +3,7 @@ import { createLogger } from './logger.js';
 
 const logger = createLogger('env-check');
 
-const REQUIRED_VARS = ['NHOST_ADMIN_SECRET', 'NHOST_SUBDOMAIN', 'NHOST_REGION', 'AUTH_JWKS_URL'];
+const REQUIRED_VARS = ['NHOST_ADMIN_SECRET', 'AUTH_JWKS_URL'];
 
 const INTEGRATION_VARS = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'];
 
