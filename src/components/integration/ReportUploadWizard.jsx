@@ -41,38 +41,6 @@ export default function ReportUploadWizard({ onComplete }) {
     activityName: '',
   });
 
-  const parseCSVLine = (line) => {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-      
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          // Escaped quote
-          current += '"';
-          i++; // Skip next quote
-        } else {
-          // Toggle quote state
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        // End of field
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    
-    // Add the last field
-    result.push(current.trim());
-    return result;
-  };
-
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
     if (!uploadedFile) {
@@ -124,21 +92,14 @@ export default function ReportUploadWizard({ onComplete }) {
       if (lines.length > 0) {
         const headers = parseCSVLine(lines[0]);
         const data = lines.slice(1, 6).map((line) => {
-          const values = parseCSVLine(line);
+          const values = line.split(',');
           return headers.reduce((acc, header, index) => {
-            acc[header] = values[index] || '';
+            acc[header] = values[index];
             return acc;
           }, {});
         });
         setCsvHeaders(headers);
         setPreviewData(data);
-        // Reset mapping when new file is uploaded
-        setMapping({
-          studentName: '',
-          score: '',
-          date: '',
-          activityName: '',
-        });
         setStep(STEPS.MAPPING);
       }
     };
@@ -331,19 +292,7 @@ export default function ReportUploadWizard({ onComplete }) {
             <Button
               className="mt-6"
               variant="outline"
-              onClick={() => {
-                // Reset all state when starting a new import
-                setFile(null);
-                setCsvHeaders([]);
-                setPreviewData([]);
-                setMapping({
-                  studentName: '',
-                  score: '',
-                  date: '',
-                  activityName: '',
-                });
-                setStep(STEPS.UPLOAD);
-              }}
+              onClick={() => setStep(STEPS.UPLOAD)}
             >
               Import Another
             </Button>

@@ -90,13 +90,13 @@ export default function ServiceConnect({
           timerRef.current = null;
           setIsConnecting(false);
           setIsConnected(true);
-          ultraMinimalToast.success(`Connected to ${serviceName}!`);
+          ultraMinimalToast(`Connected to ${serviceName}!`);
         }
       }, 500);
     } catch (error) {
-      logger.error(error);
+      console.error(error);
       setIsConnecting(false);
-      ultraMinimalToast.error('Connection failed. Please try again.');
+      ultraMinimalToast('Connection failed. Please try again.', 'error');
     }
   };
 
