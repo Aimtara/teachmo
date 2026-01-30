@@ -198,18 +198,22 @@ export default async function sisRosterImport(req, res) {
       }
     }
 
-    await updateImportJob(jobId, {
-      status: errors.length > 0 ? 'completed_with_errors' : 'completed',
-      metadata: {
-        file_name: fileName,
-        file_size: fileSize,
-        record_count: rawRecords.length,
-        inserted_count: inserted,
-        skipped_count: skippedCount,
-        errors: errors.slice(0, 50)
-      },
-      finished_at: new Date().toISOString()
-    });
+    try {
+      await updateImportJob(jobId, {
+        status: errors.length > 0 ? 'completed_with_errors' : 'completed',
+        metadata: {
+          file_name: fileName,
+          file_size: fileSize,
+          record_count: rawRecords.length,
+          inserted_count: inserted,
+          skipped_count: skippedCount,
+          errors: errors.slice(0, 50)
+        },
+        finished_at: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Failed to update SIS import job metadata', { jobId, error: err });
+    }
 
     return res.status(200).json({
       ok: true,
