@@ -196,7 +196,11 @@ export default async function sisRosterImport(req, res) {
             mutation MarkRosterImportJobFailed($job_id: uuid!) {
               update_sis_roster_import_jobs_by_pk(
                 pk_columns: { id: $job_id },
-                _set: { status: "failed" }
+      } catch (e) {
+        console.error(
+          'Failed to mark SIS roster import job as failed for unknown roster type',
+          { jobId, rosterType, error: e }
+        );
               ) {
                 id
               }
