@@ -168,6 +168,24 @@ export default async function sisRosterImport(req, res) {
         });
       });
     } else {
+      // Unknown roster type: mark the job as failed so it doesn't remain stuck in "processing".
+      try {
+        await hasuraRequest({
+          query: `
+            mutation MarkRosterImportJobFailed($job_id: uuid!) {
+              update_sis_roster_import_jobs_by_pk(
+                pk_columns: { id: $job_id },
+                _set: { status: "failed" }
+              ) {
+                id
+              }
+            }
+          `,
+          variables: { job_id: jobId }
+        });
+      } catch (e) {
+        // If updating the job fails, continue returning the 400 response.
+      }
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
