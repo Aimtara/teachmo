@@ -49,11 +49,7 @@ export default function ReportUploadWizard({ onComplete }) {
 
     const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit to prevent browser hangs
     if (uploadedFile.size > MAX_FILE_SIZE_BYTES) {
-      ultraMinimalToast({
-        title: 'File too large',
-        description: 'Please upload a CSV file smaller than 5MB.',
-        variant: 'destructive',
-      });
+      ultraMinimalToast.error('File too large. Please upload a CSV file smaller than 5MB.');
       // Reset the input so the same file can be reselected if needed
       if (event.target) {
         event.target.value = '';
