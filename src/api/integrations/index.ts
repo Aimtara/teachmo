@@ -10,6 +10,45 @@ const getHeaders = () => {
   };
 };
 
+/**
+ * Helper to extract detailed error information from a failed response.
+ * Includes HTTP status code, status text, and response body.
+ */
+async function extractErrorDetails(res: Response, serviceName: string): Promise<string> {
+  let errorDetails = "";
+  try {
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const jsonBody = await res.json();
+      if (jsonBody && typeof jsonBody === "object") {
+        const message =
+          (jsonBody as { message?: string }).message ??
+          JSON.stringify(jsonBody);
+        errorDetails = message;
+      }
+    } else {
+      const textBody = await res.text();
+      if (textBody) {
+        // Avoid extremely large error messages
+        errorDetails = textBody.slice(0, 500);
+      }
+    }
+  } catch {
+    // Swallow body parsing errors; we'll still throw a status-based error below.
+  }
+
+  const statusInfo = `${res.status} ${res.statusText || ""}`.trim();
+  const parts = [serviceName];
+  if (statusInfo) {
+    parts.push(statusInfo);
+  }
+  if (errorDetails) {
+    parts.push(errorDetails);
+  }
+
+  return parts.join(" - ");
+}
+
 export type LLMRequest = {
   prompt?: string;
   context?: Record<string, unknown>;
@@ -36,7 +75,8 @@ export async function InvokeLLM({
     });
 
     if (!res.ok) {
-      throw new Error(`AI Service Error: ${res.statusText}`);
+      const errorMessage = await extractErrorDetails(res, "AI Service Error");
+      throw new Error(errorMessage);
     }
 
     const data = await res.json();
@@ -96,38 +136,8 @@ export async function SendEmail({
     });
 
     if (!res.ok) {
-      let errorDetails = "";
-      try {
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          const jsonBody = await res.json();
-          if (jsonBody && typeof jsonBody === "object") {
-            const message =
-              (jsonBody as { message?: string }).message ??
-              JSON.stringify(jsonBody);
-            errorDetails = message;
-          }
-        } else {
-          const textBody = await res.text();
-          if (textBody) {
-            // Avoid extremely large error messages
-            errorDetails = textBody.slice(0, 500);
-          }
-        }
-      } catch {
-        // Swallow body parsing errors; we'll still throw a status-based error below.
-      }
-
-      const statusInfo = `${res.status} ${res.statusText || ""}`.trim();
-      const parts = ["Email Service Error"];
-      if (statusInfo) {
-        parts.push(statusInfo);
-      }
-      if (errorDetails) {
-        parts.push(errorDetails);
-      }
-
-      throw new Error(parts.join(" - "));
+      const errorMessage = await extractErrorDetails(res, "Email Service Error");
+      throw new Error(errorMessage);
     }
 
     return { to };
@@ -148,37 +158,8 @@ export async function googleAuth(params: { action: string }) {
     });
 
     if (!res.ok) {
-      let errorDetails = "";
-      try {
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          const jsonBody = await res.json();
-          if (jsonBody && typeof jsonBody === "object") {
-            const message =
-              (jsonBody as { message?: string }).message ??
-              JSON.stringify(jsonBody);
-            errorDetails = message;
-          }
-        } else {
-          const textBody = await res.text();
-          if (textBody) {
-            errorDetails = textBody.slice(0, 500);
-          }
-        }
-      } catch {
-        // Swallow body parsing errors; we'll still throw a status-based error below.
-      }
-
-      const statusInfo = `${res.status} ${res.statusText || ""}`.trim();
-      const parts = ["Google Auth Error"];
-      if (statusInfo) {
-        parts.push(statusInfo);
-      }
-      if (errorDetails) {
-        parts.push(errorDetails);
-      }
-
-      throw new Error(parts.join(" - "));
+      const errorMessage = await extractErrorDetails(res, "Google Auth Error");
+      throw new Error(errorMessage);
     }
 
     const data = await res.json();
@@ -201,37 +182,8 @@ export async function googleClassroomSync(params: {
     });
 
     if (!res.ok) {
-      let errorDetails = "";
-      try {
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          const jsonBody = await res.json();
-          if (jsonBody && typeof jsonBody === "object") {
-            const message =
-              (jsonBody as { message?: string }).message ??
-              JSON.stringify(jsonBody);
-            errorDetails = message;
-          }
-        } else {
-          const textBody = await res.text();
-          if (textBody) {
-            errorDetails = textBody.slice(0, 500);
-          }
-        }
-      } catch {
-        // Swallow body parsing errors; we'll still throw a status-based error below.
-      }
-
-      const statusInfo = `${res.status} ${res.statusText || ""}`.trim();
-      const parts = ["Google Classroom Sync Error"];
-      if (statusInfo) {
-        parts.push(statusInfo);
-      }
-      if (errorDetails) {
-        parts.push(errorDetails);
-      }
-
-      throw new Error(parts.join(" - "));
+      const errorMessage = await extractErrorDetails(res, "Google Classroom Sync Error");
+      throw new Error(errorMessage);
     }
 
     const data = await res.json();
