@@ -245,6 +245,8 @@ describe('sis-roster-import', () => {
       // Warnings in response should be limited to 5
       expect(response.warnings.length).toBe(5);
       expect(response.warnings[0]).toContain('Missing student ID');
+      // totalErrors should reflect the actual count (10 in this case)
+      expect(response.totalErrors).toBe(10);
     });
 
     test('handles updateImportJob failure gracefully', async () => {
