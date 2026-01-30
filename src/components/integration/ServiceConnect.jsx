@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 import { API_BASE_URL } from '@/config/api';
+import { nhost } from '@/lib/nhostClient';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ServiceConnect');
@@ -72,6 +73,13 @@ export default function ServiceConnect({
     setIsConnecting(true);
 
     try {
+      const token = await nhost.auth.getAccessToken();
+      const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       // Use mock auth URL directly, since no backend auth endpoint exists yet.
       const data = { authUrl: `https://${serviceKey}.com/login?mock=true` };
       const headers = await getIntegrationHeaders();
@@ -141,11 +149,16 @@ export default function ServiceConnect({
     setIsConnecting(true);
 
     try {
+      const token = await nhost.auth.getAccessToken();
       const headers = await getIntegrationHeaders();
       const response = await fetch(
         `${API_BASE_URL}/integrations/${serviceKey}/disconnect`,
         {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           headers,
         }
       );
