@@ -39,10 +39,7 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LTI platform configuration
-    console.log('Saving LTI platform configuration', {
-      issuer: ltiPlatformIssuer,
-      clientId: ltiClientId,
-    });
+    // When implementing: wrap in try-catch and clear form state (including sensitive Client ID) in both success and error paths
 
     toast({
       title: 'Configuration Saved',
@@ -65,17 +62,14 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LRS configuration
-    console.log('Saving LRS configuration', {
-      endpoint: lrsEndpoint,
-      username: lrsAuthUsername,
-    });
+    // When implementing: wrap in try-catch and clear password in both success and error paths for security
 
     toast({
       title: 'Configuration Saved',
       description: 'LRS configuration has been saved successfully.',
     });
 
-    // Clear form after successful save
+    // Clear form after successful save, including sensitive password data
     setLrsEndpoint('');
     setLrsAuthUsername('');
     setLrsAuthPassword('');
@@ -92,7 +86,6 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call backend endpoint to test LRS connection
-    console.log('Testing LRS connection', { endpoint: lrsEndpoint });
 
     toast({
       title: 'Feature Not Implemented',
