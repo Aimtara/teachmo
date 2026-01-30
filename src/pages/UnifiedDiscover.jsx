@@ -51,6 +51,7 @@ export default function UnifiedDiscover() {
             Dashboard
           </Button>
           <Button variant="outline" className="gap-2" onClick={() => navigate('/discover?tab=library&search=true')}>
+          <Button variant="outline" className="gap-2" onClick={() => navigate('/library?search=true')}>
             <Search className="h-4 w-4" />
             Global Search
           </Button>

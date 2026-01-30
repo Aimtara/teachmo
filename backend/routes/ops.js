@@ -8,6 +8,7 @@ import express from 'express';
 import { query } from '../db.js';
 import { orchestratorPgStore } from '../orchestrator/pgStore.js';
 import { auditEvent } from '../security/audit.js';
+import { requireAuth, requireSystemAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -57,23 +58,8 @@ async function hasColumns(tableName, columns) {
   return columns.every((c) => cols.has(c));
 }
 
-function requireOpsAuth(req, res, next) {
-  const userId = req.auth?.userId;
-  if (!userId) {
-    return res.status(401).json({ error: 'unauthorized_missing_token' });
-  }
-
-  const role = req.auth?.role;
-  const isSystemAdmin = role === 'system_admin';
-  if (!isSystemAdmin) {
-    console.warn(`[Security] Unauthorized ops attempt by user ${userId}`);
-    return res.status(403).json({ error: 'forbidden_insufficient_permissions' });
-  }
-
-  return next();
-}
-
-router.use(requireOpsAuth);
+router.use(requireAuth);
+router.use(requireSystemAdmin);
 
 // --- Families --------------------------------------------------------------
 router.get('/families', async (req, res) => {
