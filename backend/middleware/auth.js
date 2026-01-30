@@ -33,6 +33,7 @@ function normalizeScopes(input) {
 
 const envLower = (process.env.NODE_ENV || 'development').toLowerCase();
 const isProd = envLower === 'production';
+const isMockAuth = process.env.AUTH_MODE === 'mock' && envLower === 'test';
 
 // JWT verification configuration
 const jwksUrl = process.env.AUTH_JWKS_URL || process.env.NHOST_JWKS_URL || '';
@@ -46,6 +47,17 @@ if (jwksUrl) {
 
 async function verifyBearerToken(token) {
   if (!token) return null;
+  if (isMockAuth && process.env.AUTH_MOCK_SECRET) {
+    const secret = new TextEncoder().encode(process.env.AUTH_MOCK_SECRET);
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      return payload;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn('[MockAuth] Token verification failed:', msg);
+      return null;
+    }
+  }
   if (!jwks) {
     // In production, missing JWKS is a hard failure.
     if (isProd) {

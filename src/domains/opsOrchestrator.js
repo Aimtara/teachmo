@@ -1,21 +1,28 @@
 import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
 
+// G3 Compliance: JWT Auth with E2E Bypass support
 const getHeaders = () => {
-  const token = nhost.auth.getAccessToken();
+  let token = nhost.auth.getAccessToken();
+
+  // If in E2E bypass mode, grab the mock token injected by Playwright
+  if (!token && import.meta.env.VITE_E2E_BYPASS_AUTH === 'true') {
+    token = window.localStorage.getItem('e2e_mock_token');
+  }
+
   return {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'Authorization': token ? `Bearer ${token}` : '',
   };
 };
 
-const opsFetch = async (path, { headers, ...options } = {}) => {
+const opsFetch = async (path, options = {}) => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
     headers: {
       ...getHeaders(),
-      ...headers,
+      ...options.headers,
     },
-    ...options,
   });
 
   if (response.status === 401) {
@@ -87,3 +94,5 @@ export const getTimeline = (familyId, hours = 48) => {
   const params = new URLSearchParams({ hours: String(hours) });
   return opsFetch(`/ops/families/${encodeURIComponent(familyId)}/timeline?${params.toString()}`);
 };
+
+export const checkOpsHealth = () => opsFetch('/ops/health');
