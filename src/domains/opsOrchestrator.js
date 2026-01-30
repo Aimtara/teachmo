@@ -1,12 +1,9 @@
 import { API_BASE_URL } from '@/config/api';
 
-const OPS_ADMIN_KEY = import.meta.env.VITE_OPS_ADMIN_KEY || '';
-
 const opsFetch = async (path, { headers, ...options } = {}) => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(OPS_ADMIN_KEY ? { 'x-ops-admin-key': OPS_ADMIN_KEY } : {}),
       ...headers,
     },
     ...options,

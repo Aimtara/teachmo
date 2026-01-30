@@ -24,8 +24,6 @@ import {
   reopenAnomaly,
 } from '@/domains/opsOrchestrator';
 
-const OPS_ADMIN_KEY = import.meta.env.VITE_OPS_ADMIN_KEY || '';
-
 const formatDateTime = (value) => {
   if (!value) return '—';
   const date = new Date(value);
@@ -197,18 +195,6 @@ export default function OpsOrchestrator() {
           <h1 className="text-2xl font-semibold">Ops Orchestrator Timeline</h1>
           <p className="text-sm text-gray-600">Acknowledge and close anomalies with timeline context.</p>
         </header>
-
-        {!OPS_ADMIN_KEY && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Missing Ops Admin Key</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-gray-600">
-              Set <span className="font-mono">VITE_OPS_ADMIN_KEY</span> to enable ops API access. Requests will be forbidden
-              until the key is configured.
-            </CardContent>
-          </Card>
-        )}
 
         <div className="space-y-6">
             <Card>
