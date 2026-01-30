@@ -26,12 +26,32 @@ export default function ServiceConnect({
     };
   }, []);
 
+  const getIntegrationHeaders = async () => {
+    const headers = {};
+
+    // Attempt to use a globally available Nhost client if present.
+    const nhost = globalThis?.nhost;
+
+    if (nhost?.auth?.getAccessToken) {
+      const accessToken = await nhost.auth.getAccessToken();
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+    }
+
+    return headers;
+  };
+
   const handleConnect = async () => {
     setIsConnecting(true);
 
     try {
+      const headers = await getIntegrationHeaders();
+
       const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
         method: 'POST',
+        headers,
       });
 
       const data = res.ok
