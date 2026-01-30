@@ -1,0 +1,1 @@
+{"version":3,"file":"TeacherMessages-DXuzJ3Gy.js","sources":["../../src/pages/TeacherMessages.jsx"],"sourcesContent":["import React from 'react';\n\nexport default function TeacherMessages() {\n  return <div>Teacher Messages (placeholder)</div>;\n}\n"],"names":["TeacherMessages","jsx"],"mappings":"wCAEA,SAAwBA,GAAkB,CACxC,OAAOC,EAAAA,IAAC,OAAI,SAAA,gCAAA,CAA8B,CAC5C"}
