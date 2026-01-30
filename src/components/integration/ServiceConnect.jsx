@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ServiceConnect');
 
 export default function ServiceConnect({
   serviceKey,
@@ -27,6 +30,23 @@ export default function ServiceConnect({
     };
   }, []);
 
+  const getIntegrationHeaders = async () => {
+    const headers = {};
+
+    // Attempt to use a globally available Nhost client if present.
+    const nhost = globalThis?.nhost;
+
+    if (nhost?.auth?.getAccessToken) {
+      const accessToken = await nhost.auth.getAccessToken();
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+    }
+
+    return headers;
+  };
+
   const handleConnect = async () => {
     setIsConnecting(true);
 
@@ -38,6 +58,11 @@ export default function ServiceConnect({
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+      const headers = await getIntegrationHeaders();
+
+      const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
+        method: 'POST',
+        headers,
       });
 
       const data = res.ok
@@ -70,7 +95,7 @@ export default function ServiceConnect({
         }
       }, 500);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       setIsConnecting(false);
       ultraMinimalToast('Connection failed. Please try again.', 'error');
     }
@@ -104,8 +129,7 @@ export default function ServiceConnect({
       setIsConnected(false);
       ultraMinimalToast(`Disconnected ${serviceName}`);
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error);
+      logger.error(error);
       ultraMinimalToast(
         `Failed to disconnect ${serviceName}. Please try again.`,
         'error'

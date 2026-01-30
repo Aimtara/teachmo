@@ -1,2 +1,0 @@
-import{p as s,n as r}from"./index-CcbYISPP.js";async function i(e={}){const t=await r.auth.getAccessToken();return{"Content-Type":"application/json",...t?{Authorization:`Bearer ${t}`}:{},...e}}async function f(e,t={}){const a=await i(t.headers),n=await fetch(`${s}${e}`,{...t,headers:a});if(!n.ok){const o=await n.text();throw new Error(o||"Request failed")}return n.json()}export{f,i as g};
-//# sourceMappingURL=client-DAO-ed9P.js.map
