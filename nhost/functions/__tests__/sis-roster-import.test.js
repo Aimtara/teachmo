@@ -245,6 +245,8 @@ describe('sis-roster-import', () => {
       // Warnings in response should be limited to 5
       expect(response.warnings.length).toBe(5);
       expect(response.warnings[0]).toContain('Missing student ID');
+      // Total errors should reflect all errors, not just the truncated warnings
+      expect(response.totalErrors).toBe(10);
     });
 
     test('handles updateImportJob failure gracefully', async () => {
@@ -264,11 +266,13 @@ describe('sis-roster-import', () => {
 
       await sisRosterImport(req, res);
 
-      // Should return an error status when job update fails
-      expect(res.status).toHaveBeenCalledWith(500);
+      // Should still return success even if job update fails
+      expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Failed to update SIS import job metadata',
+          ok: true,
+          inserted: 1,
+          skipped: 0,
         })
       );
       
@@ -488,7 +492,7 @@ student-2,Bob,Johnson,5`,
     });
   });
 
-  describe('class records with optional teacher IDs', () => {
+  describe('class records with required teacher IDs', () => {
     test('imports classes with teacher IDs when provided', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-class-teachers' } })

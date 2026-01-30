@@ -29,11 +29,15 @@ function parseCsv(text) {
     
     return records;
   } catch (err) {
-    // Log detailed error information to help diagnose parsing issues
-    const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+    // Log non-PII diagnostics only (no raw CSV content that may contain student data).
+    // Extract just the header row for debugging without exposing PII.
+    const newlineIndex = text.indexOf('\n');
+    const headerRow = newlineIndex === -1 ? text : text.slice(0, newlineIndex);
+    const headerPreview = headerRow.length > 200 ? headerRow.substring(0, 200) + '...' : headerRow;
+    
     console.error('CSV parsing failed:', {
       error: err.message,
-      preview,
+      headerPreview,
       textLength: text.length
     });
     return [];
