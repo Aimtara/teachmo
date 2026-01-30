@@ -234,8 +234,6 @@ describe('performStartupCheck', () => {
       mockLogger.warn.mockClear();
       mockLogger.info.mockClear();
     }
-    // Store original environment
-    originalEnv = { ...process.env };
 
     // Create fresh mock functions for this test
     mockError = jest.fn();
