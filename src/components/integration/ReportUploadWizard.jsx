@@ -54,11 +54,7 @@ export default function ReportUploadWizard({ onComplete }) {
     const validMimeType = uploadedFile.type === '' || uploadedFile.type === 'text/csv' || uploadedFile.type === 'application/vnd.ms-excel';
 
     if (!validExtension) {
-      ultraMinimalToast({
-        title: 'Invalid file type',
-        description: 'Please upload a valid CSV file (.csv extension required).',
-        variant: 'destructive',
-      });
+      ultraMinimalToast.error('Invalid file type. Please upload a valid CSV file (.csv extension required).');
       // Reset the input so the user can try again
       if (event.target) {
         event.target.value = '';
@@ -67,11 +63,7 @@ export default function ReportUploadWizard({ onComplete }) {
     }
 
     if (!validMimeType) {
-      ultraMinimalToast({
-        title: 'Invalid file type',
-        description: 'The file type is not recognized as a CSV file. Please ensure you are uploading a valid CSV file.',
-        variant: 'destructive',
-      });
+      ultraMinimalToast.error('The file type is not recognized as a CSV file. Please ensure you are uploading a valid CSV file.');
       // Reset the input so the user can try again
       if (event.target) {
         event.target.value = '';
@@ -108,6 +100,13 @@ export default function ReportUploadWizard({ onComplete }) {
         });
         setCsvHeaders(headers);
         setPreviewData(data);
+        // Reset mapping when new file is uploaded
+        setMapping({
+          studentName: '',
+          score: '',
+          date: '',
+          activityName: '',
+        });
         setStep(STEPS.MAPPING);
       }
     };
@@ -237,11 +236,13 @@ export default function ReportUploadWizard({ onComplete }) {
             <Button
               className="w-full"
               onClick={() => {
-                const hasAnyMapping =
-                  mapping && Object.values(mapping).some((value) => Boolean(value));
-                if (!hasAnyMapping) {
+                // Check if at least one field is mapped and the mapped value exists in csvHeaders
+                const validMappings = Object.values(mapping).filter((value) => 
+                  Boolean(value) && csvHeaders.includes(value)
+                );
+                if (validMappings.length === 0) {
                   ultraMinimalToast.error(
-                    'Please map at least one column before reviewing the data.'
+                    'Please map at least one column from your CSV before reviewing the data.'
                   );
                   return;
                 }
@@ -298,7 +299,19 @@ export default function ReportUploadWizard({ onComplete }) {
             <Button
               className="mt-6"
               variant="outline"
-              onClick={() => setStep(STEPS.UPLOAD)}
+              onClick={() => {
+                // Reset all state when starting a new import
+                setFile(null);
+                setCsvHeaders([]);
+                setPreviewData([]);
+                setMapping({
+                  studentName: '',
+                  score: '',
+                  date: '',
+                  activityName: '',
+                });
+                setStep(STEPS.UPLOAD);
+              }}
             >
               Import Another
             </Button>

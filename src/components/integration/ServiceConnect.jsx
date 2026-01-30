@@ -119,13 +119,9 @@ export default function ServiceConnect({
       setIsConnected(false);
       ultraMinimalToast.success(`Disconnected ${serviceName}`);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       ultraMinimalToast.error(
         `Failed to disconnect ${serviceName}. Please try again.`
-      logger.error(error);
-      ultraMinimalToast(
-        `Failed to disconnect ${serviceName}. Please try again.`,
-        'error'
       );
     } finally {
       setIsConnecting(false);
