@@ -9,13 +9,16 @@ function parseCsv(text) {
   const headers = lines[0].split(',').map((h) => h.trim());
   return lines
     .slice(1)
-    .filter(Boolean)
-    .map((line) => {
+    .map((line, idx) => ({ line, originalLineNumber: idx + 2 })) // Track original line number (1-based + header)
+    .filter(({ line }) => line) // Filter out empty lines but preserve line numbers
+    .map(({ line, originalLineNumber }) => {
       const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
-      return headers.reduce((acc, header, idx) => {
+      const record = headers.reduce((acc, header, idx) => {
         acc[header] = values[idx] ?? '';
         return acc;
       }, {});
+      record.__lineNumber = originalLineNumber; // Attach original line number to each record
+      return record;
     });
 }
 
@@ -87,11 +90,11 @@ export default async function sisRosterImport(req, res) {
 
     if (normalizedType === 'students') {
       table = 'sis_roster_students';
-      rawRecords.forEach((record, idx) => {
+      rawRecords.forEach((record) => {
         const extId = resolveExternalId(record, ['sourcedId', 'id', 'student_id', 'external_id']);
         if (!extId) {
           skippedCount += 1;
-          errors.push(`Row ${idx + 2}: Missing student ID`);
+          errors.push(`Row ${record.__lineNumber}: Missing student ID`);
           return;
         }
         validObjects.push({
@@ -107,11 +110,11 @@ export default async function sisRosterImport(req, res) {
       });
     } else if (normalizedType === 'teachers') {
       table = 'sis_roster_teachers';
-      rawRecords.forEach((record, idx) => {
+      rawRecords.forEach((record) => {
         const extId = resolveExternalId(record, ['sourcedId', 'id', 'teacher_id', 'external_id']);
         if (!extId) {
           skippedCount += 1;
-          errors.push(`Row ${idx + 2}: Missing teacher ID`);
+          errors.push(`Row ${record.__lineNumber}: Missing teacher ID`);
           return;
         }
         validObjects.push({
@@ -127,11 +130,11 @@ export default async function sisRosterImport(req, res) {
       });
     } else if (normalizedType === 'classes') {
       table = 'sis_roster_classes';
-      rawRecords.forEach((record, idx) => {
+      rawRecords.forEach((record) => {
         const extId = resolveExternalId(record, ['sourcedId', 'id', 'class_id', 'external_id']);
         if (!extId) {
           skippedCount += 1;
-          errors.push(`Row ${idx + 2}: Missing class ID`);
+          errors.push(`Row ${record.__lineNumber}: Missing class ID`);
           return;
         }
         const teacherId = resolveExternalId(record, [
@@ -141,7 +144,7 @@ export default async function sisRosterImport(req, res) {
         ]);
         if (!teacherId) {
           skippedCount += 1;
-          errors.push(`Row ${idx + 2}: Missing teacher ID for class ${extId}`);
+          errors.push(`Row ${record.__lineNumber}: Missing teacher ID for class ${extId}`);
           return;
         }
         validObjects.push({
@@ -156,12 +159,12 @@ export default async function sisRosterImport(req, res) {
       });
     } else if (normalizedType === 'enrollments') {
       table = 'sis_roster_enrollments';
-      rawRecords.forEach((record, idx) => {
+      rawRecords.forEach((record) => {
         const classId = resolveExternalId(record, ['classSourcedId', 'class_id', 'classExternalId']);
         const studentId = resolveExternalId(record, ['userSourcedId', 'student_id', 'studentExternalId']);
         if (!classId || !studentId) {
           skippedCount += 1;
-          errors.push(`Row ${idx + 2}: Missing class ID or student ID`);
+          errors.push(`Row ${record.__lineNumber}: Missing class ID or student ID`);
           return;
         }
         validObjects.push({
