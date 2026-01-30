@@ -17,6 +17,7 @@ export default function ServiceConnect({
 }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(connected);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const timerRef = useRef(null);
 
   // Cleanup interval timer on unmount
