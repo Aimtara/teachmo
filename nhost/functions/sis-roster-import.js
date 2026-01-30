@@ -405,7 +405,11 @@ export default async function sisRosterImport(req, res) {
     // sis_roster_classes, or sis_roster_enrollments.
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
-        objects: $objects
+        objects: $objects,
+        on_conflict: {
+          constraint: ${table}_external_id_key,
+          update_columns: [data]
+        }
       ) { affected_rows }
     }`;
     const chunked = [];
