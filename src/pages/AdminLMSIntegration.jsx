@@ -93,7 +93,7 @@ export default function AdminLMSIntegration() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <header>
-        <h1 className="text-3xl font-bold text-gray-900">Integrations &amp; Data</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Integrations & Data</h1>
         <p className="text-gray-600">
           Configure LTI providers, xAPI stores, and third-party content services.
         </p>
@@ -119,18 +119,16 @@ export default function AdminLMSIntegration() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="lti-launch-url">Tool Launch URL</Label>
+                  <Label>Tool Launch URL</Label>
                   <Input
-                    id="lti-launch-url"
                     readOnly
                     value={LTI_LAUNCH_URL}
                     className="bg-gray-50"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lti-jwks-url">Public JWKS URL</Label>
+                  <Label>Public JWKS URL</Label>
                   <Input
-                    id="lti-jwks-url"
                     readOnly
                     value={LTI_JWKS_URL}
                     className="bg-gray-50"
