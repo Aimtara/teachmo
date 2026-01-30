@@ -37,6 +37,11 @@ function parseCsv(text) {
     .map(({ line, originalLineNumber }) => {
       const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
       const record = headers.reduce((acc, header, idx) => {
+    .filter(Boolean)
+    .map((line) => {
+      // Handle potential CSV quoting issues simply for MVP, or use a library in Phase 2
+      const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
+      return headers.reduce((acc, header, idx) => {
         acc[header] = values[idx] ?? '';
         return acc;
       }, {});
@@ -68,6 +73,7 @@ export default async function sisRosterImport(req, res) {
     const schoolIdHeader = req.headers['x-hasura-school-id']
       ? String(req.headers['x-hasura-school-id'])
       : null;
+    const schoolIdHeader = req.headers['x-hasura-school-id'] ? String(req.headers['x-hasura-school-id']) : null;
 
     if (!actorId || !allowedRoles.has(role)) {
       return res.status(403).json({ error: 'Unauthorized' });
@@ -227,6 +233,197 @@ export default async function sisRosterImport(req, res) {
         });
       } catch (e) {
         // If updating the job fails, continue returning the 400 response.
+
+    const {
+      csvText,
+      records,
+      rosterType = 'students',
+      source = 'csv',
+      schoolId,
+      fileName,
+      fileSize
+    } = req.body ?? {};
+
+    const rawRecords = Array.isArray(records) ? records : parseCsv(String(csvText ?? ''));
+    const effectiveSchoolId = schoolId ? String(schoolId) : schoolIdHeader;
+
+    if (!rawRecords.length) {
+      return res.status(200).json({ ok: true, inserted: 0, skipped: 0 });
+    }
+
+    // --- Validation Phase (Risk Mitigation) ---
+    const validObjects = [];
+    let skippedCount = 0;
+    const errors = [];
+
+    const jobId = await createImportJob(
+      organizationId,
+      effectiveSchoolId,
+      rosterType,
+      source,
+      fileName,
+      fileSize,
+      rawRecords.length
+    );
+    if (!jobId) return res.status(500).json({ error: 'Failed to create import job' });
+
+    const normalizedType = String(rosterType).toLowerCase();
+    let table = null;
+
+    if (normalizedType === 'students') {
+      table = 'sis_roster_students';
+      rawRecords.forEach((record, idx) => {
+        const extId = resolveExternalId(record, ['sourcedId', 'id', 'student_id', 'external_id']);
+        if (!extId) {
+          skippedCount++;
+          errors.push(`Row ${idx + 2}: Missing student ID`);
+          return;
+        }
+        validObjects.push({
+          job_id: jobId,
+          organization_id: organizationId,
+          school_id: effectiveSchoolId,
+          external_id: extId,
+          first_name: record.first_name || record.givenName || record.firstName || null,
+          last_name: record.last_name || record.familyName || record.lastName || null,
+          grade: record.grade || record.grade_level || record.gradeLevel || null,
+          data: record
+        });
+      });
+    } else if (normalizedType === 'teachers') {
+      table = 'sis_roster_teachers';
+      rawRecords.forEach((record, idx) => {
+        const extId = resolveExternalId(record, ['sourcedId', 'id', 'teacher_id', 'external_id']);
+        if (!extId) {
+          skippedCount++;
+          errors.push(`Row ${idx + 2}: Missing teacher ID`);
+          return;
+        }
+        validObjects.push({
+          job_id: jobId,
+          organization_id: organizationId,
+          school_id: effectiveSchoolId,
+          external_id: extId,
+          first_name: record.first_name || record.givenName || record.firstName || null,
+          last_name: record.last_name || record.familyName || record.lastName || null,
+          email: record.email || record.emailAddress || null,
+          data: record
+        });
+      });
+    } else if (normalizedType === 'classes') {
+      table = 'sis_roster_classes';
+      rawRecords.forEach((record, idx) => {
+        const extId = resolveExternalId(record, ['sourcedId', 'id', 'class_id', 'external_id']);
+        if (!extId) {
+          skippedCount++;
+          errors.push(`Row ${idx + 2}: Missing class ID`);
+          return;
+        }
+        validObjects.push({
+          job_id: jobId,
+          organization_id: organizationId,
+          school_id: effectiveSchoolId,
+          external_id: extId,
+          name: record.name || record.title || record.className || 'Untitled Class',
+          teacher_external_id: resolveExternalId(record, ['teacherSourcedId', 'teacher_id', 'teacherExternalId']),
+          data: record
+        });
+      });
+    } else if (normalizedType === 'enrollments') {
+      table = 'sis_roster_enrollments';
+      rawRecords.forEach((record, idx) => {
+        const classId = resolveExternalId(record, ['classSourcedId', 'class_id', 'classExternalId']);
+        const studentId = resolveExternalId(record, ['userSourcedId', 'student_id', 'studentExternalId']);
+        if (!classId || !studentId) {
+          skippedCount++;
+          errors.push(`Row ${idx + 2}: Missing class ID or student ID`);
+          return;
+        }
+        validObjects.push({
+          job_id: jobId,
+          organization_id: organizationId,
+          school_id: effectiveSchoolId,
+          class_external_id: classId,
+          student_external_id: studentId,
+          data: record
+        });
+      });
+    } else {
+      return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
+    }
+
+    // --- Execution Phase ---
+    const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
+      insert_${table}(
+        objects: $objects,
+        on_conflict: { constraint: ${table}_pkey, update_columns: [data] }
+      ) { affected_rows }
+    }`;
+
+    // Note: The on_conflict constraint name assumes standard naming (${table}_pkey).
+    // If your schema differs, remove the on_conflict block.
+
+    const chunked = [];
+    const chunkSize = 500;
+    for (let i = 0; i < validObjects.length; i += chunkSize) {
+      chunked.push(validObjects.slice(i, i + chunkSize));
+    }
+
+    let inserted = 0;
+    for (const chunk of chunked) {
+      try {
+        const result = await hasuraRequest({
+          query: insertRoster,
+          variables: { objects: chunk }
+        });
+        inserted += result?.[`insert_${table}`]?.affected_rows ?? 0;
+      } catch (err) {
+        console.error(`Batch import failed for ${table}`, err);
+        errors.push(`Batch error: ${err.message}`);
+        // Continue to next chunk to attempt partial success
+      }
+    }
+
+    await updateImportJob(jobId, {
+      status: errors.length > 0 ? 'completed_with_errors' : 'completed',
+      metadata: {
+        file_name: fileName,
+        file_size: fileSize,
+        record_count: rawRecords.length,
+        inserted_count: inserted,
+        skipped_count: skippedCount,
+        errors: errors.slice(0, 50) // Cap error log size
+      },
+      finished_at: new Date().toISOString()
+    });
+
+    return res.status(200).json({
+      ok: true,
+      inserted,
+      skipped: skippedCount,
+      jobId,
+      warnings: errors.length > 0 ? errors.slice(0, 5) : []
+    });
+  } catch (err) {
+    console.error('SIS Import Fatal Error:', err);
+    return res.status(500).json({ error: 'Internal importer error' });
+  }
+}
+
+async function createImportJob(orgId, schoolId, type, source, fileName, fileSize, count) {
+  const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
+    insert_sis_import_jobs_one(object: $object) { id }
+  }`;
+  const res = await hasuraRequest({
+    query: insertJob,
+    variables: {
+      object: {
+        organization_id: orgId,
+        school_id: schoolId,
+        roster_type: type,
+        source,
+        status: 'processing',
+        metadata: { file_name: fileName, file_size: fileSize, record_count: count }
       }
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
@@ -250,17 +447,6 @@ export default async function sisRosterImport(req, res) {
     // This guards against potential GraphQL injection if the logic above is modified.
     if (!table || !ALLOWED_TABLES.has(table)) {
       return res.status(500).json({ error: 'Invalid table name for roster import' });
-    }
-
-    // Determine which columns should be updated on conflict.
-    // Default to updating only the JSONB "data" field to preserve existing behavior.
-    // For tables where we have explicit normalized columns in this file, include them
-    // so they stay in sync with the latest CSV on re-import.
-    let updateColumns = '[data]';
-    if (table === 'sis_roster_classes') {
-      // For classes, "name" and "teacher_external_id" are normalized, non-key fields
-      // that should be updated when the source roster changes.
-      updateColumns = '[name, teacher_external_id, data]';
     }
 
     // SAFETY: The `table` variable is guaranteed to be safe for use in this GraphQL mutation
@@ -318,7 +504,18 @@ export default async function sisRosterImport(req, res) {
         finished_at: new Date().toISOString()
       });
     } catch (err) {
-      console.error('Failed to update SIS import job metadata', { jobId, error: err });
+      console.error('Failed to update SIS import job metadata', { 
+        jobId, 
+        error: err.message || String(err),
+        stack: err.stack 
+      });
+      return res.status(500).json({
+        error: 'Import completed but failed to update job metadata',
+        jobId,
+        inserted,
+        skipped: skippedCount,
+        details: 'Job record may be in incorrect state. Contact system administrator.'
+      });
     }
 
     // Return the same error list in the response for consistency.
@@ -373,6 +570,8 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
     console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
     return null;
   }
+  });
+  return res?.insert_sis_import_jobs_one?.id;
 }
 
 async function updateImportJob(id, changes) {
@@ -388,4 +587,8 @@ async function updateImportJob(id, changes) {
     console.error('Failed to update SIS import job', { id, error: err });
     throw err; // Re-throw to allow caller to handle
   }
+  await hasuraRequest({
+    query: updateJob,
+    variables: { id, changes }
+  });
 }
