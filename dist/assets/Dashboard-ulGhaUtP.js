@@ -1,2 +1,0 @@
-import{A as i,a as u,j as e,N as t,g as d}from"./index-BPP-_OMN.js";function c(){const{isAuthenticated:r,isLoading:a}=i(),{role:o,loading:n,needsOnboarding:s}=u();return r?a||n?e.jsx("div",{className:"p-6 text-center text-sm text-muted-foreground",children:"Loading…"}):s?e.jsx(t,{to:"/onboarding",replace:!0}):e.jsx(t,{to:d(o),replace:!0}):e.jsx(t,{to:"/",replace:!0})}export{c as default};
-//# sourceMappingURL=Dashboard-ulGhaUtP.js.map
