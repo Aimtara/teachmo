@@ -42,6 +42,38 @@ export default function ReportUploadWizard({ onComplete }) {
     activityName: '',
   });
 
+  const parseCSVLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    // Add the last field
+    result.push(current.trim());
+    return result;
+  };
+
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
     if (!uploadedFile) {
@@ -58,11 +90,7 @@ export default function ReportUploadWizard({ onComplete }) {
     const validMimeType = uploadedFile.type === '' || uploadedFile.type === 'text/csv' || uploadedFile.type === 'application/vnd.ms-excel';
 
     if (!validExtension) {
-      ultraMinimalToast({
-        title: 'Invalid file type',
-        description: 'Please upload a valid CSV file (.csv extension required).',
-        variant: 'destructive',
-      });
+      ultraMinimalToast.error('Invalid file type. Please upload a valid CSV file (.csv extension required).');
       // Reset the input so the user can try again
       if (event.target) {
         event.target.value = '';
@@ -71,11 +99,7 @@ export default function ReportUploadWizard({ onComplete }) {
     }
 
     if (!validMimeType) {
-      ultraMinimalToast({
-        title: 'Invalid file type',
-        description: 'The file type is not recognized as a CSV file. Please ensure you are uploading a valid CSV file.',
-        variant: 'destructive',
-      });
+      ultraMinimalToast.error('The file type is not recognized as a CSV file. Please ensure you are uploading a valid CSV file.');
       // Reset the input so the user can try again
       if (event.target) {
         event.target.value = '';
@@ -85,11 +109,7 @@ export default function ReportUploadWizard({ onComplete }) {
 
     const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit to prevent browser hangs
     if (uploadedFile.size > MAX_FILE_SIZE_BYTES) {
-      ultraMinimalToast({
-        title: 'File too large',
-        description: 'Please upload a CSV file smaller than 5MB.',
-        variant: 'destructive',
-      });
+      ultraMinimalToast.error('File too large. Please upload a CSV file smaller than 5MB.');
       // Reset the input so the same file can be reselected if needed
       if (event.target) {
         event.target.value = '';
@@ -148,6 +168,13 @@ export default function ReportUploadWizard({ onComplete }) {
         });
         setCsvHeaders(headers);
         setPreviewData(data);
+        // Reset mapping when new file is uploaded
+        setMapping({
+          studentName: '',
+          score: '',
+          date: '',
+          activityName: '',
+        });
         setStep(STEPS.MAPPING);
       }
     };
@@ -155,7 +182,7 @@ export default function ReportUploadWizard({ onComplete }) {
     reader.onerror = () => {
       ultraMinimalToast.error('Failed to read file. Please try again with a valid CSV.');
     reader.onerror = () => {
-      ultraMinimalToast('Failed to read file. Please try again with a valid CSV.');
+      ultraMinimalToast.error('Failed to read file. Please try again with a valid CSV.');
       setFile(null);
       setCsvHeaders([]);
       setPreviewData([]);
@@ -288,6 +315,19 @@ export default function ReportUploadWizard({ onComplete }) {
                 !mapping.studentName ||
                 !(mapping.score || mapping.date || mapping.activityName)
               }
+              onClick={() => {
+                // Check if at least one field is mapped and the mapped value exists in csvHeaders
+                const validMappings = Object.values(mapping).filter((value) => 
+                  Boolean(value) && csvHeaders.includes(value)
+                );
+                if (validMappings.length === 0) {
+                  ultraMinimalToast.error(
+                    'Please map at least one column from your CSV before reviewing the data.'
+                  );
+                  return;
+                }
+                setStep(STEPS.PREVIEW);
+              }}
             >
               Review Data <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -342,7 +382,19 @@ export default function ReportUploadWizard({ onComplete }) {
             <Button
               className="mt-6"
               variant="outline"
-              onClick={() => setStep(STEPS.UPLOAD)}
+              onClick={() => {
+                // Reset all state when starting a new import
+                setFile(null);
+                setCsvHeaders([]);
+                setPreviewData([]);
+                setMapping({
+                  studentName: '',
+                  score: '',
+                  date: '',
+                  activityName: '',
+                });
+                setStep(STEPS.UPLOAD);
+              }}
             >
               Import Another
             </Button>

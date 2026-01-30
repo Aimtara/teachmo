@@ -100,6 +100,13 @@ export default function ServiceConnect({
         if (popup?.closed) {
           window.clearInterval(intervalRef.current);
           intervalRef.current = null;
+      // Check if popup was blocked
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        setIsConnecting(false);
+        ultraMinimalToast.error('Popup blocked. Please allow popups for this site and try again.');
+        return;
+      }
+
       // Clear any existing timer before creating a new one
       if (timerRef.current) {
         window.clearInterval(timerRef.current);
@@ -134,13 +141,12 @@ export default function ServiceConnect({
     setIsConnecting(true);
 
     try {
+      const headers = await getIntegrationHeaders();
       const response = await fetch(
         `${API_BASE_URL}/integrations/${serviceKey}/disconnect`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       );
 
@@ -157,9 +163,8 @@ export default function ServiceConnect({
       ultraMinimalToast(`Disconnected ${serviceName}`);
     } catch (error) {
       logger.error(error);
-      ultraMinimalToast(
-        `Failed to disconnect ${serviceName}. Please try again.`,
-        'error'
+      ultraMinimalToast.error(
+        `Failed to disconnect ${serviceName}. Please try again.`
       );
     } finally {
       setIsConnecting(false);
