@@ -12,6 +12,11 @@ describe('performStartupCheck', () => {
     originalEnv = { ...process.env };
     originalExit = process.exit;
     
+    // Clear all environment variables for clean test isolation
+    Object.keys(process.env).forEach((key) => {
+      delete process.env[key];
+    });
+    
     // Mock process.exit
     process.exit = jest.fn();
     
@@ -22,14 +27,19 @@ describe('performStartupCheck', () => {
   });
 
   afterEach(() => {
-    // Restore original environment and process.exit
-    process.env = originalEnv;
-    process.exit = originalExit;
-    
     // Restore console methods
     consoleErrorSpy.mockRestore();
     consoleWarnSpy.mockRestore();
     consoleInfoSpy.mockRestore();
+    
+    // Clear and restore original environment
+    Object.keys(process.env).forEach((key) => {
+      delete process.env[key];
+    });
+    Object.assign(process.env, originalEnv);
+    
+    // Restore process.exit
+    process.exit = originalExit;
   });
 
   test('passes when all required variables are present', () => {
@@ -41,7 +51,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(process.exit).not.toHaveBeenCalled();
-    expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('Environment configuration check passed'));
+    expect(consoleInfoSpy).toHaveBeenCalledWith('[env-check]', expect.stringContaining('Environment configuration check passed'));
   });
 
   test('accepts alternative admin secret variables', () => {
@@ -53,7 +63,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(process.exit).not.toHaveBeenCalled();
-    expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('Environment configuration check passed'));
+    expect(consoleInfoSpy).toHaveBeenCalledWith('[env-check]', expect.stringContaining('Environment configuration check passed'));
   });
 
   test('accepts alternative GraphQL URL variables', () => {
@@ -65,7 +75,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(process.exit).not.toHaveBeenCalled();
-    expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('Environment configuration check passed'));
+    expect(consoleInfoSpy).toHaveBeenCalledWith('[env-check]', expect.stringContaining('Environment configuration check passed'));
   });
 
   test('exits in production when required admin secret is missing', () => {
@@ -77,6 +87,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[env-check]',
       expect.stringContaining('FATAL: Missing required environment variables'),
       expect.arrayContaining([expect.stringContaining('NHOST_ADMIN_SECRET')])
     );
@@ -92,6 +103,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[env-check]',
       expect.stringContaining('FATAL: Missing required environment variables'),
       expect.arrayContaining([expect.stringContaining('NHOST_GRAPHQL_URL')])
     );
@@ -107,6 +119,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[env-check]',
       expect.stringContaining('FATAL: Missing required environment variables'),
       expect.arrayContaining(['AUTH_JWKS_URL'])
     );
@@ -120,6 +133,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[env-check]',
       expect.stringContaining('FATAL: Missing required environment variables'),
       expect.any(Array)
     );
@@ -136,6 +150,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[env-check]',
       expect.stringContaining('WARNING: Missing integration keys in production'),
       expect.arrayContaining(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'])
     );
@@ -152,6 +167,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(consoleInfoSpy).toHaveBeenCalledWith(
+      '[env-check]',
       expect.stringContaining('Missing integration keys (acceptable for local dev)'),
       expect.arrayContaining(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'])
     );
@@ -170,7 +186,7 @@ describe('performStartupCheck', () => {
     performStartupCheck();
 
     expect(consoleWarnSpy).not.toHaveBeenCalled();
-    expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('Environment configuration check passed'));
+    expect(consoleInfoSpy).toHaveBeenCalledWith('[env-check]', expect.stringContaining('Environment configuration check passed'));
     expect(process.exit).not.toHaveBeenCalled();
   });
 });

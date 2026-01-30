@@ -180,8 +180,6 @@ export default async function sisRosterImport(req, res) {
       updateColumns = '[first_name, last_name, email, data]';
     } else if (table === 'sis_roster_classes') {
       updateColumns = '[name, teacher_external_id, data]';
-    } else if (table === 'sis_roster_enrollments') {
-      updateColumns = '[data]';
     }
 
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
