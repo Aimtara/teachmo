@@ -212,7 +212,18 @@ export default async function sisRosterImport(req, res) {
         finished_at: new Date().toISOString()
       });
     } catch (err) {
-      console.error('Failed to update SIS import job metadata', { jobId, error: err });
+      console.error('Failed to update SIS import job metadata', { 
+        jobId, 
+        error: err.message || String(err),
+        stack: err.stack 
+      });
+      return res.status(500).json({
+        error: 'Import completed but failed to update job metadata',
+        jobId,
+        inserted,
+        skipped: skippedCount,
+        details: 'Job record may be in incorrect state. Contact system administrator.'
+      });
     }
 
     return res.status(200).json({
