@@ -9,12 +9,15 @@ import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
 import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
 import { createLogger } from './utils/logger.js';
 import { runMigrations } from './migrate.js';
+import { performStartupCheck } from './utils/envCheck.js';
 
 // Load environment variables
 dotenv.config();
 
 const PORT = process.env.PORT || 4000;
 const logger = createLogger('server');
+
+performStartupCheck();
 
 // Seed demo data ONLY when explicitly enabled.
 // Never seed in production.
