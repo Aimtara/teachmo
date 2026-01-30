@@ -3,6 +3,12 @@ import { createLogger } from './logger.js';
 
 const logger = createLogger('env-check');
 
+// At least one from each group must be present
+const REQUIRED_VAR_GROUPS = {
+  'GraphQL URL': ['NHOST_GRAPHQL_URL', 'HASURA_GRAPHQL_URL', 'NHOST_BACKEND_URL'],
+  'Admin Secret': ['NHOST_ADMIN_SECRET', 'HASURA_GRAPHQL_ADMIN_SECRET', 'HASURA_ADMIN_SECRET'],
+  'JWKS URL': ['AUTH_JWKS_URL', 'NHOST_JWKS_URL']
+};
 // Check for at least one admin secret variant and one GraphQL URL variant
 const REQUIRED_ADMIN_SECRET_VARS = ['NHOST_ADMIN_SECRET', 'HASURA_GRAPHQL_ADMIN_SECRET', 'HASURA_ADMIN_SECRET'];
 const REQUIRED_GRAPHQL_URL_VARS = ['NHOST_GRAPHQL_URL', 'HASURA_GRAPHQL_URL', 'NHOST_BACKEND_URL'];
@@ -10,6 +16,18 @@ const REQUIRED_VARS = ['AUTH_JWKS_URL'];
 const REQUIRED_VARS = ['NHOST_ADMIN_SECRET', 'AUTH_JWKS_URL'];
 
 const INTEGRATION_VARS = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'];
+const REQUIRED_VARS = [
+  'NHOST_ADMIN_SECRET',
+  'NHOST_SUBDOMAIN',
+  'NHOST_REGION',
+  'AUTH_JWKS_URL'
+];
+
+const INTEGRATION_VARS = [
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'OPENAI_API_KEY'
+];
 
 /**
  * Validates database connection configuration.
@@ -56,6 +74,12 @@ export function performStartupCheck() {
   const dbValidation = validateDatabaseConfig();
 
   // Check core required variables
+  // Check required variable groups (at least one from each group must exist)
+  Object.entries(REQUIRED_VAR_GROUPS).forEach(([groupName, vars]) => {
+    const hasAtLeastOne = vars.some((key) => process.env[key]);
+    if (!hasAtLeastOne) {
+      missing.push(`${groupName} (one of: ${vars.join(', ')})`);
+    }
   // Check that at least one admin secret variant exists
   const hasAdminSecret = REQUIRED_ADMIN_SECRET_VARS.some((key) => process.env[key]);
   if (!hasAdminSecret) {
@@ -69,11 +93,13 @@ export function performStartupCheck() {
   }
 
   // Check other required vars
+  // Critical Core
   REQUIRED_VARS.forEach((key) => {
     if (!process.env[key]) missing.push(key);
   });
 
   // Check integration variables
+  // Integrations (Warn only in dev, Error in Prod if critical)
   INTEGRATION_VARS.forEach((key) => {
     if (!process.env[key]) warnings.push(key);
   });

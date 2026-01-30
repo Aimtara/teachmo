@@ -8,6 +8,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HelpCircle } from 'lucide-react';
+
+// Helper for inline contextual help
+const ContextualHelp = ({ content }) => (
+  <TooltipProvider>
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <HelpCircle className="h-4 w-4 text-gray-400 cursor-help ml-2 inline-block align-middle" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-sm bg-slate-900 text-white p-2 rounded shadow-lg">
+        <p>{content}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 const PROVIDERS = [
   { id: 'google', label: 'Google Workspace' },
@@ -257,36 +274,68 @@ export default function AdminSSOSettings() {
                     <div className="text-sm font-semibold">{provider.label}</div>
                     <div className="text-xs text-muted-foreground">Provider key: {provider.id}</div>
                   </div>
-                  <Checkbox
-                    checked={Boolean(config.is_enabled)}
-                    onCheckedChange={(checked) => updateProvider(provider.id, { is_enabled: checked })}
-                    aria-label={`Enable ${provider.label}`}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`enable-${provider.id}`} className="text-sm text-muted-foreground">
+                      Enable
+                    </Label>
+                    <Checkbox
+                      id={`enable-${provider.id}`}
+                      checked={Boolean(config.is_enabled)}
+                      onCheckedChange={(checked) => updateProvider(provider.id, { is_enabled: checked })}
+                      aria-label={`Enable ${provider.label}`}
+                    />
+                  </div>
                 </div>
+
+                {/* Contextual Help Integration */}
                 <div className="grid gap-3 md:grid-cols-2">
-                  <Input
-                    value={config.client_id ?? ''}
-                    onChange={(event) => updateProvider(provider.id, { client_id: event.target.value })}
-                    placeholder="Client ID"
-                  />
-                  <Input
-                    value={config.client_secret ?? ''}
-                    onChange={(event) => updateProvider(provider.id, { client_secret: event.target.value })}
-                    placeholder="Client Secret"
-                    type="password"
-                  />
-                  <Input
-                    value={config.issuer ?? ''}
-                    onChange={(event) => updateProvider(provider.id, { issuer: event.target.value })}
-                    placeholder="Issuer / Metadata URL"
+                  <div className="space-y-1">
+                    <Label className="text-xs">Client ID</Label>
+                    <Input
+                      value={config.client_id ?? ''}
+                      onChange={(event) => updateProvider(provider.id, { client_id: event.target.value })}
+                      placeholder="Client ID"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      Client Secret
+                      <ContextualHelp content="This secret is encrypted at rest. We never display the full value after saving." />
+                    </Label>
+                    <Input
+                      value={config.client_secret ?? ''}
+                      onChange={(event) => updateProvider(provider.id, { client_secret: event.target.value })}
+                      placeholder="Client Secret"
+                      type="password"
+                    />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <Label className="text-xs">
+                      Issuer URL
+                      <ContextualHelp content="The OIDC Issuer URL (e.g. https://accounts.google.com). Used for discovery." />
+                    </Label>
+                    <Input
+                      value={config.issuer ?? ''}
+                      onChange={(event) => updateProvider(provider.id, { issuer: event.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    Additional Metadata (JSON)
+                    <ContextualHelp content="Use this field for advanced SAML mapping or forcing specific OIDC scopes." />
+                  </Label>
+                  <Textarea
+                    value={config.metadata ?? ''}
+                    onChange={(event) => updateProvider(provider.id, { metadata: event.target.value })}
+                    rows={4}
+                    placeholder='{"scopes": ["openid", "profile"]}'
+                    className="font-mono text-xs"
                   />
                 </div>
-                <Textarea
-                  value={config.metadata ?? ''}
-                  onChange={(event) => updateProvider(provider.id, { metadata: event.target.value })}
-                  rows={4}
-                  placeholder='{"scopes": ["openid", "profile"]}'
-                />
+
                 <div className="flex justify-end">
                   <Button
                     onClick={() => saveProviderMutation.mutate({ providerId: provider.id })}

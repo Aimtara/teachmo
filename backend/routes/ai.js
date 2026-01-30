@@ -4,6 +4,9 @@ import { query } from '../db.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
+import { requirePermission } from '../middleware/permissions.js';
+import { auditEvent } from '../security/audit.js';
+import { invokeLLM } from '../functions/invoke-llm.js';
 
 const router = Router();
 
@@ -108,6 +111,113 @@ function resolveModel({ policy, preferredModel, featureFlags = {} }) {
     unmetFlags,
   };
 }
+
+function enforceBudget({ budget, policy, selectedModel }) {
+  const limit = budget?.monthly_limit_usd ? Number(budget.monthly_limit_usd) : null;
+  const spent = budget?.spent_usd ? Number(budget.spent_usd) : 0;
+  const budgetExceeded = limit !== null && spent >= limit;
+
+  if (!budgetExceeded) {
+    return { blocked: false, model: selectedModel, reason: 'budget_ok' };
+  }
+
+  const fallback = budget?.fallback_policy || 'block';
+  if (fallback === 'degrade') {
+    return {
+      blocked: false,
+      model: policy?.fallback_model || policy?.default_model || selectedModel,
+      reason: 'budget_degraded',
+    };
+  }
+  if (fallback === 'allow') {
+    return { blocked: false, model: selectedModel, reason: 'budget_allow' };
+  }
+  return { blocked: true, model: selectedModel, reason: 'budget_blocked' };
+}
+
+router.post('/completion', requirePermission('generate', 'ai'), async (req, res) => {
+  const { prompt, model, context, featureFlags } = req.body || {};
+  const { organizationId, schoolId } = req.tenant;
+
+  if (!prompt) {
+    return res.status(400).json({ error: 'missing prompt' });
+  }
+
+  try {
+    const policy = await loadModelPolicy(organizationId, schoolId);
+    const budget = await loadBudget(organizationId, schoolId);
+    const resolved = resolveModel({ policy, preferredModel: model, featureFlags });
+    const budgetResult = enforceBudget({ budget, policy, selectedModel: resolved.model });
+
+    if (budgetResult.blocked) {
+      await auditEvent(req, {
+        eventType: 'ai_budget_blocked',
+        severity: 'warn',
+        meta: { organizationId, schoolId, model: resolved.model },
+      });
+      return res.status(429).json({ error: 'AI budget exceeded for this month.' });
+    }
+
+    const response = await invokeLLM({
+      prompt,
+      model: budgetResult.model,
+      context,
+      user: req.auth?.userId,
+    });
+
+    const usage = response?.usage || {};
+    const tokenPrompt = Number(usage.prompt_tokens || 0);
+    const tokenResponse = Number(usage.completion_tokens || 0);
+    const tokenTotal = Number(usage.total_tokens || tokenPrompt + tokenResponse);
+    const costUsd = estimateCost({ tokenTotal, model: budgetResult.model });
+
+    const log = await query(
+      `insert into ai_interactions
+        (organization_id, school_id, actor_id, actor_role, child_id, prompt, response, token_prompt, token_response, token_total,
+         safety_risk_score, safety_flags, model, metadata, latency_ms, inputs, outputs, prompt_id, prompt_version_id, user_id, cost_usd)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14::jsonb,$15,$16::jsonb,$17::jsonb,$18,$19,$20,$21)
+       returning id`,
+      [
+        organizationId,
+        schoolId || null,
+        req.auth?.userId || null,
+        req.auth?.role || null,
+        null,
+        prompt,
+        response?.content ?? null,
+        tokenPrompt || null,
+        tokenResponse || null,
+        tokenTotal || null,
+        null,
+        JSON.stringify([]),
+        budgetResult.model,
+        JSON.stringify({ source: 'completion' }),
+        response?.latencyMs ?? null,
+        JSON.stringify({ context: context ?? null }),
+        JSON.stringify({ content: response?.content ?? null }),
+        null,
+        null,
+        req.auth?.userId || null,
+        costUsd || null,
+      ]
+    );
+
+    const interactionId = log.rows?.[0]?.id;
+    if (interactionId && costUsd) {
+      await query(
+        `insert into ai_cost_ledger (organization_id, school_id, interaction_id, model, token_total, cost_usd)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [organizationId, schoolId || null, interactionId, budgetResult.model, tokenTotal || null, costUsd]
+      );
+      await updateBudgetSpend({ organizationId, schoolId, costUsd });
+    }
+
+    return res.json({ content: response?.content ?? null, model: budgetResult.model, usage });
+  } catch (error) {
+    console.error('AI Completion Error:', error);
+    return res.status(500).json({ error: 'AI processing failed' });
+  }
+});
 
 router.post('/resolve-model', async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
