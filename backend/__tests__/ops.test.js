@@ -7,9 +7,13 @@ jest.mock('../db.js', () => ({
   query: jest.fn(),
 }));
 
-function makeApp() {
+function makeApp(auth = { userId: 'admin-user', role: 'system_admin' }) {
   const app = express();
   app.use(express.json());
+  app.use((req, res, next) => {
+    req.auth = auth;
+    next();
+  });
   app.use('/api/ops', opsRouter);
   return app;
 }
@@ -17,17 +21,16 @@ function makeApp() {
 describe('Ops router', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.OPS_ADMIN_KEY = 'test-key';
   });
 
-  test('rejects requests without ops admin key', async () => {
-    const app = makeApp();
+  test('rejects requests without auth', async () => {
+    const app = makeApp(null);
     const res = await request(app).get('/api/ops/families');
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     expect(res.body).toHaveProperty('error');
   });
 
-  test('lists families when key is provided', async () => {
+  test('lists families when admin auth is provided', async () => {
     // tableExists('families')
     query.mockResolvedValueOnce({ rows: [{ reg: 'families' }] });
     // families query
@@ -44,9 +47,7 @@ describe('Ops router', () => {
     });
 
     const app = makeApp();
-    const res = await request(app)
-      .get('/api/ops/families')
-      .set('x-ops-admin-key', 'test-key');
+    const res = await request(app).get('/api/ops/families');
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('families');
@@ -65,9 +66,7 @@ describe('Ops router', () => {
       .mockResolvedValueOnce({ rows: [{ hour: '2026-01-24T00:00:00Z', ingests: 1 }] });
 
     const app = makeApp();
-    const res = await request(app)
-      .get('/api/ops/families/fam_1/health')
-      .set('x-ops-admin-key', 'test-key');
+    const res = await request(app).get('/api/ops/families/fam_1/health');
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('daily');

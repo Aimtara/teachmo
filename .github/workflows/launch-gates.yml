@@ -1,0 +1,81 @@
+name: launch-gates
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: launch-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  launch-gates:
+    name: launch-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # --------------------------------------------------------
+      # G0: Secret Hygiene & Architecture Integrity
+      # --------------------------------------------------------
+      - name: G0 - Secret Hygiene Scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Scanning for prohibited client-side secrets..."
+
+          # Fail if legacy ops keys exist in src/
+          if grep -rE "VITE_OPS_ADMIN_KEY|x-ops-admin-key|OPS_ADMIN_KEY" src/; then
+            echo "❌ FAILED: Found forbidden ops/admin key pattern in frontend code."
+            exit 1
+          fi
+
+          # Fail if .env.example contains sensitive VITE_ values
+          if [ -f .env.example ]; then
+            if grep -E "^VITE_.*(KEY|SECRET|PASSWORD|TOKEN)=" .env.example; then
+              echo "❌ FAILED: .env.example contains a VITE_* variable that looks like a secret."
+              exit 1
+            fi
+          fi
+
+          echo "✅ G0 Secret Hygiene Passed."
+
+      # --------------------------------------------------------
+      # G0/G3: Backend Ops Auth (JWT Enforcement)
+      # --------------------------------------------------------
+      - name: Install Dependencies
+        run: npm ci && cd backend && npm ci
+
+      - name: G0 - Backend Ops Auth Tests
+        working-directory: backend
+        env:
+          NODE_ENV: test
+        run: |
+          # Runs the specific ops auth test suite
+          npm run test:ops-auth
+
+      # --------------------------------------------------------
+      # G3: Operational Readiness (E2E Smoke)
+      # --------------------------------------------------------
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: G3 - Ops E2E Smoke Test
+        env:
+          BASE_URL: http://localhost:5173
+          # Mocks handled within Playwright, or point to preview env
+        run: |
+          npm run e2e:ops

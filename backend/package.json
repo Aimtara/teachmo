@@ -12,7 +12,8 @@
     "snapshot:hourly": "node jobs/snapshotHourlyMetrics.js 48",
     "mitigation:reap": "node jobs/mitigationReaper.js",
     "tick:daily": "node jobs/orchestratorTick.js daily",
-    "tick:weekly": "node jobs/orchestratorTick.js weekly"
+    "tick:weekly": "node jobs/orchestratorTick.js weekly",
+    "test:ops-auth": "jest --config ../jest.backend.config.cjs --testPathPattern ops-auth"
   },
   "dependencies": {
     "cors": "^2.8.5",

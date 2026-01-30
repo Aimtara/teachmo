@@ -1,13 +1,29 @@
 import { API_BASE_URL } from '@/config/api';
+import { nhost } from '@/lib/nhostClient';
+
+const getHeaders = () => {
+  const token = nhost.auth.getAccessToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
 const opsFetch = async (path, { headers, ...options } = {}) => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
-      'Content-Type': 'application/json',
+      ...getHeaders(),
       ...headers,
     },
     ...options,
   });
+
+  if (response.status === 401) {
+    throw new Error('Unauthorized: Please log in again.');
+  }
+  if (response.status === 403) {
+    throw new Error('Forbidden: You do not have permission to access Ops tools.');
+  }
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
