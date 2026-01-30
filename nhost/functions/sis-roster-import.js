@@ -206,6 +206,21 @@ export default async function sisRosterImport(req, res) {
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
+    // Determine which columns should be updated on conflict.
+    // For tables with normalized columns, update them to stay in sync with the latest CSV.
+    let updateColumns = '[data]';
+    if (table === 'sis_roster_students') {
+      updateColumns = '[first_name, last_name, grade, data]';
+    } else if (table === 'sis_roster_teachers') {
+      updateColumns = '[first_name, last_name, email, data]';
+    } else if (table === 'sis_roster_classes') {
+      updateColumns = '[name, teacher_external_id, data]';
+    }
+
+    const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
+      insert_${table}(
+        objects: $objects,
+        on_conflict: { constraint: ${table}_pkey, update_columns: ${updateColumns} }
     // Whitelist validation: Ensure the table name is one of the allowed SIS roster tables.
     // This guards against potential GraphQL injection if the logic above is modified.
     if (!table || !ALLOWED_TABLES.has(table)) {
@@ -298,6 +313,10 @@ export default async function sisRosterImport(req, res) {
 }
 
 async function createImportJob(orgId, schoolId, type, source, fileName, fileSize, count) {
+  try {
+    const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
+      insert_sis_import_jobs_one(object: $object) { id }
+    }`;
   const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
     insert_sis_import_jobs_one(object: $object) { id }
   }`;
@@ -317,6 +336,7 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
     });
     return res?.insert_sis_import_jobs_one?.id;
   } catch (err) {
+    console.error('Failed to create SIS import job', { orgId, type, error: err.message });
     console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
     return null;
   }
