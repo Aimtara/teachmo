@@ -228,10 +228,12 @@ describe('performStartupCheck', () => {
     // Save original environment
     originalEnv = { ...process.env };
 
-    // Reset logger mocks
-    mockLogger.error.mockClear();
-    mockLogger.warn.mockClear();
-    mockLogger.info.mockClear();
+    // Reset logger mocks if initialized
+    if (mockLogger) {
+      mockLogger.error.mockClear();
+      mockLogger.warn.mockClear();
+      mockLogger.info.mockClear();
+    }
     // Store original environment
     originalEnv = { ...process.env };
 
