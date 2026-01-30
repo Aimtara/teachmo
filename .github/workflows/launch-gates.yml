@@ -29,43 +29,75 @@ jobs:
           cache: npm
 
       # --------------------------------------------------------
-      # G0: Secret Hygiene & Architecture Integrity
+      # G0: Secret Hygiene Scan
       # --------------------------------------------------------
       - name: G0 - Secret Hygiene Scan
         shell: bash
         run: |
           set -euo pipefail
           echo "Scanning for prohibited client-side secrets..."
-
-          # Fail if legacy ops keys exist in src/
           if grep -rE "VITE_OPS_ADMIN_KEY|x-ops-admin-key|OPS_ADMIN_KEY" src/; then
             echo "❌ FAILED: Found forbidden ops/admin key pattern in frontend code."
             exit 1
           fi
-
-          # Fail if .env.example contains sensitive VITE_ values
           if [ -f .env.example ]; then
             if grep -E "^VITE_.*(KEY|SECRET|PASSWORD|TOKEN)=" .env.example; then
               echo "❌ FAILED: .env.example contains a VITE_* variable that looks like a secret."
               exit 1
             fi
           fi
-
           echo "✅ G0 Secret Hygiene Passed."
 
       # --------------------------------------------------------
-      # G0/G3: Backend Ops Auth (JWT Enforcement)
+      # Install & Build
       # --------------------------------------------------------
-      - name: Install Dependencies
-        run: npm ci && cd backend && npm ci
+      - name: Install dependencies (root)
+        run: npm ci
 
+      - name: Install dependencies (backend)
+        working-directory: backend
+        run: npm ci
+
+      - name: Build frontend (for stable CI serving)
+        run: npm run build
+
+      # --------------------------------------------------------
+      # G0: Backend Auth Tests (Unit)
+      # --------------------------------------------------------
       - name: G0 - Backend Ops Auth Tests
         working-directory: backend
         env:
           NODE_ENV: test
+        run: npm run test:ops-auth
+
+      # --------------------------------------------------------
+      # Boot Backend + Frontend for E2E
+      # --------------------------------------------------------
+      - name: Start backend (CI)
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          PORT: 4000
+          AUTH_MODE: mock
+          AUTH_MOCK_SECRET: launch-gates-secret
         run: |
-          # Runs the specific ops auth test suite
-          npm run test:ops-auth
+          set -euo pipefail
+          nohup npm run start > ../backend-ci.log 2>&1 &
+          echo $! > ../backend-ci.pid
+
+      - name: Start frontend (CI)
+        env:
+          PORT: 3000
+          VITE_E2E_BYPASS_AUTH: "true"
+          VITE_API_BASE_URL: "http://localhost:4000"
+        run: |
+          set -euo pipefail
+          nohup npm run preview -- --host 0.0.0.0 --port 3000 > frontend-ci.log 2>&1 &
+          echo $! > frontend-ci.pid
+
+      - name: Wait for backend + frontend
+        run: |
+          npx wait-on http://localhost:4000/api/ops/health http://localhost:3000 --timeout 60000
 
       # --------------------------------------------------------
       # G3: Operational Readiness (E2E Smoke)
@@ -75,7 +107,19 @@ jobs:
 
       - name: G3 - Ops E2E Smoke Test
         env:
-          BASE_URL: http://localhost:5173
-          # Mocks handled within Playwright, or point to preview env
+          BASE_URL: http://localhost:3000
+          AUTH_MOCK_SECRET: launch-gates-secret
         run: |
           npm run e2e:ops
+
+      # --------------------------------------------------------
+      # Cleanup
+      # --------------------------------------------------------
+      - name: Cleanup & Logs
+        if: always()
+        run: |
+          set +e
+          if [ -f backend-ci.pid ]; then kill $(cat backend-ci.pid) || true; fi
+          if [ -f frontend-ci.pid ]; then kill $(cat frontend-ci.pid) || true; fi
+          echo "==== backend-ci.log ===="; tail -n 200 backend-ci.log || true
+          echo "==== frontend-ci.log ===="; tail -n 200 frontend-ci.log || true
