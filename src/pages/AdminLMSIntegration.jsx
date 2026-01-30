@@ -15,8 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceConnect from '@/components/integration/ServiceConnect';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 
-// Get base URL from environment or fallback to production
-const LTI_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.teachmo.com';
+// Get base URL from environment or fallback to default API path
+const LTI_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export default function AdminLMSIntegration() {
   // LTI Platform Configuration State
@@ -28,7 +28,8 @@ export default function AdminLMSIntegration() {
   const [lrsUsername, setLrsUsername] = useState('');
   const [lrsPassword, setLrsPassword] = useState('');
   
-  const [isSaving, setIsSaving] = useState(false);
+  const [isLtiSaving, setIsLtiSaving] = useState(false);
+  const [isLrsSaving, setIsLrsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
   const handleSaveLTIPlatform = async () => {
@@ -37,7 +38,7 @@ export default function AdminLMSIntegration() {
       return;
     }
     
-    setIsSaving(true);
+    setIsLtiSaving(true);
     try {
       // TODO: Implement backend API call to save LTI platform configuration
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -48,7 +49,7 @@ export default function AdminLMSIntegration() {
       console.error(error);
       ultraMinimalToast.error('Failed to save configuration. Please try again.');
     } finally {
-      setIsSaving(false);
+      setIsLtiSaving(false);
     }
   };
 
@@ -58,16 +59,19 @@ export default function AdminLMSIntegration() {
       return;
     }
     
-    setIsSaving(true);
+    setIsLrsSaving(true);
     try {
       // TODO: Implement backend API call to save LRS configuration
       await new Promise((resolve) => setTimeout(resolve, 1000));
       ultraMinimalToast.success('LRS configuration saved');
+      setLrsEndpoint('');
+      setLrsUsername('');
+      setLrsPassword('');
     } catch (error) {
       console.error(error);
       ultraMinimalToast.error('Failed to save configuration. Please try again.');
     } finally {
-      setIsSaving(false);
+      setIsLrsSaving(false);
     }
   };
 
@@ -161,9 +165,9 @@ export default function AdminLMSIntegration() {
                 <Button 
                   className="mt-4" 
                   onClick={handleSaveLTIPlatform}
-                  disabled={isSaving}
+                  disabled={isLtiSaving}
                 >
-                  {isSaving ? 'Saving...' : 'Save Platform Configuration'}
+                  {isLtiSaving ? 'Saving...' : 'Save Platform Configuration'}
                 </Button>
               </div>
             </CardContent>
@@ -216,9 +220,9 @@ export default function AdminLMSIntegration() {
               <div className="flex items-center gap-2 mt-2">
                 <Button 
                   onClick={handleSaveLRSConfig}
-                  disabled={isSaving}
+                  disabled={isLrsSaving}
                 >
-                  {isSaving ? 'Saving...' : 'Save Configuration'}
+                  {isLrsSaving ? 'Saving...' : 'Save Configuration'}
                 </Button>
                 <Button 
                   variant="outline" 

@@ -69,7 +69,7 @@ export default function ReportUploadWizard({ onComplete }) {
         .filter((line) => line);
 
       if (lines.length > 0) {
-        // Parse CSV with support for quoted values containing commas
+        // Parse CSV with support for quoted values containing commas and escaped quotes (RFC 4180)
         const parseCSVLine = (line) => {
           const result = [];
           let current = '';
@@ -77,9 +77,17 @@ export default function ReportUploadWizard({ onComplete }) {
           
           for (let i = 0; i < line.length; i++) {
             const char = line[i];
+            const nextChar = line[i + 1];
             
             if (char === '"') {
-              inQuotes = !inQuotes;
+              if (inQuotes && nextChar === '"') {
+                // Escaped quote: two consecutive quotes become one quote character
+                current += '"';
+                i++; // Skip the next quote
+              } else {
+                // Toggle quote state
+                inQuotes = !inQuotes;
+              }
             } else if (char === ',' && !inQuotes) {
               result.push(current.trim());
               current = '';
