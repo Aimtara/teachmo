@@ -42,13 +42,9 @@ export default function AdminLMSIntegration() {
     // When implementing: wrap in try-catch and clear form state (including sensitive Client ID) in both success and error paths
 
     toast({
-      title: 'Configuration Saved',
-      description: 'LTI platform configuration has been saved successfully.',
+      title: 'Not Implemented',
+      description: 'LTI platform registration is not yet available. Backend persistence will be added in a future update.',
     });
-
-    // Clear form after successful save
-    setLtiPlatformIssuer('');
-    setLtiClientId('');
   };
 
   const handleSaveLrsConfiguration = () => {
@@ -65,14 +61,9 @@ export default function AdminLMSIntegration() {
     // When implementing: wrap in try-catch and clear password in both success and error paths for security
 
     toast({
-      title: 'Configuration Saved',
-      description: 'LRS configuration has been saved successfully.',
+      title: 'Not Implemented',
+      description: 'LRS configuration save is not yet available. Backend persistence will be added in a future update.',
     });
-
-    // Clear form after successful save, including sensitive password data
-    setLrsEndpoint('');
-    setLrsAuthUsername('');
-    setLrsAuthPassword('');
   };
 
   const handleTestLrsConnection = () => {
