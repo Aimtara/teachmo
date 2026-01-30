@@ -39,19 +39,12 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LTI platform configuration
-    console.log('Saving LTI platform configuration', {
-      issuer: ltiPlatformIssuer,
-      clientId: ltiClientId,
-    });
+    // When implementing: wrap in try-catch and clear form state (including sensitive Client ID) in both success and error paths
 
     toast({
-      title: 'Configuration Saved',
-      description: 'LTI platform configuration has been saved successfully.',
+      title: 'Not Implemented',
+      description: 'LTI platform registration is not yet available. Backend persistence will be added in a future update.',
     });
-
-    // Clear form after successful save
-    setLtiPlatformIssuer('');
-    setLtiClientId('');
   };
 
   const handleSaveLrsConfiguration = () => {
@@ -65,20 +58,12 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LRS configuration
-    console.log('Saving LRS configuration', {
-      endpoint: lrsEndpoint,
-      username: lrsAuthUsername,
-    });
+    // When implementing: wrap in try-catch and clear password in both success and error paths for security
 
     toast({
-      title: 'Configuration Saved',
-      description: 'LRS configuration has been saved successfully.',
+      title: 'Not Implemented',
+      description: 'LRS configuration save is not yet available. Backend persistence will be added in a future update.',
     });
-
-    // Clear form after successful save
-    setLrsEndpoint('');
-    setLrsAuthUsername('');
-    setLrsAuthPassword('');
   };
 
   const handleTestLrsConnection = () => {
@@ -92,19 +77,18 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call backend endpoint to test LRS connection
-    console.log('Testing LRS connection', { endpoint: lrsEndpoint });
 
     toast({
-      title: 'Feature Not Implemented',
-      description: 'Connection testing will be available once the backend endpoint is implemented.',
-      variant: 'destructive',
+      title: 'Connection Test Coming Soon',
+      description:
+        'LRS connection testing is not yet available in this environment. This feature will be enabled once the backend endpoint is implemented.',
     });
   };
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <header>
-        <h1 className="text-3xl font-bold text-gray-900">Integrations &amp; Data</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Integrations & Data</h1>
         <p className="text-gray-600">
           Configure LTI providers, xAPI stores, and third-party content services.
         </p>
