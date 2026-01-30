@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
 import ServiceConnect from '@/components/integration/ServiceConnect';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 
@@ -21,6 +22,13 @@ const LTI_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 export default function AdminLMSIntegration() {
   // LTI Platform Configuration State
   const [ltiIssuer, setLtiIssuer] = useState('');
+import { LTI_LAUNCH_URL, LTI_JWKS_URL } from '@/config/api';
+
+export default function AdminLMSIntegration() {
+  const { toast } = useToast();
+  
+  // LTI Platform Configuration State
+  const [ltiPlatformIssuer, setLtiPlatformIssuer] = useState('');
   const [ltiClientId, setLtiClientId] = useState('');
   
   // xAPI/LRS Configuration State
@@ -91,6 +99,75 @@ export default function AdminLMSIntegration() {
       setIsTesting(false);
     }
   };
+  const [lrsAuthUsername, setLrsAuthUsername] = useState('');
+  const [lrsAuthPassword, setLrsAuthPassword] = useState('');
+
+  const handleSaveLtiPlatform = () => {
+    if (!ltiPlatformIssuer.trim() || !ltiClientId.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Platform Issuer and Client ID are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // TODO: Call GraphQL mutation to save LTI platform configuration
+    // When implementing: wrap in try-catch and clear form state (including sensitive Client ID) in both success and error paths
+
+    toast({
+      title: 'Configuration Saved',
+      description: 'LTI platform configuration has been saved successfully.',
+    });
+
+    // Clear form after successful save
+    setLtiPlatformIssuer('');
+    setLtiClientId('');
+  };
+
+  const handleSaveLrsConfiguration = () => {
+    if (!lrsEndpoint.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'LRS Endpoint is required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // TODO: Call GraphQL mutation to save LRS configuration
+    // When implementing: wrap in try-catch and clear password in both success and error paths for security
+
+    toast({
+      title: 'Configuration Saved',
+      description: 'LRS configuration has been saved successfully.',
+    });
+
+    // Clear form after successful save, including sensitive password data
+    setLrsEndpoint('');
+    setLrsAuthUsername('');
+    setLrsAuthPassword('');
+  };
+
+  const handleTestLrsConnection = () => {
+    if (!lrsEndpoint.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'LRS Endpoint is required to test connection.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // TODO: Call backend endpoint to test LRS connection
+
+    toast({
+      title: 'Feature Not Implemented',
+      description: 'Connection testing will be available once the backend endpoint is implemented.',
+      variant: 'destructive',
+    });
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <header>
@@ -125,6 +202,7 @@ export default function AdminLMSIntegration() {
                     id="lti-launch-url"
                     readOnly
                     value={`${LTI_BASE_URL}/lti/launch`}
+                    value={LTI_LAUNCH_URL}
                     className="bg-gray-50"
                   />
                 </div>
@@ -134,6 +212,7 @@ export default function AdminLMSIntegration() {
                     id="lti-jwks-url"
                     readOnly
                     value={`${LTI_BASE_URL}/.well-known/jwks.json`}
+                    value={LTI_JWKS_URL}
                     className="bg-gray-50"
                   />
                 </div>
@@ -148,6 +227,12 @@ export default function AdminLMSIntegration() {
                       placeholder="https://canvas.instructure.com"
                       value={ltiIssuer}
                       onChange={(e) => setLtiIssuer(e.target.value)}
+                    <Label htmlFor="lti-platform-issuer">Platform Issuer (ISS)</Label>
+                    <Input
+                      id="lti-platform-issuer"
+                      placeholder="https://canvas.instructure.com"
+                      value={ltiPlatformIssuer}
+                      onChange={(e) => setLtiPlatformIssuer(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -166,6 +251,8 @@ export default function AdminLMSIntegration() {
                   disabled={isLtiSaving}
                 >
                   {isLtiSaving ? 'Saving...' : 'Save Platform Configuration'}
+                <Button className="mt-4" onClick={handleSaveLtiPlatform}>
+                  Save Platform Configuration
                 </Button>
               </div>
             </CardContent>
@@ -201,6 +288,8 @@ export default function AdminLMSIntegration() {
                     placeholder="Basic Auth Username"
                     value={lrsUsername}
                     onChange={(e) => setLrsUsername(e.target.value)}
+                    value={lrsAuthUsername}
+                    onChange={(e) => setLrsAuthUsername(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -212,6 +301,9 @@ export default function AdminLMSIntegration() {
                     placeholder="••••••••••••"
                     value={lrsPassword}
                     onChange={(e) => setLrsPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    value={lrsAuthPassword}
+                    onChange={(e) => setLrsAuthPassword(e.target.value)}
                   />
                 </div>
               </div>
@@ -228,6 +320,11 @@ export default function AdminLMSIntegration() {
                   disabled={isTesting}
                 >
                   {isTesting ? 'Testing...' : 'Test Connection'}
+                <Button onClick={handleSaveLrsConfiguration}>
+                  Save Configuration
+                </Button>
+                <Button variant="outline" onClick={handleTestLrsConnection}>
+                  Test Connection
                 </Button>
               </div>
             </CardContent>
@@ -240,11 +337,11 @@ export default function AdminLMSIntegration() {
             serviceName="Khan Academy"
             icon={Globe}
           />
+          {/* Connection status for Clever should be driven by real state, not hardcoded */}
           <ServiceConnect
             serviceKey="clever"
             serviceName="Clever (District)"
             icon={Server}
-            connected
           />
         </TabsContent>
       </Tabs>

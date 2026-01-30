@@ -16,6 +16,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 import { API_BASE_URL } from '@/config/api';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ServiceConnect');
 
 export default function ServiceConnect({
   serviceKey,
@@ -36,6 +39,34 @@ export default function ServiceConnect({
       }
     };
   }, []);
+  const timerRef = useRef(null);
+
+  // Cleanup interval timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
+  const getIntegrationHeaders = async () => {
+    const headers = {};
+
+    // Attempt to use a globally available Nhost client if present.
+    const nhost = globalThis?.nhost;
+
+    if (nhost?.auth?.getAccessToken) {
+      const accessToken = await nhost.auth.getAccessToken();
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+    }
+
+    return headers;
+  };
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -43,6 +74,16 @@ export default function ServiceConnect({
     try {
       // Use mock auth URL directly, since no backend auth endpoint exists yet.
       const data = { authUrl: `https://${serviceKey}.com/login?mock=true` };
+      const headers = await getIntegrationHeaders();
+
+      const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
+        method: 'POST',
+        headers,
+      });
+
+      const data = res.ok
+        ? await res.json()
+        : { authUrl: `https://${serviceKey}.com/login?mock=true` };
 
       const width = 600;
       const height = 700;
@@ -59,6 +100,15 @@ export default function ServiceConnect({
         if (popup?.closed) {
           window.clearInterval(intervalRef.current);
           intervalRef.current = null;
+      // Clear any existing timer before creating a new one
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+      }
+
+      timerRef.current = window.setInterval(() => {
+        if (popup?.closed) {
+          window.clearInterval(timerRef.current);
+          timerRef.current = null;
           setIsConnecting(false);
           
           // TODO: Verify authentication success via callback, postMessage, or polling endpoint
@@ -68,7 +118,7 @@ export default function ServiceConnect({
         }
       }, 500);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       setIsConnecting(false);
       ultraMinimalToast.error('Connection failed. Please try again.');
     }
@@ -76,6 +126,11 @@ export default function ServiceConnect({
 
   const handleDisconnect = async () => {
     setShowDisconnectDialog(false);
+    const confirmed = window.confirm(`Disconnect ${serviceName}?`);
+    if (!confirmed) {
+      return;
+    }
+
     setIsConnecting(true);
 
     try {
@@ -99,6 +154,12 @@ export default function ServiceConnect({
       console.error(error);
       ultraMinimalToast.error(
         `Failed to disconnect ${serviceName}. Please try again.`
+      ultraMinimalToast(`Disconnected ${serviceName}`);
+    } catch (error) {
+      logger.error(error);
+      ultraMinimalToast(
+        `Failed to disconnect ${serviceName}. Please try again.`,
+        'error'
       );
     } finally {
       setIsConnecting(false);

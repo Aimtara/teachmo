@@ -1,1 +1,0 @@
-{"version":3,"file":"Settings-BSdk_sqB.js","sources":["../../src/pages/Settings.jsx"],"sourcesContent":["import React from 'react';\n\nexport default function Settings() {\n  return <div>Settings (placeholder)</div>;\n}\n"],"names":["Settings","jsx"],"mappings":"wCAEA,SAAwBA,GAAW,CACjC,OAAOC,EAAAA,IAAC,OAAI,SAAA,wBAAA,CAAsB,CACpC"}
