@@ -314,8 +314,13 @@ async function updateImportJob(id, changes) {
   const updateJob = `mutation UpdateJob($id: uuid!, $changes: sis_import_jobs_set_input!) {
     update_sis_import_jobs_by_pk(pk_columns: { id: $id }, _set: $changes) { id }
   }`;
-  await hasuraRequest({
-    query: updateJob,
-    variables: { id, changes }
-  });
+  try {
+    await hasuraRequest({
+      query: updateJob,
+      variables: { id, changes }
+    });
+  } catch (err) {
+    console.error('Failed to update SIS import job', { id, error: err });
+    throw err; // Re-throw to allow caller to handle
+  }
 }
