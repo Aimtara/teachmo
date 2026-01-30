@@ -2,14 +2,6 @@ import { hasuraRequest } from './lib/hasura.js';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
-// Whitelist of valid SIS roster table names to prevent GraphQL injection
-const ALLOWED_TABLES = new Set([
-  'sis_roster_students',
-  'sis_roster_teachers',
-  'sis_roster_classes',
-  'sis_roster_enrollments'
-]);
-
 function parseCsv(text) {
   if (!text) return [];
   const lines = text.trim().split(/\r?\n/);
@@ -212,12 +204,6 @@ export default async function sisRosterImport(req, res) {
         // If updating the job fails, continue returning the 400 response.
       }
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
-    }
-
-    // Whitelist validation: Ensure the table name is one of the allowed SIS roster tables.
-    // This guards against potential GraphQL injection if the logic above is modified.
-    if (!table || !ALLOWED_TABLES.has(table)) {
-      return res.status(500).json({ error: 'Invalid table name for roster import' });
     }
 
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
