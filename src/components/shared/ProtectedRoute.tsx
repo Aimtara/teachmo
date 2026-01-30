@@ -61,11 +61,13 @@ export default function ProtectedRoute({
     }
   }, [e2eBypass]);
 
-  const effectiveIsAuthenticated = e2eBypass ? true : isAuthenticated;
-  const effectiveRole = (e2eBypass ? (e2eSession?.role ?? null) : role) as Role | null;
-  const effectiveNeedsOnboarding = e2eBypass ? false : needsOnboarding;
-  const effectiveLoading = e2eBypass ? false : isLoading || roleLoading;
+  const hasValidE2ESession = !!(e2eSession?.accessToken && e2eSession?.role);
+  const useE2EAuth = e2eBypass && hasValidE2ESession;
 
+  const effectiveIsAuthenticated = useE2EAuth ? true : isAuthenticated;
+  const effectiveRole = (useE2EAuth ? (e2eSession?.role ?? null) : role) as Role | null;
+  const effectiveNeedsOnboarding = useE2EAuth ? false : needsOnboarding;
+  const effectiveLoading = useE2EAuth ? false : isLoading || roleLoading;
   const roleWhitelist = React.useMemo(() => {
     if (allowedRoles?.length) return allowedRoles;
     if (!requiredRole) return [];
