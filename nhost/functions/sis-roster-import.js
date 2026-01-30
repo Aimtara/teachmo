@@ -21,7 +21,13 @@ function parseCsv(text) {
     
     return records;
   } catch (err) {
-    console.error('CSV parsing error:', err);
+    // Log detailed error information to help diagnose parsing issues
+    const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+    console.error('CSV parsing failed:', {
+      error: err.message,
+      preview,
+      textLength: text.length
+    });
     return [];
   }
 }
