@@ -6,8 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, AlertCircle, ExternalLink, RefreshCw, Users, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
-import { googleAuth } from "@/api/functions";
-import { googleClassroomSync } from "@/api/functions";
+import { googleAuth, googleClassroomSync } from "@/api/integrations";
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('GoogleClassroomConnect');

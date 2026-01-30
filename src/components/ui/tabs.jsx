@@ -6,8 +6,21 @@ const TabsContext = createContext({
   setActiveTab: () => {},
 });
 
-export function Tabs({ defaultValue, children, className, ...props }) {
-  const [activeTab, setActiveTab] = useState(defaultValue);
+export function Tabs({ defaultValue, value, onValueChange, children, className, ...props }) {
+  const [internalActiveTab, setInternalActiveTab] = useState(defaultValue);
+  
+  // Support both controlled and uncontrolled modes
+  const isControlled = value !== undefined;
+  const activeTab = isControlled ? value : internalActiveTab;
+  
+  const setActiveTab = (newValue) => {
+    if (!isControlled) {
+      setInternalActiveTab(newValue);
+    }
+    if (onValueChange) {
+      onValueChange(newValue);
+    }
+  };
 
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab }}>
