@@ -207,7 +207,7 @@ export default function AdminLMSIntegration() {
                   <Input
                     id="lrs-auth-password"
                     type="password"
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     placeholder="••••••••••••"
                     value={lrsAuthPassword}
                     onChange={(e) => setLrsAuthPassword(e.target.value)}
