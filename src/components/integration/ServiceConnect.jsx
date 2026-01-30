@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 import { API_BASE_URL } from '@/config/api';
+import { nhost } from '@/lib/nhostClient';
 
 export default function ServiceConnect({
   serviceKey,
@@ -30,8 +31,13 @@ export default function ServiceConnect({
     setIsConnecting(true);
 
     try {
+      const token = await nhost.auth.getAccessToken();
       const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       const data = res.ok
@@ -79,12 +85,14 @@ export default function ServiceConnect({
     setIsConnecting(true);
 
     try {
+      const token = await nhost.auth.getAccessToken();
       const response = await fetch(
         `${API_BASE_URL}/integrations/${serviceKey}/disconnect`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         }
       );
