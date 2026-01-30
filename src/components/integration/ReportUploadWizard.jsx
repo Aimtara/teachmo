@@ -83,6 +83,13 @@ export default function ReportUploadWizard({ onComplete }) {
         setStep(STEPS.MAPPING);
       }
     };
+    reader.onerror = () => {
+      ultraMinimalToast('Failed to read file. Please try again with a valid CSV.');
+      setFile(null);
+      setCsvHeaders([]);
+      setPreviewData([]);
+      setStep(STEPS.UPLOAD);
+    };
     reader.readAsText(uploadedFile);
   };
 
