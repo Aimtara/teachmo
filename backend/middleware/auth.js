@@ -9,6 +9,9 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { resolveRoleScopes } from '../rbac.js';
 import { auditEvent } from '../security/audit.js';
+
+const textEncoder = new TextEncoder();
+
 function getClaim(obj, key) {
   if (!obj) return null;
   if (obj[key] !== undefined) return obj[key];
@@ -33,7 +36,11 @@ function normalizeScopes(input) {
 
 const envLower = (process.env.NODE_ENV || 'development').toLowerCase();
 const isProd = envLower === 'production';
-const isMockAuth = process.env.AUTH_MODE === 'mock' && envLower === 'test';
+
+function isMockAuthMode() {
+  const mode = String(process.env.AUTH_MODE || '').toLowerCase();
+  return mode === 'mock' && String(process.env.NODE_ENV || '').toLowerCase() === 'test';
+}
 
 // JWT verification configuration
 const jwksUrl = process.env.AUTH_JWKS_URL || process.env.NHOST_JWKS_URL || '';
@@ -47,16 +54,15 @@ if (jwksUrl) {
 
 async function verifyBearerToken(token) {
   if (!token) return null;
-  if (isMockAuth && process.env.AUTH_MOCK_SECRET) {
-    const secret = new TextEncoder().encode(process.env.AUTH_MOCK_SECRET);
-    try {
-      const { payload } = await jwtVerify(token, secret);
-      return payload;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      console.warn('[MockAuth] Token verification failed:', msg);
-      return null;
-    }
+
+  // Test-only mock verification: HS256 tokens signed with AUTH_MOCK_SECRET.
+  if (isMockAuthMode()) {
+    const secret = String(process.env.AUTH_MOCK_SECRET || '').trim();
+    if (!secret) throw new Error('AUTH_MOCK_SECRET is required when AUTH_MODE=mock');
+    const { payload } = await jwtVerify(token, textEncoder.encode(secret), {
+      // no issuer/audience constraints in mock mode
+    });
+    return payload;
   }
   if (!jwks) {
     // In production, missing JWKS is a hard failure.
@@ -200,6 +206,13 @@ export function requireAdmin(req, res, next) {
   if (!role) return res.status(401).json({ error: 'missing auth' });
   const allowed = ['system_admin', 'district_admin', 'school_admin', 'admin'];
   if (!allowed.includes(role)) return res.status(403).json({ error: 'forbidden' });
+  next();
+}
+
+export function requireSystemAdmin(req, res, next) {
+  const role = req.auth?.role;
+  if (!role) return res.status(401).json({ error: 'missing auth' });
+  if (role !== 'system_admin') return res.status(403).json({ error: 'forbidden' });
   next();
 }
 

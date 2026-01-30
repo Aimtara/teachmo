@@ -1,26 +1,42 @@
 import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
 
-// G3 Compliance: JWT Auth with E2E Bypass support
-const getHeaders = () => {
-  let token = nhost.auth.getAccessToken();
+const E2E_SESSION_KEY = 'teachmo_e2e_session';
 
-  // If in E2E bypass mode, grab the mock token injected by Playwright
-  if (!token && import.meta.env.VITE_E2E_BYPASS_AUTH === 'true') {
-    token = window.localStorage.getItem('e2e_mock_token');
+function isE2EBypassEnabled() {
+  const flag = String(import.meta.env.VITE_E2E_BYPASS_AUTH || '').toLowerCase() === 'true';
+  if (!flag) return false;
+  const isTestMode = String(import.meta.env.MODE || '').toLowerCase() === 'test';
+  const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  return isTestMode || isLocalhost;
+}
+
+function getE2ESession() {
+  try {
+    if (!isE2EBypassEnabled()) return null;
+    const raw = window.localStorage.getItem(E2E_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
   }
+}
 
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-  };
-};
+function getAccessToken() {
+  const e2e = getE2ESession();
+  if (e2e?.accessToken) return String(e2e.accessToken);
+  return nhost.auth.getAccessToken() || '';
+}
 
 const opsFetch = async (path, options = {}) => {
+  const token = getAccessToken();
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
-      ...getHeaders(),
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
