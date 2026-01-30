@@ -38,28 +38,17 @@ export default function AdminLMSIntegration() {
       return;
     }
 
-    try {
-      // TODO: Call GraphQL mutation to save LTI platform configuration
-      
-      toast({
-        title: 'Configuration Saved',
-        description: 'LTI platform configuration has been saved successfully.',
-      });
+    // TODO: Call GraphQL mutation to save LTI platform configuration
+    // When implementing: wrap in try-catch and clear form state in both success and error paths
 
-      // Clear form after successful save
-      setLtiPlatformIssuer('');
-      setLtiClientId('');
-    } catch (error) {
-      // Clear sensitive data even on error
-      setLtiPlatformIssuer('');
-      setLtiClientId('');
-      
-      toast({
-        title: 'Error',
-        description: 'Failed to save LTI platform configuration.',
-        variant: 'destructive',
-      });
-    }
+    toast({
+      title: 'Configuration Saved',
+      description: 'LTI platform configuration has been saved successfully.',
+    });
+
+    // Clear form after successful save
+    setLtiPlatformIssuer('');
+    setLtiClientId('');
   };
 
   const handleSaveLrsConfiguration = () => {
@@ -72,30 +61,18 @@ export default function AdminLMSIntegration() {
       return;
     }
 
-    try {
-      // TODO: Call GraphQL mutation to save LRS configuration
-      
-      toast({
-        title: 'Configuration Saved',
-        description: 'LRS configuration has been saved successfully.',
-      });
+    // TODO: Call GraphQL mutation to save LRS configuration
+    // When implementing: wrap in try-catch and clear password in both success and error paths for security
 
-      // Clear form after successful save
-      setLrsEndpoint('');
-      setLrsAuthUsername('');
-      setLrsAuthPassword('');
-    } catch (error) {
-      // Clear sensitive data even on error
-      setLrsEndpoint('');
-      setLrsAuthUsername('');
-      setLrsAuthPassword('');
-      
-      toast({
-        title: 'Error',
-        description: 'Failed to save LRS configuration.',
-        variant: 'destructive',
-      });
-    }
+    toast({
+      title: 'Configuration Saved',
+      description: 'LRS configuration has been saved successfully.',
+    });
+
+    // Clear form after successful save, including sensitive password data
+    setLrsEndpoint('');
+    setLrsAuthUsername('');
+    setLrsAuthPassword('');
   };
 
   const handleTestLrsConnection = () => {
