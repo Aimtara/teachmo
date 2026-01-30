@@ -3,10 +3,9 @@ import { createLogger } from './logger.js';
 
 const logger = createLogger('env-check');
 
+// Only include env vars actually used by the backend
 const REQUIRED_VARS = [
-  'NHOST_ADMIN_SECRET',
-  'NHOST_SUBDOMAIN',
-  'NHOST_REGION',
+  'HASURA_GRAPHQL_ADMIN_SECRET',
   'AUTH_JWKS_URL'
 ];
 
@@ -17,7 +16,7 @@ const INTEGRATION_VARS = [
 ];
 
 export function performStartupCheck() {
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
   const missing = [];
   const warnings = [];
 
