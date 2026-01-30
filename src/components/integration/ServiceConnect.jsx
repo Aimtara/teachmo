@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Check, ExternalLink, Loader2, X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,17 @@ export default function ServiceConnect({
 }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(connected);
+  const timerRef = useRef(null);
+
+  // Cleanup interval timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -38,9 +49,15 @@ export default function ServiceConnect({
         `width=${width},height=${height},left=${left},top=${top}`,
       );
 
-      const timer = window.setInterval(() => {
+      // Clear any existing timer before creating a new one
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+      }
+
+      timerRef.current = window.setInterval(() => {
         if (popup?.closed) {
-          window.clearInterval(timer);
+          window.clearInterval(timerRef.current);
+          timerRef.current = null;
           setIsConnecting(false);
           setIsConnected(true);
           ultraMinimalToast(`Connected to ${serviceName}!`);
