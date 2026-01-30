@@ -39,7 +39,7 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LTI platform configuration
-    // When implementing: wrap in try-catch and clear form state in both success and error paths
+    // When implementing: wrap in try-catch and clear form state (including sensitive Client ID) in both success and error paths
 
     toast({
       title: 'Configuration Saved',
