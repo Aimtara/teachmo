@@ -9,8 +9,23 @@ describe('performStartupCheck', () => {
   let originalEnv;
 
   beforeEach(() => {
-    // Save original env
-    originalEnv = { ...process.env };
+    // Save original env (only the keys we'll be testing)
+    originalEnv = {
+      NODE_ENV: process.env.NODE_ENV,
+      NHOST_ADMIN_SECRET: process.env.NHOST_ADMIN_SECRET,
+      NHOST_SUBDOMAIN: process.env.NHOST_SUBDOMAIN,
+      NHOST_REGION: process.env.NHOST_REGION,
+      AUTH_JWKS_URL: process.env.AUTH_JWKS_URL,
+      DATABASE_URL: process.env.DATABASE_URL,
+      DB_HOST: process.env.DB_HOST,
+      DB_PORT: process.env.DB_PORT,
+      DB_USER: process.env.DB_USER,
+      DB_PASSWORD: process.env.DB_PASSWORD,
+      DB_NAME: process.env.DB_NAME,
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    };
     
     // Clear env vars we're testing
     delete process.env.NODE_ENV;
@@ -38,8 +53,14 @@ describe('performStartupCheck', () => {
   });
 
   afterEach(() => {
-    // Restore original env
-    process.env = originalEnv;
+    // Restore original env values
+    Object.keys(originalEnv).forEach(key => {
+      if (originalEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalEnv[key];
+      }
+    });
     jest.clearAllMocks();
   });
 
@@ -154,6 +175,7 @@ describe('performStartupCheck', () => {
       '⚠️  WARNING: Missing integration keys in production. Features will fail:',
       expect.arrayContaining(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'])
     );
+    expect(mockLogger.info).toHaveBeenCalledWith('✅ Environment configuration check passed.');
   });
 
   it('should log info about missing integration vars in non-production', () => {
@@ -171,6 +193,7 @@ describe('performStartupCheck', () => {
       'ℹ️  Missing integration keys (acceptable for local dev):',
       expect.arrayContaining(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'])
     );
+    expect(mockLogger.info).toHaveBeenCalledWith('✅ Environment configuration check passed.');
   });
 
   it('should accept partial discrete DB variables if DATABASE_URL is present', () => {
@@ -187,5 +210,44 @@ describe('performStartupCheck', () => {
 
     expect(mockLogger.info).toHaveBeenCalledWith('✅ Environment configuration check passed.');
     expect(mockLogger.error).not.toHaveBeenCalled();
+  });
+
+  it('should error when required Nhost variables are missing', () => {
+    process.env.NODE_ENV = 'development';
+    // Missing NHOST_ADMIN_SECRET and NHOST_SUBDOMAIN
+    process.env.NHOST_REGION = 'region';
+    process.env.AUTH_JWKS_URL = 'https://example.com';
+    process.env.DATABASE_URL = 'postgresql://localhost/test';
+
+    performStartupCheck();
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      '❌ FATAL: Missing required environment variables:',
+      expect.arrayContaining(['NHOST_ADMIN_SECRET', 'NHOST_SUBDOMAIN'])
+    );
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      '⚠️  Continuing in non-production mode, but operations like migrations and database-dependent schedulers will fail.'
+    );
+  });
+
+  it('should exit in production when required Nhost variables are missing', () => {
+    process.env.NODE_ENV = 'production';
+    // Missing all REQUIRED_VARS
+    process.env.DATABASE_URL = 'postgresql://localhost/test';
+
+    const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
+
+    performStartupCheck();
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      '❌ FATAL: Missing required environment variables:',
+      expect.arrayContaining(['NHOST_ADMIN_SECRET', 'NHOST_SUBDOMAIN', 'NHOST_REGION', 'AUTH_JWKS_URL'])
+    );
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Server cannot start in production without these variables.'
+    );
+    expect(mockExit).toHaveBeenCalledWith(1);
+
+    mockExit.mockRestore();
   });
 });
