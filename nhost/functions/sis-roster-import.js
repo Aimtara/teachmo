@@ -134,17 +134,23 @@ export default async function sisRosterImport(req, res) {
           errors.push(`Row ${idx + 2}: Missing class ID`);
           return;
         }
+        const teacherId = resolveExternalId(record, [
+          'teacherSourcedId',
+          'teacher_id',
+          'teacherExternalId'
+        ]);
+        if (!teacherId) {
+          skippedCount += 1;
+          errors.push(`Row ${idx + 2}: Missing teacher ID for class ${extId}`);
+          return;
+        }
         validObjects.push({
           job_id: jobId,
           organization_id: organizationId,
           school_id: effectiveSchoolId,
           external_id: extId,
           name: record.name || record.title || record.className || `Class ${extId}`,
-          teacher_external_id: resolveExternalId(record, [
-            'teacherSourcedId',
-            'teacher_id',
-            'teacherExternalId'
-          ]),
+          teacher_external_id: teacherId,
           data: record
         });
       });
