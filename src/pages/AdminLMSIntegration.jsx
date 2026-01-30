@@ -14,14 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import ServiceConnect from '@/components/integration/ServiceConnect';
-import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
-
-// Get base URL from environment or fallback to default API path
-const LTI_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
-
-export default function AdminLMSIntegration() {
-  // LTI Platform Configuration State
-  const [ltiIssuer, setLtiIssuer] = useState('');
 import { LTI_LAUNCH_URL, LTI_JWKS_URL } from '@/config/api';
 
 export default function AdminLMSIntegration() {
@@ -33,72 +25,6 @@ export default function AdminLMSIntegration() {
   
   // xAPI/LRS Configuration State
   const [lrsEndpoint, setLrsEndpoint] = useState('');
-  const [lrsUsername, setLrsUsername] = useState('');
-  const [lrsPassword, setLrsPassword] = useState('');
-  
-  const [isLtiSaving, setIsLtiSaving] = useState(false);
-  const [isLrsSaving, setIsLrsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-
-  const handleSaveLTIPlatform = async () => {
-    if (!ltiIssuer || !ltiClientId) {
-      ultraMinimalToast.error('Please fill in all required fields');
-      return;
-    }
-    
-    setIsLtiSaving(true);
-    try {
-      // TODO: Implement backend API call to save LTI platform configuration
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      ultraMinimalToast.success('LTI platform configuration saved');
-      setLtiIssuer('');
-      setLtiClientId('');
-    } catch (error) {
-      console.error(error);
-      ultraMinimalToast.error('Failed to save configuration. Please try again.');
-    } finally {
-      setIsLtiSaving(false);
-    }
-  };
-
-  const handleSaveLRSConfig = async () => {
-    if (!lrsEndpoint || !lrsUsername || !lrsPassword) {
-      ultraMinimalToast.error('Please fill in all required fields');
-      return;
-    }
-    
-    setIsLrsSaving(true);
-    try {
-      // TODO: Implement backend API call to save LRS configuration
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      ultraMinimalToast.success('LRS configuration saved');
-      // Keep fields populated so users can test connection after saving
-    } catch (error) {
-      console.error(error);
-      ultraMinimalToast.error('Failed to save configuration. Please try again.');
-    } finally {
-      setIsLrsSaving(false);
-    }
-  };
-
-  const handleTestLRSConnection = async () => {
-    if (!lrsEndpoint || !lrsUsername || !lrsPassword) {
-      ultraMinimalToast.error('Please save configuration before testing');
-      return;
-    }
-    
-    setIsTesting(true);
-    try {
-      // TODO: Implement backend API call to test LRS connection
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      ultraMinimalToast.success('LRS connection test successful');
-    } catch (error) {
-      console.error(error);
-      ultraMinimalToast.error('Connection test failed. Please check your credentials.');
-    } finally {
-      setIsTesting(false);
-    }
-  };
   const [lrsAuthUsername, setLrsAuthUsername] = useState('');
   const [lrsAuthPassword, setLrsAuthPassword] = useState('');
 
@@ -113,19 +39,12 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LTI platform configuration
-    console.log('Saving LTI platform configuration', {
-      issuer: ltiPlatformIssuer,
-      clientId: ltiClientId,
-    });
+    // When implementing: wrap in try-catch and clear form state (including sensitive Client ID) in both success and error paths
 
     toast({
-      title: 'Configuration Saved',
-      description: 'LTI platform configuration has been saved successfully.',
+      title: 'Not Implemented',
+      description: 'LTI platform registration is not yet available. Backend persistence will be added in a future update.',
     });
-
-    // Clear form after successful save
-    setLtiPlatformIssuer('');
-    setLtiClientId('');
   };
 
   const handleSaveLrsConfiguration = () => {
@@ -139,20 +58,12 @@ export default function AdminLMSIntegration() {
     }
 
     // TODO: Call GraphQL mutation to save LRS configuration
-    console.log('Saving LRS configuration', {
-      endpoint: lrsEndpoint,
-      username: lrsAuthUsername,
-    });
+    // When implementing: wrap in try-catch and clear password in both success and error paths for security
 
     toast({
-      title: 'Configuration Saved',
-      description: 'LRS configuration has been saved successfully.',
+      title: 'Not Implemented',
+      description: 'LRS configuration save is not yet available. Backend persistence will be added in a future update.',
     });
-
-    // Clear form after successful save
-    setLrsEndpoint('');
-    setLrsAuthUsername('');
-    setLrsAuthPassword('');
   };
 
   const handleTestLrsConnection = () => {
@@ -208,7 +119,6 @@ export default function AdminLMSIntegration() {
                   <Input
                     id="lti-launch-url"
                     readOnly
-                    value={`${LTI_BASE_URL}/lti/launch`}
                     value={LTI_LAUNCH_URL}
                     className="bg-gray-50"
                   />
@@ -218,7 +128,6 @@ export default function AdminLMSIntegration() {
                   <Input
                     id="lti-jwks-url"
                     readOnly
-                    value={`${LTI_BASE_URL}/.well-known/jwks.json`}
                     value={LTI_JWKS_URL}
                     className="bg-gray-50"
                   />
@@ -228,12 +137,6 @@ export default function AdminLMSIntegration() {
                 <h4 className="font-medium mb-4">Register New Platform</h4>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="lti-issuer">Platform Issuer (ISS)</Label>
-                    <Input
-                      id="lti-issuer"
-                      placeholder="https://canvas.instructure.com"
-                      value={ltiIssuer}
-                      onChange={(e) => setLtiIssuer(e.target.value)}
                     <Label htmlFor="lti-platform-issuer">Platform Issuer (ISS)</Label>
                     <Input
                       id="lti-platform-issuer"
@@ -252,12 +155,6 @@ export default function AdminLMSIntegration() {
                     />
                   </div>
                 </div>
-                <Button 
-                  className="mt-4" 
-                  onClick={handleSaveLTIPlatform}
-                  disabled={isLtiSaving}
-                >
-                  {isLtiSaving ? 'Saving...' : 'Save Platform Configuration'}
                 <Button className="mt-4" onClick={handleSaveLtiPlatform}>
                   Save Platform Configuration
                 </Button>
@@ -293,8 +190,6 @@ export default function AdminLMSIntegration() {
                   <Input
                     id="lrs-auth-username"
                     placeholder="Basic Auth Username"
-                    value={lrsUsername}
-                    onChange={(e) => setLrsUsername(e.target.value)}
                     value={lrsAuthUsername}
                     onChange={(e) => setLrsAuthUsername(e.target.value)}
                   />
@@ -306,27 +201,12 @@ export default function AdminLMSIntegration() {
                     type="password"
                     autoComplete="current-password"
                     placeholder="••••••••••••"
-                    value={lrsPassword}
-                    onChange={(e) => setLrsPassword(e.target.value)}
-                    placeholder="••••••••••••"
                     value={lrsAuthPassword}
                     onChange={(e) => setLrsAuthPassword(e.target.value)}
                   />
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Button 
-                  onClick={handleSaveLRSConfig}
-                  disabled={isLrsSaving}
-                >
-                  {isLrsSaving ? 'Saving...' : 'Save Configuration'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleTestLRSConnection}
-                  disabled={isTesting}
-                >
-                  {isTesting ? 'Testing...' : 'Test Connection'}
                 <Button onClick={handleSaveLrsConfiguration}>
                   Save Configuration
                 </Button>
