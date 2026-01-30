@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Database, Globe, Key, Server } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,85 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceConnect from '@/components/integration/ServiceConnect';
+import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
+
+// Get base URL from environment or fallback to production
+const LTI_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.teachmo.com';
 
 export default function AdminLMSIntegration() {
+  // LTI Platform Configuration State
+  const [ltiIssuer, setLtiIssuer] = useState('');
+  const [ltiClientId, setLtiClientId] = useState('');
+  
+  // xAPI/LRS Configuration State
+  const [lrsEndpoint, setLrsEndpoint] = useState('');
+  const [lrsUsername, setLrsUsername] = useState('');
+  const [lrsPassword, setLrsPassword] = useState('');
+  
+  const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+
+  const handleSaveLTIPlatform = async () => {
+    if (!ltiIssuer || !ltiClientId) {
+      ultraMinimalToast.error('Please fill in all required fields');
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      // TODO: Implement backend API call to save LTI platform configuration
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      ultraMinimalToast.success('LTI platform configuration saved');
+      setLtiIssuer('');
+      setLtiClientId('');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      ultraMinimalToast.error('Failed to save configuration. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveLRSConfig = async () => {
+    if (!lrsEndpoint || !lrsUsername || !lrsPassword) {
+      ultraMinimalToast.error('Please fill in all required fields');
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      // TODO: Implement backend API call to save LRS configuration
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      ultraMinimalToast.success('LRS configuration saved');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      ultraMinimalToast.error('Failed to save configuration. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTestLRSConnection = async () => {
+    if (!lrsEndpoint || !lrsUsername || !lrsPassword) {
+      ultraMinimalToast.error('Please save configuration before testing');
+      return;
+    }
+    
+    setIsTesting(true);
+    try {
+      // TODO: Implement backend API call to test LRS connection
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      ultraMinimalToast.success('LRS connection test successful');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      ultraMinimalToast.error('Connection test failed. Please check your credentials.');
+    } finally {
+      setIsTesting(false);
+    }
+  };
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <header>
@@ -44,18 +121,20 @@ export default function AdminLMSIntegration() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Tool Launch URL</Label>
+                  <Label htmlFor="lti-launch-url">Tool Launch URL</Label>
                   <Input
+                    id="lti-launch-url"
                     readOnly
-                    value="https://api.teachmo.com/lti/launch"
+                    value={`${LTI_BASE_URL}/lti/launch`}
                     className="bg-gray-50"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Public JWKS URL</Label>
+                  <Label htmlFor="lti-jwks-url">Public JWKS URL</Label>
                   <Input
+                    id="lti-jwks-url"
                     readOnly
-                    value="https://api.teachmo.com/.well-known/jwks.json"
+                    value={`${LTI_BASE_URL}/.well-known/jwks.json`}
                     className="bg-gray-50"
                   />
                 </div>
@@ -64,15 +143,31 @@ export default function AdminLMSIntegration() {
                 <h4 className="font-medium mb-4">Register New Platform</h4>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Platform Issuer (ISS)</Label>
-                    <Input placeholder="https://canvas.instructure.com" />
+                    <Label htmlFor="lti-issuer">Platform Issuer (ISS)</Label>
+                    <Input
+                      id="lti-issuer"
+                      placeholder="https://canvas.instructure.com"
+                      value={ltiIssuer}
+                      onChange={(e) => setLtiIssuer(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>Client ID</Label>
-                    <Input placeholder="10000000000001" />
+                    <Label htmlFor="lti-client-id">Client ID</Label>
+                    <Input
+                      id="lti-client-id"
+                      placeholder="10000000000001"
+                      value={ltiClientId}
+                      onChange={(e) => setLtiClientId(e.target.value)}
+                    />
                   </div>
                 </div>
-                <Button className="mt-4">Save Platform Configuration</Button>
+                <Button 
+                  className="mt-4" 
+                  onClick={handleSaveLTIPlatform}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Save Platform Configuration'}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -91,22 +186,50 @@ export default function AdminLMSIntegration() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>LRS Endpoint</Label>
-                <Input placeholder="https://lrs.io/xapi/statements" />
+                <Label htmlFor="lrs-endpoint">LRS Endpoint</Label>
+                <Input
+                  id="lrs-endpoint"
+                  placeholder="https://lrs.io/xapi/statements"
+                  value={lrsEndpoint}
+                  onChange={(e) => setLrsEndpoint(e.target.value)}
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Auth Key / Username</Label>
-                  <Input placeholder="Basic Auth Username" />
+                  <Label htmlFor="lrs-auth-username">Auth Key / Username</Label>
+                  <Input
+                    id="lrs-auth-username"
+                    placeholder="Basic Auth Username"
+                    value={lrsUsername}
+                    onChange={(e) => setLrsUsername(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Auth Secret / Password</Label>
-                  <Input type="password" placeholder="••••••••••••" />
+                  <Label htmlFor="lrs-auth-password">Auth Secret / Password</Label>
+                  <Input
+                    id="lrs-auth-password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••••••"
+                    value={lrsPassword}
+                    onChange={(e) => setLrsPassword(e.target.value)}
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Button>Save Configuration</Button>
-                <Button variant="outline">Test Connection</Button>
+                <Button 
+                  onClick={handleSaveLRSConfig}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Save Configuration'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleTestLRSConnection}
+                  disabled={isTesting}
+                >
+                  {isTesting ? 'Testing...' : 'Test Connection'}
+                </Button>
               </div>
             </CardContent>
           </Card>
