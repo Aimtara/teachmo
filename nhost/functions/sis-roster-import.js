@@ -557,6 +557,14 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
       }
     });
     return res?.insert_sis_import_jobs_one?.id;
+  } catch (error) {
+    console.error('Failed to create import job:', {
+      error,
+      orgId,
+      schoolId,
+      type,
+      source
+    });
   } catch (err) {
     console.error('Failed to create SIS import job', { orgId, type, error: err.message });
     console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
