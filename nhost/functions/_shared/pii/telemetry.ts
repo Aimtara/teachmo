@@ -15,7 +15,10 @@ const DEFAULT_LIMITS = {
 };
 
 const EVENT_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Validates canonical UUID string format (8-4-4-4-12 hexadecimal pattern).
+// Accepts any hex UUID including nil UUID, does not enforce RFC 4122 version/variant bits.
+// Consistent with validation used across the codebase.
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 const SENSITIVE_KEY_RE =
   /(password|passcode|secret|token|jwt|authorization|cookie|set-cookie|session|api[_-]?key|bearer|refresh|access[_-]?token|id[_-]?token|ssn|social|message|body|content|prompt|transcript|stack|componentstack)/i;
