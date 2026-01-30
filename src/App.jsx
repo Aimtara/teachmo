@@ -14,6 +14,7 @@ import { TypingIndicatorProvider } from './providers/TypingIndicatorProvider';
 import { WebSocketProvider } from './providers/WebSocketProvider';
 import { TenantProvider } from './contexts/TenantContext';
 import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
+import LiveSupportWidget from './components/support/LiveSupportWidget';
 import FeatureFlagProvider from './providers/FeatureFlagProvider.jsx';
 import { I18nProvider } from './components/shared/InternationalizationProvider';
 // NOTE: GlobalErrorBoundary replaces the legacy ErrorBoundary component.
@@ -41,6 +42,7 @@ function App() {
               <TenantBrandingProvider>
                 <FeatureFlagProvider>
                   <Pages />
+                  <LiveSupportWidget />
                 </FeatureFlagProvider>
               </TenantBrandingProvider>
             </TenantProvider>
