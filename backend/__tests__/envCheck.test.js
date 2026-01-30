@@ -13,8 +13,8 @@ describe('performStartupCheck', () => {
     originalEnv = {
       NODE_ENV: process.env.NODE_ENV,
       NHOST_ADMIN_SECRET: process.env.NHOST_ADMIN_SECRET,
-      NHOST_SUBDOMAIN: process.env.NHOST_SUBDOMAIN,
-      NHOST_REGION: process.env.NHOST_REGION,
+      NHOST_GRAPHQL_URL: process.env.NHOST_GRAPHQL_URL,
+      NHOST_JWKS_URL: process.env.NHOST_JWKS_URL,
       AUTH_JWKS_URL: process.env.AUTH_JWKS_URL,
       DATABASE_URL: process.env.DATABASE_URL,
       DB_HOST: process.env.DB_HOST,
@@ -30,8 +30,8 @@ describe('performStartupCheck', () => {
     // Clear env vars we're testing
     delete process.env.NODE_ENV;
     delete process.env.NHOST_ADMIN_SECRET;
-    delete process.env.NHOST_SUBDOMAIN;
-    delete process.env.NHOST_REGION;
+    delete process.env.NHOST_GRAPHQL_URL;
+    delete process.env.NHOST_JWKS_URL;
     delete process.env.AUTH_JWKS_URL;
     delete process.env.DATABASE_URL;
     delete process.env.DB_HOST;
@@ -67,8 +67,8 @@ describe('performStartupCheck', () => {
   it('should pass with DATABASE_URL and all required vars', () => {
     process.env.NODE_ENV = 'development';
     process.env.NHOST_ADMIN_SECRET = 'secret';
-    process.env.NHOST_SUBDOMAIN = 'subdomain';
-    process.env.NHOST_REGION = 'region';
+    process.env.NHOST_GRAPHQL_URL = 'https://example.com/v1/graphql';
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     process.env.DATABASE_URL = 'postgresql://localhost/test';
 
@@ -81,8 +81,8 @@ describe('performStartupCheck', () => {
   it('should pass with discrete DB variables and all required vars', () => {
     process.env.NODE_ENV = 'development';
     process.env.NHOST_ADMIN_SECRET = 'secret';
-    process.env.NHOST_SUBDOMAIN = 'subdomain';
-    process.env.NHOST_REGION = 'region';
+    process.env.NHOST_GRAPHQL_URL = 'https://example.com/v1/graphql';
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     process.env.DB_HOST = 'localhost';
     process.env.DB_PORT = '5432';
@@ -99,8 +99,8 @@ describe('performStartupCheck', () => {
   it('should error when database config is missing in non-production', () => {
     process.env.NODE_ENV = 'development';
     process.env.NHOST_ADMIN_SECRET = 'secret';
-    process.env.NHOST_SUBDOMAIN = 'subdomain';
-    process.env.NHOST_REGION = 'region';
+    process.env.NHOST_GRAPHQL_URL = 'https://example.com/v1/graphql';
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     // No database vars
 
@@ -118,8 +118,8 @@ describe('performStartupCheck', () => {
   it('should exit in production when database config is missing', () => {
     process.env.NODE_ENV = 'production';
     process.env.NHOST_ADMIN_SECRET = 'secret';
-    process.env.NHOST_SUBDOMAIN = 'subdomain';
-    process.env.NHOST_REGION = 'region';
+    process.env.NHOST_GRAPHQL_URL = 'https://example.com/v1/graphql';
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     // No database vars
 
@@ -142,8 +142,8 @@ describe('performStartupCheck', () => {
   it('should error when only some discrete DB variables are present', () => {
     process.env.NODE_ENV = 'development';
     process.env.NHOST_ADMIN_SECRET = 'secret';
-    process.env.NHOST_SUBDOMAIN = 'subdomain';
-    process.env.NHOST_REGION = 'region';
+    process.env.NHOST_GRAPHQL_URL = 'https://example.com/v1/graphql';
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     // Partial discrete vars - missing DB_USER, DB_PASSWORD, DB_NAME
     process.env.DB_HOST = 'localhost';
@@ -163,8 +163,8 @@ describe('performStartupCheck', () => {
   it('should warn about missing integration vars in production', () => {
     process.env.NODE_ENV = 'production';
     process.env.NHOST_ADMIN_SECRET = 'secret';
-    process.env.NHOST_SUBDOMAIN = 'subdomain';
-    process.env.NHOST_REGION = 'region';
+    process.env.NHOST_GRAPHQL_URL = 'https://example.com/v1/graphql';
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     process.env.DATABASE_URL = 'postgresql://localhost/test';
     // No integration vars
@@ -181,8 +181,8 @@ describe('performStartupCheck', () => {
   it('should log info about missing integration vars in non-production', () => {
     process.env.NODE_ENV = 'development';
     process.env.NHOST_ADMIN_SECRET = 'secret';
-    process.env.NHOST_SUBDOMAIN = 'subdomain';
-    process.env.NHOST_REGION = 'region';
+    process.env.NHOST_GRAPHQL_URL = 'https://example.com/v1/graphql';
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     process.env.DATABASE_URL = 'postgresql://localhost/test';
     // No integration vars
@@ -199,8 +199,8 @@ describe('performStartupCheck', () => {
   it('should accept partial discrete DB variables if DATABASE_URL is present', () => {
     process.env.NODE_ENV = 'development';
     process.env.NHOST_ADMIN_SECRET = 'secret';
-    process.env.NHOST_SUBDOMAIN = 'subdomain';
-    process.env.NHOST_REGION = 'region';
+    process.env.NHOST_GRAPHQL_URL = 'https://example.com/v1/graphql';
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     process.env.DATABASE_URL = 'postgresql://localhost/test';
     process.env.DB_HOST = 'localhost'; // Partial discrete vars
@@ -214,8 +214,8 @@ describe('performStartupCheck', () => {
 
   it('should error when required Nhost variables are missing', () => {
     process.env.NODE_ENV = 'development';
-    // Missing NHOST_ADMIN_SECRET and NHOST_SUBDOMAIN
-    process.env.NHOST_REGION = 'region';
+    // Missing NHOST_ADMIN_SECRET and NHOST_GRAPHQL_URL
+    process.env.NHOST_JWKS_URL = 'https://example.com/jwks';
     process.env.AUTH_JWKS_URL = 'https://example.com';
     process.env.DATABASE_URL = 'postgresql://localhost/test';
 
@@ -223,7 +223,10 @@ describe('performStartupCheck', () => {
 
     expect(mockLogger.error).toHaveBeenCalledWith(
       '❌ FATAL: Missing required environment variables:',
-      expect.arrayContaining(['NHOST_ADMIN_SECRET', 'NHOST_SUBDOMAIN'])
+      expect.arrayContaining([
+        expect.stringContaining('GraphQL URL'),
+        expect.stringContaining('Admin Secret')
+      ])
     );
     expect(mockLogger.error).toHaveBeenCalledWith(
       '⚠️  Continuing in non-production mode, but operations like migrations and database-dependent schedulers will fail.'
@@ -241,7 +244,11 @@ describe('performStartupCheck', () => {
 
     expect(mockLogger.error).toHaveBeenCalledWith(
       '❌ FATAL: Missing required environment variables:',
-      expect.arrayContaining(['NHOST_ADMIN_SECRET', 'NHOST_SUBDOMAIN', 'NHOST_REGION', 'AUTH_JWKS_URL'])
+      expect.arrayContaining([
+        expect.stringContaining('GraphQL URL'),
+        expect.stringContaining('Admin Secret'),
+        expect.stringContaining('JWKS URL')
+      ])
     );
     expect(mockLogger.error).toHaveBeenCalledWith(
       'Server cannot start in production without these variables.'
@@ -249,50 +256,8 @@ describe('performStartupCheck', () => {
     expect(mockExit).toHaveBeenCalledWith(1);
 
     mockExit.mockRestore();
-var mockLogger; // Use var for hoisting
-
-jest.mock('../utils/logger.js', () => ({
-  createLogger: jest.fn(() => {
-    if (!mockLogger) {
-      mockLogger = {
-        error: jest.fn(),
-        warn: jest.fn(),
-        info: jest.fn(),
-      };
-    }
-    return mockLogger;
-  }),
-}));
-
-/* eslint-env jest */
-
-// Create mock functions that will be accessible in tests
-let mockError, mockWarn, mockInfo, mockDebug;
-
-// Mock the logger module before importing anything else
-jest.mock('../utils/logger.js', () => ({
-  createLogger: jest.fn(() => {
-    // These are assigned in beforeEach
-    return {
-      get error() { return mockError; },
-      get warn() { return mockWarn; },
-      get info() { return mockInfo; },
-      get debug() { return mockDebug; },
-    };
-  }),
-}));
-
-// Now import the module under test
-import { performStartupCheck } from '../utils/envCheck.js';
-
-describe('performStartupCheck', () => {
-  let originalEnv;
-  let originalExit;
-  let consoleErrorSpy;
-  let consoleWarnSpy;
-  let consoleInfoSpy;
-
-  beforeEach(() => {
+  });
+});
     // Save original environment and process.exit
     originalEnv = { ...process.env };
     originalExit = process.exit;
@@ -442,7 +407,60 @@ describe('performStartupCheck', () => {
     expect(process.exit).not.toHaveBeenCalled();
   });
 
-// (intentionally left blank: removed duplicate mocks, import, and describe block)
+  test('logs info about missing integration keys in development', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.NHOST_ADMIN_SECRET = 'test-secret';
+    process.env.NHOST_GRAPHQL_URL = 'http://localhost:8080/v1/graphql';
+    process.env.AUTH_JWKS_URL = 'http://localhost:8080/.well-known/jwks.json';
+    // Missing integration keys
+
+    performStartupCheck();
+
+    expect(consoleInfoSpy).toHaveBeenCalledWith(
+      '[env-check]',
+      expect.stringContaining('Missing integration keys (acceptable for local dev)'),
+      expect.arrayContaining(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'])
+    );
+    expect(process.exit).not.toHaveBeenCalled();
+  });
+
+  test('does not warn about integration keys when they are present', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.NHOST_ADMIN_SECRET = 'test-secret';
+    process.env.NHOST_GRAPHQL_URL = 'http://localhost:8080/v1/graphql';
+    process.env.AUTH_JWKS_URL = 'http://localhost:8080/.well-known/jwks.json';
+    process.env.GOOGLE_CLIENT_ID = 'test-client-id';
+    process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
+    process.env.OPENAI_API_KEY = 'test-api-key';
+
+    performStartupCheck();
+
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    expect(consoleInfoSpy).toHaveBeenCalledWith('[env-check]', expect.stringContaining('Environment configuration check passed'));
+    expect(process.exit).not.toHaveBeenCalled();
+  let mockExit;
+
+  beforeEach(() => {
+    // Save original environment
+    originalEnv = { ...process.env };
+
+    // Reset logger mocks if initialized
+    if (mockLogger) {
+      mockLogger.error.mockClear();
+      mockLogger.warn.mockClear();
+      mockLogger.info.mockClear();
+    }
+
+    // Create fresh mock functions for this test
+    mockError = jest.fn();
+    mockWarn = jest.fn();
+    mockInfo = jest.fn();
+    mockDebug = jest.fn();
+
+    // Mock process.exit
+    mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
+  });
+
   afterEach(() => {
     // Restore original environment
     process.env = originalEnv;
