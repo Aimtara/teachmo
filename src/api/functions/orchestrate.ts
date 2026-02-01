@@ -2,6 +2,7 @@ import { orchestratorRequestSchema, orchestratorResponseSchema } from '@/lib/orc
 import type { OrchestratorRequestInput, OrchestratorResponse } from '@/lib/orchestrator/types';
 import type { OrchestratorUIAction } from '@/lib/orchestrator/actionRunner';
 import { buildUIActionRequest } from '@/lib/orchestrator/actionRunner';
+import { HttpError } from '@/utils/apiRetry';
 
 type FetchRequestInit = globalThis.RequestInit;
 
@@ -43,7 +44,10 @@ export async function orchestrate(
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => response.statusText);
-    throw new Error(`Nhost function orchestrate failed (${response.status}): ${errorText}`);
+    throw new HttpError(
+      `Nhost function orchestrate failed (${response.status}): ${errorText}`,
+      response.status
+    );
   }
 
   const json = (await response.json()) as unknown;
