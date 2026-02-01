@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ActivitiesTab from '@/components/explore/ActivitiesTab';
 import EventsTab from '@/components/explore/EventsTab';
@@ -14,12 +14,11 @@ const TABS = {
 
 export default function UnifiedExplore() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') || TABS.FOR_YOU;
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const activeTab = searchParams.get('tab') || TABS.FOR_YOU;
 
-  useEffect(() => {
-    setSearchParams({ tab: activeTab });
-  }, [activeTab, setSearchParams]);
+  const handleTabChange = (tab) => {
+    setSearchParams({ ...Object.fromEntries(searchParams), tab });
+  };
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -34,7 +33,7 @@ export default function UnifiedExplore() {
         {Object.values(TABS).map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabChange(tab)}
             className={`px-4 py-2 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${
               activeTab === tab
                 ? 'border-blue-600 text-blue-600'
