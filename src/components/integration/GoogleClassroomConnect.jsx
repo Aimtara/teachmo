@@ -126,7 +126,6 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
       } else {
         const { data } = await googleClassroomSync({
           action: `sync_${syncType}`,
-          courseId: syncType === 'assignments' ? 'all' : undefined
         });
 
         if (!data.success) {
