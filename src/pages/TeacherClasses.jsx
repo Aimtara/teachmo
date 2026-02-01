@@ -29,7 +29,7 @@ export default function TeacherClasses() {
               const enrollments = await Enrollment.filter({ course_id: course.id });
               return {
                 ...course,
-                studentCount: Array.isArray(enrollments) ? enrollments.length : 0
+                studentCount: Array.isArray(enrollments) ? enrollments.length : 0,
               };
             } catch (err) {
               return { ...course, studentCount: 0 };
