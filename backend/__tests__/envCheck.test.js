@@ -88,7 +88,7 @@ describe('performStartupCheck', () => {
       expect.arrayContaining(['NHOST_ADMIN_SECRET', 'NHOST_SUBDOMAIN', 'NHOST_REGION', 'AUTH_JWKS_URL'])
     );
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      '⚠️  WARNING: Missing required environment variables in non-production environment. This is tolerated but may cause issues:',
+      '⚠️ WARNING: Missing required environment variables in non-production environment. This is tolerated but may cause issues:',
       expect.arrayContaining(['NHOST_ADMIN_SECRET', 'NHOST_SUBDOMAIN', 'NHOST_REGION', 'AUTH_JWKS_URL'])
     );
     expect(mockLogger.info).not.toHaveBeenCalledWith('✅ Environment configuration check passed.');
@@ -124,7 +124,7 @@ describe('performStartupCheck', () => {
       expect.arrayContaining(['NHOST_SUBDOMAIN', 'NHOST_REGION', 'AUTH_JWKS_URL'])
     );
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      '⚠️  WARNING: Missing required environment variables in non-production environment. This is tolerated but may cause issues:',
+      '⚠️ WARNING: Missing required environment variables in non-production environment. This is tolerated but may cause issues:',
       expect.arrayContaining(['NHOST_SUBDOMAIN', 'NHOST_REGION', 'AUTH_JWKS_URL'])
     );
     expect(mockLogger.info).not.toHaveBeenCalledWith('✅ Environment configuration check passed.');

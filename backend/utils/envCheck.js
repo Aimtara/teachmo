@@ -24,7 +24,7 @@ export function performStartupCheck() {
       logger.error('Server cannot start in production without these variables.');
       process.exit(1);
     } else {
-      logger.warn('⚠️  WARNING: Missing required environment variables in non-production environment. This is tolerated but may cause issues:', missing);
+      logger.warn('⚠️ WARNING: Missing required environment variables in non-production environment. This is tolerated but may cause issues:', missing);
     }
   } else {
     logger.info('✅ Environment configuration check passed.');
