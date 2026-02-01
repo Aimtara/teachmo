@@ -94,19 +94,39 @@ export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ 
 // --- Google Classroom Integration ---
 
 export async function googleAuth(params: { action: string }) {
-  const res = await fetch(`${API_BASE_URL}/integrations/google/auth`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(params)
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/integrations/google/auth`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(params)
+    });
+
+    if (!res.ok) {
+      throw new Error(`Google Auth Error: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error('Google Auth Failed:', error);
+    throw error;
+  }
 }
 
 export async function googleClassroomSync(params: { action: string; courseId?: string }) {
-  const res = await fetch(`${API_BASE_URL}/integrations/google/sync`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(params)
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/integrations/google/sync`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(params)
+    });
+
+    if (!res.ok) {
+      throw new Error(`Google Classroom Sync Error: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error('Google Classroom Sync Failed:', error);
+    throw error;
+  }
 }
