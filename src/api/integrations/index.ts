@@ -29,7 +29,7 @@ export async function InvokeLLM({ prompt = '', context = {}, model }: LLMRequest
     });
 
     if (!res.ok) {
-      throw new Error(`AI Service Error: ${res.statusText}`);
+      throw new Error(`AI Service Error: ${res.status} ${res.statusText}`);
     }
 
     const data = await res.json();
@@ -81,7 +81,7 @@ export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ 
     });
 
     if (!res.ok) {
-      throw new Error(`Email Service Error: ${res.statusText}`);
+      throw new Error(`Email Service Error: ${res.status} ${res.statusText}`);
     }
 
     return { sent: true, to };
@@ -102,7 +102,7 @@ export async function googleAuth(params: { action: string }) {
     });
 
     if (!res.ok) {
-      throw new Error(`Google Auth Error: ${res.statusText}`);
+      throw new Error(`Google Auth Error: ${res.status} ${res.statusText}`);
     }
 
     return await res.json();
@@ -121,7 +121,7 @@ export async function googleClassroomSync(params: { action: string; courseId?: s
     });
 
     if (!res.ok) {
-      throw new Error(`Google Classroom Sync Error: ${res.statusText}`);
+      throw new Error(`Google Classroom Sync Error: ${res.status} ${res.statusText}`);
     }
 
     return await res.json();
