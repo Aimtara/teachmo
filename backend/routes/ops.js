@@ -1,6 +1,7 @@
 /* eslint-env node */
 // Ops router: JWT-authenticated observability + mitigation actions.
 // G0/G3 Compliance: No shared secrets. Uses Nhost JWT claims.
+// All routes require system_admin role and are protected by JWT authentication.
 
 import express from 'express';
 import { query } from '../db.js';

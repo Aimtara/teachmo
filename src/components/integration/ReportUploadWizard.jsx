@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { ArrowRight, CheckCircle, UploadCloud } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -41,38 +42,6 @@ export default function ReportUploadWizard({ onComplete }) {
     activityName: '',
   });
 
-  const parseCSVLine = (line) => {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-      
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          // Escaped quote
-          current += '"';
-          i++; // Skip next quote
-        } else {
-          // Toggle quote state
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        // End of field
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    
-    // Add the last field
-    result.push(current.trim());
-    return result;
-  };
-
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
     if (!uploadedFile) {
@@ -82,6 +51,12 @@ export default function ReportUploadWizard({ onComplete }) {
     const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit to prevent browser hangs
     if (uploadedFile.size > MAX_FILE_SIZE_BYTES) {
       ultraMinimalToast.error('File too large. Please upload a CSV file smaller than 5MB.');
+      // Reset the input so the same file can be reselected if needed
+      if (event.target) {
+        event.target.value = '';
+      }
+      return;
+    }
     // Validate file type - check both extension and MIME type
     const fileName = uploadedFile.name.toLowerCase();
     const validExtension = fileName.endsWith('.csv');
@@ -106,15 +81,6 @@ export default function ReportUploadWizard({ onComplete }) {
       return;
     }
 
-    const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit to prevent browser hangs
-    if (uploadedFile.size > MAX_FILE_SIZE_BYTES) {
-      ultraMinimalToast.error('File too large. Please upload a CSV file smaller than 5MB.');
-      // Reset the input so the same file can be reselected if needed
-      if (event.target) {
-        event.target.value = '';
-      }
-      return;
-    }
     setFile(uploadedFile);
     const reader = new FileReader();
     reader.onload = (fileEvent) => {
@@ -176,8 +142,6 @@ export default function ReportUploadWizard({ onComplete }) {
       }
     };
     
-    reader.onerror = () => {
-      ultraMinimalToast.error('Failed to read file. Please try again with a valid CSV.');
     reader.onerror = () => {
       ultraMinimalToast.error('Failed to read file. Please try again with a valid CSV.');
       setFile(null);
@@ -306,7 +270,6 @@ export default function ReportUploadWizard({ onComplete }) {
             </div>
             <Button
               className="w-full"
-              onClick={() => setStep(STEPS.PREVIEW)}
               disabled={
                 !mapping ||
                 !mapping.studentName ||
