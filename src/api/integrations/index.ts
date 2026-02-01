@@ -1,7 +1,6 @@
 import { API_BASE_URL } from "@/config/api";
 import { nhost } from "@/lib/nhostClient";
 
-// Helper to get auth headers
 const getHeaders = () => {
   const token = nhost.auth.getAccessToken();
   return {
@@ -14,86 +13,74 @@ export type LLMRequest = {
   prompt?: string;
   context?: Record<string, unknown>;
   model?: string;
+  featureFlags?: Record<string, unknown>;
+  response_json_schema?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
-/**
- * Invokes the backend AI completion endpoint.
- */
-export async function InvokeLLM({
-  prompt = "",
-  context = {},
-  model,
-}: LLMRequest = {}): Promise<{ response: string; context: Record<string, unknown> }> {
+// 1. Connect AI Service
+export async function InvokeLLM(request: LLMRequest = {}): Promise<unknown> {
+  const { prompt = "", context = {}, model, response_json_schema, ...rest } = request;
   try {
     const res = await fetch(`${API_BASE_URL}/ai/completion`, {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify({ prompt, context, model }),
+      body: JSON.stringify({ prompt, context, model, response_json_schema, ...rest }),
     });
-
-    if (!res.ok) {
-      throw new Error(`AI Service Error: ${res.statusText}`);
-    }
-
+    if (!res.ok) throw new Error(`AI Service Error: ${res.statusText}`);
     const data = await res.json();
-    return {
-      response: data.content || data.response,
-      context: data.context || context,
-    };
+    const content = data?.content ?? data?.response ?? data;
+    if (response_json_schema && typeof content === "string") {
+      try {
+        return JSON.parse(content);
+      } catch (error) {
+        console.warn("LLM response was not valid JSON:", error);
+      }
+    }
+    return content;
   } catch (error) {
-    console.error("LLM Invocation Failed:", error);
+    console.error("LLM Failed:", error);
     throw error;
   }
 }
 
-export type UploadFileResult = { url: string | null };
-
-/**
- * Uploads a file to Nhost Storage.
- */
-export async function UploadFile(file?: File): Promise<UploadFileResult> {
-  if (!file) return { url: null };
-
+// 2. Connect File Uploads
+export type UploadFileResult = { url: string | null; file_url: string | null };
+type UploadFileParams = { file?: File };
+export async function UploadFile(fileOrParams?: File | UploadFileParams): Promise<UploadFileResult> {
+  const file = fileOrParams instanceof File ? fileOrParams : fileOrParams?.file;
+  if (!file) return { url: null, file_url: null };
   try {
     const { fileMetadata, error } = await nhost.storage.upload({ file });
-
-    if (error) {
-      throw error;
-    }
-
+    if (error) throw error;
     const url = nhost.storage.getPublicUrl({ fileId: fileMetadata.id });
-    return { url };
+    return { url, file_url: url };
   } catch (error) {
-    console.error("File Upload Failed:", error);
+    console.error("Upload Failed:", error);
     throw error;
   }
 }
 
+// 3. Connect Email Service
 export type EmailRequest = { to: string; subject: string; body: string };
-
-/**
- * Sends a transactional email via the backend.
- */
-export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ sent: boolean; to: string }> {
+export async function SendEmail({
+  to,
+  subject,
+  body,
+}: EmailRequest): Promise<{ sent: boolean; to: string }> {
   try {
     const res = await fetch(`${API_BASE_URL}/integrations/email/send`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({ to, subject, body }),
     });
-
-    if (!res.ok) {
-      throw new Error(`Email Service Error: ${res.statusText}`);
-    }
-
+    if (!res.ok) throw new Error(`Email Service Error: ${res.statusText}`);
     return { sent: true, to };
   } catch (error) {
-    console.error("Email Send Failed:", error);
+    console.error("Email Failed:", error);
     return { sent: false, to };
   }
 }
-
-// --- Google Classroom Integration ---
 
 export async function googleAuth(params: { action: string }) {
   const res = await fetch(`${API_BASE_URL}/integrations/google/auth`, {
