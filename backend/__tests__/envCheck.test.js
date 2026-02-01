@@ -442,60 +442,7 @@ describe('performStartupCheck', () => {
     expect(process.exit).not.toHaveBeenCalled();
   });
 
-  test('logs info about missing integration keys in development', () => {
-    process.env.NODE_ENV = 'development';
-    process.env.NHOST_ADMIN_SECRET = 'test-secret';
-    process.env.NHOST_GRAPHQL_URL = 'http://localhost:8080/v1/graphql';
-    process.env.AUTH_JWKS_URL = 'http://localhost:8080/.well-known/jwks.json';
-    // Missing integration keys
-
-    performStartupCheck();
-
-    expect(consoleInfoSpy).toHaveBeenCalledWith(
-      '[env-check]',
-      expect.stringContaining('Missing integration keys (acceptable for local dev)'),
-      expect.arrayContaining(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'])
-    );
-    expect(process.exit).not.toHaveBeenCalled();
-  });
-
-  test('does not warn about integration keys when they are present', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.NHOST_ADMIN_SECRET = 'test-secret';
-    process.env.NHOST_GRAPHQL_URL = 'http://localhost:8080/v1/graphql';
-    process.env.AUTH_JWKS_URL = 'http://localhost:8080/.well-known/jwks.json';
-    process.env.GOOGLE_CLIENT_ID = 'test-client-id';
-    process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
-    process.env.OPENAI_API_KEY = 'test-api-key';
-
-    performStartupCheck();
-
-    expect(consoleWarnSpy).not.toHaveBeenCalled();
-    expect(consoleInfoSpy).toHaveBeenCalledWith('[env-check]', expect.stringContaining('Environment configuration check passed'));
-    expect(process.exit).not.toHaveBeenCalled();
-  let mockExit;
-
-  beforeEach(() => {
-    // Save original environment
-    originalEnv = { ...process.env };
-
-    // Reset logger mocks if initialized
-    if (mockLogger) {
-      mockLogger.error.mockClear();
-      mockLogger.warn.mockClear();
-      mockLogger.info.mockClear();
-    }
-
-    // Create fresh mock functions for this test
-    mockError = jest.fn();
-    mockWarn = jest.fn();
-    mockInfo = jest.fn();
-    mockDebug = jest.fn();
-
-    // Mock process.exit
-    mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
-  });
-
+// (intentionally left blank: removed duplicate mocks, import, and describe block)
   afterEach(() => {
     // Restore original environment
     process.env = originalEnv;
