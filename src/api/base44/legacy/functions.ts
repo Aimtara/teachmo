@@ -1,3 +1,5 @@
+import { HttpError } from '@/utils/apiRetry';
+
 type FetchRequestInit = globalThis.RequestInit;
 type FetchHeadersInit = globalThis.HeadersInit;
 
@@ -43,7 +45,10 @@ const invokeNhostFunction = async <T = unknown>(
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => response.statusText);
-    throw new Error(`Nhost function ${functionName} failed (${response.status}): ${errorText}`);
+    throw new HttpError(
+      `Nhost function ${functionName} failed (${response.status}): ${errorText}`,
+      response.status
+    );
   }
 
   if (response.status === 204) {
