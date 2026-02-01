@@ -1,6 +1,6 @@
 import request from 'supertest';
 import express from 'express';
-import opsRouter from '../routes/ops.js';
+import opsRouter, { clearTableCache } from '../routes/ops.js';
 import { query } from '../db.js';
 import { attachAuthContext } from '../middleware/auth.js';
 
@@ -19,6 +19,7 @@ function makeApp() {
 describe('Ops router', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearTableCache(); // Clear the table existence cache
     process.env.NODE_ENV = 'test';
     process.env.AUTH_MODE = 'mock';
     process.env.AUTH_MOCK_SECRET = 'launch-gates-secret';
@@ -91,6 +92,82 @@ describe('Ops router', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('families');
     expect(res.body.families[0]).toMatchObject({ id: 'fam_1', name: 'Test Family' });
+  });
+
+  test('uses family_memberships fallback when families table absent', async () => {
+    // tableExists('families') - returns null (table doesn't exist)
+    query.mockResolvedValueOnce({ rows: [{ reg: null }] });
+    // tableExists('family_memberships') - returns table name (exists)
+    query.mockResolvedValueOnce({ rows: [{ reg: 'family_memberships' }] });
+    // family_memberships aggregation query
+    query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'fam_1',
+          name: null,
+          status: null,
+          created_at: '2026-01-20T00:00:00Z',
+        },
+        {
+          id: 'fam_2',
+          name: null,
+          status: null,
+          created_at: '2026-01-19T00:00:00Z',
+        },
+      ],
+    });
+
+    const { SignJWT } = await import('jose');
+    const token = await new SignJWT({
+      'https://hasura.io/jwt/claims': {
+        'x-hasura-user-id': 'user_admin',
+        'x-hasura-default-role': 'system_admin',
+        'x-hasura-allowed-roles': ['system_admin'],
+      },
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('15m')
+      .sign(new TextEncoder().encode(process.env.AUTH_MOCK_SECRET));
+
+    const app = makeApp();
+    const res = await request(app)
+      .get('/api/ops/families')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('families');
+    expect(res.body.families).toHaveLength(2);
+    expect(res.body.families[0]).toMatchObject({ id: 'fam_1' });
+  });
+
+  test('returns empty list when no family tables exist', async () => {
+    // tableExists('families') - returns null
+    query.mockResolvedValueOnce({ rows: [{ reg: null }] });
+    // tableExists('family_memberships') - returns null
+    query.mockResolvedValueOnce({ rows: [{ reg: null }] });
+
+    const { SignJWT } = await import('jose');
+    const token = await new SignJWT({
+      'https://hasura.io/jwt/claims': {
+        'x-hasura-user-id': 'user_admin',
+        'x-hasura-default-role': 'system_admin',
+        'x-hasura-allowed-roles': ['system_admin'],
+      },
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('15m')
+      .sign(new TextEncoder().encode(process.env.AUTH_MOCK_SECRET));
+
+    const app = makeApp();
+    const res = await request(app)
+      .get('/api/ops/families')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('families');
+    expect(res.body.families).toHaveLength(0);
   });
 
   test('returns health snapshot shape', async () => {

@@ -49,6 +49,11 @@ async function tableExists(tableName) {
   return ok;
 }
 
+// Export for testing
+export function clearTableCache() {
+  existsCache.clear();
+}
+
 // --- Routes ---
 router.get('/health', (req, res) => {
   res.json({ status: 'operable', actor: req.auth.userId });
@@ -58,17 +63,28 @@ router.get('/families', async (req, res) => {
   try {
     const limit = clampLimit(req.query.limit, 25);
 
-    // Basic query logic preserved from original
-    let sql = 'SELECT * FROM auth.users LIMIT $1';
-    let params = [limit];
-
     // Check if real families table exists (it should in production)
     if (await tableExists('families')) {
-      sql = 'SELECT id, name, status, created_at FROM families ORDER BY created_at DESC LIMIT $1';
+      const sql = 'SELECT id, name, status, created_at FROM families ORDER BY created_at DESC LIMIT $1';
+      const result = await query(sql, [limit]);
+      return res.json({ families: result.rows || [] });
     }
 
-    const result = await query(sql, params);
-    return res.json({ families: result.rows || [] });
+    // Fallback: derive families from family_memberships if available
+    if (await tableExists('family_memberships')) {
+      const sql = `
+        SELECT DISTINCT family_id AS id, NULL AS name, NULL AS status, MIN(created_at) AS created_at
+        FROM family_memberships
+        GROUP BY family_id
+        ORDER BY created_at DESC
+        LIMIT $1
+      `;
+      const result = await query(sql, [limit]);
+      return res.json({ families: result.rows || [] });
+    }
+
+    // If neither table exists, return empty list
+    return res.json({ families: [] });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
