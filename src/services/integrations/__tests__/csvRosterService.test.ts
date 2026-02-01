@@ -156,7 +156,7 @@ student-3,Bob,Johnson,bob.johnson@example.com`;
 
       const { validRows, errors } = await CsvRosterService.parseAndValidate(csvContent, 'users');
 
-      // Row 3 should be skipped due to fewer columns than headers
+      // Rows with fewer columns are silently skipped as malformed CSV
       expect(validRows).toHaveLength(2);
       expect(errors).toHaveLength(0);
     });

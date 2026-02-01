@@ -87,6 +87,13 @@ export const CsvRosterService = {
 
     for (let i = 1; i < lines.length; i += 1) {
       const row = lines[i].split(',').map((value) => value.trim());
+      
+      // Skip empty lines
+      if (row.length === 1 && row[0] === '') {
+        continue;
+      }
+      
+      // Skip rows with fewer columns than header (malformed CSV)
       if (row.length < header.length) {
         continue;
       }
