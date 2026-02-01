@@ -1,7 +1,6 @@
 import { API_BASE_URL } from "@/config/api";
 import { nhost } from "@/lib/nhostClient";
 
-// Helper to get auth headers
 const getHeaders = () => {
   const token = nhost.auth.getAccessToken();
   return {
@@ -14,6 +13,9 @@ export type LLMRequest = {
   prompt?: string;
   context?: Record<string, unknown>;
   model?: string;
+  featureFlags?: Record<string, unknown>;
+  response_json_schema?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 /**
@@ -27,11 +29,7 @@ export async function InvokeLLM({ prompt = '', context = {}, model }: LLMRequest
       headers: getHeaders(),
       body: JSON.stringify({ prompt, context, model })
     });
-
-    if (!res.ok) {
-      throw new Error(`AI Service Error: ${res.statusText}`);
-    }
-
+    if (!res.ok) throw new Error(`AI Service Error: ${res.statusText}`);
     const data = await res.json();
     return {
       response: data.content || data.response,
@@ -52,7 +50,6 @@ export async function UploadFile(file?: File): Promise<UploadFileResult> {
   if (!file) return { url: null };
 
   try {
-    // using Nhost SDK for direct storage upload
     const { fileMetadata, error } = await nhost.storage.upload({ file });
 
     if (error) {
@@ -60,13 +57,14 @@ export async function UploadFile(file?: File): Promise<UploadFileResult> {
     }
 
     const url = nhost.storage.getPublicUrl({ fileId: fileMetadata.id });
-    return { url };
+    return { url, file_url: url };
   } catch (error) {
     console.error('File Upload Failed:', error);
     throw error;
   }
 }
 
+// 3. Connect Email Service
 export type EmailRequest = { to: string; subject: string; body: string };
 
 /**
@@ -79,19 +77,13 @@ export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ 
       headers: getHeaders(),
       body: JSON.stringify({ to, subject, body })
     });
-
-    if (!res.ok) {
-      throw new Error(`Email Service Error: ${res.statusText}`);
-    }
-
+    if (!res.ok) throw new Error(`Email Service Error: ${res.statusText}`);
     return { sent: true, to };
   } catch (error) {
     console.error('Email Send Failed:', error);
     throw error;
   }
 }
-
-// --- Google Classroom Integration ---
 
 export async function googleAuth(params: { action: string }) {
   const res = await fetch(`${API_BASE_URL}/integrations/google/auth`, {

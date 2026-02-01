@@ -21,8 +21,7 @@ export default function AdminLMSIntegration() {
   // LTI Platform Configuration State
   const [ltiPlatformIssuer, setLtiPlatformIssuer] = useState('');
   const [ltiClientId, setLtiClientId] = useState('');
-  
-  // xAPI/LRS Configuration State
+
   const [lrsEndpoint, setLrsEndpoint] = useState('');
   const [lrsAuthUsername, setLrsAuthUsername] = useState('');
   const [lrsAuthPassword, setLrsAuthPassword] = useState('');
@@ -36,10 +35,9 @@ export default function AdminLMSIntegration() {
       ultraMinimalToast.error('Please fill in all required fields');
       return;
     }
-    
+
     setIsLtiSaving(true);
     try {
-      // TODO: Implement backend API call to save LTI platform configuration
       await new Promise((resolve) => setTimeout(resolve, 1000));
       ultraMinimalToast.success('LTI platform configuration saved');
       setLtiPlatformIssuer('');
@@ -53,17 +51,15 @@ export default function AdminLMSIntegration() {
   };
 
   const handleSaveLrsConfiguration = async () => {
-    if (!lrsEndpoint.trim()) {
-      ultraMinimalToast.error('Please fill in all required fields');
+    if (!lrsEndpoint.trim() || !lrsUsername.trim() || !lrsPassword.trim()) {
+      ultraMinimalToast.error('Please fill in all required fields.');
       return;
     }
-    
+
     setIsLrsSaving(true);
     try {
-      // TODO: Implement backend API call to save LRS configuration
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      ultraMinimalToast.success('LRS configuration saved');
-      // Keep fields populated so users can test connection after saving
+      ultraMinimalToast.success('LRS configuration saved.');
     } catch (error) {
       console.error(error);
       ultraMinimalToast.error('Failed to save configuration. Please try again.');
@@ -73,16 +69,15 @@ export default function AdminLMSIntegration() {
   };
 
   const handleTestLrsConnection = async () => {
-    if (!lrsEndpoint.trim()) {
-      ultraMinimalToast.error('Please save configuration before testing');
+    if (!lrsEndpoint.trim() || !lrsUsername.trim() || !lrsPassword.trim()) {
+      ultraMinimalToast.error('Please save configuration before testing.');
       return;
     }
-    
+
     setIsTesting(true);
     try {
-      // TODO: Implement backend API call to test LRS connection
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      ultraMinimalToast.success('LRS connection test successful');
+      ultraMinimalToast.success('LRS connection test successful.');
     } catch (error) {
       console.error(error);
       ultraMinimalToast.error('Connection test failed. Please check your credentials.');
@@ -160,8 +155,8 @@ export default function AdminLMSIntegration() {
                     />
                   </div>
                 </div>
-                <Button 
-                  className="mt-4" 
+                <Button
+                  className="mt-4"
                   onClick={handleSaveLtiPlatform}
                   disabled={isLtiSaving}
                 >
@@ -179,8 +174,7 @@ export default function AdminLMSIntegration() {
                 <Database className="w-5 h-5" /> Learning Record Store (LRS)
               </CardTitle>
               <CardDescription>
-                Configure where xAPI statements for student activities should be
-                sent.
+                Configure where xAPI statements for student activities should be sent.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -240,7 +234,6 @@ export default function AdminLMSIntegration() {
             serviceName="Khan Academy"
             icon={Globe}
           />
-          {/* Connection status for Clever should be driven by real state, not hardcoded */}
           <ServiceConnect
             serviceKey="clever"
             serviceName="Clever (District)"

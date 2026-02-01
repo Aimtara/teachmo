@@ -1,6 +1,5 @@
 /* eslint-env node */
 import { createLogger } from './logger.js';
-
 const logger = createLogger('env-check');
 
 // At least one from each group must be present

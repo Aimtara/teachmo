@@ -13,18 +13,12 @@ const ALLOWED_TABLES = new Set([
 
 function parseCsv(text) {
   if (!text) return [];
-  
   try {
-    // Use RFC 4180-compliant CSV parser that properly handles:
-    // - Commas inside quoted fields (e.g., "Smith, John")
-    // - Newlines inside quoted fields
-    // - Escaped quotes inside quoted fields (e.g., "He said ""hello""")
+    // Use proper RFC4180 CSV parser to handle quoted commas, newlines, etc.
     const records = parse(text, {
-      columns: true, // First row is headers, returns array of objects
+      columns: true,
       skip_empty_lines: true,
       trim: true,
-      relax_quotes: true, // More lenient with quotes for real-world CSVs
-      relax_column_count: true // Handle rows with varying column counts
     });
     
     // Attach line numbers for error reporting (1-based + header row)
@@ -119,8 +113,8 @@ export default async function sisRosterImport(req, res) {
       ? String(req.headers['x-hasura-school-id'])
       : null;
 
-    if (!actorId || !allowedRoles.has(role)) {
-      return res.status(403).json({ error: 'Unauthorized' });
+    if (!allowedRoles.has(role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
     if (!organizationId) {
@@ -131,14 +125,17 @@ export default async function sisRosterImport(req, res) {
       csvText,
       records,
       rosterType = 'students',
-      source = 'csv',
-      schoolId,
       fileName,
-      fileSize
+      fileSize,
     } = req.body ?? {};
     
     const rawRecords = Array.isArray(records) ? records : parseCsv(String(csvText ?? ''));
-    const effectiveSchoolId = schoolId ? String(schoolId) : schoolIdHeader;
+
+    // Create import job
+    jobId = await createImportJob(userId, organizationId, rosterType, {
+      file_name: fileName,
+      file_size: fileSize,
+    });
 
     // Create import job
     jobId = await createImportJob(userId, organizationId, rosterType, {
@@ -147,7 +144,19 @@ export default async function sisRosterImport(req, res) {
     });
 
     if (!rawRecords.length) {
-      return res.status(200).json({ ok: true, inserted: 0, skipped: 0 });
+      await updateImportJob(jobId, {
+        status: 'completed',
+        finished_at: new Date().toISOString(),
+        metadata: {
+          file_name: fileName,
+          file_size: fileSize,
+          record_count: 0,
+          inserted_count: 0,
+          skipped_count: 0,
+          errors: [],
+        },
+      });
+      return res.status(200).json({ ok: true, inserted: 0, jobId });
     }
 
     const validObjects = [];

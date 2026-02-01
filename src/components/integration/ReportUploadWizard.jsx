@@ -23,12 +23,7 @@ import {
 } from '@/components/ui/table';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 
-const STEPS = {
-  UPLOAD: 0,
-  MAPPING: 1,
-  PREVIEW: 2,
-  COMPLETE: 3,
-};
+const STEPS = { UPLOAD: 0, MAPPING: 1, PREVIEW: 2, COMPLETE: 3 };
 
 export default function ReportUploadWizard({ onComplete }) {
   const [step, setStep] = useState(STEPS.UPLOAD);
@@ -158,115 +153,27 @@ export default function ReportUploadWizard({ onComplete }) {
   };
 
   const handleIngest = async () => {
-    // TODO: Replace with actual API call to persist imported data
-    // Currently simulates import for UI demonstration purposes
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    if (file) {
-      ultraMinimalToast.success(`Successfully imported ${file.name}`);
-    }
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API for now
+    ultraMinimalToast(`Successfully imported ${file.name}`);
     setStep(STEPS.COMPLETE);
-    if (onComplete) {
-      onComplete();
-    }
+    if (onComplete) onComplete();
   };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Import Activity Report</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>Import Activity Report</CardTitle></CardHeader>
       <CardContent>
         {step === STEPS.UPLOAD && (
           <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
             <UploadCloud className="h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-sm text-gray-600 mb-4">
-              Upload a CSV file from Reflex Math, IXL, or similar.
-            </p>
-            <Input
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="max-w-xs"
-            />
+            <Input type="file" accept=".csv" onChange={handleFileUpload} className="max-w-xs" />
           </div>
         )}
-
         {step === STEPS.MAPPING && (
           <div className="space-y-6">
-            <p className="text-sm text-gray-600">
-              Map the columns from your CSV to Teachmo fields.
-            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Student Name Column</Label>
-                <Select
-                  onValueChange={(value) =>
-                    handleMappingChange('studentName', value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {csvHeaders.map((header) => (
-                      <SelectItem key={header} value={header}>
-                        {header}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Score/Grade Column</Label>
-                <Select
-                  onValueChange={(value) => handleMappingChange('score', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {csvHeaders.map((header) => (
-                      <SelectItem key={header} value={header}>
-                        {header}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Activity Date</Label>
-                <Select onValueChange={(value) => handleMappingChange('date', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {csvHeaders.map((header) => (
-                      <SelectItem key={header} value={header}>
-                        {header}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Activity Name</Label>
-                <Select
-                  onValueChange={(value) =>
-                    handleMappingChange('activityName', value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {csvHeaders.map((header) => (
-                      <SelectItem key={header} value={header}>
-                        {header}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="space-y-2"><Label>Student Name</Label><Select onValueChange={(v) => setMapping(p => ({...p, studentName: v}))}><SelectTrigger><SelectValue placeholder="Column" /></SelectTrigger><SelectContent>{csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Score</Label><Select onValueChange={(v) => setMapping(p => ({...p, score: v}))}><SelectTrigger><SelectValue placeholder="Column" /></SelectTrigger><SelectContent>{csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
             </div>
             <Button
               className="w-full"
@@ -293,78 +200,16 @@ export default function ReportUploadWizard({ onComplete }) {
             </Button>
           </div>
         )}
-
         {step === STEPS.PREVIEW && (
           <div className="space-y-4">
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Activity</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {previewData.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{row[mapping.studentName] || '-'}</TableCell>
-                      <TableCell>{row[mapping.score] || '-'}</TableCell>
-                      <TableCell>{row[mapping.date] || '-'}</TableCell>
-                      <TableCell>{row[mapping.activityName] || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(STEPS.MAPPING)}>
-                Back
-              </Button>
-              <Button className="flex-1" onClick={handleIngest}>
-                Import Records
-              </Button>
-            </div>
+             <div className="border rounded-md"><Table><TableHeader><TableRow><TableHead>Student</TableHead><TableHead>Score</TableHead></TableRow></TableHeader><TableBody>{previewData.map((row, i) => (<TableRow key={i}><TableCell>{row[mapping.studentName]}</TableCell><TableCell>{row[mapping.score]}</TableCell></TableRow>))}</TableBody></Table></div>
+             <Button className="w-full" onClick={handleIngest}>Import Records</Button>
           </div>
         )}
-
         {step === STEPS.COMPLETE && (
-          <div className="text-center py-8">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900">Import Complete!</h3>
-            <p className="text-gray-600 mt-2">
-              Your report data has been added to student records.
-            </p>
-            <p className="text-xs text-gray-500 mt-4 italic">
-              Note: This is a demonstration UI. Actual data persistence requires backend implementation.
-            </p>
-            <Button
-              className="mt-6"
-              variant="outline"
-              onClick={() => {
-                // Reset all state when starting a new import
-                setFile(null);
-                setCsvHeaders([]);
-                setPreviewData([]);
-                setMapping({
-                  studentName: '',
-                  score: '',
-                  date: '',
-                  activityName: '',
-                });
-                setStep(STEPS.UPLOAD);
-              }}
-            >
-              Import Another
-            </Button>
-          </div>
+          <div className="text-center py-8"><CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" /><h3 className="text-xl font-medium">Import Complete!</h3><Button className="mt-6" variant="outline" onClick={() => setStep(STEPS.UPLOAD)}>Import Another</Button></div>
         )}
       </CardContent>
     </Card>
   );
 }
-
-ReportUploadWizard.propTypes = {
-  onComplete: PropTypes.func,
-};
