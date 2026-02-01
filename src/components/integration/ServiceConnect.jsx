@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Check, ExternalLink, Loader2, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 
@@ -34,9 +34,10 @@ export default function ServiceConnect({
 
   // Cleanup interval on unmount
   useEffect(() => {
+    const currentInterval = intervalRef.current;
     return () => {
-      if (intervalRef.current) {
-        window.clearInterval(intervalRef.current);
+      if (currentInterval) {
+        window.clearInterval(currentInterval);
       }
     };
   }, []);
@@ -74,19 +75,15 @@ export default function ServiceConnect({
 
     try {
       const token = await nhost.auth.getAccessToken();
+      const headers = await getIntegrationHeaders();
+
       const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...headers,
         },
-      // Use mock auth URL directly, since no backend auth endpoint exists yet.
-      const data = { authUrl: `https://${serviceKey}.com/login?mock=true` };
-      const headers = await getIntegrationHeaders();
-
-      const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
-        method: 'POST',
-        headers,
       });
 
       const data = res.ok
@@ -104,10 +101,6 @@ export default function ServiceConnect({
         `width=${width},height=${height},left=${left},top=${top}`,
       );
 
-      intervalRef.current = window.setInterval(() => {
-        if (popup?.closed) {
-          window.clearInterval(intervalRef.current);
-          intervalRef.current = null;
       // Check if popup was blocked
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         setIsConnecting(false);
@@ -158,8 +151,8 @@ export default function ServiceConnect({
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...headers,
           },
-          headers,
         }
       );
 
@@ -169,11 +162,6 @@ export default function ServiceConnect({
 
       setIsConnected(false);
       ultraMinimalToast.success(`Disconnected ${serviceName}`);
-    } catch (error) {
-      console.error(error);
-      ultraMinimalToast.error(
-        `Failed to disconnect ${serviceName}. Please try again.`
-      ultraMinimalToast(`Disconnected ${serviceName}`);
     } catch (error) {
       logger.error(error);
       ultraMinimalToast.error(
