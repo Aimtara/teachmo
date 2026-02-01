@@ -223,7 +223,7 @@ export default async function sisRosterImport(req, res) {
         
         if (!extId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing student ID`);
+          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing ${idFieldName}`);
           return;
         }
         const { __lineNumber, ...cleanRecord } = record;
