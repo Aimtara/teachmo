@@ -65,61 +65,46 @@ function resolveExternalId(record, keys) {
   return null;
 }
 
-async function createImportJob(orgId, schoolId, type, source, fileName, fileSize, count) {
-  const insertJob = `
-    mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
+async function createImportJob(userId, organizationId, rosterType, metadata = {}) {
+  const query = `
+    mutation CreateImportJob($object: sis_import_jobs_insert_input!) {
       insert_sis_import_jobs_one(object: $object) {
         id
       }
     }
   `;
-  
-  try {
-    const result = await hasuraRequest({
-      query: insertJob,
-      variables: {
-        object: {
-          organization_id: orgId,
-          school_id: schoolId,
-          roster_type: type,
-          source,
-          status: 'processing',
-          metadata: {
-            file_name: fileName,
-            file_size: fileSize,
-            record_count: count
-          }
-        }
-      }
-    });
-    return result?.insert_sis_import_jobs_one?.id;
-  } catch (err) {
-    console.error('Failed to create SIS import job', {
-      orgId,
-      schoolId,
-      type,
-      error: err.message || String(err)
-    });
-    return null;
-  }
+  const result = await hasuraRequest({
+    query,
+    variables: {
+      object: {
+        user_id: userId,
+        organization_id: organizationId,
+        roster_type: rosterType,
+        status: 'processing',
+        metadata,
+      },
+    },
+  });
+  return result.insert_sis_import_jobs_one.id;
 }
 
-async function updateImportJob(id, changes) {
-  const updateJob = `
+async function updateImportJob(jobId, changes) {
+  const query = `
     mutation UpdateJob($id: uuid!, $changes: sis_import_jobs_set_input!) {
-      update_sis_import_jobs_by_pk(pk_columns: {id: $id}, _set: $changes) {
+      update_sis_import_jobs_by_pk(pk_columns: { id: $id }, _set: $changes) {
         id
       }
     }
   `;
-  
   await hasuraRequest({
-    query: updateJob,
-    variables: { id, changes }
+    query,
+    variables: { id: jobId, changes },
   });
 }
 
 export default async function sisRosterImport(req, res) {
+  let jobId = null;
+
   try {
     if (req.method && req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
@@ -155,6 +140,12 @@ export default async function sisRosterImport(req, res) {
     const rawRecords = Array.isArray(records) ? records : parseCsv(String(csvText ?? ''));
     const effectiveSchoolId = schoolId ? String(schoolId) : schoolIdHeader;
 
+    // Create import job
+    jobId = await createImportJob(userId, organizationId, rosterType, {
+      file_name: fileName,
+      file_size: fileSize,
+    });
+
     if (!rawRecords.length) {
       return res.status(200).json({ ok: true, inserted: 0, skipped: 0 });
     }
@@ -163,6 +154,8 @@ export default async function sisRosterImport(req, res) {
     let skippedCount = 0;
     const errors = [];
 
+    // Determine configuration based on roster type
+    let idKeys = [];
     const jobId = await createImportJob(
       organizationId,
       effectiveSchoolId,
@@ -176,13 +169,49 @@ export default async function sisRosterImport(req, res) {
       return res.status(500).json({ error: 'Failed to create import job' });
     }
 
-    const normalizedType = String(rosterType).toLowerCase();
-    let table = null;
+    if (rosterType === 'students') {
+      idKeys = ['sourcedId', 'id', 'student_id'];
+      tableName = 'sis_roster_students';
+      idFieldName = 'student ID';
+    } else if (rosterType === 'teachers') {
+      idKeys = ['sourcedId', 'id', 'teacher_id'];
+      tableName = 'sis_roster_teachers';
+      idFieldName = 'teacher ID';
+    } else if (rosterType === 'classes') {
+      idKeys = ['sourcedId', 'id', 'class_id'];
+      tableName = 'sis_roster_classes';
+      idFieldName = 'class ID';
+    } else if (rosterType === 'enrollments') {
+      tableName = 'sis_roster_enrollments';
+      idFieldName = 'class ID or student ID';
+    } else {
+      // Unknown roster type - return error without updating job
+      return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
+    }
 
-    if (normalizedType === 'students') {
-      table = 'sis_roster_students';
-      rawRecords.forEach((record, idx) => {
-        const extId = resolveExternalId(record, ['sourcedId', 'id', 'student_id', 'external_id']);
+    // Filter and map records
+    rawRecords.forEach((record, idx) => {
+      if (rosterType === 'enrollments') {
+        // Enrollments require both class and student IDs
+        const classId = resolveExternalId(record, ['classSourcedId', 'class_id', 'class_sourced_id']);
+        const studentId = resolveExternalId(record, ['userSourcedId', 'student_id', 'user_sourced_id']);
+        
+        if (!classId || !studentId) {
+          skippedCount++;
+          errors.push(`Row ${idx + 2}: Missing ${idFieldName}`);
+          return;
+        }
+
+        validObjects.push({
+          class_external_id: classId,
+          student_external_id: studentId,
+          organization_id: organizationId,
+        });
+      } else if (rosterType === 'classes') {
+        // Classes require class ID; teacher ID may be required by database
+        const extId = resolveExternalId(record, idKeys);
+        const teacherId = resolveExternalId(record, ['teacherSourcedId', 'teacher_id', 'teacher_sourced_id']);
+        
         if (!extId) {
           skippedCount += 1;
           errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing student ID`);
@@ -392,8 +421,81 @@ export default async function sisRosterImport(req, res) {
       totalErrors: errors.length
     });
 
+    // Perform insert if we have valid objects
+    let insertedCount = 0;
+    if (validObjects.length > 0) {
+      try {
+        const insertQuery = `
+          mutation InsertRoster($objects: [${tableName}_insert_input!]!) {
+            insert_${tableName}(objects: $objects, on_conflict: {
+              constraint: ${tableName}_organization_id_external_id_key,
+              update_columns: []
+            }) {
+              affected_rows
+            }
+          }
+        `;
+        
+        const insertResult = await hasuraRequest({
+          query: insertQuery,
+          variables: { objects: validObjects },
+        });
+        
+        insertedCount = insertResult[`insert_${tableName}`]?.affected_rows || 0;
+      } catch (insertError) {
+        errors.push(`Batch error: ${insertError.message}`);
+        console.error('Batch insert error:', insertError);
+      }
+    }
+
+    // Update job with final status
+    const finalStatus = errors.length > 0 || skippedCount > 0 ? 'completed_with_errors' : 'completed';
+    try {
+      await updateImportJob(jobId, {
+        status: finalStatus,
+        finished_at: new Date().toISOString(),
+        metadata: {
+          file_name: fileName,
+          file_size: fileSize,
+          record_count: rawRecords.length,
+          inserted_count: insertedCount,
+          skipped_count: skippedCount,
+          errors: errors.slice(0, MAX_ERRORS_IN_METADATA),
+        },
+      });
+    } catch (updateError) {
+      console.error('Failed to update SIS import job metadata', {
+        jobId,
+        error: updateError.message,
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      inserted: insertedCount,
+      skipped: skippedCount,
+      jobId,
+      warnings: errors.slice(0, MAX_WARNINGS_IN_RESPONSE),
+    });
+
   } catch (err) {
     console.error('SIS Import Fatal Error:', err);
+    
+    // Try to mark job as failed if we have a jobId
+    if (jobId) {
+      try {
+        await updateImportJob(jobId, {
+          status: 'failed',
+          finished_at: new Date().toISOString(),
+          metadata: {
+            error: err.message,
+          },
+        });
+      } catch (updateError) {
+        console.error('Failed to update job on error', updateError);
+      }
+    }
+    
     return res.status(500).json({ error: 'Internal importer error' });
   }
 }

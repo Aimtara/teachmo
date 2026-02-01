@@ -99,6 +99,11 @@ export async function googleAuth(params: { action: string }) {
     headers: getHeaders(),
     body: JSON.stringify(params)
   });
+
+  if (!res.ok) {
+    throw new Error(`Google Auth Error: ${res.statusText}`);
+  }
+
   return res.json();
 }
 
@@ -108,5 +113,10 @@ export async function googleClassroomSync(params: { action: string; courseId?: s
     headers: getHeaders(),
     body: JSON.stringify(params)
   });
+
+  if (!res.ok) {
+    throw new Error(`Google Classroom Sync Error: ${res.statusText}`);
+  }
+
   return res.json();
 }
