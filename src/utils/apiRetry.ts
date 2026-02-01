@@ -1,4 +1,37 @@
 /**
+ * API Retry Utilities
+ * 
+ * This module provides robust retry logic for API calls with proper error handling.
+ * 
+ * Key features:
+ * - HttpError class: Standardized error type that carries HTTP status information
+ * - retryRequest: Exponential backoff with configurable retry policy
+ * - Smart retry logic: Avoids retrying client errors (4xx) except rate limits (429)
+ * 
+ * Example usage:
+ * ```typescript
+ * // Basic usage with default retry policy
+ * const result = await retryRequest(() => fetchData());
+ * 
+ * // Custom retry policy
+ * const result = await retryRequest(
+ *   () => fetchData(),
+ *   {
+ *     retries: 5,
+ *     minTimeout: 2000,
+ *     shouldRetry: (error) => {
+ *       // Custom logic: only retry on specific errors
+ *       if (error instanceof HttpError && error.status === 503) {
+ *         return true;
+ *       }
+ *       return false;
+ *     }
+ *   }
+ * );
+ * ```
+ */
+
+/**
  * Custom error class that carries HTTP status information.
  * Use this for API errors to enable proper retry logic.
  */
