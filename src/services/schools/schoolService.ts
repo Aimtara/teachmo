@@ -85,6 +85,20 @@ export const SchoolService = {
   async checkIntegrationStatus(
     schoolId: string
   ): Promise<{ hasSIS: boolean; hasGoogle: boolean }> {
-    return apiClient.get(`/api/schools/${schoolId}/capabilities`);
+    const raw = await apiClient.get(`/api/schools/${schoolId}/capabilities`);
+
+    // Normalize and validate the response to always match the return type.
+    const data = (raw && typeof raw === 'object' ? (raw as any) : {}) as {
+      hasSIS?: unknown;
+      hasGoogle?: unknown;
+    };
+
+    const hasSIS = typeof data.hasSIS === 'boolean' ? data.hasSIS : Boolean(data.hasSIS);
+    const hasGoogle = typeof data.hasGoogle === 'boolean' ? data.hasGoogle : Boolean(data.hasGoogle);
+
+    return {
+      hasSIS,
+      hasGoogle
+    };
   }
 };
