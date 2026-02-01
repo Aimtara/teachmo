@@ -11,6 +11,10 @@ const ALLOWED_TABLES = new Set([
   'sis_roster_enrollments'
 ]);
 
+// Limits for error reporting to prevent excessive data storage and response sizes
+const MAX_ERRORS_IN_METADATA = 50; // Maximum errors to store in job metadata
+const MAX_WARNINGS_IN_RESPONSE = 100; // Maximum warnings to return in HTTP response
+
 function parseCsv(text) {
   if (!text) return [];
   try {
