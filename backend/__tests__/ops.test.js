@@ -95,14 +95,35 @@ describe('Ops router', () => {
 
   test('returns health snapshot shape', async () => {
     query
-      // tableExists('orchestrator_daily_snapshots')
-      .mockResolvedValueOnce({ rows: [{ reg: 'orchestrator_daily_snapshots' }] })
-      // daily query
-      .mockResolvedValueOnce({ rows: [{ day: '2026-01-24', ingests: 1 }] })
-      // tableExists('orchestrator_hourly_snapshots')
-      .mockResolvedValueOnce({ rows: [{ reg: 'orchestrator_hourly_snapshots' }] })
-      // hourly query
-      .mockResolvedValueOnce({ rows: [{ hour: '2026-01-24T00:00:00Z', ingests: 1 }] });
+      // daily query (no tableExists check in getFamilyHealth)
+      .mockResolvedValueOnce({
+        rows: [{
+          day: '2026-01-24',
+          signals: 10,
+          ingests: 1,
+          suppressed: 0,
+          duplicates: 0,
+          actions_created: 5,
+          actions_completed: 3,
+          forbidden_family: 0,
+          auth_invalid_token: 0,
+          auth_missing_token: 0,
+          updated_at: '2026-01-24T12:00:00Z'
+        }],
+        rowCount: 1
+      })
+      // hourly query (called from getHourlySeries)
+      .mockResolvedValueOnce({
+        rows: [{
+          hour: '2026-01-24T00:00:00Z',
+          signals: 5,
+          ingests: 1,
+          suppressed: 0,
+          duplicates: 0,
+          actions_created: 2,
+          actions_completed: 1
+        }]
+      });
 
     const { SignJWT } = await import('jose');
     const token = await new SignJWT({
@@ -119,7 +140,7 @@ describe('Ops router', () => {
 
     const app = makeApp();
     const res = await request(app)
-      .get('/api/ops/families/fam_1/health')
+      .get('/api/ops/families/fam_1/health?hourly=true')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
