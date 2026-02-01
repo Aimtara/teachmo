@@ -104,7 +104,7 @@ export const apiClient = {
       if (!base44?.functions?.invoke) {
         throw new Error('Base44 functions client is not configured.');
       }
-      const result = await base44.functions.invoke(name, payload ?? {});
+      const result = await base44.functions.invoke(name, payload || {});
       return result as T;
     },
   },
