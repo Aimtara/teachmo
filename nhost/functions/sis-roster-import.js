@@ -220,7 +220,15 @@ export default async function sisRosterImport(req, res) {
           variables: { job_id: jobId }
         });
       } catch (e) {
-        // If updating the job fails, continue returning the 400 response.
+        // If updating the job fails, continue returning the 400 response, but log for diagnosis.
+        console.error(
+          'Failed to mark SIS roster import job as failed',
+          {
+            jobId,
+            rosterType,
+          },
+          e
+        );
       }
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
