@@ -29,32 +29,17 @@ function parseCsv(text) {
     
     return records;
   } catch (err) {
-    // Log detailed error information to help diagnose parsing issues
-    const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+    // Log non-PII diagnostics only (no raw CSV content)
+    const textLength = text.length;
+    const newlineIndex = text.indexOf('\n');
+    const headerRow = newlineIndex === -1 ? text : text.slice(0, newlineIndex);
+    const headerPreview =
+      headerRow.length > 200 ? headerRow.substring(0, 200) + '...' : headerRow;
+
     console.error('CSV parsing failed:', {
       error: err.message,
-      preview,
-      textLength: text.length
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map((h) => h.trim());
-  return lines
-    .slice(1)
-    .map((line, idx) => ({ line, originalLineNumber: idx + 2 })) // Track original line number (1-based + header)
-    .filter(({ line }) => line) // Filter out empty lines but preserve line numbers
-    .map(({ line, originalLineNumber }) => {
-      const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
-      const record = headers.reduce((acc, header, idx) => {
-    .filter(Boolean)
-    .map((line) => {
-      // Handle potential CSV quoting issues simply for MVP, or use a library in Phase 2
-      const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
-      return headers.reduce((acc, header, idx) => {
-        acc[header] = values[idx] ?? '';
-        return acc;
-      }, {});
-      record.__lineNumber = originalLineNumber; // Attach original line number to each record
-      return record;
+      headerPreview,
+      textLength
     });
     return [];
   }
@@ -81,7 +66,6 @@ export default async function sisRosterImport(req, res) {
     const schoolIdHeader = req.headers['x-hasura-school-id']
       ? String(req.headers['x-hasura-school-id'])
       : null;
-    const schoolIdHeader = req.headers['x-hasura-school-id'] ? String(req.headers['x-hasura-school-id']) : null;
 
     if (!actorId || !allowedRoles.has(role)) {
       return res.status(403).json({ error: 'Unauthorized' });
@@ -227,161 +211,6 @@ export default async function sisRosterImport(req, res) {
             mutation MarkRosterImportJobFailed($job_id: uuid!) {
               update_sis_roster_import_jobs_by_pk(
                 pk_columns: { id: $job_id },
-      } catch (e) {
-        console.error(
-          'Failed to mark SIS roster import job as failed for unknown roster type',
-          { jobId, rosterType, error: e }
-        );
-              ) {
-                id
-              }
-            }
-          `,
-          variables: { job_id: jobId }
-        });
-      } catch (e) {
-        // If updating the job fails, continue returning the 400 response.
-
-    const {
-      csvText,
-      records,
-      rosterType = 'students',
-      source = 'csv',
-      schoolId,
-      fileName,
-      fileSize
-    } = req.body ?? {};
-
-    const rawRecords = Array.isArray(records) ? records : parseCsv(String(csvText ?? ''));
-    const effectiveSchoolId = schoolId ? String(schoolId) : schoolIdHeader;
-
-    if (!rawRecords.length) {
-      return res.status(200).json({ ok: true, inserted: 0, skipped: 0 });
-    }
-
-    const validObjects = [];
-    let skippedCount = 0;
-    const errors = [];
-
-    const jobId = await createImportJob(
-      organizationId,
-      effectiveSchoolId,
-      rosterType,
-      source,
-      fileName,
-      fileSize,
-      rawRecords.length
-    );
-    if (!jobId) {
-      return res.status(500).json({ error: 'Failed to create import job' });
-    }
-
-    const normalizedType = String(rosterType).toLowerCase();
-    let table = null;
-
-    if (normalizedType === 'students') {
-      table = 'sis_roster_students';
-      rawRecords.forEach((record, idx) => {
-        const extId = resolveExternalId(record, ['sourcedId', 'id', 'student_id', 'external_id']);
-        if (!extId) {
-          skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing student ID`);
-          return;
-        }
-        const { __lineNumber, ...cleanRecord } = record;
-        validObjects.push({
-          job_id: jobId,
-          organization_id: organizationId,
-          school_id: effectiveSchoolId,
-          external_id: extId,
-          first_name: record.first_name || record.givenName || record.firstName || null,
-          last_name: record.last_name || record.familyName || record.lastName || null,
-          grade: record.grade || record.grade_level || record.gradeLevel || null,
-          data: cleanRecord
-        });
-      });
-    } else if (normalizedType === 'teachers') {
-      table = 'sis_roster_teachers';
-      rawRecords.forEach((record, idx) => {
-        const extId = resolveExternalId(record, ['sourcedId', 'id', 'teacher_id', 'external_id']);
-        if (!extId) {
-          skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID`);
-          return;
-        }
-        const { __lineNumber, ...cleanRecord } = record;
-        validObjects.push({
-          job_id: jobId,
-          organization_id: organizationId,
-          school_id: effectiveSchoolId,
-          external_id: extId,
-          first_name: record.first_name || record.givenName || record.firstName || null,
-          last_name: record.last_name || record.familyName || record.lastName || null,
-          email: record.email || record.emailAddress || null,
-          data: cleanRecord
-        });
-      });
-    } else if (normalizedType === 'classes') {
-      table = 'sis_roster_classes';
-      rawRecords.forEach((record, idx) => {
-        const extId = resolveExternalId(record, ['sourcedId', 'id', 'class_id', 'external_id']);
-        if (!extId) {
-          skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing class ID`);
-          return;
-        }
-        const teacherId = resolveExternalId(record, [
-          'teacherSourcedId',
-          'teacher_id',
-          'teacherExternalId'
-        ]);
-        if (!teacherId) {
-          skippedCount += 1;
-          errors.push(
-            `Row ${record.__lineNumber ?? idx + 2}: Missing teacher ID for class ${extId}. ` +
-              'Classes now require a teacher_id in the CSV; records without a teacher will be skipped.'
-          );
-          return;
-        }
-        const { __lineNumber, ...cleanRecord } = record;
-        validObjects.push({
-          job_id: jobId,
-          organization_id: organizationId,
-          school_id: effectiveSchoolId,
-          external_id: extId,
-          name: record.name || record.title || record.className || 'Untitled Class',
-          teacher_external_id: teacherId,
-          data: cleanRecord
-        });
-      });
-    } else if (normalizedType === 'enrollments') {
-      table = 'sis_roster_enrollments';
-      rawRecords.forEach((record, idx) => {
-        const classId = resolveExternalId(record, ['classSourcedId', 'class_id', 'classExternalId']);
-        const studentId = resolveExternalId(record, ['userSourcedId', 'student_id', 'studentExternalId']);
-        if (!classId || !studentId) {
-          skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing class ID or student ID`);
-          return;
-        }
-        const { __lineNumber, ...cleanRecord } = record;
-        validObjects.push({
-          job_id: jobId,
-          organization_id: organizationId,
-          school_id: effectiveSchoolId,
-          class_external_id: classId,
-          student_external_id: studentId,
-          data: cleanRecord
-        });
-      });
-    } else {
-      // Unknown roster type: mark the job as failed so it doesn't remain stuck in "processing".
-      try {
-        await hasuraRequest({
-          query: `
-            mutation MarkRosterImportJobFailed($job_id: uuid!) {
-              update_sis_roster_import_jobs_by_pk(
-                pk_columns: { id: $job_id },
                 _set: { status: "failed" }
               ) {
                 id
@@ -391,12 +220,15 @@ export default async function sisRosterImport(req, res) {
           variables: { job_id: jobId }
         });
       } catch (e) {
-        // If updating the job fails, log the error but continue returning the 400 response.
-        console.error('Failed to mark SIS roster import job as failed for unknown roster type', {
-          jobId,
-          rosterType,
-          error: e instanceof Error ? e.message : e
-        });
+        // If updating the job fails, continue returning the 400 response, but log for diagnosis.
+        console.error(
+          'Failed to mark SIS roster import job as failed',
+          {
+            jobId,
+            rosterType,
+          },
+          e
+        );
       }
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
@@ -621,10 +453,6 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
 }
 
 async function createImportJob(orgId, schoolId, type, source, fileName, fileSize, count) {
-  try {
-    const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
-      insert_sis_import_jobs_one(object: $object) { id }
-    }`;
   const insertJob = `mutation InsertSisJob($object: sis_import_jobs_insert_input!) {
     insert_sis_import_jobs_one(object: $object) { id }
   }`;
@@ -644,27 +472,15 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
     });
     return res?.insert_sis_import_jobs_one?.id;
   } catch (err) {
-    console.error('Failed to create SIS import job', { orgId, type, error: err.message });
     console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
     return null;
   }
-  });
-  return res?.insert_sis_import_jobs_one?.id;
 }
 
 async function updateImportJob(id, changes) {
   const updateJob = `mutation UpdateJob($id: uuid!, $changes: sis_import_jobs_set_input!) {
     update_sis_import_jobs_by_pk(pk_columns: { id: $id }, _set: $changes) { id }
   }`;
-  try {
-    await hasuraRequest({
-      query: updateJob,
-      variables: { id, changes }
-    });
-  } catch (err) {
-    console.error('Failed to update SIS import job', { id, error: err });
-    throw err; // Re-throw to allow caller to handle
-  }
   await hasuraRequest({
     query: updateJob,
     variables: { id, changes }

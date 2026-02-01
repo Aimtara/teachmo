@@ -59,6 +59,7 @@ describe('sis-roster-import', () => {
             'Row 3: Missing student ID',
             'Row 5: Missing student ID',
           ]),
+          totalErrors: 2,
         })
       );
 
@@ -75,6 +76,7 @@ describe('sis-roster-import', () => {
           'Row 3: Missing student ID',
           'Row 5: Missing student ID',
         ]),
+        total_errors: 2,
       });
       expect(updateCall[0].variables.changes.status).toBe('completed_with_errors');
     });
@@ -221,13 +223,13 @@ describe('sis-roster-import', () => {
       expect(updateCall[0].variables.changes.status).toBe('completed_with_errors');
     });
 
-    test('limits warning messages to 5 in API response', async () => {
+    test('limits warning messages to 50 in API response', async () => {
       hasuraRequest
-        .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-warnings-5' } })
+        .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-warnings-50' } })
         .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 0 } })
-        .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-warnings-5' } });
+        .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-warnings-50' } });
 
-      const records = Array.from({ length: 10 }, (_, i) => ({
+      const records = Array.from({ length: 60 }, (_, i) => ({
         first_name: `Student${i}`,
         last_name: 'Test',
       }));
@@ -242,9 +244,11 @@ describe('sis-roster-import', () => {
       expect(res.status).toHaveBeenCalledWith(200);
       
       const response = res.json.mock.calls[0][0];
-      // Warnings in response should be limited to 5
-      expect(response.warnings.length).toBe(5);
+      // Warnings in response should be limited to 50
+      expect(response.warnings.length).toBe(50);
       expect(response.warnings[0]).toContain('Missing student ID');
+      // Verify totalErrors field shows the actual count
+      expect(response.totalErrors).toBe(60);
     });
 
     test('handles updateImportJob failure gracefully', async () => {
@@ -464,9 +468,10 @@ student-2,Bob,Johnson,5`,
   });
 
   describe('unknown roster type handling', () => {
-    test('returns 400 error for unknown roster type', async () => {
+    test('returns 400 error for unknown roster type and marks job as failed', async () => {
       hasuraRequest
-        .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-unknown' } });
+        .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-unknown' } })
+        .mockResolvedValueOnce({ update_sis_roster_import_jobs_by_pk: { id: 'job-unknown' } });
 
       req.body = {
         rosterType: 'invalid_type',
@@ -482,13 +487,17 @@ student-2,Bob,Johnson,5`,
         error: 'Unknown roster type: invalid_type',
       });
 
-      // Job should be created but not updated (remains in processing state)
-      // This is the current behavior - job is not marked as failed
-      expect(hasuraRequest).toHaveBeenCalledTimes(1);
+      // Job should be created and then marked as failed (2 hasuraRequest calls)
+      expect(hasuraRequest).toHaveBeenCalledTimes(2);
+      
+      // Verify the second call marks the job as failed
+      const failedJobCall = hasuraRequest.mock.calls[1][0];
+      expect(failedJobCall.query).toContain('MarkRosterImportJobFailed');
+      expect(failedJobCall.variables).toEqual({ job_id: 'job-unknown' });
     });
   });
 
-  describe('class records with optional teacher IDs', () => {
+  describe('class records with required teacher IDs', () => {
     test('imports classes with teacher IDs when provided', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-class-teachers' } })
