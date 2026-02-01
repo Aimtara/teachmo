@@ -44,6 +44,7 @@ export default function LiveSupportWidget() {
               <CardContent className="p-4">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <Textarea
+                    aria-label="Support message"
                     placeholder="How can we help?"
                     className="min-h-[100px] resize-none text-sm"
                     value={message}
