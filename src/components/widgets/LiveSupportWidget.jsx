@@ -9,7 +9,7 @@ import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
 
-export default function LiveSupportWidget() {
+export default function LiveSupportWidgetFloating() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
