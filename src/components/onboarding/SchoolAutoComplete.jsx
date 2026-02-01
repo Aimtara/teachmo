@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, MapPin, Plus, Loader2 } from 'lucide-react';
-import { searchSchools } from '@/api/functions';
-import { submitSchoolParticipationRequest } from '@/api/functions';
+import { SchoolService } from '@/services/schools/schoolService';
 import { useDebounce } from '@/components/shared/useDebounce';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -32,15 +31,9 @@ export default function SchoolAutoComplete({ onSelect, selectedSchool, placehold
   const performSearch = async (searchQuery) => {
     setIsSearching(true);
     try {
-      const { data } = await searchSchools({
-        query: searchQuery,
-        limit: 8
-      });
-      
-      if (data.success) {
-        setResults(data.schools);
-        setShowResults(true);
-      }
+      const schools = await SchoolService.search(searchQuery, 8);
+      setResults(schools);
+      setShowResults(true);
     } catch (error) {
       console.error('School search error:', error);
       setResults([]);
@@ -58,22 +51,17 @@ export default function SchoolAutoComplete({ onSelect, selectedSchool, placehold
   const handleRequestSchool = async (schoolName, contactEmail = '') => {
     setIsSubmittingRequest(true);
     try {
-      const { data } = await submitSchoolParticipationRequest({
-        school_name: schoolName,
-        contact_email: contactEmail,
-        additional_notes: `Requested during child profile setup. Search query: "${query}"`
+      await SchoolService.requestSchool({
+        name: schoolName,
+        contact: contactEmail,
+        notes: `Requested during child profile setup. Search query: "${query}"`
       });
-
-      if (data.success) {
-        toast({
-          title: "School Request Submitted! 🎉",
-          description: `We've received your request for ${schoolName}. We'll let you know when it's available!`
-        });
-        setShowRequestForm(false);
-        setQuery('');
-      } else {
-        throw new Error(data.error || 'Failed to submit request');
-      }
+      toast({
+        title: "School Request Submitted! 🎉",
+        description: `We've received your request for ${schoolName}. We'll let you know when it's available!`
+      });
+      setShowRequestForm(false);
+      setQuery('');
     } catch (error) {
       console.error('School request error:', error);
       toast({

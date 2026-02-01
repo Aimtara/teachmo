@@ -8,6 +8,7 @@ import { CheckCircle, AlertCircle, ExternalLink, RefreshCw, Users, BookOpen } fr
 import { motion } from "framer-motion";
 import { googleAuth } from "@/api/functions";
 import { googleClassroomSync } from "@/api/functions";
+import { GoogleClassroomService } from '@/services/integrations/googleClassroom';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('GoogleClassroomConnect');
@@ -103,24 +104,43 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
     setSyncStatus(null);
 
     try {
-      const { data } = await googleClassroomSync({ 
-        action: `sync_${syncType}`,
-        courseId: syncType === 'assignments' ? 'all' : undefined
-      });
+      if (!user?.id) {
+        throw new Error('Missing teacher profile for sync.');
+      }
 
-      if (data.success) {
-        setSyncStatus({ 
-          type: 'success', 
-          message: `Successfully synced ${data.totalSynced || 0} ${syncType}` 
+      if (syncType === 'courses') {
+        const result = await GoogleClassroomService.syncCourses(user.id);
+        setSyncStatus({
+          type: 'success',
+          message: `Successfully synced ${result.syncedCourses} courses`
         });
-        setLastSyncTime(new Date().toISOString());
-        if (onConnectionUpdate) onConnectionUpdate();
+      } else if (syncType === 'assignments') {
+        const count = await GoogleClassroomService.syncAssignmentsForCourse(
+          user.id,
+          'all'
+        );
+        setSyncStatus({
+          type: 'success',
+          message: `Successfully synced ${count} assignments`
+        });
       } else {
-        setSyncStatus({ 
-          type: 'error', 
-          message: data.error || `Failed to sync ${syncType}` 
+        const { data } = await googleClassroomSync({
+          action: `sync_${syncType}`,
+          courseId: syncType === 'assignments' ? 'all' : undefined
+        });
+
+        if (!data.success) {
+          throw new Error(data.error || `Failed to sync ${syncType}`);
+        }
+
+        setSyncStatus({
+          type: 'success',
+          message: `Successfully synced ${data.totalSynced || 0} ${syncType}`
         });
       }
+
+      setLastSyncTime(new Date().toISOString());
+      if (onConnectionUpdate) onConnectionUpdate();
     } catch (error) {
       logger.error('Sync error:', error);
       setSyncStatus({ 

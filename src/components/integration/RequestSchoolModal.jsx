@@ -8,8 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { School, Mail, Globe, FileText, CheckCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
-import { SchoolParticipationRequest } from '@/api/entities';
-import { submitSchoolParticipationRequest } from '@/api/functions';
+import { SchoolService } from '@/services/schools/schoolService';
 
 export default function RequestSchoolModal({ isOpen, onClose, onSuccess }) {
   const [step, setStep] = useState(1);
@@ -56,20 +55,20 @@ export default function RequestSchoolModal({ isOpen, onClose, onSuccess }) {
 
     setIsSubmitting(true);
     try {
-      const { data } = await submitSchoolParticipationRequest(formData);
+      const request = await SchoolService.requestSchool({
+        name: formData.school_name,
+        domain: formData.school_domain,
+        contact: formData.contact_email,
+        notes: formData.additional_notes
+      });
+      setStep(3);
+      toast({
+        title: "Request Submitted! 🎉",
+        description: "We'll review your school request and get back to you soon."
+      });
 
-      if (data.success) {
-        setStep(3); // Success step
-        toast({
-          title: "Request Submitted! 🎉",
-          description: "We'll review your school request and get back to you soon."
-        });
-        
-        if (onSuccess) {
-          onSuccess(data.request);
-        }
-      } else {
-        throw new Error(data.error || 'Failed to submit request');
+      if (onSuccess) {
+        onSuccess(request);
       }
     } catch (error) {
       console.error('Error submitting school request:', error);
