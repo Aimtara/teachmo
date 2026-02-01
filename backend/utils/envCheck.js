@@ -10,7 +10,11 @@ const REQUIRED_VAR_GROUPS = {
   'JWKS URL': ['AUTH_JWKS_URL', 'NHOST_JWKS_URL']
 };
 
-const INTEGRATION_VARS = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY'];
+const INTEGRATION_VARS = [
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'OPENAI_API_KEY'
+];
 
 /**
  * Validates database connection configuration.
@@ -56,7 +60,6 @@ export function performStartupCheck() {
   const warnings = [];
   const dbValidation = validateDatabaseConfig();
 
-  // Check core required variables
   // Check required variable groups (at least one from each group must exist)
   Object.entries(REQUIRED_VAR_GROUPS).forEach(([groupName, vars]) => {
     const hasAtLeastOne = vars.some((key) => process.env[key]);
@@ -66,7 +69,6 @@ export function performStartupCheck() {
   });
 
   // Check integration variables
-  // Integrations (Warn only in dev, Error in Prod if critical)
   INTEGRATION_VARS.forEach((key) => {
     if (!process.env[key]) warnings.push(key);
   });

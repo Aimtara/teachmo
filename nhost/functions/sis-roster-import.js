@@ -184,7 +184,7 @@ export default async function sisRosterImport(req, res) {
           organization_id: organizationId,
           school_id: effectiveSchoolId,
           external_id: extId,
-          name: record.name || record.title || record.className || 'Untitled Class',
+          name: record.name || record.title || record.className || `Class ${extId}`,
           teacher_external_id: teacherId,
           data: cleanRecord
         });
@@ -226,7 +226,15 @@ export default async function sisRosterImport(req, res) {
           variables: { job_id: jobId }
         });
       } catch (e) {
-        // If updating the job status fails, continue returning the 400 response for unknown roster type.
+        // If updating the job fails, continue returning the 400 response, but log for diagnosis.
+        console.error(
+          'Failed to mark SIS roster import job as failed',
+          {
+            jobId,
+            rosterType,
+          },
+          e
+        );
       }
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
@@ -343,12 +351,7 @@ async function createImportJob(orgId, schoolId, type, source, fileName, fileSize
     });
     return res?.insert_sis_import_jobs_one?.id;
   } catch (err) {
-    console.error('Failed to create SIS import job', { 
-      orgId, 
-      schoolId, 
-      type, 
-      error: err.message || String(err) 
-    });
+    console.error('Failed to create SIS import job', { orgId, schoolId, type, error: err });
     return null;
   }
 }
