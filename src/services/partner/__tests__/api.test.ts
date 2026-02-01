@@ -26,6 +26,9 @@ describe('PartnerService', () => {
 
     const partner = await PartnerService.getPartnerForUser('user-1');
 
+    // Verify filter is called with empty object to fetch all partners
+    // (implementation filters in-memory to support both owner_id and user_id fields)
+    expect(partnerFilter).toHaveBeenCalledWith({});
     expect(partner).toEqual({ id: 'partner-2', owner_id: 'user-1' });
   });
 
@@ -35,6 +38,8 @@ describe('PartnerService', () => {
 
     const offers = await PartnerService.getOffersByPartnerId('partner-1');
 
+    // Verify filter is called with partner_id parameter
+    expect(offerFilter).toHaveBeenCalledWith({ partner_id: 'partner-1' });
     expect(offers).toEqual([{ id: 'offer-1', partner_id: 'partner-1' }]);
   });
 });

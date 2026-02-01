@@ -3,6 +3,8 @@ import type { Partner, PartnerOffer } from './types';
 
 export const PartnerService = {
   async getPartnerForUser(userId: string): Promise<Partner | null> {
+    // Fetch all partners with empty filter, then filter in-memory
+    // This is necessary because partners may use either owner_id or user_id fields
     const partners = await apiClient.entity.filter<Partner>('Partner', {});
     if (!Array.isArray(partners) || partners.length === 0) {
       return null;
