@@ -26,7 +26,6 @@ describe('OrgService', () => {
   });
 
   it('builds classrooms with student counts', async () => {
-
     courseFilter.mockResolvedValue([
       { id: 'course-1', name: 'Math' },
       { id: 'course-2', name: 'Science' },
