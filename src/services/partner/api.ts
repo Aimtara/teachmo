@@ -13,7 +13,7 @@ export const PartnerService = {
         partner.owner_id ? partner.owner_id === userId : partner.user_id === userId
       ) ?? partners[0];
 
-    return match ?? null;
+    return match;
   },
   getOffersByPartnerId: (partnerId: string) =>
     apiClient.entity.filter<PartnerOffer>('PartnerOffer', { partner_id: partnerId }),
