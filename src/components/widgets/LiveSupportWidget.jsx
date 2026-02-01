@@ -6,7 +6,7 @@ import { MessageCircle, X, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 
-export default function LiveSupportWidget() {
+export default function LiveSupportWidgetFloating() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
