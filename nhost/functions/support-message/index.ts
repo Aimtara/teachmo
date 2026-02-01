@@ -84,8 +84,9 @@ export default async (req: any, res: any) => {
     );
 
     const user = userResp?.data?.user;
-    const profile = Array.isArray(userResp?.data?.profile) && userResp.data.profile.length > 0 
-      ? userResp.data.profile[0] 
+    const profiles = userResp?.data?.profile;
+    const profile = Array.isArray(profiles) && profiles.length > 0 
+      ? profiles[0] 
       : null;
 
     if (!user?.email) {
@@ -93,7 +94,6 @@ export default async (req: any, res: any) => {
     }
 
     // Store support request in database
-    const nowIso = new Date().toISOString();
     const insertResp = await hasura(
       `mutation InsertSupportRequest($object: support_requests_insert_input!) {
         insert_support_requests_one(object: $object) {
@@ -114,7 +114,6 @@ export default async (req: any, res: any) => {
             user_email: user.email,
             user_display_name: user.display_name ?? null,
           },
-          created_at: nowIso,
         },
       }
     );
