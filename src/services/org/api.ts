@@ -18,6 +18,7 @@ export const OrgService = {
             studentCount: Array.isArray(enrollments) ? enrollments.length : 0,
           };
         } catch (error) {
+          console.error('Failed to fetch enrollments for course:', course.id, error);
           return { ...course, studentCount: 0 };
         }
       })
