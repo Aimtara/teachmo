@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { nhost } from '@/lib/nhostClient';
 import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
+import { CsvRosterService } from '@/services/integrations/csvRosterService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,8 @@ export default function AdminSISRoster() {
   const [file, setFile] = useState(null);
   const [rosterType, setRosterType] = useState('users');
   const [source, setSource] = useState('csv');
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [validationSummary, setValidationSummary] = useState('');
 
   const rosterQuery = useQuery({
     queryKey: ['sis-import-jobs', organizationId, schoolId],
@@ -42,6 +45,35 @@ export default function AdminSISRoster() {
   const handleUpload = async () => {
     if (!file || !organizationId) return;
     const csvText = await file.text();
+    setValidationErrors([]);
+    setValidationSummary('');
+
+    // Only run strict client-side validation for roster types that match the CSV validator schema.
+    // For other roster types (e.g., OneRoster classes/enrollments), rely on backend validation
+    // to avoid blocking valid imports with a mismatched front-end schema.
+    if (rosterType === 'users') {
+      try {
+        const { validRows, errors } = await CsvRosterService.parseAndValidate(csvText);
+        if (errors.length > 0) {
+          setValidationErrors(errors);
+          return;
+        }
+        if (validRows.length === 0) {
+          setValidationErrors(['No valid roster rows found in the CSV file.']);
+          return;
+        }
+        setValidationSummary(`Validated ${validRows.length} roster rows. Ready to upload.`);
+      } catch (error) {
+        setValidationErrors([error?.message ?? 'Unable to validate CSV file.']);
+        return;
+      }
+    } else {
+      // For non-"users" roster types, skip strict client-side CSV validation and allow
+      // the backend `sis-roster-import` function to perform appropriate validation.
+      setValidationSummary(
+        `Skipping client-side validation for roster type "${rosterType}". Uploading file to server for validation.`
+      );
+    }
     const { error } = await nhost.functions.call('sis-roster-import', {
       csvText,
       rosterType,
@@ -55,6 +87,7 @@ export default function AdminSISRoster() {
       return;
     }
     setFile(null);
+    setValidationSummary('');
     rosterQuery.refetch();
   };
 
@@ -91,6 +124,23 @@ export default function AdminSISRoster() {
             Upload
           </Button>
         </CardContent>
+        {(validationSummary || validationErrors.length > 0) && (
+          <CardContent className="pt-0">
+            {validationSummary && (
+              <p className="text-sm text-emerald-600">{validationSummary}</p>
+            )}
+            {validationErrors.length > 0 && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <p className="font-medium">CSV validation issues:</p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  {validationErrors.map((message, index) => (
+                    <li key={`${message}-${index}`}>{message}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       <Card>
