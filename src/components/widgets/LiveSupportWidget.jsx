@@ -35,12 +35,12 @@ export default function LiveSupportWidgetFloating() {
         throw new Error(`Support request failed: ${res.statusText}`);
       }
 
-      ultraMinimalToast("Message sent! Support will email you shortly.");
+      ultraMinimalToast.success("Message sent! Support will email you shortly.");
       setMessage("");
       setIsOpen(false);
     } catch (error) {
       console.error('Support message error:', error);
-      ultraMinimalToast("Failed to send message. Please try again or email support@teachmo.com");
+      ultraMinimalToast.error("Failed to send message. Please try again or email support@teachmo.com");
     } finally {
       setIsSending(false);
     }
