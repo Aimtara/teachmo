@@ -226,7 +226,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerOffers',
     path: '/partners/offers',
-    Component: lazy(() => import('@/pages/PartnerOffers.jsx')),
+    Component: lazy(() => import('@/pages/PartnerOffers.tsx')),
     requiresAuth: true,
     allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,

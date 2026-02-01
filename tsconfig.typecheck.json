@@ -5,6 +5,8 @@
   },
   "include": [
     "src/backend/**/*",
+    "src/services/**/*",
+    "src/pages/PartnerOffers.tsx",
     "src/hooks/useUserRole.ts",
     "src/components/hooks/useStore.ts",
     "src/components/shared/ProtectedRoute.tsx",
