@@ -58,16 +58,14 @@ router.get('/families', async (req, res) => {
   try {
     const limit = clampLimit(req.query.limit, 25);
 
-    // Basic query logic preserved from original
-    let sql = 'SELECT * FROM auth.users LIMIT $1';
-    let params = [limit];
-
-    // Check if real families table exists (it should in production)
-    if (await tableExists('families')) {
-      sql = 'SELECT id, name, status, created_at FROM families ORDER BY created_at DESC LIMIT $1';
+    // Check if families table exists; return empty list if not
+    if (!(await tableExists('families'))) {
+      return res.json({ families: [] });
     }
 
-    const result = await query(sql, params);
+    // Query only safe fields from families table
+    const sql = 'SELECT id, name, status, created_at FROM families ORDER BY created_at DESC LIMIT $1';
+    const result = await query(sql, [limit]);
     return res.json({ families: result.rows || [] });
   } catch (err) {
     return res.status(500).json({ error: err.message });
