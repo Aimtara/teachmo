@@ -29,7 +29,7 @@ export async function InvokeLLM({ prompt = '', context = {}, model }: LLMRequest
     });
 
     if (!res.ok) {
-      throw new Error(`AI Service Error: ${res.statusText}`);
+      throw new Error(`AI Service Error: ${res.status} ${res.statusText}`);
     }
 
     const data = await res.json();
@@ -81,7 +81,7 @@ export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ 
     });
 
     if (!res.ok) {
-      throw new Error(`Email Service Error: ${res.statusText}`);
+      throw new Error(`Email Service Error: ${res.status} ${res.statusText}`);
     }
 
     return { sent: true, to };
@@ -94,19 +94,39 @@ export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ 
 // --- Google Classroom Integration ---
 
 export async function googleAuth(params: { action: string }) {
-  const res = await fetch(`${API_BASE_URL}/integrations/google/auth`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(params)
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/integrations/google/auth`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(params)
+    });
+
+    if (!res.ok) {
+      throw new Error(`Google Auth Error: ${res.status} ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error('Google Auth Failed:', error);
+    throw error;
+  }
 }
 
 export async function googleClassroomSync(params: { action: string; courseId?: string }) {
-  const res = await fetch(`${API_BASE_URL}/integrations/google/sync`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(params)
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/integrations/google/sync`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(params)
+    });
+
+    if (!res.ok) {
+      throw new Error(`Google Classroom Sync Error: ${res.status} ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error('Google Classroom Sync Failed:', error);
+    throw error;
+  }
 }
