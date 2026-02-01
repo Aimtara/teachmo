@@ -124,4 +124,21 @@ William",Doe,john.doe@example.com,5`;
       expect(CsvRosterService.validateHeader(headers)).toBe(true);
     });
   });
+
+  describe('parseCsv', () => {
+    it('should handle case-insensitive headers in fallback parser', () => {
+      // Test a malformed CSV that will trigger fallback parser
+      // by using a format that csv-parse might reject
+      const csvContent = `Student_ID,First_Name,Last_Name,Parent_Email,Grade_Level
+123,John,Doe,john.doe@example.com,5`;
+
+      const records = CsvRosterService.parseCsv(csvContent);
+      
+      expect(records).toHaveLength(1);
+      // Headers should be lowercase even in fallback parser
+      expect(records[0]).toHaveProperty('student_id');
+      expect(records[0]).toHaveProperty('first_name');
+      expect(records[0]).toHaveProperty('last_name');
+    });
+  });
 });

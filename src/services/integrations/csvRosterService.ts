@@ -37,10 +37,18 @@ export const CsvRosterService = {
         columns: true,
         skip_empty_lines: true,
         trim: true,
+        relax_column_count: true, // Handle rows with inconsistent column counts gracefully
       }) as ParsedRecord[];
       
-      // Attach line numbers for error reporting (1-based + header row)
-      return records.map((r, idx) => ({ ...r, __lineNumber: idx + 2 }));
+      // Normalize headers to lowercase and attach line numbers for error reporting
+      return records.map((r, idx) => {
+        const normalized: ParsedRecord = {};
+        Object.keys(r).forEach((key) => {
+          normalized[key.toLowerCase()] = r[key];
+        });
+        normalized.__lineNumber = idx + 2;
+        return normalized;
+      });
     } catch (err) {
       // Log parsing error for diagnostics
       console.error('CSV parsing failed:', {
@@ -53,13 +61,17 @@ export const CsvRosterService = {
       const lines = text.trim().split(/\r?\n/);
       if (lines.length < 2) return [];
       
-      const headers = lines[0].split(',').map((h) => h.trim());
+      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
       return lines
         .slice(1)
         .map((line, idx) => ({ line, originalLineNumber: idx + 2 }))
         .filter(({ line }) => line)
         .map(({ line, originalLineNumber }) => {
-          const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
+          const values = line.split(',').map((v) => {
+            const trimmed = v.trim();
+            // Properly extract quoted content: remove surrounding quotes if present
+            return trimmed.replace(/^"(.*)"$/, '$1');
+          });
           const record: ParsedRecord = headers.reduce((acc, header, idx) => {
             acc[header] = values[idx] ?? '';
             return acc;
@@ -79,11 +91,9 @@ export const CsvRosterService = {
       throw new Error('CSV file is empty or could not be parsed.');
     }
 
-    // Normalize header to lowercase for validation
+    // Get headers from first record (already normalized to lowercase by parseCsv)
     const firstRecord = records[0];
-    const headers = Object.keys(firstRecord)
-      .filter((key) => key !== '__lineNumber')
-      .map((key) => key.toLowerCase());
+    const headers = Object.keys(firstRecord).filter((key) => key !== '__lineNumber');
 
     if (!this.validateHeader(headers)) {
       throw new Error('Invalid CSV format. Missing required columns.');
@@ -94,26 +104,18 @@ export const CsvRosterService = {
 
     for (const record of records) {
       const lineNumber = record.__lineNumber ?? 'unknown';
-      
-      // Normalize keys to lowercase for consistent access
-      const normalizedRecord: Record<string, string> = {};
-      Object.keys(record).forEach((key) => {
-        if (key !== '__lineNumber') {
-          normalizedRecord[key.toLowerCase()] = record[key];
-        }
-      });
 
-      if (!normalizedRecord.student_id || !normalizedRecord.parent_email) {
+      if (!record.student_id || !record.parent_email) {
         errors.push(`Row ${lineNumber}: Missing student ID or parent email.`);
         continue;
       }
 
       validRows.push({
-        student_id: normalizedRecord.student_id,
-        first_name: normalizedRecord.first_name || '',
-        last_name: normalizedRecord.last_name || '',
-        parent_email: normalizedRecord.parent_email,
-        grade_level: normalizedRecord.grade_level || '',
+        student_id: record.student_id,
+        first_name: record.first_name || '',
+        last_name: record.last_name || '',
+        parent_email: record.parent_email,
+        grade_level: record.grade_level || '',
       });
     }
 
