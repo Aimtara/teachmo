@@ -39,8 +39,10 @@ export function performStartupCheck() {
     if (isProd) {
       logger.error('Server cannot start in production without these variables.');
       process.exit(1);
+    } else {
+      logger.warn('⚠️  Non-production environment tolerating missing variables.');
     }
+  } else {
+    logger.info('✅ Environment configuration check passed.');
   }
-
-  logger.info('✅ Environment configuration check passed.');
 }
