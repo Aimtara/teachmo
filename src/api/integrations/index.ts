@@ -26,9 +26,9 @@ export async function InvokeLLM({ prompt = '', context = {}, model }: LLMRequest
     if (!res.ok) throw new Error(`AI Service Error: ${res.statusText}`);
 
     const data = await res.json();
-    return {
-      response: data.content || data.response,
-      context: data.context || context
+    return { 
+      response: data.content || data.response, 
+      context: data.context || context 
     };
   } catch (error) {
     console.error('LLM Invocation Failed:', error);
@@ -40,12 +40,10 @@ export type UploadFileResult = { url: string | null };
 
 export async function UploadFile(file?: File): Promise<UploadFileResult> {
   if (!file) return { url: null };
-
   try {
     const { fileMetadata, error } = await nhost.storage.upload({ file });
     if (error) throw error;
-    const url = nhost.storage.getPublicUrl({ fileId: fileMetadata.id });
-    return { url };
+    return { url: nhost.storage.getPublicUrl({ fileId: fileMetadata.id }) };
   } catch (error) {
     console.error('File Upload Failed:', error);
     throw error;
@@ -61,7 +59,6 @@ export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ 
       headers: getHeaders(),
       body: JSON.stringify({ to, subject, body })
     });
-
     if (!res.ok) throw new Error(`Email Service Error: ${res.statusText}`);
     return { sent: true, to };
   } catch (error) {
