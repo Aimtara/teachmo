@@ -6,7 +6,7 @@ import { BookOpen, Calendar } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/components/hooks/useAuth';
-import { Course, Enrollment } from '@/api/entities';
+import { OrgService } from '@/services/org/api';
 import AssignmentsView from '@/components/teacher/AssignmentsView';
 
 /**
@@ -30,25 +30,15 @@ export default function TeacherAssignments() {
       if (!user) return;
       setLoading(true);
       try {
-        const courses = await Course.filter({ teacher_id: user.id });
-        const classData = await Promise.all(
-          (courses || []).map(async (course) => {
-            try {
-              const enrollments = await Enrollment.filter({ course_id: course.id });
-              return {
-                course,
-                studentCount: Array.isArray(enrollments) ? enrollments.length : 0
-              };
-            } catch (err) {
-              console.error('Error loading enrollments for course', course.name, err);
-              return { course, studentCount: 0 };
-            }
-          })
-        );
-        setClasses(classData);
+        const classData = await OrgService.getClassrooms(user.id);
+        const mappedClasses = classData.map((course) => ({
+          course,
+          studentCount: course.studentCount ?? 0
+        }));
+        setClasses(mappedClasses);
         // If course_id param is present, set selected class
         if (courseIdParam) {
-          const found = classData.find(c => c.course.id === courseIdParam);
+          const found = mappedClasses.find(c => c.course.id === courseIdParam);
           setSelectedClass(found || null);
         }
       } catch (error) {

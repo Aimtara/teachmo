@@ -1,33 +1,35 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
-import { base44 } from '@/api/base44Client';
-import { PartnerOffer } from '@/api/entities';
 import PartnerOfferForm from '@/components/partner/PartnerOfferForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageLoading } from '@/components/shared/StandardLoadingStates';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 import { createLogger } from '@/utils/logger';
+import { AuthService } from '@/services/auth/api';
+import { PartnerService } from '@/services/partner/api';
+import type { Partner, PartnerOffer } from '@/services/partner/types';
 
 const logger = createLogger('partner-offers');
 
 function PartnerOffersContent() {
   const [loading, setLoading] = useState(true);
-  const [partner, setPartner] = useState(null);
-  const [offers, setOffers] = useState([]);
+  const [partner, setPartner] = useState<Partner | null>(null);
+  const [offers, setOffers] = useState<PartnerOffer[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const currentUser = await base44.auth.me();
-        const allPartners = await base44.entities.Partner.filter({});
-        const userPartner =
-          (allPartners || []).find((p) =>
-            p.owner_id ? p.owner_id === currentUser.id : p.user_id === currentUser.id
-          ) || (allPartners || [])[0];
-        setPartner(userPartner || null);
+        const currentUser = await AuthService.me();
+        if (!currentUser?.id) {
+          setPartner(null);
+          setOffers([]);
+          return;
+        }
+        const userPartner = await PartnerService.getPartnerForUser(currentUser.id);
+        setPartner(userPartner);
         if (userPartner) {
-          const partnerOffers = await PartnerOffer.filter({ partner_id: userPartner.id });
+          const partnerOffers = await PartnerService.getOffersByPartnerId(userPartner.id);
           setOffers(partnerOffers || []);
         }
       } catch (error) {
@@ -43,7 +45,7 @@ function PartnerOffersContent() {
   const refreshOffers = async () => {
     if (!partner) return;
     try {
-      const partnerOffers = await PartnerOffer.filter({ partner_id: partner.id });
+      const partnerOffers = await PartnerService.getOffersByPartnerId(partner.id);
       setOffers(partnerOffers || []);
     } catch (error) {
       logger.error('Failed to refresh offers', error);
@@ -66,7 +68,7 @@ function PartnerOffersContent() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 mb-4">
-              To manage offers and discounts, you'll need to submit a partner application
+              To manage offers and discounts, you&apos;ll need to submit a partner application
               and be approved by an administrator. Please visit the Partner Portal to
               start your submission.
             </p>

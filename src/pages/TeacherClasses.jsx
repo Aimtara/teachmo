@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Users, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/components/hooks/useAuth';
-import { Course, Enrollment } from '@/api/entities';
+import { OrgService } from '@/services/org/api';
 import UniversalEmptyState from '@/components/shared/UniversalEmptyState';
 import LiveSupportWidget from '@/components/widgets/LiveSupportWidget';
 
@@ -22,20 +22,7 @@ export default function TeacherClasses() {
       if (!user) return;
       setLoading(true);
       try {
-        const courses = await Course.filter({ teacher_id: user.id });
-        const classData = await Promise.all(
-          (courses || []).map(async (course) => {
-            try {
-              const enrollments = await Enrollment.filter({ course_id: course.id });
-              return {
-                ...course,
-                studentCount: Array.isArray(enrollments) ? enrollments.length : 0,
-              };
-            } catch (err) {
-              return { ...course, studentCount: 0 };
-            }
-          })
-        );
+        const classData = await OrgService.getClassrooms(user.id);
         setClasses(classData);
       } catch (error) {
         console.error('Failed to fetch teacher classes:', error);
