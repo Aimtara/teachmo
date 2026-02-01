@@ -80,7 +80,6 @@ export default function LiveSupportWidget() {
                       className="min-h-[100px] resize-none text-sm"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      aria-label="Your support message"
                     />
                   </div>
                   <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSending}>

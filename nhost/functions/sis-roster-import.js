@@ -3,6 +3,10 @@ import { parse } from 'csv-parse/sync';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 
+// Error reporting limits
+const MAX_ERRORS_IN_METADATA = 50;  // Maximum errors stored in job metadata
+const MAX_WARNINGS_IN_RESPONSE = 5;  // Maximum warnings returned in API response
+
 function parseCsv(text) {
   if (!text) return [];
   try {
@@ -11,7 +15,6 @@ function parseCsv(text) {
       columns: true,
       skip_empty_lines: true,
       trim: true,
-      relax_quotes: true,
     });
     return records;
   } catch (error) {
@@ -256,7 +259,7 @@ export default async function sisRosterImport(req, res) {
           record_count: rawRecords.length,
           inserted_count: insertedCount,
           skipped_count: skippedCount,
-          errors: errors.slice(0, 50), // Limit errors in metadata to 50
+          errors: errors.slice(0, MAX_ERRORS_IN_METADATA),
         },
       });
     } catch (updateError) {
@@ -271,7 +274,7 @@ export default async function sisRosterImport(req, res) {
       inserted: insertedCount,
       skipped: skippedCount,
       jobId,
-      warnings: errors.slice(0, 5), // Limit warnings in response to 5
+      warnings: errors.slice(0, MAX_WARNINGS_IN_RESPONSE),
     });
 
   } catch (err) {
