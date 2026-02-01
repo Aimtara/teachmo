@@ -47,20 +47,32 @@ export default function AdminSISRoster() {
     const csvText = await file.text();
     setValidationErrors([]);
     setValidationSummary('');
-    try {
-      const { validRows, errors } = await CsvRosterService.parseAndValidate(csvText);
-      if (errors.length > 0) {
-        setValidationErrors(errors);
+
+    // Only run strict client-side validation for roster types that match the CSV validator schema.
+    // For other roster types (e.g., OneRoster classes/enrollments), rely on backend validation
+    // to avoid blocking valid imports with a mismatched front-end schema.
+    if (rosterType === 'users') {
+      try {
+        const { validRows, errors } = await CsvRosterService.parseAndValidate(csvText);
+        if (errors.length > 0) {
+          setValidationErrors(errors);
+          return;
+        }
+        if (validRows.length === 0) {
+          setValidationErrors(['No valid roster rows found in the CSV file.']);
+          return;
+        }
+        setValidationSummary(`Validated ${validRows.length} roster rows. Ready to upload.`);
+      } catch (error) {
+        setValidationErrors([error?.message ?? 'Unable to validate CSV file.']);
         return;
       }
-      if (validRows.length === 0) {
-        setValidationErrors(['No valid roster rows found in the CSV file.']);
-        return;
-      }
-      setValidationSummary(`Validated ${validRows.length} roster rows. Ready to upload.`);
-    } catch (error) {
-      setValidationErrors([error?.message ?? 'Unable to validate CSV file.']);
-      return;
+    } else {
+      // For non-"users" roster types, skip strict client-side CSV validation and allow
+      // the backend `sis-roster-import` function to perform appropriate validation.
+      setValidationSummary(
+        `Skipping client-side validation for roster type "${rosterType}". Uploading file to server for validation.`
+      );
     }
     const { error } = await nhost.functions.call('sis-roster-import', {
       csvText,
