@@ -13,17 +13,48 @@ const ALLOWED_TABLES = new Set([
 
 function parseCsv(text) {
   if (!text) return [];
+  
   try {
-    // Use proper RFC4180 CSV parser to handle quoted commas, newlines, etc.
+    // Use RFC 4180-compliant CSV parser that properly handles:
+    // - Commas inside quoted fields (e.g., "Smith, John")
+    // - Newlines inside quoted fields
+    // - Escaped quotes inside quoted fields (e.g., "He said ""hello""")
     const records = parse(text, {
-      columns: true,
+      columns: true, // First row is headers, returns array of objects
       skip_empty_lines: true,
       trim: true,
+      relax_quotes: true, // More lenient with quotes for real-world CSVs
+      relax_column_count: true // Handle rows with varying column counts
     });
-    return records;
-  } catch (error) {
-    console.error('CSV parsing error:', error);
-    return [];
+    
+    // Attach line numbers for error reporting (1-based + header row)
+    return records.map((r, idx) => ({...r, __lineNumber: idx + 2}));
+  } catch (err) {
+    // Log detailed error information to help diagnose parsing issues
+    const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+    console.error('CSV parsing failed:', {
+      error: err.message,
+      preview,
+      textLength: text.length
+    });
+    
+    // Fallback: simple split parsing for basic CSVs
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map((h) => h.trim());
+    return lines
+      .slice(1)
+      .map((line, idx) => ({ line, originalLineNumber: idx + 2 })) // Track original line number (1-based + header)
+      .filter(({ line }) => line) // Filter out empty lines but preserve line numbers
+      .map(({ line, originalLineNumber }) => {
+        const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
+        const record = headers.reduce((acc, header, idx) => {
+          acc[header] = values[idx] ?? '';
+          return acc;
+        }, {});
+        record.__lineNumber = originalLineNumber; // Attach original line number to each record
+        return record;
+      });
   }
 }
 
@@ -80,11 +111,16 @@ export default async function sisRosterImport(req, res) {
     }
 
     const role = String(req.headers['x-hasura-role'] ?? '');
-    const organizationId = req.headers['x-hasura-organization-id'];
-    const userId = req.headers['x-hasura-user-id'];
+    const actorId = String(req.headers['x-hasura-user-id'] ?? '');
+    const organizationId = req.headers['x-hasura-organization-id']
+      ? String(req.headers['x-hasura-organization-id'])
+      : null;
+    const schoolIdHeader = req.headers['x-hasura-school-id']
+      ? String(req.headers['x-hasura-school-id'])
+      : null;
 
-    if (!allowedRoles.has(role)) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
+    if (!actorId || !allowedRoles.has(role)) {
+      return res.status(403).json({ error: 'Unauthorized' });
     }
 
     if (!organizationId) {
@@ -95,11 +131,14 @@ export default async function sisRosterImport(req, res) {
       csvText,
       records,
       rosterType = 'students',
+      source = 'csv',
+      schoolId,
       fileName,
-      fileSize,
+      fileSize
     } = req.body ?? {};
-
+    
     const rawRecords = Array.isArray(records) ? records : parseCsv(String(csvText ?? ''));
+    const effectiveSchoolId = schoolId ? String(schoolId) : schoolIdHeader;
 
     // Create import job
     jobId = await createImportJob(userId, organizationId, rosterType, {
@@ -108,19 +147,7 @@ export default async function sisRosterImport(req, res) {
     });
 
     if (!rawRecords.length) {
-      await updateImportJob(jobId, {
-        status: 'completed',
-        finished_at: new Date().toISOString(),
-        metadata: {
-          file_name: fileName,
-          file_size: fileSize,
-          record_count: 0,
-          inserted_count: 0,
-          skipped_count: 0,
-          errors: [],
-        },
-      });
-      return res.status(200).json({ ok: true, inserted: 0, jobId });
+      return res.status(200).json({ ok: true, inserted: 0, skipped: 0 });
     }
 
     const validObjects = [];
@@ -310,8 +337,8 @@ export default async function sisRosterImport(req, res) {
     }
 
     // SAFETY: The `table` variable is guaranteed to be safe for use in this GraphQL mutation
-    // because it has been validated against the ALLOWED_TABLES whitelist in the check at
-    // lines 406-408 above. The table can only be one of: sis_roster_students, sis_roster_teachers,
+    // because it has been validated against the ALLOWED_TABLES whitelist in the check above.
+    // The table can only be one of: sis_roster_students, sis_roster_teachers,
     // sis_roster_classes, or sis_roster_enrollments.
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
@@ -322,6 +349,7 @@ export default async function sisRosterImport(req, res) {
         }
       ) { affected_rows }
     }`;
+    
     const chunked = [];
     const chunkSize = 500;
     for (let i = 0; i < validObjects.length; i += chunkSize) {
