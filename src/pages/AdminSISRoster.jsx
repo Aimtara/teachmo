@@ -53,7 +53,7 @@ export default function AdminSISRoster() {
     // to avoid blocking valid imports with a mismatched front-end schema.
     if (rosterType === 'users') {
       try {
-        const { validRows, errors } = await CsvRosterService.parseAndValidate(csvText);
+        const { validRows, errors } = await CsvRosterService.parseAndValidate(csvText, rosterType);
         if (errors.length > 0) {
           setValidationErrors(errors);
           return;
