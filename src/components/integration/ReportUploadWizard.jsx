@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UploadCloud, ArrowRight, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
+import { ArrowRight, CheckCircle, UploadCloud } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 
 const STEPS = { UPLOAD: 0, MAPPING: 1, PREVIEW: 2, COMPLETE: 3 };
@@ -15,29 +30,126 @@ export default function ReportUploadWizard({ onComplete }) {
   const [file, setFile] = useState(null);
   const [csvHeaders, setCsvHeaders] = useState([]);
   const [previewData, setPreviewData] = useState([]);
-  const [mapping, setMapping] = useState({ studentName: '', score: '', date: '' });
+  const [mapping, setMapping] = useState({
+    studentName: '',
+    score: '',
+    date: '',
+    activityName: '',
+  });
 
-  const handleFileUpload = (e) => {
-    const uploadedFile = e.target.files[0];
-    if (uploadedFile) {
-      setFile(uploadedFile);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target.result;
-        const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-        if (lines.length > 0) {
-          const headers = lines[0].split(',').map(h => h.trim());
-          const data = lines.slice(1, 6).map(line => {
-            const values = line.split(',');
-            return headers.reduce((acc, header, index) => { acc[header] = values[index]; return acc; }, {});
-          });
-          setCsvHeaders(headers);
-          setPreviewData(data);
-          setStep(STEPS.MAPPING);
-        }
-      };
-      reader.readAsText(uploadedFile);
+  const handleFileUpload = (event) => {
+    const uploadedFile = event.target.files[0];
+    if (!uploadedFile) {
+      return;
     }
+
+    const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit to prevent browser hangs
+    if (uploadedFile.size > MAX_FILE_SIZE_BYTES) {
+      ultraMinimalToast.error('File too large. Please upload a CSV file smaller than 5MB.');
+      // Reset the input so the same file can be reselected if needed
+      if (event.target) {
+        event.target.value = '';
+      }
+      return;
+    }
+    // Validate file type - check both extension and MIME type
+    const fileName = uploadedFile.name.toLowerCase();
+    const validExtension = fileName.endsWith('.csv');
+    // MIME type can be 'text/csv', 'application/vnd.ms-excel', or empty (some browsers don't set it)
+    const validMimeType = uploadedFile.type === '' || uploadedFile.type === 'text/csv' || uploadedFile.type === 'application/vnd.ms-excel';
+
+    if (!validExtension) {
+      ultraMinimalToast.error('Invalid file type. Please upload a valid CSV file (.csv extension required).');
+      // Reset the input so the user can try again
+      if (event.target) {
+        event.target.value = '';
+      }
+      return;
+    }
+
+    if (!validMimeType) {
+      ultraMinimalToast.error('The file type is not recognized as a CSV file. Please ensure you are uploading a valid CSV file.');
+      // Reset the input so the user can try again
+      if (event.target) {
+        event.target.value = '';
+      }
+      return;
+    }
+
+    setFile(uploadedFile);
+    const reader = new FileReader();
+    reader.onload = (fileEvent) => {
+      const text = fileEvent.target.result;
+      const lines = text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line);
+
+      if (lines.length > 0) {
+        // Parse CSV with support for quoted values containing commas and escaped quotes (RFC 4180)
+        const parseCSVLine = (line) => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+            
+            if (char === '"') {
+              if (inQuotes && nextChar === '"') {
+                // Escaped quote: two consecutive quotes become one quote character
+                current += '"';
+                i++; // Skip the next quote
+              } else {
+                // Toggle quote state
+                inQuotes = !inQuotes;
+              }
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        };
+        
+        const headers = parseCSVLine(lines[0]);
+        const data = lines.slice(1, 6).map((line) => {
+          const values = parseCSVLine(line);
+          return headers.reduce((acc, header, index) => {
+            acc[header] = values[index] || '';
+            return acc;
+          }, {});
+        });
+        setCsvHeaders(headers);
+        setPreviewData(data);
+        // Reset mapping when new file is uploaded
+        setMapping({
+          studentName: '',
+          score: '',
+          date: '',
+          activityName: '',
+        });
+        setStep(STEPS.MAPPING);
+      }
+    };
+    
+    reader.onerror = () => {
+      ultraMinimalToast.error('Failed to read file. Please try again with a valid CSV.');
+      setFile(null);
+      setCsvHeaders([]);
+      setPreviewData([]);
+      setStep(STEPS.UPLOAD);
+    };
+    
+    reader.readAsText(uploadedFile);
+  };
+
+  const handleMappingChange = (field, value) => {
+    setMapping((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleIngest = async () => {
@@ -63,7 +175,29 @@ export default function ReportUploadWizard({ onComplete }) {
               <div className="space-y-2"><Label>Student Name</Label><Select onValueChange={(v) => setMapping(p => ({...p, studentName: v}))}><SelectTrigger><SelectValue placeholder="Column" /></SelectTrigger><SelectContent>{csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-2"><Label>Score</Label><Select onValueChange={(v) => setMapping(p => ({...p, score: v}))}><SelectTrigger><SelectValue placeholder="Column" /></SelectTrigger><SelectContent>{csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
             </div>
-            <Button className="w-full" onClick={() => setStep(STEPS.PREVIEW)}>Review Data <ArrowRight className="w-4 h-4 ml-2" /></Button>
+            <Button
+              className="w-full"
+              disabled={
+                !mapping ||
+                !mapping.studentName ||
+                !(mapping.score || mapping.date || mapping.activityName)
+              }
+              onClick={() => {
+                // Check if at least one field is mapped and the mapped value exists in csvHeaders
+                const validMappings = Object.values(mapping).filter((value) => 
+                  Boolean(value) && csvHeaders.includes(value)
+                );
+                if (validMappings.length === 0) {
+                  ultraMinimalToast.error(
+                    'Please map at least one column from your CSV before reviewing the data.'
+                  );
+                  return;
+                }
+                setStep(STEPS.PREVIEW);
+              }}
+            >
+              Review Data <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
         )}
         {step === STEPS.PREVIEW && (

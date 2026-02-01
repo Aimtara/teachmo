@@ -20,10 +20,35 @@ function parseCsv(text) {
       skip_empty_lines: true,
       trim: true,
     });
-    return records;
-  } catch (error) {
-    console.error('CSV parsing error:', error);
-    return [];
+    
+    // Attach line numbers for error reporting (1-based + header row)
+    return records.map((r, idx) => ({...r, __lineNumber: idx + 2}));
+  } catch (err) {
+    // Log detailed error information to help diagnose parsing issues
+    const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+    console.error('CSV parsing failed:', {
+      error: err.message,
+      preview,
+      textLength: text.length
+    });
+    
+    // Fallback: simple split parsing for basic CSVs
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map((h) => h.trim());
+    return lines
+      .slice(1)
+      .map((line, idx) => ({ line, originalLineNumber: idx + 2 })) // Track original line number (1-based + header)
+      .filter(({ line }) => line) // Filter out empty lines but preserve line numbers
+      .map(({ line, originalLineNumber }) => {
+        const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
+        const record = headers.reduce((acc, header, idx) => {
+          acc[header] = values[idx] ?? '';
+          return acc;
+        }, {});
+        record.__lineNumber = originalLineNumber; // Attach original line number to each record
+        return record;
+      });
   }
 }
 
@@ -80,8 +105,13 @@ export default async function sisRosterImport(req, res) {
     }
 
     const role = String(req.headers['x-hasura-role'] ?? '');
-    const organizationId = req.headers['x-hasura-organization-id'];
-    const userId = req.headers['x-hasura-user-id'];
+    const actorId = String(req.headers['x-hasura-user-id'] ?? '');
+    const organizationId = req.headers['x-hasura-organization-id']
+      ? String(req.headers['x-hasura-organization-id'])
+      : null;
+    const schoolIdHeader = req.headers['x-hasura-school-id']
+      ? String(req.headers['x-hasura-school-id'])
+      : null;
 
     if (!allowedRoles.has(role)) {
       return res.status(403).json({ error: 'Insufficient permissions' });
@@ -98,8 +128,14 @@ export default async function sisRosterImport(req, res) {
       fileName,
       fileSize,
     } = req.body ?? {};
-
+    
     const rawRecords = Array.isArray(records) ? records : parseCsv(String(csvText ?? ''));
+
+    // Create import job
+    jobId = await createImportJob(userId, organizationId, rosterType, {
+      file_name: fileName,
+      file_size: fileSize,
+    });
 
     // Create import job
     jobId = await createImportJob(userId, organizationId, rosterType, {
@@ -187,7 +223,7 @@ export default async function sisRosterImport(req, res) {
         
         if (!extId) {
           skippedCount += 1;
-          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing student ID`);
+          errors.push(`Row ${record.__lineNumber ?? idx + 2}: Missing ${idFieldName}`);
           return;
         }
         const { __lineNumber, ...cleanRecord } = record;
@@ -310,8 +346,8 @@ export default async function sisRosterImport(req, res) {
     }
 
     // SAFETY: The `table` variable is guaranteed to be safe for use in this GraphQL mutation
-    // because it has been validated against the ALLOWED_TABLES whitelist in the check at
-    // lines 406-408 above. The table can only be one of: sis_roster_students, sis_roster_teachers,
+    // because it has been validated against the ALLOWED_TABLES whitelist in the check above.
+    // The table can only be one of: sis_roster_students, sis_roster_teachers,
     // sis_roster_classes, or sis_roster_enrollments.
     const insertRoster = `mutation InsertRoster($objects: [${table}_insert_input!]!) {
       insert_${table}(
@@ -322,6 +358,7 @@ export default async function sisRosterImport(req, res) {
         }
       ) { affected_rows }
     }`;
+    
     const chunked = [];
     const chunkSize = 500;
     for (let i = 0; i < validObjects.length; i += chunkSize) {

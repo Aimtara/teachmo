@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Database, Globe, Key, Server } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -14,30 +14,32 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceConnect from '@/components/integration/ServiceConnect';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
-import { LTI_JWKS_URL, LTI_LAUNCH_URL } from '@/config/api';
+import { LTI_LAUNCH_URL, LTI_JWKS_URL } from '@/config/api';
 
 export default function AdminLMSIntegration() {
+  
+  // LTI Platform Configuration State
   const [ltiPlatformIssuer, setLtiPlatformIssuer] = useState('');
   const [ltiClientId, setLtiClientId] = useState('');
 
   const [lrsEndpoint, setLrsEndpoint] = useState('');
-  const [lrsUsername, setLrsUsername] = useState('');
-  const [lrsPassword, setLrsPassword] = useState('');
-
+  const [lrsAuthUsername, setLrsAuthUsername] = useState('');
+  const [lrsAuthPassword, setLrsAuthPassword] = useState('');
+  
   const [isLtiSaving, setIsLtiSaving] = useState(false);
   const [isLrsSaving, setIsLrsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
   const handleSaveLtiPlatform = async () => {
     if (!ltiPlatformIssuer.trim() || !ltiClientId.trim()) {
-      ultraMinimalToast.error('Platform issuer and client ID are required.');
+      ultraMinimalToast.error('Please fill in all required fields');
       return;
     }
 
     setIsLtiSaving(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      ultraMinimalToast.success('LTI platform configuration saved.');
+      ultraMinimalToast.success('LTI platform configuration saved');
       setLtiPlatformIssuer('');
       setLtiClientId('');
     } catch (error) {
@@ -191,8 +193,8 @@ export default function AdminLMSIntegration() {
                   <Input
                     id="lrs-auth-username"
                     placeholder="Basic Auth Username"
-                    value={lrsUsername}
-                    onChange={(e) => setLrsUsername(e.target.value)}
+                    value={lrsAuthUsername}
+                    onChange={(e) => setLrsAuthUsername(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -202,17 +204,20 @@ export default function AdminLMSIntegration() {
                     type="password"
                     autoComplete="current-password"
                     placeholder="••••••••••••"
-                    value={lrsPassword}
-                    onChange={(e) => setLrsPassword(e.target.value)}
+                    value={lrsAuthPassword}
+                    onChange={(e) => setLrsAuthPassword(e.target.value)}
                   />
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Button onClick={handleSaveLrsConfiguration} disabled={isLrsSaving}>
+                <Button 
+                  onClick={handleSaveLrsConfiguration}
+                  disabled={isLrsSaving}
+                >
                   {isLrsSaving ? 'Saving...' : 'Save Configuration'}
                 </Button>
-                <Button
-                  variant="outline"
+                <Button 
+                  variant="outline" 
                   onClick={handleTestLrsConnection}
                   disabled={isTesting}
                 >

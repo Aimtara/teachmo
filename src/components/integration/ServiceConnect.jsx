@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Check, ExternalLink, Loader2, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 
@@ -33,10 +33,21 @@ export default function ServiceConnect({
   const pollRef = useRef(null);
 
   useEffect(() => {
+    const currentInterval = intervalRef.current;
     return () => {
-      if (pollRef.current) {
-        window.clearInterval(pollRef.current);
-        pollRef.current = null;
+      if (currentInterval) {
+        window.clearInterval(currentInterval);
+      }
+    };
+  }, []);
+  const timerRef = useRef(null);
+
+  // Cleanup interval timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
   }, []);
@@ -53,10 +64,16 @@ export default function ServiceConnect({
     setIsConnecting(true);
 
     try {
+      const token = await nhost.auth.getAccessToken();
       const headers = await getIntegrationHeaders();
+
       const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...headers,
+        },
       });
 
       const data = res.ok
@@ -74,6 +91,7 @@ export default function ServiceConnect({
         `width=${width},height=${height},left=${left},top=${top}`,
       );
 
+      // Check if popup was blocked
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         setIsConnecting(false);
         ultraMinimalToast.error('Popup blocked. Please allow popups for this site and try again.');
@@ -110,7 +128,11 @@ export default function ServiceConnect({
         `${API_BASE_URL}/integrations/${serviceKey}/disconnect`,
         {
           method: 'POST',
-          headers,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...headers,
+          },
         }
       );
 
