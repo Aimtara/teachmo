@@ -87,7 +87,7 @@ export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ 
     return { sent: true, to };
   } catch (error) {
     console.error('Email Send Failed:', error);
-    return { sent: false, to };
+    throw error;
   }
 }
 
