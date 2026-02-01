@@ -1,13 +1,13 @@
 /* eslint-env node */
 // Ops router: JWT-authenticated observability + mitigation actions.
-// G0/G3 Compliance: No shared secrets. Uses Nhost JWT claims.
+// G0 Compliance: No shared secrets. Uses Nhost JWT claims.
 
 import express from 'express';
 import { query } from '../db.js';
-import { createLogger } from '../utils/logger.js';
+import { orchestratorPgStore } from '../orchestrator/pgStore.js';
+import { auditEvent } from '../security/audit.js';
 
 const router = express.Router();
-const logger = createLogger('ops');
 const MAX_LIMIT = 100;
 
 // --- Auth Middleware (G0 Compliance) ---
@@ -21,10 +21,10 @@ function requireOpsAuth(req, res, next) {
   // This relies on the 'role' extracted from the JWT in middleware/auth.js
   const role = req.auth.role;
   const isSystemAdmin = role === 'system_admin';
-
+  
   // Strict deny if not admin
   if (!isSystemAdmin) {
-    logger.warn('[Security] Unauthorized ops attempt', { requestId: req.id || 'unknown' });
+    console.warn(`[Security] Unauthorized ops attempt by user ${req.auth.userId}`);
     return res.status(403).json({ error: 'forbidden_insufficient_permissions' });
   }
 
@@ -41,7 +41,6 @@ function clampLimit(value, fallback = 25) {
   return Math.max(1, Math.min(MAX_LIMIT, Math.floor(n)));
 }
 
-// Reuse existing table helpers
 const existsCache = new Map();
 async function tableExists(tableName) {
   if (existsCache.has(tableName)) return existsCache.get(tableName);
@@ -59,24 +58,17 @@ router.get('/health', (req, res) => {
 router.get('/families', async (req, res) => {
   try {
     const limit = clampLimit(req.query.limit, 25);
-
-    let sql;
-    let params = [limit];
-
-    // Check if real families table exists (it should in production)
     if (await tableExists('families')) {
-      sql = 'SELECT id, name, status, created_at FROM families ORDER BY created_at DESC LIMIT $1';
-    } else {
-      // If families table doesn't exist, return empty list rather than exposing auth.users
-      logger.warn('Families table does not exist, returning empty list');
-      return res.json({ families: [] });
+      const sql = 'SELECT id, name, status, created_at FROM families ORDER BY created_at DESC LIMIT $1';
+      const result = await query(sql, [limit]);
+      return res.json({ families: result.rows || [] });
     }
-
-    const result = await query(sql, params);
-    return res.json({ families: result.rows || [] });
+    return res.json({ families: [] });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// ... (Rest of existing Ops routes: mitigations, alerts, anomalies - keep them here)
 
 export default router;
