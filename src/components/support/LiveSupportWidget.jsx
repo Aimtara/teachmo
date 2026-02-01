@@ -1,24 +1,53 @@
 import React, { useState } from 'react';
+import { useNhostClient } from '@nhost/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, X, Send, Search } from 'lucide-react';
+import { MessageCircle, X, Send, Search, AlertCircle } from 'lucide-react';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
 
 export default function LiveSupportWidget() {
+  const nhost = useNhostClient();
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState('home'); // home, chat, search
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState(null);
 
   const toggleOpen = () => setIsOpen(!isOpen);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!message.trim()) return;
-    // Mock sending message
-    ultraMinimalToast('Message sent! Support will email you shortly.');
-    setMessage('');
-    setIsOpen(false);
+    
+    setIsSending(true);
+    setError(null);
+
+    try {
+      const { data, error: functionError } = await nhost.functions.call('support-message', {
+        message: message.trim(),
+      });
+
+      if (functionError) {
+        throw new Error(functionError.message || 'Failed to send support message');
+      }
+
+      if (!data?.ok) {
+        throw new Error(data?.error || 'Failed to send support message');
+      }
+
+      ultraMinimalToast('Message sent! Support will email you shortly.');
+      setMessage('');
+      setIsOpen(false);
+      setView('home');
+    } catch (err) {
+      console.error('Failed to send support message:', err);
+      const errorMessage = err.message || 'Failed to send message. Please try again.';
+      setError(errorMessage);
+      ultraMinimalToast(`Error: ${errorMessage}`, { type: 'error' });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -51,18 +80,44 @@ export default function LiveSupportWidget() {
 
             {view === 'chat' && (
               <div className="space-y-3">
+                {error && (
+                  <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
                 <Textarea
                   placeholder="Describe your issue..."
                   className="min-h-[100px] text-sm resize-none"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
+                  disabled={isSending}
                 />
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setView('home')}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setView('home');
+                      setError(null);
+                    }}
+                    disabled={isSending}
+                  >
                     Back
                   </Button>
-                  <Button size="sm" className="flex-1" onClick={handleSend}>
-                    <Send className="mr-2 h-3 w-3" /> Send
+                  <Button 
+                    size="sm" 
+                    className="flex-1" 
+                    onClick={handleSend}
+                    disabled={isSending || !message.trim()}
+                  >
+                    {isSending ? (
+                      <>Sending...</>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-3 w-3" /> Send
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
