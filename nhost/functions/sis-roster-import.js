@@ -31,9 +31,10 @@ function parseCsv(text) {
   } catch (err) {
     // Log non-PII diagnostics only (no raw CSV content that may contain student data).
     // We avoid logging any substring of the CSV to prevent accidental PII exposure.
+    const COLUMN_ESTIMATION_SAMPLE_SIZE = 1000; // Sample size for estimating column count
     const newlineIndex = text.indexOf('\n');
     const firstLineLength = newlineIndex === -1 ? text.length : newlineIndex;
-    const estimatedColumns = (text.slice(0, Math.min(1000, text.length)).match(/,/g) || []).length + 1;
+    const estimatedColumns = (text.slice(0, Math.min(COLUMN_ESTIMATION_SAMPLE_SIZE, text.length)).match(/,/g) || []).length + 1;
     
     console.error('CSV parsing failed:', {
       error: err.message,
