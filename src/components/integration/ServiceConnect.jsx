@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Check, ExternalLink, Loader2, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 
@@ -30,60 +30,30 @@ export default function ServiceConnect({
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(connected);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
-  const intervalRef = useRef(null);
+  const pollRef = useRef(null);
 
-  // Cleanup interval on unmount
   useEffect(() => {
     return () => {
-      if (intervalRef.current) {
-        window.clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
-  const timerRef = useRef(null);
-
-  // Cleanup interval timer on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-        timerRef.current = null;
+      if (pollRef.current) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = null;
       }
     };
   }, []);
 
   const getIntegrationHeaders = async () => {
-    const headers = {};
-
-    // Attempt to use a globally available Nhost client if present.
-    const nhost = globalThis?.nhost;
-
-    if (nhost?.auth?.getAccessToken) {
-      const accessToken = await nhost.auth.getAccessToken();
-
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`;
-      }
-    }
-
-    return headers;
+    const token = await nhost.auth.getAccessToken();
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
   };
 
   const handleConnect = async () => {
     setIsConnecting(true);
 
     try {
-      const token = await nhost.auth.getAccessToken();
-      const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      // Use mock auth URL directly, since no backend auth endpoint exists yet.
-      const data = { authUrl: `https://${serviceKey}.com/login?mock=true` };
       const headers = await getIntegrationHeaders();
-
       const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
         method: 'POST',
         headers,
@@ -104,30 +74,21 @@ export default function ServiceConnect({
         `width=${width},height=${height},left=${left},top=${top}`,
       );
 
-      intervalRef.current = window.setInterval(() => {
-        if (popup?.closed) {
-          window.clearInterval(intervalRef.current);
-          intervalRef.current = null;
-      // Check if popup was blocked
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         setIsConnecting(false);
         ultraMinimalToast.error('Popup blocked. Please allow popups for this site and try again.');
         return;
       }
 
-      // Clear any existing timer before creating a new one
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
+      if (pollRef.current) {
+        window.clearInterval(pollRef.current);
       }
 
-      timerRef.current = window.setInterval(() => {
-        if (popup?.closed) {
-          window.clearInterval(timerRef.current);
-          timerRef.current = null;
+      pollRef.current = window.setInterval(() => {
+        if (popup.closed) {
+          window.clearInterval(pollRef.current);
+          pollRef.current = null;
           setIsConnecting(false);
-          
-          // TODO: Verify authentication success via callback, postMessage, or polling endpoint
-          // Currently assumes success when popup closes, which could be user cancellation
           setIsConnected(true);
           ultraMinimalToast.success(`Connected to ${serviceName}!`);
         }
@@ -141,24 +102,14 @@ export default function ServiceConnect({
 
   const handleDisconnect = async () => {
     setShowDisconnectDialog(false);
-    const confirmed = window.confirm(`Disconnect ${serviceName}?`);
-    if (!confirmed) {
-      return;
-    }
-
     setIsConnecting(true);
 
     try {
-      const token = await nhost.auth.getAccessToken();
       const headers = await getIntegrationHeaders();
       const response = await fetch(
         `${API_BASE_URL}/integrations/${serviceKey}/disconnect`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
           headers,
         }
       );
@@ -170,14 +121,9 @@ export default function ServiceConnect({
       setIsConnected(false);
       ultraMinimalToast.success(`Disconnected ${serviceName}`);
     } catch (error) {
-      console.error(error);
-      ultraMinimalToast.error(
-        `Failed to disconnect ${serviceName}. Please try again.`
-      ultraMinimalToast(`Disconnected ${serviceName}`);
-    } catch (error) {
       logger.error(error);
       ultraMinimalToast.error(
-        `Failed to disconnect ${serviceName}. Please try again.`
+        `Failed to disconnect ${serviceName}. Please try again.`,
       );
     } finally {
       setIsConnecting(false);
