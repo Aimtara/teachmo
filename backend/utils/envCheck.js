@@ -1,30 +1,15 @@
 /* eslint-env node */
 import { createLogger } from './logger.js';
-
 const logger = createLogger('env-check');
 
-const REQUIRED_VARS = [
-  'NHOST_ADMIN_SECRET',
-  'NHOST_SUBDOMAIN',
-  'NHOST_REGION',
-  'AUTH_JWKS_URL'
-];
+const REQUIRED_VARS = ['NHOST_ADMIN_SECRET', 'AUTH_JWKS_URL'];
 
 export function performStartupCheck() {
-  const isProd = process.env.NODE_ENV === 'production';
-  const missing = [];
-
-  REQUIRED_VARS.forEach((key) => {
-    if (!process.env[key]) missing.push(key);
-  });
-
+  const missing = REQUIRED_VARS.filter(key => !process.env[key]);
   if (missing.length > 0) {
-    logger.error('❌ FATAL: Missing required environment variables:', missing);
-    if (isProd) {
-      logger.error('Server cannot start in production without these variables.');
-      process.exit(1);
-    }
+    logger.error('❌ FATAL: Missing env vars:', missing);
+    if (process.env.NODE_ENV === 'production') process.exit(1);
+  } else {
+    logger.info('✅ Startup Environment Check Passed');
   }
-
-  logger.info('✅ Environment configuration check passed.');
 }
