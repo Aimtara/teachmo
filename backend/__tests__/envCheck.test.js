@@ -13,9 +13,13 @@ describe('performStartupCheck', () => {
     originalEnv = {
       NODE_ENV: process.env.NODE_ENV,
       NHOST_ADMIN_SECRET: process.env.NHOST_ADMIN_SECRET,
+      NHOST_GRAPHQL_URL: process.env.NHOST_GRAPHQL_URL,
+      HASURA_GRAPHQL_URL: process.env.HASURA_GRAPHQL_URL,
+      NHOST_BACKEND_URL: process.env.NHOST_BACKEND_URL,
       NHOST_SUBDOMAIN: process.env.NHOST_SUBDOMAIN,
       NHOST_REGION: process.env.NHOST_REGION,
       AUTH_JWKS_URL: process.env.AUTH_JWKS_URL,
+      NHOST_JWKS_URL: process.env.NHOST_JWKS_URL,
       DATABASE_URL: process.env.DATABASE_URL,
       DB_HOST: process.env.DB_HOST,
       DB_PORT: process.env.DB_PORT,
@@ -30,9 +34,13 @@ describe('performStartupCheck', () => {
     // Clear env vars we're testing
     delete process.env.NODE_ENV;
     delete process.env.NHOST_ADMIN_SECRET;
+    delete process.env.NHOST_GRAPHQL_URL;
+    delete process.env.HASURA_GRAPHQL_URL;
+    delete process.env.NHOST_BACKEND_URL;
     delete process.env.NHOST_SUBDOMAIN;
     delete process.env.NHOST_REGION;
     delete process.env.AUTH_JWKS_URL;
+    delete process.env.NHOST_JWKS_URL;
     delete process.env.DATABASE_URL;
     delete process.env.DB_HOST;
     delete process.env.DB_PORT;

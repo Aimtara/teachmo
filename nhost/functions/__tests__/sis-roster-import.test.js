@@ -268,11 +268,12 @@ describe('sis-roster-import', () => {
 
       await sisRosterImport(req, res);
 
-      // Should still return success even if job update fails
-      expect(res.status).toHaveBeenCalledWith(200);
+      // Should return 500 error when job update fails
+      expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          ok: true,
+          error: 'Import completed but failed to update job metadata',
+          jobId: 'job-update-fail',
           inserted: 1,
           skipped: 0,
         })

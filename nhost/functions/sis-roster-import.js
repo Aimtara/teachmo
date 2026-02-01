@@ -30,15 +30,17 @@ function parseCsv(text) {
     return records;
   } catch (err) {
     // Log non-PII diagnostics only (no raw CSV content that may contain student data).
-    // Extract just the header row for debugging without exposing PII.
+    // We avoid logging any substring of the CSV to prevent accidental PII exposure.
     const newlineIndex = text.indexOf('\n');
-    const headerRow = newlineIndex === -1 ? text : text.slice(0, newlineIndex);
-    const headerPreview = headerRow.length > 200 ? headerRow.substring(0, 200) + '...' : headerRow;
+    const firstLineLength = newlineIndex === -1 ? text.length : newlineIndex;
+    const estimatedColumns = (text.slice(0, Math.min(1000, text.length)).match(/,/g) || []).length + 1;
     
     console.error('CSV parsing failed:', {
       error: err.message,
-      headerPreview,
-      textLength: text.length
+      textLength: text.length,
+      firstLineLength,
+      estimatedColumns,
+      hasNewlines: text.includes('\n')
     });
     return [];
   }
