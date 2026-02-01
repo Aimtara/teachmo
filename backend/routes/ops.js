@@ -124,10 +124,11 @@ router.get('/families/:familyId/anomalies', async (req, res) => {
     // Filter by status if requested
     let filtered = anomalies;
     if (status && status !== 'all') {
-      // Status filtering: 'open' vs other statuses
-      // For now, all anomalies from listAnomalies are considered 'open'
-      // unless they have been acknowledged/closed
-      filtered = anomalies;
+      // Filter anomalies by status from their meta.status field
+      filtered = anomalies.filter((a) => {
+        const anomalyStatus = a.meta?.status || 'open';
+        return anomalyStatus === status;
+      });
     }
 
     return res.json({ anomalies: filtered });
@@ -142,13 +143,22 @@ router.post('/families/:familyId/anomalies/:anomalyType/ack', async (req, res) =
     const { familyId, anomalyType } = req.params;
     const { note } = req.body;
 
-    // Update anomaly status in database
+    // Update anomaly status in database - chain jsonb_set calls properly
     await query(
       `UPDATE orchestrator_anomalies 
-       SET meta = jsonb_set(coalesce(meta, '{}'::jsonb), '{status}', '"acknowledged"', true),
-           meta = jsonb_set(meta, '{acknowledgedAt}', to_jsonb(now()::text), true),
-           meta = jsonb_set(meta, '{acknowledgedBy}', to_jsonb($3::text), true),
-           meta = jsonb_set(meta, '{note}', to_jsonb($4::text), true)
+       SET meta = jsonb_set(
+         jsonb_set(
+           jsonb_set(
+             jsonb_set(
+               coalesce(meta, '{}'::jsonb),
+               '{status}', '"acknowledged"', true
+             ),
+             '{acknowledgedAt}', to_jsonb(now()::text), true
+           ),
+           '{acknowledgedBy}', to_jsonb($3::text), true
+         ),
+         '{note}', to_jsonb($4::text), true
+       )
        WHERE family_id = $1 AND anomaly_type = $2`,
       [familyId, anomalyType, req.auth.userId, note || '']
     );
@@ -174,13 +184,22 @@ router.post('/families/:familyId/anomalies/:anomalyType/close', async (req, res)
     const { familyId, anomalyType } = req.params;
     const { note } = req.body;
 
-    // Update anomaly status in database
+    // Update anomaly status in database - chain jsonb_set calls properly
     await query(
       `UPDATE orchestrator_anomalies 
-       SET meta = jsonb_set(coalesce(meta, '{}'::jsonb), '{status}', '"closed"', true),
-           meta = jsonb_set(meta, '{closedAt}', to_jsonb(now()::text), true),
-           meta = jsonb_set(meta, '{closedBy}', to_jsonb($3::text), true),
-           meta = jsonb_set(meta, '{closeNote}', to_jsonb($4::text), true)
+       SET meta = jsonb_set(
+         jsonb_set(
+           jsonb_set(
+             jsonb_set(
+               coalesce(meta, '{}'::jsonb),
+               '{status}', '"closed"', true
+             ),
+             '{closedAt}', to_jsonb(now()::text), true
+           ),
+           '{closedBy}', to_jsonb($3::text), true
+         ),
+         '{closeNote}', to_jsonb($4::text), true
+       )
        WHERE family_id = $1 AND anomaly_type = $2`,
       [familyId, anomalyType, req.auth.userId, note || '']
     );
@@ -206,13 +225,22 @@ router.post('/families/:familyId/anomalies/:anomalyType/reopen', async (req, res
     const { familyId, anomalyType } = req.params;
     const { note } = req.body;
 
-    // Update anomaly status in database
+    // Update anomaly status in database - chain jsonb_set calls properly
     await query(
       `UPDATE orchestrator_anomalies 
-       SET meta = jsonb_set(coalesce(meta, '{}'::jsonb), '{status}', '"open"', true),
-           meta = jsonb_set(meta, '{reopenedAt}', to_jsonb(now()::text), true),
-           meta = jsonb_set(meta, '{reopenedBy}', to_jsonb($3::text), true),
-           meta = jsonb_set(meta, '{reopenNote}', to_jsonb($4::text), true)
+       SET meta = jsonb_set(
+         jsonb_set(
+           jsonb_set(
+             jsonb_set(
+               coalesce(meta, '{}'::jsonb),
+               '{status}', '"open"', true
+             ),
+             '{reopenedAt}', to_jsonb(now()::text), true
+           ),
+           '{reopenedBy}', to_jsonb($3::text), true
+         ),
+         '{reopenNote}', to_jsonb($4::text), true
+       )
        WHERE family_id = $1 AND anomaly_type = $2`,
       [familyId, anomalyType, req.auth.userId, note || '']
     );
@@ -320,13 +348,20 @@ router.post('/families/:familyId/mitigations/:mitigationType/clear', async (req,
       await orchestratorPgStore.upsertState(next);
     }
 
-    // Mark mitigation as inactive
+    // Mark mitigation as inactive - chain jsonb_set calls properly
     await query(
       `UPDATE orchestrator_mitigations
        SET active = false, last_updated = now(),
-           meta = jsonb_set(coalesce(meta, '{}'::jsonb), '{clearedBy}', to_jsonb($3::text), true),
-           meta = jsonb_set(meta, '{clearedAt}', to_jsonb(now()::text), true),
-           meta = jsonb_set(meta, '{clearNote}', to_jsonb($4::text), true)
+           meta = jsonb_set(
+             jsonb_set(
+               jsonb_set(
+                 coalesce(meta, '{}'::jsonb),
+                 '{clearedBy}', to_jsonb($3::text), true
+               ),
+               '{clearedAt}', to_jsonb(now()::text), true
+             ),
+             '{clearNote}', to_jsonb($4::text), true
+           )
        WHERE family_id = $1 AND mitigation_type = $2`,
       [familyId, mitigationType, req.auth.userId, note || '']
     );
