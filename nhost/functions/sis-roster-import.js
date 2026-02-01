@@ -16,6 +16,9 @@ const MAX_ERRORS_IN_METADATA = 100;
 
 // Limit the number of warnings returned in API responses to prevent large payloads
 const MAX_WARNINGS_IN_RESPONSE = 50;
+// Limits for error reporting to prevent excessive data storage and response sizes
+const MAX_ERRORS_IN_METADATA = 50; // Maximum errors to store in job metadata
+const MAX_WARNINGS_IN_RESPONSE = 100; // Maximum warnings to return in HTTP response
 
 function parseCsv(text) {
   if (!text) return [];
