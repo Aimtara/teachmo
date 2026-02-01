@@ -10,8 +10,10 @@ import { listAnomalies } from '../security/anomaly.js';
 import { getActiveMitigation } from '../orchestrator/mitigation.js';
 import { orchestratorPgStore } from '../orchestrator/pgStore.js';
 import { auditEventBare } from '../security/audit.js';
+import { createLogger } from '../utils/logger.js';
 
 const router = express.Router();
+const logger = createLogger('ops');
 const MAX_LIMIT = 100;
 
 // --- Auth Middleware (G0 Compliance) ---
@@ -28,7 +30,7 @@ function requireOpsAuth(req, res, next) {
 
   // Strict deny if not admin
   if (!isSystemAdmin) {
-    console.warn(`[Security] Unauthorized ops attempt by user ${req.auth.userId}`);
+    logger.warn('[Security] Unauthorized ops attempt', { requestId: req.id || 'unknown' });
     return res.status(403).json({ error: 'forbidden_insufficient_permissions' });
   }
 
@@ -64,13 +66,16 @@ router.get('/families', async (req, res) => {
   try {
     const limit = clampLimit(req.query.limit, 25);
 
-    // Basic query logic preserved from original
-    let sql = 'SELECT * FROM auth.users LIMIT $1';
+    let sql;
     let params = [limit];
 
     // Check if real families table exists (it should in production)
     if (await tableExists('families')) {
       sql = 'SELECT id, name, status, created_at FROM families ORDER BY created_at DESC LIMIT $1';
+    } else {
+      // If families table doesn't exist, return empty list rather than exposing auth.users
+      logger.warn('Families table does not exist, returning empty list');
+      return res.json({ families: [] });
     }
 
     const result = await query(sql, params);
