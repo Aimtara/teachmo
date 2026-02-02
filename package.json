@@ -175,7 +175,7 @@
   },
   "bundlesize": [
     {
-      "path": "./dist/assets/index-*.js",
+      "path": "./dist/assets/*.js",
       "maxSize": "500 kB"
     }
   ]
