@@ -67,19 +67,43 @@ export default function redactPII() {
         // If redaction fails, proceed without modifying the body.
       }
     }
-    // Intercept response payloads by overriding res.send. This ensures
-    // that any error objects passed through res.send are redacted.
+
+    // Avoid wrapping the response methods multiple times if this middleware
+    // is applied more than once for the same request.
+    if (res.locals && res.locals.__piiRedactionApplied) {
+      return next();
+    }
+    if (res.locals) {
+      res.locals.__piiRedactionApplied = true;
+    }
+
     const originalSend = res.send.bind(res);
-    res.send = (body) => {
+    const originalJson = res.json ? res.json.bind(res) : null;
+
+    const redactBody = (body) => {
       if (body && typeof body === 'object') {
         try {
-          body = redactValue(body);
+          return redactValue(body);
         } catch (err) {
-          // Ignore redaction failures
+          // Ignore redaction failures and fall through to returning the original body.
         }
       }
-      return originalSend(body);
+      return body;
     };
+
+    // Intercept response payloads by overriding res.send and res.json. This ensures
+    // that any error or data objects passed through these methods are redacted.
+    res.send = (body) => {
+      const redactedBody = redactBody(body);
+      return originalSend(redactedBody);
+    };
+
+    if (originalJson) {
+      res.json = (body) => {
+        const redactedBody = redactBody(body);
+        return originalJson(redactedBody);
+      };
+    }
     next();
   };
 }
