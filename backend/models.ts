@@ -28,7 +28,7 @@ import * as jsModels from './models.js';
  * ```
  */
 export interface TeachmoModels {
-  // TODO: define model types
+  // TODO(#123): define model types
   [key: string]: any;
 }
 
