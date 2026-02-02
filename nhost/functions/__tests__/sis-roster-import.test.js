@@ -115,7 +115,7 @@ describe('sis-roster-import', () => {
       req.body = {
         rosterType: 'classes',
         records: [
-          { sourcedId: 'class-1', name: 'Math 101' },
+          { sourcedId: 'class-1', name: 'Math 101', teacherSourcedId: 'teacher-1' },
           { name: 'English 101' }, // Missing ID
         ],
       };

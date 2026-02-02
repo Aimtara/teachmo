@@ -71,8 +71,10 @@ describe('SCIM tenant isolation', () => {
       'https://hasura.io/jwt/claims': {
         'x-hasura-user-id': 'admin-user',
         'x-hasura-organization-id': orgA,
-        'x-hasura-role': 'system_admin',
+        'x-hasura-default-role': 'system_admin',
+        'x-hasura-allowed-roles': ['system_admin'],
       },
+      role: 'system_admin',
     });
 
     const res = await request(app)
@@ -91,8 +93,10 @@ describe('SCIM tenant isolation', () => {
       'https://hasura.io/jwt/claims': {
         'x-hasura-user-id': 'admin-user',
         'x-hasura-organization-id': orgB,
-        'x-hasura-role': 'system_admin',
+        'x-hasura-default-role': 'system_admin',
+        'x-hasura-allowed-roles': ['system_admin'],
       },
+      role: 'system_admin',
     });
 
     const res = await request(app)
@@ -109,8 +113,10 @@ describe('SCIM tenant isolation', () => {
       'https://hasura.io/jwt/claims': {
         'x-hasura-user-id': 'admin-user',
         'x-hasura-organization-id': orgA,
-        'x-hasura-role': 'system_admin',
+        'x-hasura-default-role': 'system_admin',
+        'x-hasura-allowed-roles': ['system_admin'],
       },
+      role: 'system_admin',
     });
 
     const res = await request(app)
@@ -127,8 +133,10 @@ describe('SCIM tenant isolation', () => {
       'https://hasura.io/jwt/claims': {
         'x-hasura-user-id': 'admin-user',
         'x-hasura-organization-id': orgB,
-        'x-hasura-role': 'system_admin',
+        'x-hasura-default-role': 'system_admin',
+        'x-hasura-allowed-roles': ['system_admin'],
       },
+      role: 'system_admin',
     });
 
     const res = await request(app)

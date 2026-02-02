@@ -528,6 +528,15 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading LMS integrations...</p>
   },
   {
+    name: 'AdminIntegrationSettings',
+    path: '/admin/integrations',
+    Component: lazy(() => import('@/pages/admin/integrations/IntegrationSettings.jsx')),
+    allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
+    requiredScopes: ['directory:manage'],
+    requiredActions: ['directory:manage'],
+    fallback: <p className="p-6 text-gray-600">Loading integration settings...</p>
+  },
+  {
     name: 'AIFineTuning',
     path: '/admin/ai-fine-tuning',
     Component: lazy(() => import('@/pages/AIFineTuning.jsx')),

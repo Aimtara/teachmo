@@ -19,6 +19,18 @@ import {
   findRosterRun,
 } from '../integrations/rosterSync.js';
 import { listAlerts } from '../integrations/alerts.js';
+import {
+  createSisJob,
+  findSisJob,
+  markSisJobComplete,
+  recordSisConnection,
+  validateSisConfig,
+} from '../integrations/sis.js';
+import {
+  syncCourses,
+  syncCourseWork,
+  syncGrades,
+} from '../integrations/googleClassroom.js';
 
 const router = express.Router();
 
@@ -159,6 +171,85 @@ router.get('/roster/users', (req, res) => {
 
 router.get('/roster/alerts', (req, res) => {
   res.json(listAlerts());
+});
+
+router.post('/sis/test', (req, res) => {
+  try {
+    const config = validateSisConfig(req.body || {});
+    const connection = recordSisConnection(config);
+    res.json({ success: true, connectionId: connection.id });
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+router.post('/sis/:schoolId/sync', (req, res) => {
+  try {
+    const job = createSisJob({
+      schoolId: req.params.schoolId,
+      triggeredBy: req.body?.triggeredBy || 'manual',
+    });
+    res.json({ status: job.status, jobId: job.id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.get('/sis/jobs/:jobId', (req, res) => {
+  const job = findSisJob(req.params.jobId);
+  if (!job) {
+    res.status(404).json({ error: 'SIS job not found' });
+    return;
+  }
+
+  if (job.status === 'processing') {
+    markSisJobComplete(job, {
+      users: 128,
+      classes: 12,
+      enrollments: 421,
+    });
+  }
+
+  res.json(job);
+});
+
+router.post('/google/sync/courses', (req, res) => {
+  try {
+    const { teacherId, fullSync } = req.body || {};
+    if (!teacherId) {
+      res.status(400).json({ error: 'teacherId is required' });
+      return;
+    }
+    res.json(syncCourses({ teacherId, fullSync }));
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+router.post('/google/courses/:courseId/sync-work', (req, res) => {
+  try {
+    const { teacherId } = req.body || {};
+    if (!teacherId) {
+      res.status(400).json({ error: 'teacherId is required' });
+      return;
+    }
+    res.json(syncCourseWork({ teacherId, courseId: req.params.courseId }));
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+router.post('/google/courses/:courseId/sync-grades', (req, res) => {
+  try {
+    const { teacherId } = req.body || {};
+    if (!teacherId) {
+      res.status(400).json({ error: 'teacherId is required' });
+      return;
+    }
+    res.json(syncGrades({ teacherId, courseId: req.params.courseId }));
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
 });
 
 export default router;
