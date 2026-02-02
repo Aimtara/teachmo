@@ -1,70 +1,96 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { API_BASE_URL } from '@/config/api';
-import { useUserId } from '@nhost/react';
-import { useTenantScope } from '@/hooks/useTenantScope';
+import React, { useState } from 'react';
+import { Card, Button, Input, Select, Textarea } from '@/components/ui';
+import { apiClient } from '@/services/core/client';
 
 export default function PartnerPortal() {
-  const [stats, setStats] = useState({ submissions: 0, enrollments: 0, applications: 0, contracts: 0 });
-  const [activity, setActivity] = useState([]);
-  const userId = useUserId();
-  const { data: scope } = useTenantScope();
-  const partnerId = userId;
+  const [submission, setSubmission] = useState({ title: '', type: 'activity', content: '' });
+  const [status, setStatus] = useState('idle');
 
-  const tenantHeaders = useMemo(() => {
-    const h = {};
-    if (userId) h['x-user-id'] = userId;
-    if (scope?.districtId) h['x-district-id'] = scope.districtId;
-    if (scope?.schoolId) h['x-school-id'] = scope.schoolId;
-    return h;
-  }, [userId, scope?.districtId, scope?.schoolId]);
-
-  useEffect(() => {
-    async function load() {
-      const asArray = async (resp) => (resp.ok ? resp.json() : []);
-      const [subs, enrolls, apps, contracts, audits] = await Promise.all([
-        fetch(`${API_BASE_URL}/submissions`, { headers: tenantHeaders }).then(asArray),
-        partnerId
-          ? fetch(`${API_BASE_URL}/courses/enrollments/${partnerId}`, { headers: tenantHeaders }).then(asArray)
-          : Promise.resolve([]),
-        partnerId
-          ? fetch(`${API_BASE_URL}/incentives/applications/${partnerId}`, { headers: tenantHeaders }).then(asArray)
-          : Promise.resolve([]),
-        fetch(`${API_BASE_URL}/contracts?partnerId=${partnerId ?? ''}`, { headers: tenantHeaders }).then(asArray),
-        fetch(`${API_BASE_URL}/admin/audits`, { headers: tenantHeaders }).then(asArray),
-      ]);
-      setStats({
-        submissions: subs.length,
-        enrollments: enrolls.length,
-        applications: apps.length,
-        contracts: contracts.length
-      });
-      setActivity(audits.slice(-5).reverse());
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setStatus('submitting');
+    try {
+      await apiClient.post('/api/partner/submissions', submission);
+      setStatus('success');
+      setSubmission({ title: '', type: 'activity', content: '' });
+    } catch (error) {
+      setStatus('error');
     }
-    load();
-  }, [partnerId, tenantHeaders]);
+  };
 
   return (
-    <div>
-      <h1>Partner portal</h1>
-      <p>Review your submissions and activity.</p>
+    <div className="p-6 max-w-4xl mx-auto">
+      <header className="mb-8 border-b pb-4">
+        <h1 className="text-3xl font-bold text-gray-900">Partner Portal</h1>
+        <p className="text-gray-600">Submit and manage your educational content.</p>
+      </header>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <div><strong>{stats.submissions}</strong> submissions</div>
-        <div><strong>{stats.enrollments}</strong> enrollments</div>
-        <div><strong>{stats.applications}</strong> incentives</div>
-        <div><strong>{stats.contracts}</strong> contracts</div>
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 space-y-4">
+          <Card className="p-4 bg-blue-50 border-blue-200">
+            <h3 className="font-semibold text-blue-900">Active Submissions</h3>
+            <p className="text-2xl font-bold text-blue-700">12</p>
+          </Card>
+          <Card className="p-4 bg-green-50 border-green-200">
+            <h3 className="font-semibold text-green-900">Approved</h3>
+            <p className="text-2xl font-bold text-green-700">8</p>
+          </Card>
+        </div>
 
-      <h2>Recent activity</h2>
-      <ul>
-        {activity.map((a) => (
-          <li key={a.id}>{a.event_type} - {a.summary}</li>
-        ))}
-      </ul>
+        <div className="md:col-span-2">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">New Content Submission</h2>
+            {status === 'success' && (
+              <div className="mb-4 p-3 bg-green-100 text-green-800 rounded">
+                Submission received! We will review it shortly.
+              </div>
+            )}
+            {status === 'error' && (
+              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">
+                Submission failed. Please try again.
+              </div>
+            )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <Input
+                  value={submission.title}
+                  onChange={(event) => setSubmission({ ...submission, title: event.target.value })}
+                  placeholder="e.g., Summer Reading Challenge"
+                  required
+                />
+              </div>
 
-      <div style={{ marginTop: '1rem' }}>
-        <Link to="/partner/submissions">View submissions</Link>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Type</label>
+                <Select
+                  value={submission.type}
+                  onChange={(event) => setSubmission({ ...submission, type: event.target.value })}
+                >
+                  <option value="activity">Activity</option>
+                  <option value="resource">Resource</option>
+                  <option value="event">Event</option>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Description / URL</label>
+                <Textarea
+                  value={submission.content}
+                  onChange={(event) => setSubmission({ ...submission, content: event.target.value })}
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="submit" disabled={status === 'submitting'}>
+                  {status === 'submitting' ? 'Submitting...' : 'Submit for Review'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
       </div>
     </div>
   );
