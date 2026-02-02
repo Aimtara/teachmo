@@ -1,10 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const registryPath = path.resolve(__dirname, '../../config/feature_flags.json');
+const registryPath = path.resolve(process.cwd(), 'config/feature_flags.json');
 
 function loadRegistry() {
   const raw = fs.readFileSync(registryPath, 'utf8');

@@ -2,13 +2,10 @@
 import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 const router = Router();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DATA_PATH = path.join(__dirname, '..', 'data', 'commandCenter.json');
+const DATA_PATH = path.resolve(process.cwd(), 'backend', 'data', 'commandCenter.json');
 
 const VALID_TYPES = ['RUNBOOK_CREATE', 'ESCALATE', 'ROLLBACK'];
 const VALID_STATUS = ['queued', 'approved', 'running', 'done', 'failed', 'canceled'];

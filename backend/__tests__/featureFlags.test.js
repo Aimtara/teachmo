@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { evaluateFlag, getRegistry } from '../utils/featureFlags.js';
 
 test('feature flag registry entries include test matrix coverage', () => {
@@ -14,8 +13,7 @@ test('feature flag registry entries include test matrix coverage', () => {
 });
 
 test('feature flag registry matches frontend defaults', () => {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const repoRoot = path.resolve(__dirname, '../..');
+  const repoRoot = path.resolve(process.cwd());
   const contents = fs.readFileSync(path.join(repoRoot, 'src/config/features.ts'), 'utf8');
   const start = contents.indexOf('export const FEATURES');
   const end = contents.indexOf('} as const', start);

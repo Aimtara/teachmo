@@ -67,7 +67,12 @@ describe('Integration roster sync', () => {
   test('reports unmapped roles in diagnostics', async () => {
     const ruleRes = await request(app)
       .post('/api/integrations/iam/rules')
-      .send({ name: 'Strict mapping', roleMappings: { teacher: 'teacher' }, defaultRole: null });
+      .send({
+        name: 'Strict mapping',
+        roleMappings: { teacher: 'teacher' },
+        defaultRole: null,
+        allowedRoles: ['teacher'],
+      });
 
     const sourceRes = await request(app)
       .post('/api/integrations/roster/sources')
@@ -83,5 +88,46 @@ describe('Integration roster sync', () => {
 
     expect(syncRes.body.stats.invalid).toBe(1);
     expect(syncRes.body.diagnostics.missingRoleMappings).toHaveLength(1);
+  });
+});
+
+describe('Integration SIS and Google Classroom endpoints', () => {
+  test('validates SIS config and returns sync job status', async () => {
+    const testRes = await request(app)
+      .post('/api/integrations/sis/test')
+      .send({
+        type: 'oneroster',
+        baseUrl: 'https://district.example/oneroster',
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+      });
+
+    expect(testRes.status).toBe(200);
+    expect(testRes.body.success).toBe(true);
+
+    const syncRes = await request(app).post('/api/integrations/sis/school-1/sync').send({});
+    expect(syncRes.status).toBe(200);
+    expect(syncRes.body.status).toBe('processing');
+
+    const statusRes = await request(app).get(`/api/integrations/sis/jobs/${syncRes.body.jobId}`);
+    expect(statusRes.status).toBe(200);
+    expect(statusRes.body.status).toBe('completed');
+    expect(statusRes.body.summary).toHaveProperty('users');
+  });
+
+  test('rate limits Google Classroom syncs', async () => {
+    const firstRes = await request(app)
+      .post('/api/integrations/google/sync/courses')
+      .send({ teacherId: 'teacher-1', fullSync: true });
+
+    expect(firstRes.status).toBe(200);
+    expect(firstRes.body.fullSync).toBe(true);
+
+    const secondRes = await request(app)
+      .post('/api/integrations/google/sync/courses')
+      .send({ teacherId: 'teacher-1', fullSync: false });
+
+    expect(secondRes.status).toBe(429);
+    expect(secondRes.body.error).toMatch(/Rate limit exceeded/i);
   });
 });

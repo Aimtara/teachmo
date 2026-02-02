@@ -44,12 +44,20 @@ function isMockAuthMode() {
 
 // JWT verification configuration
 const jwksUrl = process.env.AUTH_JWKS_URL || process.env.NHOST_JWKS_URL || '';
+const ltiJwksUrl = process.env.LTI_JWKS_URL || '';
+const ltiIssuer = process.env.LTI_ISSUER || undefined;
+const ltiAudience = process.env.LTI_AUDIENCE || undefined;
 const issuer = process.env.AUTH_ISSUER || process.env.NHOST_JWT_ISSUER || undefined;
 const audience = process.env.AUTH_AUDIENCE || process.env.NHOST_JWT_AUDIENCE || undefined;
 
 let jwks = null;
 if (jwksUrl) {
   jwks = createRemoteJWKSet(new URL(jwksUrl));
+}
+
+let ltiJwks = null;
+if (ltiJwksUrl) {
+  ltiJwks = createRemoteJWKSet(new URL(ltiJwksUrl));
 }
 
 async function verifyBearerToken(token) {
@@ -87,6 +95,36 @@ async function verifyBearerToken(token) {
     audience,
   });
   return payload;
+}
+
+function getLtiRoles(payload) {
+  const roles = payload?.['https://purl.imsglobal.org/spec/lti/claim/roles'] || payload?.roles || [];
+  return Array.isArray(roles) ? roles : [roles].filter(Boolean);
+}
+
+function inferLtiRole(payload) {
+  const roles = getLtiRoles(payload);
+  const roleText = roles.map((role) => String(role).toLowerCase());
+  if (roleText.some((role) => role.includes('instructor') || role.includes('teacher'))) {
+    return 'teacher';
+  }
+  if (roleText.some((role) => role.includes('administrator') || role.includes('admin'))) {
+    return 'school_admin';
+  }
+  return 'student';
+}
+
+async function verifyLtiToken(token) {
+  if (!token || !ltiJwks) return null;
+  const { payload } = await jwtVerify(token, ltiJwks, {
+    issuer: ltiIssuer,
+    audience: ltiAudience,
+  });
+  return {
+    ...payload,
+    role: payload.role || inferLtiRole(payload),
+    scopes: payload.scopes || payload.scope || undefined,
+  };
 }
 
 function claimsFromHasuraHeaders(req) {
@@ -158,10 +196,22 @@ function extractAuthContext(jwtClaims) {
 async function resolveClaims(req) {
   const headerAuth = req.headers.authorization || '';
   const bearer = headerAuth.startsWith('Bearer ') ? headerAuth.slice(7) : null;
+  const ltiAuth = headerAuth.startsWith('LTI ') ? headerAuth.slice(4) : null;
 
   // Priority 1: verify a Bearer token (recommended in all deployments)
   if (bearer) {
     const verifiedPayload = await verifyBearerToken(bearer);
+    if (verifiedPayload) return verifiedPayload;
+  }
+
+  // Priority 1b: verify an LTI token when provided (for LMS launch flows)
+  const ltiToken =
+    ltiAuth ||
+    req.headers['x-lti-id-token'] ||
+    req.headers['x-lti-token'] ||
+    req.body?.id_token;
+  if (ltiToken) {
+    const verifiedPayload = await verifyLtiToken(ltiToken);
     if (verifiedPayload) return verifiedPayload;
   }
 
