@@ -12,8 +12,20 @@ interface MomentGuardProps {
 
 export const MomentGuard: React.FC<MomentGuardProps> = ({ children, surface }) => {
   const { moment, isSurfaceAllowed } = useMoment();
-  const [bypass, setBypass] = React.useState(false);
+  const bypassStorageKey = `momentGuard:bypass:${surface}:${moment}`;
+  const [bypass, setBypass] = React.useState<boolean>(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return sessionStorage.getItem(bypassStorageKey) === 'true';
+  });
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    sessionStorage.setItem(bypassStorageKey, String(bypass));
+  }, [bypass, bypassStorageKey]);
   if (isSurfaceAllowed(surface) || bypass) {
     return <>{children}</>;
   }
