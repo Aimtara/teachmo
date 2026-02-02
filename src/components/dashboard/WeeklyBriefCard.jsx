@@ -103,7 +103,9 @@ export default function WeeklyBriefCard() {
               Show everything
             </Link>
           )}
-          <VoiceAssistant text={readAloudText} label="Listen to Brief" variant="icon" />
+          {!loading && !error && brief && (
+            <VoiceAssistant text={readAloudText} label="Listen to Brief" variant="icon" />
+          )}
         </div>
       </CardHeader>
 
