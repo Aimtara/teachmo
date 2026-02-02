@@ -1,119 +1,52 @@
-/**
- * Teachmo Core Domain Models (Migrated to TypeScript)
- * Provides type definitions for the core entities used across
- * the backend services, ensuring type safety for DB operations.
+/*
+ * Teachmo Backend Models (TypeScript)
+ *
+ * This file re-exports the existing JavaScript models from
+ * `models.js` while providing a typed surface for callers. It serves as
+ * an intermediate step toward a full TypeScript migration of the
+ * backend. All new modules should import models from this file
+ * instead of directly importing `models.js`. Once the migration is
+ * complete, the original `models.js` can be removed entirely.
  */
 
-// Basic primitive types
-export type UUID = string;
-export type ISO8601Date = string;
-export type Role = 'parent' | 'teacher' | 'school_admin' | 'student';
+// Import the existing JavaScript models as a module namespace. This
+// keeps compatibility with the ESM backend while offering a typed
+// surface for TypeScript callers.
+import * as jsModels from './models.js';
 
-// ------------------------------------------------------------------
-// Organization Domain
-// ------------------------------------------------------------------
-
-export interface SchoolDirectory {
-  id: UUID;
-  nces_id?: string;
-  name: string;
-  address?: string;
-  city: string;
-  state: string;
-  zip: string;
-  integration_enabled: boolean;
-
-  // JSONB configuration for integrations (e.g. Clever ID, Google Domain)
-  settings: {
-    clever_district_id?: string;
-    google_workspace_domain?: string;
-    canvas_base_url?: string;
-  };
-
-  created_at: ISO8601Date;
-  updated_at: ISO8601Date;
+/**
+ * A map of model names to their types. As the migration to TypeScript
+ * progresses, each entry in this interface should be replaced with a
+ * concrete type instead of `any`.
+ *
+ * The properties listed here document the models that are currently
+ * expected to exist on the underlying `models.js` export. Even though
+ * they are temporarily typed as `any`, callers can rely on these names
+ * being present. As individual models are migrated, update the
+ * corresponding property types.
+ *
+ * For example, once a `ProgramModel` type exists:
+ *
+ * ```ts
+ * interface TeachmoModels {
+ *   Program: ProgramModel;
+ *   User: UserModel;
+ *   Assignment: AssignmentModel;
+ * }
+ * ```
+ */
+export interface TeachmoModels {
+  // Known models exported from `models.js`. Replace `any` with concrete
+  // types as the backend is migrated to TypeScript.
+  Program: any;
+  User: any;
+  Assignment: any;
 }
 
-export interface SchoolParticipationRequest {
-  id: UUID;
-  user_id: UUID;
-  school_name: string;
-  school_domain?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  reviewed_by?: UUID;
-  reviewed_at?: ISO8601Date;
-  created_at: ISO8601Date;
-}
+// Export a typed alias to the underlying JS models. Consumers of this
+// module should not assume anything about the internal structure
+// beyond what is specified in TeachmoModels. If a model does not
+// exist in `jsModels`, accessing it will return undefined.
+export const models: TeachmoModels = jsModels as unknown as TeachmoModels;
 
-// ------------------------------------------------------------------
-// Learning Domain
-// ------------------------------------------------------------------
-
-export interface Assignment {
-  id: UUID;
-  title: string;
-  description?: string;
-  due_at: ISO8601Date;
-  classroom_id: UUID;
-
-  // Status of the assignment itself (not student submission)
-  status: 'draft' | 'published' | 'archived';
-
-  // External link (e.g. to Google Classroom)
-  external_source_id?: string;
-  external_link?: string;
-}
-
-export interface StudentSubmission {
-  id: UUID;
-  assignment_id: UUID;
-  student_id: UUID;
-  status: 'assigned' | 'submitted' | 'graded' | 'late';
-  submitted_at?: ISO8601Date;
-  grade?: number | string;
-}
-
-// ------------------------------------------------------------------
-// User & Auth Domain
-// ------------------------------------------------------------------
-
-export interface UserProfile {
-  id: UUID;
-  email: string;
-  display_name: string;
-  avatar_url?: string;
-  role: Role;
-
-  // Tenant isolation
-  tenant_id: UUID;
-
-  // Preferences
-  notification_preferences: {
-    email_digest: boolean;
-    push_notifications: boolean;
-    sms_alerts: boolean;
-  };
-
-  last_active_at: ISO8601Date;
-}
-
-// ------------------------------------------------------------------
-// Orchestrator Domain
-// ------------------------------------------------------------------
-
-export interface WeeklyBrief {
-  id: UUID;
-  parent_id: UUID;
-  week_start: ISO8601Date;
-
-  // AI-Generated Content
-  content: {
-    summary: string;
-    highlights: string[];
-    action_items: Array<{ text: string; link?: string }>;
-    conversation_starters: string[];
-  };
-
-  status: 'generating' | 'ready' | 'sent' | 'failed';
-  viewed_at?: ISO8601Date;
-}
+export default models;
