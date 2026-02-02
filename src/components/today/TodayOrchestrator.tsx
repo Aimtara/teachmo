@@ -14,9 +14,10 @@ function PrimaryCard({ children }: { children?: React.ReactNode }) {
  * selectInterventionForMoment is a stub. In a real implementation this would
  * determine the correct intervention to show for a given moment and user state.
  */
-function selectInterventionForMoment(_moment: ReturnType<typeof getCurrentMoment>) {
+function selectInterventionForMoment(moment: ReturnType<typeof getCurrentMoment>) {
   // TODO: integrate with intervention selection logic
-  return { content: 'Hello, world.' };
+  const momentDescription = JSON.stringify(moment);
+  return { content: `Placeholder intervention for moment: ${momentDescription}` };
 }
 
 export function TodayOrchestrator() {
