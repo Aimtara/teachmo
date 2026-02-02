@@ -10,8 +10,8 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        background: 'var(--tm-background, hsl(var(--background)))',
+        foreground: 'var(--tm-foreground, hsl(var(--foreground)))',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -21,11 +21,11 @@ module.exports = {
           foreground: 'hsl(var(--popover-foreground))',
         },
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT: 'var(--tm-primary, hsl(var(--primary)))',
+          foreground: 'var(--tm-primary-foreground, hsl(var(--primary-foreground)))',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
+          DEFAULT: 'var(--tm-secondary, hsl(var(--secondary)))',
           foreground: 'hsl(var(--secondary-foreground))',
         },
         muted: {
@@ -33,7 +33,7 @@ module.exports = {
           foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
+          DEFAULT: 'var(--tm-accent, hsl(var(--accent)))',
           foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {

@@ -2,10 +2,10 @@ import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 import { MomentGuard } from '@/components/governance/MomentGuard';
 
-const UnifiedExplore = lazy(() => import('@/pages/parent/UnifiedExplore'));
+const Discover = lazy(() => import('@/pages/Discover'));
 const DiscoverRoute = () => (
   <MomentGuard surface="EXPLORE">
-    <UnifiedExplore />
+    <Discover />
   </MomentGuard>
 );
 
