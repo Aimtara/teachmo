@@ -68,13 +68,11 @@ export const CsvRosterService = {
   },
 
   /**
-   * Parses and validates CSV content, supporting both custom and OneRoster field names.
-   * 
-   * @param fileContent - Raw CSV file content
-   * @param rosterType - Type of roster ('users', 'classes', 'enrollments', etc.)
-   */
-   * Parse CSV content using RFC4180-compliant parser.
-   * Matches backend parsing logic in nhost/functions/sis-roster-import.js
+   * Parses CSV content using an RFC4180-compliant parser and normalizes headers.
+   * Matches backend parsing logic in nhost/functions/sis-roster-import.js.
+   *
+   * @param text - Raw CSV file content
+   * @returns Parsed CSV records with lowercase keys and attached line numbers
    */
   parseCsv(text: string): ParsedRecord[] {
     if (!text) return [];
