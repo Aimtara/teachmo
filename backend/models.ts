@@ -32,14 +32,10 @@ export interface TeachmoModels {
   [key: string]: any;
 }
 
-// Export a typed proxy to the underlying JS models. Consumers of this
+// Export a typed alias to the underlying JS models. Consumers of this
 // module should not assume anything about the internal structure
 // beyond what is specified in TeachmoModels. If a model does not
 // exist in `jsModels`, accessing it will return undefined.
-export const models: TeachmoModels = new Proxy(jsModels, {
-  get(target, prop: string) {
-    return target[prop as keyof typeof target];
-  },
-});
+export const models: TeachmoModels = jsModels as unknown as TeachmoModels;
 
 export default models;
