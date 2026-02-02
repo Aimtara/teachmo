@@ -105,7 +105,7 @@ export default [
               message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
             },
             {
-              group: ['**/api/base44', '**/api/base44/*'],
+              group: ['@/api/base44', '@/api/base44/*'],
               message:
                 'Legacy Base44 access is deprecated. Use the Domain Modules or Adapters in src/api/adapters instead. See ADR 0001.'
             },
