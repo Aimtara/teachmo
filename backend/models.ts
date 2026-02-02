@@ -17,19 +17,30 @@ import * as jsModels from './models.js';
 /**
  * A map of model names to their types. As the migration to TypeScript
  * progresses, each entry in this interface should be replaced with a
- * concrete type instead of `any`. For example:
+ * concrete type instead of `any`.
+ *
+ * The properties listed here document the models that are currently
+ * expected to exist on the underlying `models.js` export. Even though
+ * they are temporarily typed as `any`, callers can rely on these names
+ * being present. As individual models are migrated, update the
+ * corresponding property types.
+ *
+ * For example, once a `ProgramModel` type exists:
  *
  * ```ts
  * interface TeachmoModels {
  *   Program: ProgramModel;
  *   User: UserModel;
- *   // ...
+ *   Assignment: AssignmentModel;
  * }
  * ```
  */
 export interface TeachmoModels {
-  // TODO(#123): define model types
-  [key: string]: any;
+  // Known models exported from `models.js`. Replace `any` with concrete
+  // types as the backend is migrated to TypeScript.
+  Program: any;
+  User: any;
+  Assignment: any;
 }
 
 // Export a typed alias to the underlying JS models. Consumers of this
