@@ -59,7 +59,9 @@ export function useCachedQuery<T>(
   useEffect(() => {
     let cancelled = false;
     async function refresh() {
-      setLoading(true);
+      if (!data) {
+        setLoading(true);
+      }
       setError(null);
       try {
         const result = await fetcher();
