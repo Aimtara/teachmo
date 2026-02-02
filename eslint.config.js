@@ -53,6 +53,15 @@ export default [
             {
               group: ['@/api/entities/*', '@/api/entities/**'],
               message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
+            },
+            {
+              group: ['@/api/base44/*', '@/api/base44/**'],
+              message:
+                'Legacy Base44 access is deprecated. Use the Domain Modules or Adapters in src/api/adapters instead. See ADR 0001.'
+            },
+            {
+              group: ['@base44/sdk'],
+              message: 'Direct SDK usage is forbidden in UI. Use Domain Modules instead.'
             }
           ]
         }
@@ -94,10 +103,25 @@ export default [
             {
               group: ['@/api/entities/*', '@/api/entities/**'],
               message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
+            },
+            {
+              group: ['@/api/base44', '@/api/base44/*'],
+              message:
+                'Legacy Base44 access is deprecated. Use the Domain Modules or Adapters in src/api/adapters instead. See ADR 0001.'
+            },
+            {
+              group: ['@base44/sdk'],
+              message: 'Direct SDK usage is forbidden in UI. Use Domain Modules instead.'
             }
           ]
         }
       ]
+    }
+  },
+  {
+    files: ['src/api/adapters/**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-restricted-imports': 'off'
     }
   }
 ];

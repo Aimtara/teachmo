@@ -16,6 +16,7 @@
     "test:watch": "jest --watch",
     "test:a11y": "jest --testPathPattern=a11y",
     "backend:check": "node --check backend/routes/ops.js",
+    "check:size": "bundlesize",
     "loadtest:systemHealth": "node scripts/loadtest/systemHealth.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -150,6 +151,7 @@
     "autoprefixer": "^10.4.20",
     "babel-jest": "^29.7.0",
     "babel-plugin-transform-vite-meta-env": "^1.0.0",
+    "bundlesize": "^0.18.2",
     "eslint": "^9.19.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.0.0",
@@ -170,5 +172,11 @@
     "vite": "^6.1.0",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.0.16"
-  }
+  },
+  "bundlesize": [
+    {
+      "path": "./dist/assets/*.js",
+      "maxSize": "500 kB"
+    }
+  ]
 }
