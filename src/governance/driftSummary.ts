@@ -23,7 +23,7 @@ export function getGovernanceSummary(): GovernanceSummary {
     },
   };
   for (const ev of events) {
-    summary.byType[ev.type] = (summary.byType[ev.type] || 0) + 1;
+    summary.byType[ev.type] += 1;
   }
   return summary;
 }
