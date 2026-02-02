@@ -123,5 +123,11 @@ export default [
     rules: {
       'no-restricted-imports': 'off'
     }
+  },
+  {
+    files: ['src/domain/**/*.{js,jsx,ts,tsx}', 'src/domains/**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-restricted-imports': 'off'
+    }
   }
 ];
