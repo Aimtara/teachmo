@@ -41,7 +41,7 @@ export const MomentContract: Record<MomentId, MomentRules> = {
     maxPrimaryActions: 1,
   },
   afternoon: {
-    cognitiveBudgetSeconds: 0,
+    cognitiveBudgetSeconds: 30,
     allowedSurfaces: ['HELP_NOW'],
     allowNavigation: false,
     maxPrimaryActions: 1,
