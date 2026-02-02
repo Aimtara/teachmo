@@ -50,14 +50,14 @@ interface ParsedRecord extends Record<string, string> {
 export const CsvRosterService = {
   /**
    * Validates that the CSV header contains at least one field from each required field group.
-   * For 'users' roster type, supports both custom and OneRoster field names.
+   * For 'students' roster type, supports both custom and OneRoster field names.
    * 
    * @param header - Lowercase CSV header fields
-   * @param rosterType - Type of roster ('users', 'classes', 'enrollments', etc.)
+   * @param rosterType - Type of roster ('students', 'classes', 'enrollments', etc.)
    */
-  validateHeader(header: string[], rosterType: string = 'users'): boolean {
-    // For 'users' roster type, require external ID and email fields
-    if (rosterType === 'users') {
+  validateHeader(header: string[], rosterType: string = 'students'): boolean {
+    // For 'students' roster type, require external ID and email fields
+    if (rosterType === 'students') {
       const hasExternalId = FIELD_ALIASES.externalId.some((field) => header.indexOf(field) !== -1);
       const hasEmail = FIELD_ALIASES.email.some((field) => header.indexOf(field) !== -1);
       return hasExternalId && hasEmail;
