@@ -70,11 +70,18 @@ export default function WeeklyBriefCard() {
   const optionalItems = (brief?.brief_content?.optionalIfYouHaveTime || []).slice(0, 2);
 
   const readAloudText = brief
-    ? `Here is your weekly brief. ${weekLabel}. ${
-        topItems.length ? `What matters most: ${topItems.map((item) => item.text).join(', ')}.` : ''
-      } ${
-        goodToKnowItems.length ? `Good to know: ${goodToKnowItems.map((item) => item.text).join(', ')}.` : ''
-      }`
+    ? [
+        'Here is your weekly brief.',
+        `${weekLabel}.`,
+        topItems.length
+          ? `What matters most: ${topItems.map((item) => item.text).join(', ')}.`
+          : '',
+        goodToKnowItems.length
+          ? `Good to know: ${goodToKnowItems.map((item) => item.text).join(', ')}.`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
     : 'Loading your weekly brief.';
 
   return (
