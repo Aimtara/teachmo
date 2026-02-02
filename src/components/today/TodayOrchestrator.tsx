@@ -24,8 +24,6 @@ export function TodayOrchestrator() {
   const moment = getCurrentMoment();
   const intervention = selectInterventionForMoment(moment);
 
-  if (!intervention) return null;
-
   return (
     <SurfaceBoundary surface="PRIMARY_CARD" moment={moment}>
       <PrimaryCard>{intervention.content}</PrimaryCard>

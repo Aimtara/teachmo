@@ -589,6 +589,7 @@ export const ROUTE_DEFINITIONS = [
     requiresAuth: true,
     allowedRoles: ['parent'],
     requiredScopes: ['content:read'],
+    internalOnly: true, // Restrict to internal testing until intervention logic is complete
     fallback: <p className="p-6 text-gray-600">Loading today...</p>
   },
   {
