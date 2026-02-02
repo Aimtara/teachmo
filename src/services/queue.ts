@@ -73,9 +73,10 @@ export function enqueue<T>(job: Job<T>): Promise<T> {
 }
 
 /**
- * Returns the number of jobs currently waiting in the queue. Can be
- * useful for diagnostics or debugging.
+ * Returns the number of jobs currently waiting in the queue (excluding
+ * any job that is currently running). Can be useful for diagnostics or
+ * debugging.
  */
 export function getPendingJobCount(): number {
-  return jobQueue.length + (isRunning ? 1 : 0);
+  return jobQueue.length;
 }
