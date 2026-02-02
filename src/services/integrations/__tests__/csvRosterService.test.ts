@@ -170,6 +170,8 @@ student-2,Jane,Smith,jane.smith@example.com`;
 
       expect(validRows).toHaveLength(2);
       expect(errors).toHaveLength(0);
+    });
+  });
   describe('parseAndValidate', () => {
     it('should parse a valid CSV with required columns', async () => {
       const csvContent = `student_id,first_name,last_name,parent_email,grade_level
