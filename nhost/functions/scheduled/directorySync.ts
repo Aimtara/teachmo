@@ -24,7 +24,9 @@ export default async (req: any, res: any) => {
     },
     body: {
       ...(req.body ?? {}),
-      limit: Number((req.body ?? {}).limit ?? 25) || 25,
+      limit: Number.isNaN(Number((req.body ?? {}).limit ?? 25))
+        ? 25
+        : Number((req.body ?? {}).limit ?? 25),
     },
   };
 
