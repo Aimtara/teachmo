@@ -40,6 +40,12 @@ export default [
       'no-restricted-imports': [
         'error',
         {
+          paths: [
+            {
+              name: '@/api/base44Client',
+              message: 'Direct legacy API access is forbidden. Use src/domains/* adapters.'
+            }
+          ],
           patterns: [
             {
               group: ['@/API/*', '@/API/**'],
@@ -55,9 +61,12 @@ export default [
               message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
             },
             {
-              group: ['@/api/base44/*', '@/api/base44/**'],
-              message:
-                'Legacy Base44 access is deprecated. Use the Domain Modules or Adapters in src/api/adapters instead. See ADR 0001.'
+              group: ['@/api/base44', '@/api/base44/*', '@/api/base44/**', '**/api/base44/*', '**/api/base44/**'],
+              message: 'Legacy Base44 internals are private. Use the Adapter layer.'
+            },
+            {
+              group: ['**/api/base44Client', '**/api/base44Client.*'],
+              message: 'Direct legacy API access is forbidden. Use src/domains/* adapters.'
             },
             {
               group: ['@base44/sdk'],
@@ -90,6 +99,12 @@ export default [
       'no-restricted-imports': [
         'error',
         {
+          paths: [
+            {
+              name: '@/api/base44Client',
+              message: 'Direct legacy API access is forbidden. Use src/domains/* adapters.'
+            }
+          ],
           patterns: [
             {
               group: ['@/API/*', '@/API/**'],
@@ -105,9 +120,12 @@ export default [
               message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
             },
             {
-              group: ['@/api/base44', '@/api/base44/*'],
-              message:
-                'Legacy Base44 access is deprecated. Use the Domain Modules or Adapters in src/api/adapters instead. See ADR 0001.'
+              group: ['@/api/base44', '@/api/base44/*', '**/api/base44/*', '**/api/base44/**'],
+              message: 'Legacy Base44 internals are private. Use the Adapter layer.'
+            },
+            {
+              group: ['**/api/base44Client', '**/api/base44Client.*'],
+              message: 'Direct legacy API access is forbidden. Use src/domains/* adapters.'
             },
             {
               group: ['@base44/sdk'],
@@ -119,7 +137,7 @@ export default [
     }
   },
   {
-    files: ['src/api/adapters/**/*.{js,jsx,ts,tsx}'],
+    files: ['src/api/adapters/**/*.{js,jsx,ts,tsx}', 'src/domains/**/*.{js,jsx,ts,tsx}'],
     rules: {
       'no-restricted-imports': 'off'
     }
