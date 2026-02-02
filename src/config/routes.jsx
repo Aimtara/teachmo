@@ -579,6 +579,27 @@ export const ROUTE_DEFINITIONS = [
     requiredScopes: ['core:dashboard'],
     feature: 'SCHOOL_DIRECTORY',
     fallback: <p className="p-6 text-gray-600">Loading school directory...</p>
+  },
+
+  // --- Teachmo governance and launch instrumentation routes ---
+  {
+    name: 'Today',
+    path: '/today',
+    Component: lazy(() => import('@/components/today/TodayOrchestrator')),
+    requiresAuth: true,
+    allowedRoles: ['parent'],
+    requiredScopes: ['content:read'],
+    fallback: <p className="p-6 text-gray-600">Loading today...</p>
+  },
+  {
+    name: 'FounderDashboard',
+    path: '/founder',
+    Component: lazy(() => import('@/pages/FounderDashboard.jsx')),
+    requiresAuth: true,
+    // Restrict access to internal roles only.
+    allowedRoles: ['system_admin', 'admin'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading founder dashboard...</p>
   }
 ];
 
