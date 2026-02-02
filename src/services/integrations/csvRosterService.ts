@@ -152,34 +152,6 @@ export const CsvRosterService = {
     const validRows: RosterRow[] = [];
     const errors: string[] = [];
 
-    for (let i = 1; i < lines.length; i += 1) {
-      const row = lines[i].split(',').map((value) => value.trim());
-      
-      // Skip empty lines
-      if (row.length === 1 && row[0] === '') {
-        continue;
-      }
-      
-      // Skip rows with fewer columns than header (malformed CSV)
-      if (row.length < header.length) {
-        continue;
-      }
-
-      const rowData: Record<string, string> = {};
-      header.forEach((key, index) => {
-        rowData[key] = row[index];
-      });
-
-      // Resolve external ID and email using field aliases
-      const externalId = resolveField(rowData, FIELD_ALIASES.externalId);
-      const email = resolveField(rowData, FIELD_ALIASES.email);
-
-      if (!externalId || !email) {
-        errors.push(`Row ${i + 1}: Missing student ID or email.`);
-        continue;
-      }
-
-      validRows.push(rowData as any as RosterRow);
     for (const record of records) {
       const lineNumber = record.__lineNumber ?? 'unknown';
 
