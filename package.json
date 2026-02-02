@@ -176,7 +176,7 @@
   },
   "size-limit": [
     {
-      "path": "dist/assets/*.js",
+      "path": "dist/assets/**/*.js",
       "limit": "500 kB"
     }
   ]
