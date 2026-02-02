@@ -145,7 +145,7 @@ export const CsvRosterService = {
     if (!this.validateHeader(header, rosterType)) {
       throw new Error(
         'Invalid CSV format. Missing required columns. ' +
-        'For student rosters, provide either sourcedId/student_id and email/parent_email.'
+        'For student rosters, include a student identifier column and an email column using any supported field name.'
       );
     }
 
