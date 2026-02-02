@@ -71,5 +71,5 @@ export function getCurrentMoment(now: Date = new Date()): MomentId {
   if (hour >= 12 && hour < 15) return 'midday';
   if (hour >= 15 && hour < 18) return 'afternoon';
   if (hour >= 18 && hour < 22) return 'evening';
-  return 'latenight';
+  if (hour >= 22 || hour < 6) return 'latenight';
 }
