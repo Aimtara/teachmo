@@ -2,7 +2,10 @@
  * Handles manual roster ingestion for schools without automated SIS.
  * Validates schema conformity before processing.
  * Supports both custom field names and OneRoster standard field names.
+ * Uses RFC4180-compliant CSV parser to match backend behavior.
  */
+
+import { parse } from 'csv-parse/sync';
 
 export interface RosterRow {
   student_id: string;
@@ -40,6 +43,8 @@ function resolveField(record: Record<string, string>, aliases: string[]): string
     }
   }
   return null;
+interface ParsedRecord extends Record<string, string> {
+  __lineNumber?: number;
 }
 
 export const CsvRosterService = {
@@ -68,12 +73,76 @@ export const CsvRosterService = {
    * @param fileContent - Raw CSV file content
    * @param rosterType - Type of roster ('users', 'classes', 'enrollments', etc.)
    */
+   * Parse CSV content using RFC4180-compliant parser.
+   * Matches backend parsing logic in nhost/functions/sis-roster-import.js
+   */
+  parseCsv(text: string): ParsedRecord[] {
+    if (!text) return [];
+    
+    try {
+      // Use proper RFC4180 CSV parser to handle quoted commas, newlines, etc.
+      const records = parse(text, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        relax_column_count: true, // Handle rows with inconsistent column counts gracefully
+      }) as ParsedRecord[];
+      
+      // Normalize headers to lowercase and attach line numbers for error reporting
+      return records.map((r, idx) => {
+        const normalized: ParsedRecord = {};
+        Object.keys(r).forEach((key) => {
+          normalized[key.toLowerCase()] = r[key];
+        });
+        normalized.__lineNumber = idx + 2;
+        return normalized;
+      });
+    } catch (err) {
+      // Log parsing error for diagnostics
+      console.error('CSV parsing failed:', {
+        error: err instanceof Error ? err.message : String(err),
+        textLength: text.length,
+        preview: text.length > 200 ? text.substring(0, 200) + '...' : text
+      });
+      
+      // Fallback: simple split parsing for basic CSVs (matches backend fallback)
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) return [];
+      
+      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+      return lines
+        .slice(1)
+        .map((line, idx) => ({ line, originalLineNumber: idx + 2 }))
+        .filter(({ line }) => line)
+        .map(({ line, originalLineNumber }) => {
+          const values = line.split(',').map((v) => {
+            const trimmed = v.trim();
+            // Properly extract quoted content: remove surrounding quotes if present
+            return trimmed.replace(/^"(.*)"$/, '$1');
+          });
+          const record: ParsedRecord = headers.reduce((acc, header, idx) => {
+            acc[header] = values[idx] ?? '';
+            return acc;
+          }, {} as ParsedRecord);
+          record.__lineNumber = originalLineNumber;
+          return record;
+        });
+    }
+  },
+
   async parseAndValidate(
     fileContent: string,
     rosterType: string = 'users'
   ): Promise<{ validRows: RosterRow[]; errors: string[] }> {
-    const lines = fileContent.split('\n');
-    const header = lines[0].split(',').map((value) => value.trim().toLowerCase());
+    const records = this.parseCsv(fileContent);
+    
+    if (records.length === 0) {
+      throw new Error('CSV file is empty or could not be parsed.');
+    }
+
+    // Get headers from first record (already normalized to lowercase by parseCsv)
+    const firstRecord = records[0];
+    const headers = Object.keys(firstRecord).filter((key) => key !== '__lineNumber');
 
     if (!this.validateHeader(header, rosterType)) {
       throw new Error(
@@ -113,6 +182,21 @@ export const CsvRosterService = {
       }
 
       validRows.push(rowData as any as RosterRow);
+    for (const record of records) {
+      const lineNumber = record.__lineNumber ?? 'unknown';
+
+      if (!record.student_id || !record.parent_email) {
+        errors.push(`Row ${lineNumber}: Missing student ID or parent email.`);
+        continue;
+      }
+
+      validRows.push({
+        student_id: record.student_id,
+        first_name: record.first_name || '',
+        last_name: record.last_name || '',
+        parent_email: record.parent_email,
+        grade_level: record.grade_level || '',
+      });
     }
 
     return { validRows, errors };
