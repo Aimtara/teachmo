@@ -2,15 +2,12 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Mock the base44 client with dynamic entity access using Proxy
 vi.mock('@/api/base44/client', () => {
-  const mockPartnerFilter = vi.fn();
-  const mockPartnerOfferFilter = vi.fn();
-
   const entities = {
     Partner: {
-      filter: mockPartnerFilter,
+      filter: vi.fn(),
     },
     PartnerOffer: {
-      filter: mockPartnerOfferFilter,
+      filter: vi.fn(),
     },
   };
 
