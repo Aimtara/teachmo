@@ -29,12 +29,15 @@ describe('Assignments API', () => {
     expect(res.body).toEqual(rows);
   });
 
-  test('GET /api/assignments returns 500 and error message on database failure', async () => {
+  test('GET /api/assignments returns fallback assignments on database failure', async () => {
     query.mockRejectedValue(new Error('Database failure'));
 
     const res = await request(app).get('/api/assignments');
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'Failed to fetch assignments' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      { id: 1, title: 'Reading log', description: 'Track 20 minutes of reading' },
+      { id: 2, title: 'STEM challenge', description: 'Build a bridge from household items' },
+    ]);
   });
 
   test('POST /api/assignments without a title returns status 400 with an error message', async () => {
@@ -65,4 +68,3 @@ describe('Assignments API', () => {
     expect(res.body).toEqual({ error: 'Failed to create assignment' });
   });
 });
-

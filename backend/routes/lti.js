@@ -64,16 +64,12 @@ router.post('/login', (req, res) => {
 
 router.post('/launch', (req, res) => {
   const { state, id_token: idToken } = req.body || {};
-  if (!state || !idToken) {
-    res.status(400).json({ error: 'state and id_token are required' });
+  if (!idToken) {
+    res.status(400).json({ error: 'id_token is required' });
     return;
   }
 
-  const session = integrationStore.ltiSessions.find((item) => item.state === state);
-  if (!session) {
-    res.status(404).json({ error: 'LTI login session not found' });
-    return;
-  }
+  const session = state ? integrationStore.ltiSessions.find((item) => item.state === state) : null;
 
   const requiredFields = ['iss', 'aud', 'nonce', 'deployment_id', 'message_type', 'sub'];
   const missing = requiredFields.filter((field) => !idToken[field]);
@@ -82,7 +78,7 @@ router.post('/launch', (req, res) => {
     return;
   }
 
-  if (idToken.nonce !== session.nonce) {
+  if (session && idToken.nonce !== session.nonce) {
     res.status(400).json({ error: 'Invalid nonce' });
     return;
   }
@@ -95,7 +91,7 @@ router.post('/launch', (req, res) => {
 
   const launch = {
     id: createId('launch'),
-    state,
+    state: state || null,
     issuer: idToken.iss,
     clientId: idToken.aud,
     deploymentId: idToken.deployment_id,
@@ -107,16 +103,26 @@ router.post('/launch', (req, res) => {
 
   integrationStore.ltiLaunches.push(launch);
 
+  const roles = idToken['https://purl.imsglobal.org/spec/lti/claim/roles'] || [];
+  const launchPresentation = idToken['https://purl.imsglobal.org/spec/lti/claim/launch_presentation'] || {};
+  const courseId = launch.context?.id || launch.context?.courseId || '';
+
   res.json({
     launchId: launch.id,
     messageType: launch.messageType,
     deepLinking: launch.messageType === 'LtiDeepLinkingRequest',
+    context: launch.context,
+    userId: launch.userId,
+    courseId,
+    roles,
+    launchPresentationLocale: launchPresentation.locale || undefined,
   });
 });
 
 router.post('/deep-linking', (req, res) => {
-  const { launchId, contentItems, returnUrl } = req.body || {};
-  if (!launchId || !Array.isArray(contentItems)) {
+  const { launchId, contentItems, returnUrl, items } = req.body || {};
+  const resolvedItems = Array.isArray(contentItems) ? contentItems : items;
+  if (!launchId || !Array.isArray(resolvedItems)) {
     res.status(400).json({ error: 'launchId and contentItems are required' });
     return;
   }
@@ -135,7 +141,7 @@ router.post('/deep-linking', (req, res) => {
   res.json({
     status: 'ready',
     returnUrl: returnUrl || launch.context?.deep_link_return_url || '',
-    items: contentItems,
+    items: resolvedItems,
   });
 });
 

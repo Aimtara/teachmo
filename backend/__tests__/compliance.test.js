@@ -120,7 +120,8 @@ describe('Retention purge job', () => {
       .mockResolvedValueOnce({ rows: [{ organization_id: 'org-1', school_id: null }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rowCount: 3 })
-      .mockResolvedValueOnce({ rowCount: 2 });
+      .mockResolvedValueOnce({ rowCount: 2 })
+      .mockResolvedValue({ rowCount: 0 });
 
     const result = await runRetentionPurge();
 

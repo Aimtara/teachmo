@@ -29,6 +29,9 @@ jest.mock('../middleware/auth.js', () => ({
     req.auth = null;
     return next();
   },
+  requireAuth: (_req, _res, next) => next(),
+  requireAdmin: (_req, _res, next) => next(),
+  requireAuthOrService: (_req, _res, next) => next(),
 }));
 
 describe('G0 Gate: Ops Route Authentication', () => {

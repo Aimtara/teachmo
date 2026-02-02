@@ -12,6 +12,9 @@ export const integrationStore = {
   ltiPlatforms: [],
   ltiSessions: [],
   ltiLaunches: [],
+  sisConnections: [],
+  sisJobs: [],
+  googleSyncs: [],
 };
 
 export function createId(prefix = 'int') {
@@ -29,6 +32,9 @@ export function resetIntegrationStore() {
   integrationStore.ltiPlatforms.length = 0;
   integrationStore.ltiSessions.length = 0;
   integrationStore.ltiLaunches.length = 0;
+  integrationStore.sisConnections.length = 0;
+  integrationStore.sisJobs.length = 0;
+  integrationStore.googleSyncs.length = 0;
 }
 
 export function nowIso() {
