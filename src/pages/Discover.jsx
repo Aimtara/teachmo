@@ -32,7 +32,7 @@ export default function Discover() {
           <Breadcrumbs segments={['Discover']} />
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Discover</h1>
           <p className="text-gray-600 max-w-2xl">
-            Explore personalized resources, activities, and events for your family.
+            Explore personalized resources, activities, and events.
           </p>
         </div>
         <div className="flex items-center gap-2">
