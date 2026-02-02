@@ -21,14 +21,14 @@ export interface RosterRow {
  */
 const FIELD_ALIASES = {
   // External ID fields (for students, teachers, classes)
-  externalId: ['sourcedId', 'id', 'student_id', 'teacher_id', 'class_id', 'external_id'],
+  externalId: ['sourcedid', 'id', 'student_id', 'teacher_id', 'class_id', 'external_id'],
   // Name fields
-  firstName: ['givenName', 'first_name', 'firstName'],
-  lastName: ['familyName', 'last_name', 'lastName'],
+  firstName: ['givenname', 'first_name', 'firstname'],
+  lastName: ['familyname', 'last_name', 'lastname'],
   // Email fields
-  email: ['email', 'emailAddress', 'parent_email'],
+  email: ['email', 'emailaddress', 'parent_email'],
   // Grade fields
-  grade: ['grade', 'grade_level', 'gradeLevel'],
+  grade: ['grade', 'grade_level', 'gradelevel'],
 };
 
 /**
