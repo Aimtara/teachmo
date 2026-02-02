@@ -1,4 +1,13 @@
 import { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
+import { MomentGuard } from '@/components/governance/MomentGuard';
+
+const UnifiedExplore = lazy(() => import('@/pages/parent/UnifiedExplore'));
+const DiscoverRoute = () => (
+  <MomentGuard surface="EXPLORE">
+    <UnifiedExplore />
+  </MomentGuard>
+);
 
 // Internal routes are dev-friendly by default, but can be explicitly enabled in production.
 const ENABLE_INTERNAL_ROUTES = import.meta.env.DEV || import.meta.env.VITE_ENABLE_INTERNAL_ROUTES === 'true';
@@ -32,12 +41,28 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'UnifiedDiscover',
     path: '/discover',
-    Component: lazy(() => import('@/pages/Discover.jsx')),
+    Component: DiscoverRoute,
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
     feature: 'DISCOVER',
     fallback: <p className="p-6 text-gray-600">Loading discover...</p>
+  },
+  {
+    name: 'UnifiedDiscoverRedirect',
+    path: '/unified-discover',
+    Component: () => <Navigate to="/discover" replace />,
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher'],
+    requiredScopes: ['content:read']
+  },
+  {
+    name: 'ActivitiesRedirect',
+    path: '/activities',
+    Component: () => <Navigate to="/discover?tab=activities" replace />,
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher'],
+    requiredScopes: ['content:read']
   },
   {
     name: 'UnifiedCommunity',
