@@ -11,6 +11,7 @@ import { getFamilyHealth, getOrchestratorHealthSnapshot } from '../orchestrator/
 import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.js';
 import { orchestratorPgStore } from '../orchestrator/pgStore.js';
 import { listAnomalies } from '../security/anomaly.js';
+import redactPII from '../middleware/redactPII.js';
 import {
   orchestratorPlans,
   orchestratorApprovals,
@@ -30,6 +31,11 @@ import {
 import { incrementOrchestratorCounter } from '../metrics.js';
 
 const router = Router();
+
+// Apply PII redaction middleware to all routes managed by this router.
+// This ensures that any sensitive information contained in request bodies
+// or error objects is redacted before reaching the logs.
+router.use(redactPII());
 
 router.post('/route', requireAuth, requireTenant, async (req, res) => {
   const body = req.body || {};
