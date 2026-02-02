@@ -16,7 +16,7 @@
     "test:watch": "jest --watch",
     "test:a11y": "jest --testPathPattern=a11y",
     "backend:check": "node --check backend/routes/ops.js",
-    "check:size": "bundlesize",
+    "check:size": "size-limit",
     "loadtest:systemHealth": "node scripts/loadtest/systemHealth.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -133,6 +133,7 @@
     "@flydotio/dockerfile": "^0.7.8",
     "@playwright/test": "^1.57.0",
     "@sentry/vite-plugin": "^2.22.4",
+    "@size-limit/file": "^12.0.0",
     "@storybook/addon-a11y": "^8.6.15",
     "@storybook/addon-essentials": "^8.6.15",
     "@storybook/addon-interactions": "^8.6.15",
@@ -151,7 +152,6 @@
     "autoprefixer": "^10.4.20",
     "babel-jest": "^29.7.0",
     "babel-plugin-transform-vite-meta-env": "^1.0.0",
-    "bundlesize": "^0.18.2",
     "eslint": "^9.19.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.0.0",
@@ -165,6 +165,7 @@
     "jsdom": "^27.3.0",
     "msw": "^2.7.0",
     "postcss": "^8.5.3",
+    "size-limit": "^12.0.0",
     "storybook": "^8.6.15",
     "supertest": "^7.0.0",
     "tailwindcss": "^3.4.17",
@@ -173,10 +174,10 @@
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.0.16"
   },
-  "bundlesize": [
+  "size-limit": [
     {
-      "path": "./dist/assets/*.js",
-      "maxSize": "500 kB"
+      "path": "dist/assets/*.js",
+      "limit": "500 kB"
     }
   ]
 }
