@@ -81,10 +81,19 @@ export default function VoiceAssistant({
         setIsSupported(true);
         setSynthesis(window.speechSynthesis);
       }
-      return;
+    } else {
+      initializeVoiceCapabilities();
+      setupVoiceCommands();
     }
-    initializeVoiceCapabilities();
-    setupVoiceCommands();
+
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        const synth = window.speechSynthesis;
+        if (synth.speaking) {
+          synth.cancel();
+        }
+      }
+    };
   }, [isReadAloudMode]);
 
   const initializeVoiceCapabilities = () => {
