@@ -62,16 +62,31 @@ module.exports = {
         },
         // Teachmo brand palette
         teachmo: {
-          blue: '#8CBED6',
-          sage: '#7CA982',
-          coral: '#E57264',
-          cream: '#F5F0E6',
-          ink: '#1E1E24',
+          blue: '#2451FF',
+          gold: '#FFC857',
+          sage: '#2DBF6E',
+          coral: '#FF6B6B',
+          slate: '#2F3437',
+          offwhite: '#FAFAFA',
+          ink: '#2F3437',
           highlight: '#FFC857',
           success: '#2DBF6E',
           danger: '#FF6B6B',
           border: '#2F3437',
         },
+        brand: {
+          blue: '#2451FF',
+          gold: '#FFC857',
+          green: '#2DBF6E',
+          coral: '#FF6B6B',
+          slate: '#2F3437',
+          offwhite: '#FAFAFA',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        heading: ['Poppins', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       keyframes: {
         'accordion-down': {

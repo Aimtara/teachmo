@@ -37,6 +37,7 @@ function buildRouteElement(route) {
       <Component />
     </Suspense>
   );
+  const isPartnerRoute = Boolean(route.path?.startsWith('/partners') || route.path === '/partner');
 
   if (route.feature) {
     element = (
@@ -55,6 +56,10 @@ function buildRouteElement(route) {
         {element}
       </ProtectedRoute>
     );
+  }
+
+  if (isPartnerRoute) {
+    element = <div className="theme-partner font-sans">{element}</div>;
   }
 
   return element;
