@@ -206,6 +206,14 @@ export const ROUTE_DEFINITIONS = [
     fallback: <p className="p-6 text-gray-600">Loading partner portal...</p>
   },
   {
+    name: 'PartnerPortalPublic',
+    path: '/partner',
+    Component: lazy(() => import('@/pages/PartnerPortal.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['partner', 'admin', 'system_admin'],
+    fallback: <p className="p-6 text-gray-600">Loading partner portal...</p>
+  },
+  {
     name: 'PartnerSubmissions',
     path: '/partners/submissions',
     Component: lazy(() => import('@/pages/PartnerSubmissions.jsx')),

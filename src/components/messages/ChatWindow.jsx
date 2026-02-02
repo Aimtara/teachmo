@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
-import { Message } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,6 +10,7 @@ import { format, isToday, isYesterday } from 'date-fns';
 import { useWebSocket } from '@/providers/WebSocketProvider';
 import { sendMessageStatusUpdate } from '@/utils/MessageStatusUpdater';
 import backendAdapter from '@/backend/adapter';
+import { CommunicationService } from '@/services/communication/api';
 
 export default function ChatWindow({ conversationId, recipientUser, currentUser }) {
   const [messages, setMessages] = useState([]);
@@ -29,13 +29,22 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
   // Real-time typing indicator simulation
   const typingTimeoutRef = useRef(null);
 
+  const normalizeMessage = (message) => ({
+    id: message.id,
+    sender_id: message.senderId ?? message.sender_id,
+    content: message.content,
+    created_date: message.timestamp ?? message.created_date ?? new Date().toISOString(),
+    status: message.readStatus ?? message.status ?? 'unread',
+    attachments: message.attachments ?? []
+  });
+
   const loadMessages = useCallback(async () => {
     try {
-      const messagesData = await Message.filter(
-        { conversation_id: conversationId },
-        '-created_date'
-      );
-      setMessages(messagesData);
+      const messagesData = await CommunicationService.getMessages(conversationId);
+      const normalized = messagesData
+        .map(normalizeMessage)
+        .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+      setMessages(normalized);
     } catch (error) {
       console.error('Failed to load messages:', error);
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to load messages.' });
@@ -90,11 +99,7 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
     setNewMessage('');
 
     try {
-      await backendAdapter.createMessage({
-        conversationId,
-        senderId: currentUser.id,
-        content: messageContent
-      });
+      await CommunicationService.sendMessage(conversationId, messageContent);
 
       loadMessages(); // Refresh messages
     } catch (error) {

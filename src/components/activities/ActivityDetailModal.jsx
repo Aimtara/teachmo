@@ -12,6 +12,7 @@ import EventModal from "../calendar/EventModal";
 import { User } from "@/api/entities";
 import { Activity } from "@/api/entities";
 import { InvokeLLM } from "@/api/integrations";
+import { AnalyticsService } from "@/services/analytics/api";
 
 const categoryColors = {
   creative: "bg-purple-100 text-purple-800",
@@ -285,6 +286,13 @@ export default function ActivityDetailModal({ activity, child, onClose, onStatus
   };
 
   const handleStatusChange = (newStatus) => {
+    if (newStatus === 'completed') {
+      AnalyticsService.track({
+        type: 'activity_complete',
+        userId: currentUser?.id ?? 'unknown',
+        meta: { activityId: activity.id }
+      });
+    }
     onStatusChange(activity.id, newStatus);
   };
 
