@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { nhost } from '@/lib/nhostClient';
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
 import useTenantSSOSettings from '@/hooks/useTenantSSOSettings';
@@ -111,6 +112,12 @@ export default function Login() {
             </button>
           </form>
         )}
+        <p className="text-center text-sm text-gray-600">
+          Don&apos;t have an account?{' '}
+          <Link to="/onboarding" className="font-semibold text-emerald-700 hover:text-emerald-800">
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );
