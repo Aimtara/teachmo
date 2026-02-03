@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuthenticationStatus } from '@nhost/react';
 import { Navigate } from 'react-router-dom';
