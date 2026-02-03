@@ -32,16 +32,16 @@ export default function Landing() {
           )}
           <p className="text-xs text-gray-500 text-center">
             By signing in you agree to the Teachmo privacy policy and acceptable use guidelines.
-          <div className="mt-6 text-center text-sm">
-  <span className="text-gray-600">Don't have an account? </span>
-  <Link 
-    to="/onboarding" 
-    className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
-  >
-    Sign up for free
-  </Link>
-</div>
           </p>
+          <div className="mt-6 text-center text-sm">
+            <span className="text-gray-600">Don't have an account? </span>
+            <Link
+              to="/onboarding"
+              className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
+            >
+              Sign up for free
+            </Link>
+          </div>
         </div>
       </div>
     </div>
