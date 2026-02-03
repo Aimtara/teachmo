@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { nhost } from '@/lib/nhostClient';
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
 import useTenantSSOSettings from '@/hooks/useTenantSSOSettings';
@@ -122,15 +121,7 @@ export default function Login() {
     </div>
   );
 }
-<div className="mt-6 text-center text-sm">
-  <span className="text-gray-600">Don't have an account? </span>
-  <Link 
-    to="/onboarding" 
-    className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
-  >
-    Sign up for free
-  </Link>
-</div>
+
 /**
  * AutoSSORedirect triggers an immediate signIn with the given provider when mounted.
  * It calls onStart before initiating the redirect and onError if the call fails.
