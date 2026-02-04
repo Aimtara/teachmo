@@ -1,6 +1,7 @@
 /* eslint-env node */
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
+import http from 'http';
 import { WebSocketServer } from 'ws';
 import app from './app.js';
 import { seedDemoData, seedExecutionBoardData, seedOpsDemoData } from './seed.js';
@@ -37,12 +38,8 @@ startNotificationQueueScheduler();
 startObservabilitySchedulers();
 startRosterSyncScheduler();
 
-const server = app.listen(PORT, () => {
-  logger.info(`Teachmo backend server running on port ${PORT}`);
-});
-
-// Attach WebSocket Server to the same HTTP server
-const wss = new WebSocketServer({ server, path: '/ws' });
+const server = http.createServer(app);
+const wss = new WebSocketServer({ noServer: true });
 const heartbeatIntervalMs = Number(process.env.WS_HEARTBEAT_MS ?? 30000);
 const isHeartbeatEnabled = Number.isFinite(heartbeatIntervalMs) && heartbeatIntervalMs > 0;
 
@@ -60,8 +57,21 @@ const heartbeatIntervalId = isHeartbeatEnabled
     }, heartbeatIntervalMs)
   : null;
 
-wss.on('connection', (ws) => {
-  logger.info('New WebSocket connection established');
+server.on('upgrade', (req, socket, head) => {
+  logger.info(`UPGRADE ${req.url}`);
+  const { url } = req;
+  if (!url || !url.startsWith('/ws')) {
+    socket.destroy();
+    return;
+  }
+
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    wss.emit('connection', ws, req);
+  });
+});
+
+wss.on('connection', (ws, req) => {
+  logger.info(`New WebSocket connection established (${req?.socket?.remoteAddress || 'unknown'})`);
   ws.isAlive = true;
 
   ws.on('pong', () => {
@@ -83,6 +93,10 @@ wss.on('connection', (ws) => {
   ws.on('error', (err) => {
     logger.error('WebSocket error:', err);
   });
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  logger.info(`Teachmo backend server running on port ${PORT}`);
 });
 
 const shutdown = (signal) => {
