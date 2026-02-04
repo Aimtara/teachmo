@@ -1,6 +1,7 @@
 /* eslint-env node */
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
+import { WebSocketServer } from 'ws';
 import app from './app.js';
 import { seedDemoData, seedExecutionBoardData, seedOpsDemoData } from './seed.js';
 import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
@@ -36,6 +37,65 @@ startNotificationQueueScheduler();
 startObservabilitySchedulers();
 startRosterSyncScheduler();
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);
 });
+
+// Attach WebSocket Server to the same HTTP server
+const wss = new WebSocketServer({ server, path: '/ws' });
+const heartbeatIntervalMs = Number(process.env.WS_HEARTBEAT_MS ?? 30000);
+const isHeartbeatEnabled = Number.isFinite(heartbeatIntervalMs) && heartbeatIntervalMs > 0;
+
+const heartbeatIntervalId = isHeartbeatEnabled
+  ? setInterval(() => {
+      wss.clients.forEach((client) => {
+        if (client.isAlive === false) {
+          client.terminate();
+          return;
+        }
+
+        client.isAlive = false;
+        client.ping();
+      });
+    }, heartbeatIntervalMs)
+  : null;
+
+wss.on('connection', (ws) => {
+  logger.info('New WebSocket connection established');
+  ws.isAlive = true;
+
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
+
+  ws.on('message', (message) => {
+    const messageType = typeof message;
+    const messageSize = message && typeof message.length === 'number'
+      ? message.length
+      : (message && typeof message.byteLength === 'number' ? message.byteLength : null);
+    logger.info(
+      `Received WebSocket message (type=${messageType}${messageSize !== null ? `, size=${messageSize}` : ''})`,
+    );
+    // Echo for now (or handle your app logic here)
+    ws.send(JSON.stringify({ type: 'ack', received: true }));
+  });
+
+  ws.on('error', (err) => {
+    logger.error('WebSocket error:', err);
+  });
+});
+
+const shutdown = (signal) => {
+  logger.info(`Received ${signal}, shutting down WebSocket server`);
+  if (heartbeatIntervalId) {
+    clearInterval(heartbeatIntervalId);
+  }
+  wss.close(() => {
+    server.close(() => {
+      process.exit(0);
+    });
+  });
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
