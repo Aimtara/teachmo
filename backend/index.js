@@ -48,11 +48,10 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 const DEFAULT_HEARTBEAT_MS = 30000;
 const envHeartbeat = process.env.WS_HEARTBEAT_MS;
 let heartbeatIntervalMs = DEFAULT_HEARTBEAT_MS;
-let isHeartbeatEnabled = true;
 
 if (envHeartbeat !== undefined) {
   const parsed = Number(envHeartbeat);
-  if (Number.isNaN(parsed) || !Number.isFinite(parsed) || parsed <= 0) {
+  if (!Number.isFinite(parsed) || parsed <= 0) {
     logger.warn(
       `Invalid WS_HEARTBEAT_MS value: "${envHeartbeat}". ` +
       `Expected a positive number. Falling back to default ${DEFAULT_HEARTBEAT_MS}ms.`
@@ -63,8 +62,7 @@ if (envHeartbeat !== undefined) {
   }
 }
 
-const heartbeatIntervalId = isHeartbeatEnabled
-  ? setInterval(() => {
+const heartbeatIntervalId = setInterval(() => {
       wss.clients.forEach((client) => {
         if (client.isAlive === false) {
           client.terminate();
@@ -74,8 +72,7 @@ const heartbeatIntervalId = isHeartbeatEnabled
         client.isAlive = false;
         client.ping();
       });
-    }, heartbeatIntervalMs)
-  : null;
+    }, heartbeatIntervalMs);
 
 wss.on('connection', (ws) => {
   logger.info('New WebSocket connection established');
