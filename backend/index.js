@@ -69,7 +69,13 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('message', (message) => {
-    logger.info(`Received message: ${message}`);
+    const messageType = typeof message;
+    const messageSize = message && typeof message.length === 'number'
+      ? message.length
+      : (message && typeof message.byteLength === 'number' ? message.byteLength : null);
+    logger.info(
+      `Received WebSocket message (type=${messageType}${messageSize !== null ? `, size=${messageSize}` : ''})`,
+    );
     // Echo for now (or handle your app logic here)
     ws.send(JSON.stringify({ type: 'ack', received: true }));
   });
