@@ -43,8 +43,25 @@ const server = app.listen(PORT, () => {
 
 // Attach WebSocket Server to the same HTTP server
 const wss = new WebSocketServer({ server, path: '/ws' });
-const heartbeatIntervalMs = Number(process.env.WS_HEARTBEAT_MS ?? 30000);
-const isHeartbeatEnabled = Number.isFinite(heartbeatIntervalMs) && heartbeatIntervalMs > 0;
+
+// Validate and parse WS_HEARTBEAT_MS with proper error handling
+const DEFAULT_HEARTBEAT_MS = 30000;
+const envHeartbeat = process.env.WS_HEARTBEAT_MS;
+let heartbeatIntervalMs = DEFAULT_HEARTBEAT_MS;
+let isHeartbeatEnabled = true;
+
+if (envHeartbeat !== undefined) {
+  const parsed = Number(envHeartbeat);
+  if (Number.isNaN(parsed) || !Number.isFinite(parsed) || parsed <= 0) {
+    logger.warn(
+      `Invalid WS_HEARTBEAT_MS value: "${envHeartbeat}". ` +
+      `Expected a positive number. Falling back to default ${DEFAULT_HEARTBEAT_MS}ms.`
+    );
+  } else {
+    heartbeatIntervalMs = parsed;
+    logger.info(`WebSocket heartbeat interval set to ${heartbeatIntervalMs}ms`);
+  }
+}
 
 const heartbeatIntervalId = isHeartbeatEnabled
   ? setInterval(() => {
