@@ -72,15 +72,31 @@ export default async (req, res) => {
       },
       headers: {
         ...(req.headers?.authorization ? { Authorization: req.headers.authorization } : {}),
-        ...(req.headers?.['x-hasura-role'] ? { 'x-hasura-role': req.headers['x-hasura-role'] } : {}),
       },
     });
 
     const row = data?.insert_audit_log_one;
     res.status(200).json({ recorded: Boolean(row?.id), id: row?.id, created_at: row?.created_at });
   } catch (error) {
-    console.error('Audit Log Error:', error);
-    const status = error?.name === 'ZodError' ? 400 : 500;
-    res.status(status).json({ recorded: false, error: error?.message ?? 'unknown error' });
+    const errorId = `audit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const isValidationError = (error as any)?.name === 'ZodError';
+    const status = isValidationError ? 400 : 500;
+
+    // Privacy-safe logging: avoid logging raw error objects or request-derived snapshots
+    console.error('Audit Log Error', {
+      errorId,
+      name: (error as any)?.name,
+      status,
+    });
+
+    const clientMessage = isValidationError
+      ? 'Invalid audit log payload'
+      : 'Failed to record audit event';
+
+    res.status(status).json({
+      recorded: false,
+      error: clientMessage,
+      error_id: errorId,
+    });
   }
 };

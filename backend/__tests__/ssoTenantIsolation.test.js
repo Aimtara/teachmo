@@ -1,5 +1,6 @@
 import request from 'supertest';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import tenantsRouter from '../routes/tenants.js';
 import { attachAuthContext } from '../middleware/auth.js';
 import { issueSsoJwt } from '../utils/ssoJwt.js';
@@ -24,6 +25,13 @@ describe('SSO tenant isolation', () => {
 
     app = express();
     app.use(express.json());
+
+    const limiter = rateLimit({
+      windowMs: 60 * 1000, // 1 minute
+      max: 1000,           // high limit to avoid affecting tests
+    });
+
+    app.use(limiter);
     app.use(attachAuthContext);
     app.use('/api/tenants', tenantsRouter);
   });

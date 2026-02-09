@@ -5,9 +5,10 @@ const MAX_EXPORT_LIMIT = 5000;
 
 function escapeCsv(value) {
   if (value === null || value === undefined) return '';
-  const str = String(value);
+  let str = String(value);
+  // Mitigate CSV formula injection by prefixing an apostrophe
   if (/^[=+\-@]/.test(str)) {
-    return `'${str.replace(/"/g, '""')}"`;
+    str = `'${str}`;
   }
   if (/[",\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
