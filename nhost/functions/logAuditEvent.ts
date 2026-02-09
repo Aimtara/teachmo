@@ -72,7 +72,6 @@ export default async (req, res) => {
       },
       headers: {
         ...(req.headers?.authorization ? { Authorization: req.headers.authorization } : {}),
-        ...(req.headers?.['x-hasura-role'] ? { 'x-hasura-role': req.headers['x-hasura-role'] } : {}),
       },
     });
 
