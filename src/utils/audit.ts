@@ -30,6 +30,14 @@ export async function logAuditEvent({
   after: Record<string, any> | null;
 }) {
   try {
+    const changes =
+      before && after
+        ? Object.fromEntries(
+            Object.keys({ ...before, ...after }).flatMap((key) =>
+              before[key] !== after[key] ? [[key, { before: before[key] ?? null, after: after[key] ?? null }]] : []
+            )
+          )
+        : null;
     await nhost.graphql.request(
       `
       mutation InsertAuditLog($object: audit_log_insert_input!) {
@@ -40,12 +48,12 @@ export async function logAuditEvent({
     `,
       {
         object: {
-          actor_id: actorId,
           action,
           entity_type: entityType,
           entity_id: entityId,
-          before_state: before,
-          after_state: after,
+          metadata: changes ? { change_details: changes } : {},
+          before_snapshot: before,
+          after_snapshot: after,
         },
       }
     );

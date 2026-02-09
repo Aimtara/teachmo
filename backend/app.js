@@ -3,6 +3,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import passport from 'passport';
 import assignmentsRouter from './routes/assignments.js';
 import submissionsRouter from './routes/submissions.js';
 import incentivesRouter from './routes/incentives.js';
@@ -39,6 +40,8 @@ import opsRouter from './routes/ops.js';
 import { metricsMiddleware, getMetricsSnapshot } from './metrics.js';
 import { executionBoardRouter } from './routes/executionBoard.js';
 import commandCenterRouter from './routes/commandCenter.js';
+import ssoRouter from './routes/sso.js';
+import auditExportRouter from './routes/auditExport.js';
 
 // Load environment variables
 dotenv.config();
@@ -76,6 +79,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(passport.initialize());
 app.use(attachAuthContext);
 app.use(metricsMiddleware);
 app.use(captureApiMetrics);
@@ -115,6 +119,8 @@ app.use('/api/orchestrator', orchestratorRouter);
 app.use('/api/ops', opsRouter);
 app.use('/api/execution-board', executionBoardRouter);
 app.use('/api/command-center', commandCenterRouter);
+app.use('/api/sso', ssoRouter);
+app.use('/api/admin', auditExportRouter);
 
 app.get('/api/metrics', (req, res) => {
   res.json(getMetricsSnapshot());
