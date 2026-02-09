@@ -31,9 +31,13 @@ export async function buildAuditExportCsv({
 }) {
   const effectiveLimit = Math.min(Math.max(Number(limit) || 500, 1), MAX_EXPORT_LIMIT);
 
-  let where = 'organization_id = $1 and school_id is not distinct from $2';
-  const params = [organizationId, schoolId ?? null];
+  let where = 'organization_id = $1';
+  const params = [organizationId];
 
+  if (schoolId !== null && schoolId !== undefined) {
+    params.push(schoolId);
+    where += ` and school_id = $${params.length}`;
+  }
   if (search) {
     params.push(`%${search}%`);
     params.push(`%${search}%`);
