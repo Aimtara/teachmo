@@ -203,7 +203,7 @@ router.get('/:provider/start', ssoRateLimiter, async (req, res, next) => {
   }
 });
 
-router.all('/:provider/callback', async (req, res, next) => {
+router.all('/:provider/callback', ssoRateLimiter, async (req, res, next) => {
   const provider = String(req.params.provider || '').toLowerCase();
   const baseUrl = baseUrlFromRequest(req);
 
