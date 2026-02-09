@@ -27,7 +27,8 @@
     "pdfkit": "^0.15.0",
     "pg": "^8.11.3",
     "ws": "^8.19.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "express-rate-limit": "^8.2.1"
   },
   "devDependencies": {
     "jest": "^29.7.0",

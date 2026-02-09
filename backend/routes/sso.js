@@ -3,6 +3,7 @@ import { Router } from 'express';
 import passport from 'passport';
 import { Strategy as SamlStrategy } from 'passport-saml';
 import { Strategy as OpenIDConnectStrategy } from 'passport-openidconnect';
+import rateLimit from 'express-rate-limit';
 import { query } from '../db.js';
 import { createLogger } from '../utils/logger.js';
 import { issueSsoJwt } from '../utils/ssoJwt.js';
@@ -15,6 +16,14 @@ import {
 
 const logger = createLogger('routes.sso');
 const router = Router();
+
+const ssoRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 SSO start requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests' },
+});
 const strategyCache = new Map();
 
 function ensureStrategyName({ provider, organizationId }) {
@@ -162,7 +171,7 @@ async function ensureStrategy({ provider, organizationId, baseUrl }) {
   return cacheKey;
 }
 
-router.get('/:provider/start', async (req, res, next) => {
+router.get('/:provider/start', ssoRateLimiter, async (req, res, next) => {
   const provider = String(req.params.provider || '').toLowerCase();
   try {
     const organizationId = await resolveOrganizationId({
