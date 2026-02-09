@@ -6,13 +6,20 @@ const MAX_EXPORT_LIMIT = 5000;
 function escapeCsv(value) {
   if (value === null || value === undefined) return '';
   const str = String(value);
-  if (/^[=+\-@]/.test(str)) {
-    return `'${str.replace(/"/g, '""')}"`;
+  const needsExcelEscape = /^[=+\-@]/.test(str);
+  const needsCsvQuote = /[",\n]/.test(str) || needsExcelEscape;
+
+  let escaped = str.replace(/"/g, '""');
+
+  if (needsExcelEscape) {
+    escaped = `'${escaped}`;
   }
-  if (/[",\n]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
+
+  if (needsCsvQuote) {
+    return `"${escaped}"`;
   }
-  return str;
+
+  return escaped;
 }
 
 export async function buildAuditExportCsv({
