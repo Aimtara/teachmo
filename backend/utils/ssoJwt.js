@@ -37,8 +37,11 @@ export async function issueSsoJwt({
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const ttlMinutes = Number(process.env.SSO_JWT_TTL_MINUTES || 60);
-  const exp = now + Math.max(ttlMinutes, 5) * 60;
+  const rawTtlMinutes = process.env.SSO_JWT_TTL_MINUTES;
+  const parsedTtlMinutes = Number(rawTtlMinutes);
+  const safeTtlMinutes =
+    Number.isFinite(parsedTtlMinutes) && parsedTtlMinutes > 0 ? parsedTtlMinutes : 60;
+  const exp = now + Math.max(safeTtlMinutes, 5) * 60;
   const issuer = process.env.SSO_JWT_ISSUER || process.env.AUTH_ISSUER || 'teachmo-sso';
   const audience = process.env.SSO_JWT_AUDIENCE || process.env.AUTH_AUDIENCE || 'teachmo-api';
 
