@@ -1,7 +1,7 @@
 /* eslint-env node */
 import { Router } from 'express';
 import passport from 'passport';
-import { Strategy as SamlStrategy } from 'passport-saml';
+import { Strategy as SamlStrategy } from '@node-saml/passport-saml';
 import { Strategy as OpenIDConnectStrategy } from 'passport-openidconnect';
 import rateLimit from 'express-rate-limit';
 import { query } from '../db.js';
