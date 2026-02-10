@@ -59,24 +59,37 @@ if (envMaxPayload !== undefined) {
   }
 }
 
+// Configure WebSocket per-message deflate (compression) behind an explicit env flag.
+// Disabled by default to reduce CPU usage and mitigate compression-related DoS risk.
+const isPerMessageDeflateEnabled =
+  String(process.env.WS_PERMESSAGE_DEFLATE_ENABLED || '').toLowerCase() === 'true';
+
+if (isPerMessageDeflateEnabled) {
+  logger.info('WebSocket perMessageDeflate compression ENABLED via WS_PERMESSAGE_DEFLATE_ENABLED.');
+} else {
+  logger.info('WebSocket perMessageDeflate compression DISABLED (default).');
+}
+
 // Attach WebSocket Server to the same HTTP server with explicit limits
 const wss = new WebSocketServer({
   server,
   path: '/ws',
   maxPayload: maxPayloadBytes,
-  perMessageDeflate: {
-    zlibDeflateOptions: {
-      // See https://nodejs.org/api/zlib.html#zlib_class_options
-      windowBits: 15,
-      memLevel: 8,
-    },
-    zlibInflateOptions: {
-      windowBits: 15,
-    },
-    clientNoContextTakeover: true,
-    serverNoContextTakeover: true,
-    serverMaxWindowBits: 15,
-  },
+  perMessageDeflate: isPerMessageDeflateEnabled
+    ? {
+        zlibDeflateOptions: {
+          // See https://nodejs.org/api/zlib.html#zlib_class_options
+          windowBits: 15,
+          memLevel: 8,
+        },
+        zlibInflateOptions: {
+          windowBits: 15,
+        },
+        clientNoContextTakeover: true,
+        serverNoContextTakeover: true,
+        serverMaxWindowBits: 15,
+      }
+    : false,
 });
 // Validate and parse WS_HEARTBEAT_MS with proper error handling
 const DEFAULT_HEARTBEAT_MS = 30000;
