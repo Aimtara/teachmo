@@ -41,6 +41,7 @@ export default function SponsorshipDashboard() {
           <Skeleton className="h-40" />
           <Skeleton className="h-40" />
           <Skeleton className="h-40" />
+        </div>
         <Skeleton className="h-10 w-72" />
         <div className="space-y-3">
           <Skeleton className="h-12 w-full" />
