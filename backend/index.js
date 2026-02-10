@@ -51,6 +51,13 @@ const audience = process.env.AUTH_AUDIENCE || process.env.NHOST_JWT_AUDIENCE || 
 const envLower = (process.env.NODE_ENV || 'development').toLowerCase();
 const isProd = envLower === 'production';
 
+if (isProd && jwksUrl && (!issuer || !audience)) {
+  logger.warn(
+    'JWT verification is configured with JWKS in production but AUTH_ISSUER and/or AUTH_AUDIENCE (or Nhost JWT equivalents) are missing. ' +
+      'Issuer/audience claim checks will be skipped; this weakens token validation. ' +
+      'Set AUTH_ISSUER and AUTH_AUDIENCE (or NHOST_JWT_ISSUER and NHOST_JWT_AUDIENCE) to enable full verification.'
+  );
+}
 let jwks = null;
 if (jwksUrl) {
   jwks = createRemoteJWKSet(new URL(jwksUrl));
