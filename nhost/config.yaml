@@ -6,14 +6,16 @@ seeds_directory: seeds
 # Action configuration
 actions:
   kind: synchronous
-  # Nhost Cloud automatically resolves functions.
-  # Only uncomment the line below for LOCAL development.
+  # For LOCAL development with Hasura Actions that call your backend at localhost:3000,
+  # uncomment the line below so Hasura can reach your local server. Otherwise, keep it commented.
   # handler_webhook_baseurl: http://host.docker.internal:3000
 
 # Hasura Configuration
 hasura:
   settings:
-    # CRITICAL: Set to "false" for production to prevent data leaks
+    # CRITICAL: Set to "false" for production to prevent data leaks and verbose error messages.
+    # For local development, you can override this in your local Nhost configuration or set
+    # HASURA_GRAPHQL_DEV_MODE=true in your environment to enable GraphQL explorer and detailed errors.
     hasura_graphql_dev_mode: "false"
     hasura_graphql_enable_console: "false"
     # Logging enabled for observability (Safe)
