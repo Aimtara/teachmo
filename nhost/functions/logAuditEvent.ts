@@ -55,6 +55,7 @@ export default async (req, res) => {
       ...(body.resource_id !== undefined ? { resource_id: body.resource_id } : {}),
       ...(body.severity ? { severity: body.severity } : {}),
     };
+
     const diff = body.changes ?? buildChangeDetails(body.before, body.after);
     if (diff) {
       metadata.change_details = diff;
@@ -70,10 +71,13 @@ export default async (req, res) => {
           metadata,
           before_snapshot: body.before ?? null,
           after_snapshot: body.after ?? null,
+          actor_id: req.headers?.['x-hasura-user-id'] || null,
+          organization_id: req.headers?.['x-hasura-organization-id'] || null,
         },
       },
       headers: {
         ...(req.headers?.authorization ? { Authorization: req.headers.authorization } : {}),
+        ...(req.headers?.['x-hasura-role'] ? { 'x-hasura-role': req.headers['x-hasura-role'] } : {}),
       },
     });
 
@@ -81,24 +85,18 @@ export default async (req, res) => {
     res.status(200).json({ recorded: Boolean(row?.id), id: row?.id, created_at: row?.created_at });
   } catch (error) {
     const errorId = `audit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const errorName = error instanceof Error ? error.name : undefined;
-    const isValidationError = errorName === 'ZodError';
+    const isValidationError = error instanceof Error && error.name === 'ZodError';
     const status = isValidationError ? 400 : 500;
 
-    // Privacy-safe logging: avoid logging raw error objects or request-derived snapshots
     console.error('Audit Log Error', {
       errorId,
-      name: errorName,
+      name: error instanceof Error ? error.name : undefined,
       status,
     });
 
-    const clientMessage = isValidationError
-      ? 'Invalid audit log payload'
-      : 'Failed to record audit event';
-
     res.status(status).json({
       recorded: false,
-      error: clientMessage,
+      error: isValidationError ? 'Invalid audit log payload' : 'Failed to record audit event',
       error_id: errorId,
     });
   }
