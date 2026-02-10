@@ -20,16 +20,53 @@
 
 import request from 'supertest';
 import express from 'express';
+import { SignJWT } from 'jose';
 import ssoRouter from '../routes/sso.js';
 import { attachAuthContext } from '../middleware/auth.js';
+import rateLimit from 'express-rate-limit';
+import { query } from '../db.js';
 
-const app = express();
-app.use(express.json());
-app.use(attachAuthContext);
-app.use('/api/sso', ssoRouter);
+jest.mock('../db.js', () => ({
+  query: jest.fn(),
+}));
+
+function makeApp() {
+  const app = express();
+  app.use(express.json());
+
+  // Apply global rate limiting before authentication to prevent abuse of auth endpoints
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use(authLimiter);
+  app.use(attachAuthContext);
+
+  // Apply rate limiting to SSO routes to prevent abuse of sensitive resolution endpoint
+  const ssoLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use('/api/sso', ssoLimiter, ssoRouter);
+  return app;
+}
 
 describe('SSO /test/resolve endpoint security', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.NODE_ENV = 'test';
+    process.env.AUTH_MODE = 'mock';
+    process.env.AUTH_MOCK_SECRET = 'test-secret-for-sso';
+  });
+
   test('rejects unauthenticated requests', async () => {
+    const app = makeApp();
     const response = await request(app)
       .post('/api/sso/test/resolve')
       .send({
@@ -42,17 +79,76 @@ describe('SSO /test/resolve endpoint security', () => {
     expect(response.body).toHaveProperty('error');
   });
 
-  test('rejects requests without admin role', async () => {
+  test('rejects authenticated non-admin users', async () => {
+    const token = await new SignJWT({
+      'https://hasura.io/jwt/claims': {
+        'x-hasura-user-id': 'user_parent_123',
+        'x-hasura-default-role': 'parent',
+        'x-hasura-allowed-roles': ['parent'],
+      },
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('15m')
+      .sign(new TextEncoder().encode(process.env.AUTH_MOCK_SECRET));
+
+    const app = makeApp();
     const response = await request(app)
       .post('/api/sso/test/resolve')
-      .set('Authorization', 'Bearer fake-token-for-parent')
+      .set('Authorization', `Bearer ${token}`)
       .send({
         email: 'test@example.com',
         organizationId: 'test-org-123',
         provider: 'saml'
       });
 
-    // Should return 401 (missing/invalid auth) or 403 (forbidden) depending on token validation
-    expect([401, 403]).toContain(response.status);
+    expect(response.status).toBe(403);
+    expect(response.body).toHaveProperty('error');
+  });
+
+  test('allows authenticated admin users', async () => {
+    const token = await new SignJWT({
+      'https://hasura.io/jwt/claims': {
+        'x-hasura-user-id': 'user_admin_123',
+        'x-hasura-default-role': 'system_admin',
+        'x-hasura-allowed-roles': ['system_admin'],
+      },
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('15m')
+      .sign(new TextEncoder().encode(process.env.AUTH_MOCK_SECRET));
+
+    // Mock loadSsoSettings query to return enabled SSO configuration
+    query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'sso-config-1',
+          provider: 'saml',
+          client_id: 'test-client-id',
+          client_secret: 'test-secret',
+          issuer: 'https://idp.example.com',
+          metadata: { entryPoint: 'https://idp.example.com/saml' },
+          is_enabled: true,
+        },
+      ],
+    });
+
+    const app = makeApp();
+    const response = await request(app)
+      .post('/api/sso/test/resolve')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        email: 'test@example.com',
+        organizationId: 'test-org-123',
+        provider: 'saml'
+      });
+
+    // Assert deterministic success response (not 401/403 which would indicate auth failure)
+    expect(response.status).toBe(200);
+
+    // Verify response body shape
+    expect(response.body).toHaveProperty('organizationId', 'test-org-123');
+    expect(response.body).toHaveProperty('enabled', true);
   });
 });

@@ -26,6 +26,10 @@ export default function FounderDashboard() {
       <h1 className="text-xl font-semibold mb-4">Founder Control Panel</h1>
       <section aria-labelledby="moment-contract-heading" className="mb-6">
         <h2 id="moment-contract-heading" className="text-lg font-medium mb-2">Moment Contract</h2>
+        <pre className="text-xs bg-gray-100 p-2 rounded">
+          {JSON.stringify(MomentContract, null, 2)}
+        </pre>
+      </section>
       {/* Launch Gates Section */}
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-2">Launch Gates</h2>
@@ -108,15 +112,9 @@ export default function FounderDashboard() {
           </tbody>
         </table>
       </section>
-      {/* Moment Contract */}
-      <section className="mb-6">
-        <h2 className="text-lg font-medium mb-2">Moment Contract</h2>
-        <pre className="text-xs bg-gray-100 p-2 rounded">
-          {JSON.stringify(MomentContract, null, 2)}
-        </pre>
-      </section>
       <section aria-labelledby="governance-events-heading">
         <h2 id="governance-events-heading" className="text-lg font-medium mb-2">Recent Governance Events</h2>
+      </section>
       {/* Governance Drift Summary */}
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-2">Governance Drift Summary</h2>
