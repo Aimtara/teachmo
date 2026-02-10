@@ -49,7 +49,16 @@ router.post('/notifications/announcements', requirePermission('create', 'notific
   if (!body) {
     return res.status(400).json({ error: 'body is required' });
   }
-  if (!segment || (!segment.roles && !segment.user_ids && !segment.school_ids)) {
+  const hasSegmentFilters = Boolean(
+    segment && (
+      (Array.isArray(segment.roles) && segment.roles.length) ||
+      (Array.isArray(segment.user_ids) && segment.user_ids.length) ||
+      (Array.isArray(segment.school_ids) && segment.school_ids.length) ||
+      (Array.isArray(segment.grades) && segment.grades.length) ||
+      (Array.isArray(segment.grade_levels) && segment.grade_levels.length)
+    )
+  );
+  if (!hasSegmentFilters) {
     return res.status(400).json({ error: 'segment is required' });
   }
 
