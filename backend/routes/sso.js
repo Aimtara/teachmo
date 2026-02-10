@@ -233,7 +233,10 @@ router.get('/:provider/start', ssoRateLimiter, async (req, res, next) => {
     })(req, res, next);
   } catch (error) {
     logger.error('Failed to start SSO', error);
-    return res.status(500).json({ error: 'sso_start_failed' });
+    const status = error.statusCode || error.status || 500;
+    const errorCode =
+      status === 404 ? 'sso_provider_not_configured' : 'sso_start_failed';
+    return res.status(status).json({ error: errorCode });
   }
 });
 
