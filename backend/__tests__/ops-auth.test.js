@@ -1,9 +1,12 @@
 /* eslint-env jest */
+import express from 'express';
 import request from 'supertest';
-import app from '../app.js';
+import opsRouter from '../routes/ops.js';
 
-jest.mock('../middleware/auth.js', () => ({
-  attachAuthContext: (req, res, next) => {
+function buildTestApp() {
+  const app = express();
+
+  app.use((req, _res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       req.auth = null;
@@ -28,13 +31,16 @@ jest.mock('../middleware/auth.js', () => ({
 
     req.auth = null;
     return next();
-  },
-  requireAuth: (_req, _res, next) => next(),
-  requireAdmin: (_req, _res, next) => next(),
-  requireAuthOrService: (_req, _res, next) => next(),
-}));
+  });
+
+  app.use('/api/ops', opsRouter);
+
+  return app;
+}
 
 describe('G0 Gate: Ops Route Authentication', () => {
+  const app = buildTestApp();
+
   test('Returns 401 if no token provided', async () => {
     const res = await request(app).get('/api/ops/health');
     expect(res.statusCode).toBe(401);
