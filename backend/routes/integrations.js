@@ -185,10 +185,14 @@ router.post('/sis/test', async (req, res) => {
 
 router.post('/sis/:schoolId/sync', async (req, res) => {
   try {
+    const schoolId = req.params.schoolId;
+    const { organizationId, triggeredBy } = req.body || {};
+    const resolvedOrganizationId = organizationId || schoolId;
+
     const job = await createSisJob({
-      schoolId: req.params.schoolId,
-      organizationId: req.body?.organizationId,
-      triggeredBy: req.body?.triggeredBy || 'manual',
+      schoolId,
+      organizationId: resolvedOrganizationId,
+      triggeredBy: triggeredBy || 'manual',
     });
     res.json({ status: job.status, jobId: job.id });
   } catch (err) {
