@@ -113,7 +113,16 @@ export default async function auditExport(req, res) {
     );
     return res.status(200).send(csv);
   } catch (err) {
-    console.error('Audit Export Failed:', err);
-    return res.status(500).json({ error: 'Failed to generate export' });
+    const errorId = `audit-export-${Date.now()}`;
+    console.error('Audit Export Failed:', {
+      errorId,
+      name: err && err.name,
+      message: err && err.message,
+      status: err && err.status,
+    });
+    return res.status(500).json({
+      error: 'Failed to generate export',
+      errorId,
+    });
   }
 }
