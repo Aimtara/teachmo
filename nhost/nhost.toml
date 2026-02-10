@@ -1,0 +1,11 @@
+[postgres]
+version = "14"
+
+[hasura]
+version = "v2.36.1"
+
+[auth]
+version = "0.26.0"
+
+[functions]
+node = "18"
