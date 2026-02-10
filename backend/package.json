@@ -16,11 +16,15 @@
     "test:ops-auth": "jest --config ../jest.backend.config.cjs --testPathPattern ops-auth"
   },
   "dependencies": {
+    "@node-saml/passport-saml": "^5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.22.1",
+    "express-rate-limit": "^8.2.1",
     "jose": "^5.6.3",
     "lodash": "^4.17.23",
+    "passport": "^0.7.0",
+    "passport-openidconnect": "^0.1.2",
     "pdfkit": "^0.15.0",
     "pg": "^8.11.3",
     "ws": "^8.19.0",

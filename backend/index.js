@@ -1,6 +1,7 @@
 /* eslint-env node */
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
+import http from 'http';
 import { WebSocketServer } from 'ws';
 import app from './app.js';
 import { seedDemoData, seedExecutionBoardData, seedOpsDemoData } from './seed.js';
@@ -8,6 +9,7 @@ import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
 import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
 import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
+import { startSisContinuousSyncScheduler } from './jobs/sisContinuousSync.js';
 import { createLogger } from './utils/logger.js';
 import { runMigrations } from './migrate.js';
 import { performStartupCheck } from './utils/envCheck.js';
@@ -36,6 +38,7 @@ startRetentionPurgeScheduler();
 startNotificationQueueScheduler();
 startObservabilitySchedulers();
 startRosterSyncScheduler();
+startSisContinuousSyncScheduler();
 
 const server = app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);

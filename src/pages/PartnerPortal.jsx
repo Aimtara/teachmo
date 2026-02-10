@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, Button, Input, Select, Textarea } from '@/components/ui';
-import { apiClient } from '@/services/core/client';
+import { createPartnerSubmission } from '@/domains/submissions';
 
 export default function PartnerPortal() {
   const [submission, setSubmission] = useState({ title: '', type: 'activity', content: '' });
@@ -10,10 +10,15 @@ export default function PartnerPortal() {
     event.preventDefault();
     setStatus('submitting');
     try {
-      await apiClient.post('/api/partner/submissions', submission);
+      await createPartnerSubmission({
+        title: submission.title,
+        type: submission.type,
+        description: submission.content,
+      });
       setStatus('success');
       setSubmission({ title: '', type: 'activity', content: '' });
     } catch (error) {
+      console.error('Failed to create partner submission', error);
       setStatus('error');
     }
   };
