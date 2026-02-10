@@ -54,7 +54,6 @@ event_triggers:
       update:
         columns:
           - status
-          - updated_at
     retry_conf:
       interval_sec: 10
       num_retries: 3
