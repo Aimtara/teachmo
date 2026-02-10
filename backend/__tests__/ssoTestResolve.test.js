@@ -33,6 +33,16 @@ jest.mock('../db.js', () => ({
 function makeApp() {
   const app = express();
   app.use(express.json());
+
+  // Apply global rate limiting before authentication to prevent abuse of auth endpoints
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use(authLimiter);
   app.use(attachAuthContext);
 
   // Apply rate limiting to SSO routes to prevent abuse of sensitive resolution endpoint
