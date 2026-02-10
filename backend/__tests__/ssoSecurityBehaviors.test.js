@@ -279,7 +279,7 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
     test('fallback behavior for invalid redirectTo', () => {
       const baseUrl = 'https://app.teachmo.example';
       const appOrigin = new URL(baseUrl).origin;
-      const fallbackUrl = process.env.SSO_REDIRECT_URL || 'https://app.teachmo.example/dashboard';
+      const fallbackUrl = 'https://app.teachmo.example/dashboard';
       
       // Simulate invalid redirect
       const invalidRedirect = 'https://attacker.com/steal';
@@ -294,7 +294,7 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
       } catch (e) {
         // Should fall back to safe default (lines 301-305)
         expect(e.message).toBe('Invalid redirect origin');
-        // In actual implementation, would use fallbackUrl or return JSON
+        // In actual implementation, would use fallbackUrl or return JSON response
         expect(fallbackUrl).toContain('teachmo.example');
       }
     });
@@ -416,13 +416,13 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
       const maxAge = 15 * 60 * 1000; // 15 minutes in milliseconds
       const maxAgeSeconds = maxAge / 1000; // 900 seconds
       
-      // Tokens in cookies should expire quickly
+      // Tokens in cookies should expire quickly to limit damage from:
+      // - Cookie theft via browser history
+      // - Server logs containing cookies
+      // - XSS attacks that steal cookies
+      // - Session fixation attacks
       expect(maxAgeSeconds).toBeLessThanOrEqual(900); // ≤ 15 minutes
       expect(maxAgeSeconds).toBeGreaterThan(0);
-      
-      // Document reasoning
-      const reason = 'Short expiration limits damage from cookie theft via browser history, logs, or XSS';
-      expect(reason).toBeTruthy();
     });
 
     test('all security controls work together', () => {
