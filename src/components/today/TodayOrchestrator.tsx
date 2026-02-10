@@ -16,7 +16,7 @@ function PrimaryCard({ children }: { children?: React.ReactNode }) {
  */
 function selectInterventionForMoment(moment: ReturnType<typeof getCurrentMoment>) {
   // TODO: integrate with intervention selection logic
-  const momentDescription = JSON.stringify(moment);
+  const momentDescription = moment;
   return { content: `Placeholder intervention for moment: ${momentDescription}` };
 }
 
