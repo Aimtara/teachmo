@@ -6,12 +6,10 @@
 // - In production, x-hasura-* request headers are NOT trusted by default.
 //   (Only enable TRUST_HASURA_HEADERS if this server is behind Hasura in a private network.)
 
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { resolveRoleScopes } from '../rbac.js';
 import { auditEvent } from '../security/audit.js';
 import { verifyJWT } from '../security/jwt.js';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
-
-const textEncoder = new TextEncoder();
 
 function getClaim(obj, key) {
   if (!obj) return null;

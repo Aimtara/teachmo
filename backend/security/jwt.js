@@ -44,7 +44,12 @@ if (jwksUrl) {
  * @param {boolean} options.allowSSOFallback - Allow SSO_JWT_SECRET fallback (default: false)
  * @param {boolean} options.allowInsecureDev - Allow insecure decode in dev (default: false)
  * @returns {Promise<Object|null>} The verified JWT payload or null if verification fails
- * @throws {Error} If verification fails in a way that should be reported to the caller
+ * @throws {Error} If verification fails due to invalid token (signature, expiry, claims)
+ * 
+ * Note: This function returns null (rather than throwing) when:
+ * - No token is provided
+ * - JWKS is not configured in non-production
+ * This allows callers to distinguish between "no auth configured" vs "auth failed".
  */
 export async function verifyJWT(token, options = {}) {
   if (!token) return null;
