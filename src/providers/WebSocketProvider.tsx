@@ -5,6 +5,7 @@ import { createLogger } from '@/utils/logger';
 
 const WSContext = createContext<React.MutableRefObject<WebSocket | null> | null>(null);
 const logger = createLogger('websocket');
+const MAX_RECONNECT_ATTEMPTS = 8;
 
 type WebSocketProviderProps = {
   children: React.ReactNode;
@@ -17,9 +18,22 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const isUnmounted = useRef(false);
 
   useEffect(() => {
+    const wsUrl = getWebSocketUrl();
+    if (!wsUrl) {
+      logger.info('WebSocket disabled: no valid endpoint configured');
+      return () => undefined;
+    }
+
     const scheduleReconnect = () => {
       if (isUnmounted.current) return;
       if (reconnectTimer.current !== null) return;
+      if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+        logger.warn('WebSocket reconnect limit reached; stopping retries', {
+          attempts: reconnectAttempts.current,
+          wsUrl,
+        });
+        return;
+      }
 
       reconnectAttempts.current += 1;
       const backoffMs = Math.min(1000 * 2 ** (reconnectAttempts.current - 1), 30000);
@@ -32,20 +46,24 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const connect = () => {
       if (isUnmounted.current) return;
 
-      const socket = new WebSocket(getWebSocketUrl());
+      const socket = new WebSocket(wsUrl);
       ws.current = socket;
 
       const handleOpen = () => {
         reconnectAttempts.current = 0;
-        logger.info('WebSocket connected');
+        logger.info('WebSocket connected', { wsUrl });
         flushQueue(socket);
       };
       const handleClose = () => {
-        logger.warn('WebSocket disconnected');
+        logger.warn('WebSocket disconnected', { wsUrl });
         scheduleReconnect();
       };
       const handleError = (event: Event) => {
-        logger.error('WebSocket error', event);
+        logger.warn('WebSocket error', {
+          wsUrl,
+          readyState: socket.readyState,
+          eventType: event.type,
+        });
         if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
           socket.close();
         }

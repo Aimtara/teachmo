@@ -7,7 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { query } from '../db.js';
 import { createLogger } from '../utils/logger.js';
 import { issueSsoJwt } from '../utils/ssoJwt.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { attachAuthContext, requireAdmin } from '../middleware/auth.js';
 import {
   buildOidcConfig,
   buildSamlConfig,
@@ -233,7 +233,10 @@ router.get('/:provider/start', ssoRateLimiter, async (req, res, next) => {
     })(req, res, next);
   } catch (error) {
     logger.error('Failed to start SSO', error);
-    return res.status(500).json({ error: 'sso_start_failed' });
+    const status = error.statusCode || error.status || 500;
+    const errorCode =
+      status === 404 ? 'sso_provider_not_configured' : 'sso_start_failed';
+    return res.status(status).json({ error: errorCode });
   }
 });
 
@@ -346,7 +349,7 @@ router.get('/:provider/metadata', async (req, res) => {
   }
 });
 
-router.post('/test/resolve', ssoRateLimiter, requireAdmin, async (req, res) => {
+router.post('/test/resolve', ssoRateLimiter, attachAuthContext, requireAdmin, async (req, res) => {
   const { email, organizationId, provider } = req.body || {};
   const resolvedOrg = await resolveOrganizationId({ organizationId, email });
   const settings = await loadSsoSettings({ provider, organizationId: resolvedOrg });

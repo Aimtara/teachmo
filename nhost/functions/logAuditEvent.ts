@@ -26,9 +26,11 @@ const MUTATION = `
   }
 `;
 
-function buildChangeDetails(before?: Record<string, any>, after?: Record<string, any>) {
+type JsonObject = Record<string, unknown>;
+
+function buildChangeDetails(before?: JsonObject | null, after?: JsonObject | null) {
   if (!before || !after) return null;
-  const changes: Record<string, any> = {};
+  const changes: Record<string, { before: unknown; after: unknown }> = {};
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
   keys.forEach((key) => {
     const beforeValue = before[key];
@@ -79,13 +81,14 @@ export default async (req, res) => {
     res.status(200).json({ recorded: Boolean(row?.id), id: row?.id, created_at: row?.created_at });
   } catch (error) {
     const errorId = `audit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const isValidationError = (error as any)?.name === 'ZodError';
+    const errorName = error instanceof Error ? error.name : undefined;
+    const isValidationError = errorName === 'ZodError';
     const status = isValidationError ? 400 : 500;
 
     // Privacy-safe logging: avoid logging raw error objects or request-derived snapshots
     console.error('Audit Log Error', {
       errorId,
-      name: (error as any)?.name,
+      name: errorName,
       status,
     });
 

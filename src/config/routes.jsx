@@ -2,10 +2,10 @@ import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 import { MomentGuard } from '@/components/governance/MomentGuard';
 
-const Discover = lazy(() => import('@/pages/Discover'));
+const UnifiedDiscover = lazy(() => import('@/pages/UnifiedDiscover'));
 const DiscoverRoute = () => (
   <MomentGuard surface="EXPLORE">
-    <Discover />
+    <UnifiedDiscover />
   </MomentGuard>
 );
 
@@ -47,14 +47,6 @@ export const ROUTE_DEFINITIONS = [
     requiredScopes: ['content:read'],
     feature: 'DISCOVER',
     fallback: <p className="p-6 text-gray-600">Loading discover...</p>
-  },
-  {
-    name: 'UnifiedDiscoverRedirect',
-    path: '/unified-discover',
-    Component: () => <Navigate to="/discover" replace />,
-    requiresAuth: true,
-    allowedRoles: ['parent', 'teacher'],
-    requiredScopes: ['content:read']
   },
   {
     name: 'ActivitiesRedirect',
@@ -214,6 +206,15 @@ export const ROUTE_DEFINITIONS = [
     feature: 'TEACHER_MESSAGES',
     fallback: <p className="p-6 text-gray-600">Loading teacher messages...</p>
   },
+
+  {
+    name: 'PartnerRegistration',
+    path: '/partners/register',
+    Component: lazy(() => import('@/pages/public/PartnerRegistration.jsx')),
+    isPublic: true,
+    fallback: <p className="p-6 text-gray-600">Loading partner registration...</p>
+  },
+
   {
     name: 'PartnerDashboard',
     path: '/partners/dashboard',
@@ -292,6 +293,17 @@ export const ROUTE_DEFINITIONS = [
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading partner admin dashboard...</p>
   },
+
+  {
+    name: 'DistrictOverview',
+    path: '/district/overview',
+    Component: lazy(() => import('@/pages/DistrictOverview.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['district_admin', 'system_admin', 'admin'],
+    requiredScopes: ['org:manage'],
+    fallback: <p className="p-6 text-gray-600">Loading district insights...</p>
+  },
+
   {
     name: 'AdminDashboard',
     path: '/admin',

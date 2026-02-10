@@ -25,7 +25,6 @@ import { attachAuthContext } from '../middleware/auth.js';
 
 const app = express();
 app.use(express.json());
-
 app.use(attachAuthContext);
 app.use('/api/sso', ssoRouter);
 
