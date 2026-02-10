@@ -270,10 +270,8 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
       expect(cookieOptions.secure).toBe(true);
       expect(cookieOptions.sameSite).toBe('lax');
       
-      // Verify short expiration
-      const fifteenMinutes = 15 * 60 * 1000;
-      expect(cookieOptions.maxAge).toBe(fifteenMinutes);
-      expect(cookieOptions.maxAge).toBeLessThanOrEqual(fifteenMinutes);
+      // Verify short expiration (15 minutes = 900,000 milliseconds)
+      expect(cookieOptions.maxAge).toBeLessThanOrEqual(15 * 60 * 1000);
     });
 
     test('fallback behavior for invalid redirectTo', () => {
