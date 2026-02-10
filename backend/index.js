@@ -211,7 +211,7 @@ wss.on('connection', async (ws, req) => {
     const payload = await verifyWebSocketToken(token);
     if (!payload) {
       logger.warn('WebSocket connection rejected: missing or invalid token');
-      ws.close(1008, token ? 'Invalid authentication token' : 'Missing authentication token'); // Policy Violation close code
+      ws.close(1008, 'Authentication failed'); // Policy Violation close code
       return;
     }
     // Token is valid, store payload for later use if needed
@@ -223,7 +223,7 @@ wss.on('connection', async (ws, req) => {
     logger.warn('WebSocket connection rejected: token verification failed', {
       error: err.message,
     });
-    ws.close(1008, 'Authentication verification failed');
+    ws.close(1008, 'Authentication failed');
     return;
   }
 
@@ -258,7 +258,9 @@ const shutdown = (signal) => {
 
   // Set a timeout to force-terminate clients if graceful close takes too long
   const SHUTDOWN_TIMEOUT_MS = 10000; // 10 seconds
-  const FORCE_EXIT_TIMEOUT_MS = 2000; // 2 seconds after forced server close
+  const FINAL_EXIT_TIMEOUT_MS = 2000; // 2 seconds after forced server close
+  let finalExitTimer = null;
+  
   const forceShutdownTimer = setTimeout(() => {
     logger.warn('Shutdown timeout reached, force-terminating remaining WebSocket clients');
     wss.clients.forEach((client) => {
@@ -273,14 +275,17 @@ const shutdown = (signal) => {
       process.exit(0);
     });
     // If server.close doesn't complete, force exit after another 2 seconds
-    setTimeout(() => {
+    finalExitTimer = setTimeout(() => {
       logger.error('Forced process exit after shutdown timeout');
       process.exit(1);
-    }, FORCE_EXIT_TIMEOUT_MS);
+    }, FINAL_EXIT_TIMEOUT_MS);
   }, SHUTDOWN_TIMEOUT_MS);
 
   wss.close(() => {
     clearTimeout(forceShutdownTimer);
+    if (finalExitTimer) {
+      clearTimeout(finalExitTimer);
+    }
     server.close(() => {
       process.exit(0);
     });
