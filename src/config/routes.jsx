@@ -2,10 +2,10 @@ import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 import { MomentGuard } from '@/components/governance/MomentGuard';
 
-const Discover = lazy(() => import('@/pages/Discover'));
+const UnifiedDiscover = lazy(() => import('@/pages/UnifiedDiscover'));
 const DiscoverRoute = () => (
   <MomentGuard surface="EXPLORE">
-    <Discover />
+    <UnifiedDiscover />
   </MomentGuard>
 );
 
@@ -47,14 +47,6 @@ export const ROUTE_DEFINITIONS = [
     requiredScopes: ['content:read'],
     feature: 'DISCOVER',
     fallback: <p className="p-6 text-gray-600">Loading discover...</p>
-  },
-  {
-    name: 'UnifiedDiscoverRedirect',
-    path: '/unified-discover',
-    Component: () => <Navigate to="/discover" replace />,
-    requiresAuth: true,
-    allowedRoles: ['parent', 'teacher'],
-    requiredScopes: ['content:read']
   },
   {
     name: 'ActivitiesRedirect',
