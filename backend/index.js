@@ -2,6 +2,7 @@
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
 import { WebSocketServer } from 'ws';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import app from './app.js';
 import { seedDemoData, seedExecutionBoardData, seedOpsDemoData } from './seed.js';
 import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
@@ -17,6 +18,52 @@ dotenv.config();
 
 const PORT = process.env.PORT || 4000;
 const logger = createLogger('server');
+
+// Helper to check if we're in mock auth mode (test environment only)
+function isMockAuthMode() {
+  const mode = String(process.env.AUTH_MODE || '').toLowerCase();
+  return mode === 'mock' && String(process.env.NODE_ENV || '').toLowerCase() === 'test';
+}
+
+// Helper to verify WebSocket JWT tokens
+const textEncoder = new TextEncoder();
+const jwksUrl = process.env.AUTH_JWKS_URL || process.env.NHOST_JWKS_URL || '';
+const issuer = process.env.AUTH_ISSUER || process.env.NHOST_JWT_ISSUER || undefined;
+const audience = process.env.AUTH_AUDIENCE || process.env.NHOST_JWT_AUDIENCE || undefined;
+
+let jwks = null;
+if (jwksUrl) {
+  jwks = createRemoteJWKSet(new URL(jwksUrl));
+}
+
+async function verifyWebSocketToken(token) {
+  if (!token) return null;
+
+  // Test-only mock verification: HS256 tokens signed with AUTH_MOCK_SECRET.
+  if (isMockAuthMode()) {
+    const secret = String(process.env.AUTH_MOCK_SECRET || '').trim();
+    if (!secret) throw new Error('AUTH_MOCK_SECRET is required when AUTH_MODE=mock');
+    const { payload } = await jwtVerify(token, textEncoder.encode(secret), {
+      algorithms: ['HS256'],
+    });
+    return payload;
+  }
+
+  if (!jwks) {
+    // In production, missing JWKS is a hard failure.
+    const envLower = (process.env.NODE_ENV || 'development').toLowerCase();
+    if (envLower === 'production') {
+      throw new Error('AUTH_JWKS_URL is required in production to verify JWTs');
+    }
+    return null;
+  }
+
+  const { payload } = await jwtVerify(token, jwks, {
+    issuer,
+    audience,
+  });
+  return payload;
+}
 
 // 1. Verify Environment Integrity (Launch Readiness Patch)
 performStartupCheck();
@@ -91,6 +138,11 @@ const wss = new WebSocketServer({
       }
     : false,
 });
+
+// Add error handler for WebSocketServer to prevent process crashes
+wss.on('error', (err) => {
+  logger.error('WebSocketServer error:', { error: err });
+});
 // Validate and parse WS_HEARTBEAT_MS with proper error handling
 const DEFAULT_HEARTBEAT_MS = 30000;
 const envHeartbeat = process.env.WS_HEARTBEAT_MS;
@@ -146,8 +198,35 @@ const heartbeatIntervalId = setInterval(() => {
   });
 }, heartbeatIntervalMs);
 
-wss.on('connection', (ws) => {
-  logger.info('New WebSocket connection established');
+wss.on('connection', async (ws, req) => {
+  // Extract token from query parameter (?token=...) or Authorization header
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const queryToken = url.searchParams.get('token');
+  const authHeader = req.headers.authorization || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = queryToken || bearerToken;
+
+  // Verify JWT during the WebSocket handshake
+  try {
+    const payload = await verifyWebSocketToken(token);
+    if (!payload) {
+      logger.warn('WebSocket connection rejected: missing or invalid token');
+      ws.close(1008, 'Unauthorized'); // Policy Violation close code
+      return;
+    }
+    // Token is valid, store payload for later use if needed
+    ws.authPayload = payload;
+    logger.debug('New authenticated WebSocket connection established', {
+      userId: payload.sub || payload.user_id,
+    });
+  } catch (err) {
+    logger.warn('WebSocket connection rejected: token verification failed', {
+      error: err.message,
+    });
+    ws.close(1008, 'Unauthorized');
+    return;
+  }
+
   ws.isAlive = true;
 
   ws.on('pong', () => {
@@ -159,7 +238,7 @@ wss.on('connection', (ws) => {
     const messageSize = message && typeof message.length === 'number'
       ? message.length
       : (message && typeof message.byteLength === 'number' ? message.byteLength : null);
-    logger.info(
+    logger.debug(
       `Received WebSocket message (type=${messageType}${messageSize !== null ? `, size=${messageSize}` : ''})`,
     );
     // Echo for now (or handle your app logic here)
@@ -176,7 +255,31 @@ const shutdown = (signal) => {
   if (heartbeatIntervalId) {
     clearInterval(heartbeatIntervalId);
   }
+
+  // Set a timeout to force-terminate clients if graceful close takes too long
+  const SHUTDOWN_TIMEOUT_MS = 10000; // 10 seconds
+  const forceShutdownTimer = setTimeout(() => {
+    logger.warn('Shutdown timeout reached, force-terminating remaining WebSocket clients');
+    wss.clients.forEach((client) => {
+      try {
+        client.terminate();
+      } catch (err) {
+        logger.error('Error force-terminating WebSocket client', { error: err });
+      }
+    });
+    // Force close the HTTP server and exit
+    server.close(() => {
+      process.exit(0);
+    });
+    // If server.close doesn't complete, force exit after another 2 seconds
+    setTimeout(() => {
+      logger.error('Forced process exit after shutdown timeout');
+      process.exit(1);
+    }, 2000);
+  }, SHUTDOWN_TIMEOUT_MS);
+
   wss.close(() => {
+    clearTimeout(forceShutdownTimer);
     server.close(() => {
       process.exit(0);
     });
