@@ -309,7 +309,7 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
       ];
       
       attackVectors.forEach(attackUrl => {
-        let isBlocked = true;
+        let isBlocked;
         try {
           const redirectUrl = new URL(attackUrl, baseUrl);
           isBlocked = redirectUrl.origin !== appOrigin;
