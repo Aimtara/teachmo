@@ -1,8 +1,8 @@
 /* eslint-env node */
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
-import http from 'http';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import app from './app.js';
 import { seedDemoData, seedExecutionBoardData, seedOpsDemoData } from './seed.js';
 import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
@@ -44,6 +44,68 @@ const server = app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);
 });
 
+// JWT verification for WebSocket authentication
+const jwksUrl = process.env.AUTH_JWKS_URL || process.env.NHOST_JWKS_URL || '';
+const issuer = process.env.AUTH_ISSUER || process.env.NHOST_JWT_ISSUER || undefined;
+const audience = process.env.AUTH_AUDIENCE || process.env.NHOST_JWT_AUDIENCE || undefined;
+const envLower = (process.env.NODE_ENV || 'development').toLowerCase();
+const isProd = envLower === 'production';
+
+if (isProd && jwksUrl && (!issuer || !audience)) {
+  logger.warn(
+    'JWT verification is configured with JWKS in production but AUTH_ISSUER and/or AUTH_AUDIENCE (or Nhost JWT equivalents) are missing. ' +
+      'Issuer/audience claim checks will be skipped; this weakens token validation. ' +
+      'Set AUTH_ISSUER and AUTH_AUDIENCE (or NHOST_JWT_ISSUER and NHOST_JWT_AUDIENCE) to enable full verification.'
+  );
+}
+let jwks = null;
+if (jwksUrl) {
+  jwks = createRemoteJWKSet(new URL(jwksUrl));
+}
+
+const textEncoder = new TextEncoder();
+
+function isMockAuthMode() {
+  const mode = String(process.env.AUTH_MODE || '').toLowerCase();
+  return mode === 'mock' && String(process.env.NODE_ENV || '').toLowerCase() === 'test';
+}
+
+async function verifyWebSocketToken(token) {
+  if (!token) return null;
+
+  // Test-only mock verification: HS256 tokens signed with AUTH_MOCK_SECRET.
+  if (isMockAuthMode()) {
+    const secret = String(process.env.AUTH_MOCK_SECRET || '').trim();
+    if (!secret) throw new Error('AUTH_MOCK_SECRET is required when AUTH_MODE=mock');
+    const { payload } = await jwtVerify(token, textEncoder.encode(secret), {
+      algorithms: ['HS256'],
+    });
+    return payload;
+  }
+
+  if (!jwks) {
+    // In production, missing JWKS is a hard failure.
+    if (isProd) {
+      throw new Error('AUTH_JWKS_URL is required in production to verify JWTs');
+    }
+
+    // In non-prod you may opt-in to insecure decode for local testing.
+    const allowInsecure = String(process.env.ALLOW_INSECURE_JWT_DECODE || '').toLowerCase() === 'true';
+    if (!allowInsecure) return null;
+
+    // Minimal, *insecure* decode (dev-only) — does NOT validate signature.
+    const payloadB64 = token.split('.')[1];
+    if (!payloadB64) return null;
+    const json = Buffer.from(payloadB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+    return JSON.parse(json);
+  }
+
+  const { payload } = await jwtVerify(token, jwks, {
+    issuer,
+    audience,
+  });
+  return payload;
+}
 // Attach WebSocket Server to the same HTTP server
 const wss = new WebSocketServer({
   server,
@@ -158,9 +220,8 @@ const heartbeatIntervalId = setInterval(() => {
       });
     }, heartbeatIntervalMs);
   wss.clients.forEach((client) => {
-    // Only perform heartbeat on sockets that are currently OPEN
-    // 1 corresponds to WebSocket.OPEN in the 'ws' library
-    if (client.readyState !== 1) {
+    // Guard against closed/closing sockets before attempting ping/terminate
+    if (client.readyState !== WebSocket.OPEN) {
       return;
     }
 
@@ -193,8 +254,52 @@ const heartbeatIntervalId = setInterval(() => {
   });
 }, heartbeatIntervalMs);
 
-wss.on('connection', (ws) => {
-  logger.info('New WebSocket connection established');
+wss.on('connection', async (ws, req) => {
+  // Extract and verify JWT, preferring Authorization header over query parameter
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const tokenFromQuery = url.searchParams.get('token');
+  const authHeader = req.headers.authorization || '';
+  const tokenFromHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = tokenFromHeader || tokenFromQuery;
+
+  if (!token) {
+    logger.warn('WebSocket connection rejected: missing authentication token');
+    ws.close(1008, 'Authentication required');
+    return;
+  }
+
+  try {
+    const payload = await verifyWebSocketToken(token);
+    if (!payload) {
+      logger.warn('WebSocket connection rejected: invalid or expired token');
+      ws.close(1008, 'Invalid authentication token');
+      return;
+    }
+
+    // Extract user ID from JWT payload
+    const hasuraClaims = payload?.['https://hasura.io/jwt/claims'] || payload?.['https://nhost.io/jwt/claims'] || {};
+    const userId = hasuraClaims['x-hasura-user-id'] || payload.sub || payload.user_id;
+
+    if (!userId) {
+      logger.warn('WebSocket connection rejected: token missing user ID');
+      ws.close(1008, 'Invalid token claims');
+      return;
+    }
+
+    // Store auth context on the WebSocket instance
+    ws.auth = {
+      userId,
+      payload,
+    };
+
+    logger.debug(`WebSocket connection established for user ${userId}`);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    logger.warn('WebSocket connection rejected: token verification failed -', errorMessage);
+    ws.close(1008, 'Authentication failed');
+    return;
+  }
+
   ws.isAlive = true;
 
   ws.on('pong', () => {
@@ -206,7 +311,7 @@ wss.on('connection', (ws) => {
     const messageSize = message && typeof message.length === 'number'
       ? message.length
       : (message && typeof message.byteLength === 'number' ? message.byteLength : null);
-    logger.info(
+    logger.debug(
       `Received WebSocket message (type=${messageType}${messageSize !== null ? `, size=${messageSize}` : ''})`,
     );
     // Echo for now (or handle your app logic here)
