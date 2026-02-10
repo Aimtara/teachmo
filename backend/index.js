@@ -179,12 +179,12 @@ const heartbeatIntervalId = setInterval(() => {
 }, heartbeatIntervalMs);
 
 wss.on('connection', async (ws, req) => {
-  // Extract and verify JWT from query parameter or Authorization header
+  // Extract and verify JWT, preferring Authorization header over query parameter
   const url = new URL(req.url, `http://${req.headers.host}`);
   const tokenFromQuery = url.searchParams.get('token');
   const authHeader = req.headers.authorization || '';
   const tokenFromHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const token = tokenFromQuery || tokenFromHeader;
+  const token = tokenFromHeader || tokenFromQuery;
 
   if (!token) {
     logger.warn('WebSocket connection rejected: missing authentication token');
