@@ -9,7 +9,7 @@ export default function SponsorshipDashboard() {
     queryKey: ['sponsorship-partners'],
     queryFn: async () => {
       const response = await SponsorshipPartner.list();
-      return (response || []).filter((partner) => partner?.is_active !== false);
+      return response.filter((partner) => partner?.is_active !== false);
     },
   });
 
