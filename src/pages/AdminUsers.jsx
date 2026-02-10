@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { nhost } from '@/lib/nhostClient';
 import { useUserRole } from '@/hooks/useUserRole';
 import { canAll } from '@/security/permissions';
+import { logAuditEvent } from '@/api/functions';
 
 const ROLES = ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'];
 
@@ -87,7 +88,23 @@ export default function AdminUsers() {
       if (res.error) throw res.error;
       return res.data;
     },
-    onSuccess: () => usersQuery.refetch(),
+    onSuccess: async (data, variables) => {
+      usersQuery.refetch();
+      const before = variables?.before ?? null;
+      const after = data?.update_user_profiles_by_pk ?? null;
+      if (before && after) {
+        await logAuditEvent({
+          action: before.role !== after.role ? 'user.role_change' : 'user.update',
+          entity_type: 'user',
+          entity_id: variables.userId,
+          before,
+          after,
+          metadata: {
+            changed_fields: Object.keys(variables?.changes ?? {}),
+          },
+        });
+      }
+    },
   });
 
   const impersonateMutation = useMutation({
@@ -187,7 +204,7 @@ export default function AdminUsers() {
                       key={u.user_id}
                       user={u}
                       isSystem={isSystem}
-                      onSave={(changes) => updateMutation.mutate({ userId: u.user_id, changes })}
+                      onSave={(changes) => updateMutation.mutate({ userId: u.user_id, changes, before: u })}
                       onImpersonate={() => impersonateMutation.mutate(u.user_id)}
                       saving={updateMutation.isPending}
                       canManageUsers={canManageUsers}

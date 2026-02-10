@@ -1,6 +1,8 @@
+import type { SurfaceType } from './surfaces';
+
 export type MomentId =
   | 'morning'
-  | 'commute'
+  | 'mid_morning'
   | 'midday'
   | 'afternoon'
   | 'evening'
@@ -10,7 +12,7 @@ export interface MomentRules {
   /** Maximum number of seconds of cognitive budget allowed for this moment */
   cognitiveBudgetSeconds: number;
   /** Surfaces that are allowed to render for this moment */
-  allowedSurfaces: string[];
+  allowedSurfaces: SurfaceType[];
   /** Whether navigation elements are allowed */
   allowNavigation: boolean;
   /** Maximum number of primary actions allowed */
@@ -28,7 +30,7 @@ export const MomentContract: Record<MomentId, MomentRules> = {
     allowNavigation: false,
     maxPrimaryActions: 1,
   },
-  commute: {
+  mid_morning: {
     cognitiveBudgetSeconds: 15,
     allowedSurfaces: ['PRIMARY_CARD'],
     allowNavigation: false,
@@ -67,9 +69,10 @@ export const MomentContract: Record<MomentId, MomentRules> = {
 export function getCurrentMoment(now: Date = new Date()): MomentId {
   const hour = now.getHours();
   if (hour >= 6 && hour < 9) return 'morning';
-  if (hour >= 9 && hour < 12) return 'commute';
+  if (hour >= 9 && hour < 12) return 'mid_morning';
   if (hour >= 12 && hour < 15) return 'midday';
   if (hour >= 15 && hour < 18) return 'afternoon';
   if (hour >= 18 && hour < 22) return 'evening';
-  if (hour >= 22 || hour < 6) return 'latenight';
+  // Hours 22-23 and 0-5 are considered 'latenight'
+  return 'latenight';
 }
