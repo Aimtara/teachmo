@@ -21,9 +21,9 @@ export function getWebSocketUrl(): string {
   const apiBaseUrl = resolveBaseUrl(import.meta.env.VITE_API_BASE_URL);
   if (apiBaseUrl) {
     const protocol = apiBaseUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-  }
     const wsPath = joinPaths(apiBaseUrl.pathname, DEFAULT_WS_PATH);
     return `${protocol}//${apiBaseUrl.host}${wsPath}`;
+  }
   
   // 2. Fallback: Derive from window location (works for most deployments)
   if (typeof window !== 'undefined') {
