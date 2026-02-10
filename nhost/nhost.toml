@@ -6,14 +6,14 @@ version = "14"
 version = "v2.36.1"
 
 # IMPORTANT:
-# - Keep real secrets in local env files / CI / Nhost Cloud secrets.
-# - These placeholders are for local bootstrap guidance only.
-adminSecret = "CHANGE_ME_LOCAL_ONLY"
-webhookSecret = "CHANGE_ME_LOCAL_ONLY"
-
-[[hasura.jwtSecrets]]
-type = "HS256"
-key = "CHANGE_ME_LOCAL_ONLY"
+# - Do NOT commit secrets here. Configure adminSecret, webhookSecret,
+#   and JWT secrets via environment variables or Nhost Dashboard secrets.
+# - For local development with 'nhost up', set these in your shell environment:
+#     export NHOST_ADMIN_SECRET="your-local-admin-secret"
+#     export NHOST_WEBHOOK_SECRET="your-local-webhook-secret"
+#     export NHOST_JWT_SECRET="your-local-jwt-secret"
+# - For production/staging, configure secrets in Nhost Dashboard or deployment config.
+# - Without explicit secrets, startup will fail fast (preventing accidental use of defaults).
 
 [hasura.settings]
 # Local frontend dev origin; tighten for production deploy origins.
