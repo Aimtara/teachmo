@@ -28,7 +28,7 @@ const MUTATION = `
 
 type JsonObject = Record<string, unknown>;
 
-function buildChangeDetails(before?: JsonObject, after?: JsonObject) {
+function buildChangeDetails(before?: JsonObject | null, after?: JsonObject | null) {
   if (!before || !after) return null;
   const changes: Record<string, { before: unknown; after: unknown }> = {};
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
