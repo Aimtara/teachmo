@@ -9,6 +9,7 @@ import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
 import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
 import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
+import { startSisContinuousSyncScheduler } from './jobs/sisContinuousSync.js';
 import { createLogger } from './utils/logger.js';
 import { runMigrations } from './migrate.js';
 import { performStartupCheck } from './utils/envCheck.js';
@@ -37,6 +38,7 @@ startRetentionPurgeScheduler();
 startNotificationQueueScheduler();
 startObservabilitySchedulers();
 startRosterSyncScheduler();
+startSisContinuousSyncScheduler();
 
 const server = app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);
@@ -116,24 +118,37 @@ if (envMaxPayload !== undefined) {
   }
 }
 
+// Configure WebSocket per-message deflate (compression) behind an explicit env flag.
+// Disabled by default to reduce CPU usage and mitigate compression-related DoS risk.
+const isPerMessageDeflateEnabled =
+  String(process.env.WS_PERMESSAGE_DEFLATE_ENABLED || '').toLowerCase() === 'true';
+
+if (isPerMessageDeflateEnabled) {
+  logger.info('WebSocket perMessageDeflate compression ENABLED via WS_PERMESSAGE_DEFLATE_ENABLED.');
+} else {
+  logger.info('WebSocket perMessageDeflate compression DISABLED (default).');
+}
+
 // Attach WebSocket Server to the same HTTP server with explicit limits
 const wss = new WebSocketServer({
   server,
   path: '/ws',
   maxPayload: maxPayloadBytes,
-  perMessageDeflate: {
-    zlibDeflateOptions: {
-      // See https://nodejs.org/api/zlib.html#zlib_class_options
-      windowBits: 15,
-      memLevel: 8,
-    },
-    zlibInflateOptions: {
-      windowBits: 15,
-    },
-    clientNoContextTakeover: true,
-    serverNoContextTakeover: true,
-    serverMaxWindowBits: 15,
-  },
+  perMessageDeflate: isPerMessageDeflateEnabled
+    ? {
+        zlibDeflateOptions: {
+          // See https://nodejs.org/api/zlib.html#zlib_class_options
+          windowBits: 15,
+          memLevel: 8,
+        },
+        zlibInflateOptions: {
+          windowBits: 15,
+        },
+        clientNoContextTakeover: true,
+        serverNoContextTakeover: true,
+        serverMaxWindowBits: 15,
+      }
+    : false,
 });
 // Validate and parse WS_HEARTBEAT_MS with proper error handling
 const DEFAULT_HEARTBEAT_MS = 30000;
@@ -163,8 +178,10 @@ const heartbeatIntervalId = setInterval(() => {
     if (client.isAlive === false) {
       try {
         client.terminate();
-      } catch (err) {
-        logger.debug('Error terminating WebSocket client:', err);
+      } catch (terminateErr) {
+        logger.error('Failed to terminate unresponsive WebSocket client during heartbeat', {
+          error: terminateErr,
+        });
       }
       return;
     }
@@ -172,8 +189,17 @@ const heartbeatIntervalId = setInterval(() => {
     client.isAlive = false;
     try {
       client.ping();
-    } catch (err) {
-      logger.debug('Error pinging WebSocket client:', err);
+    } catch (pingErr) {
+      logger.warn('WebSocket ping failed during heartbeat; terminating client', {
+        error: pingErr,
+      });
+      try {
+        client.terminate();
+      } catch (terminateErr) {
+        logger.error('Failed to terminate WebSocket client after ping failure', {
+          error: terminateErr,
+        });
+      }
     }
   });
 }, heartbeatIntervalMs);
@@ -239,7 +265,20 @@ wss.on('connection', async (ws, req) => {
       `Received WebSocket message (type=${messageType}${messageSize !== null ? `, size=${messageSize}` : ''})`,
     );
     // Echo for now (or handle your app logic here)
-    ws.send(JSON.stringify({ type: 'ack', received: true }));
+    // Only attempt to send if the WebSocket is currently OPEN (1 = WebSocket.OPEN in 'ws')
+    if (ws.readyState === 1) {
+      try {
+        ws.send(JSON.stringify({ type: 'ack', received: true }));
+      } catch (sendErr) {
+        logger.warn('Failed to send WebSocket ACK in message handler', {
+          error: sendErr,
+        });
+      }
+    } else {
+      logger.debug?.('Skipping WebSocket ACK send; socket is not OPEN', {
+        readyState: ws.readyState,
+      });
+    }
   });
 
   ws.on('error', (err) => {

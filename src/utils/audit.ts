@@ -7,7 +7,9 @@ const logger = createLogger('audit');
  * logAuditEvent
  * Writes an audit log entry capturing before and after states for sensitive actions.
  *
- * @param actorId ID of the user performing the action
+ * Note: actor_id is set server-side via Hasura insert permissions using X-Hasura-User-Id.
+ * Do not send actor_id from the client to avoid permission mismatches.
+ *
  * @param action The action performed (e.g., updateUser)
  * @param entityType The entity type (e.g., 'user', 'organization')
  * @param entityId The ID of the entity
@@ -15,14 +17,12 @@ const logger = createLogger('audit');
  * @param after The new state of the entity
  */
 export async function logAuditEvent({
-  actorId,
   action,
   entityType,
   entityId,
   before,
   after,
 }: {
-  actorId: string;
   action: string;
   entityType: string;
   entityId: string;
@@ -30,6 +30,14 @@ export async function logAuditEvent({
   after: Record<string, any> | null;
 }) {
   try {
+    const changes =
+      before && after
+        ? Object.fromEntries(
+            Object.keys({ ...before, ...after }).flatMap((key) =>
+              before[key] !== after[key] ? [[key, { before: before[key] ?? null, after: after[key] ?? null }]] : []
+            )
+          )
+        : null;
     await nhost.graphql.request(
       `
       mutation InsertAuditLog($object: audit_log_insert_input!) {
@@ -40,12 +48,12 @@ export async function logAuditEvent({
     `,
       {
         object: {
-          actor_id: actorId,
           action,
           entity_type: entityType,
           entity_id: entityId,
-          before_state: before,
-          after_state: after,
+          metadata: changes ? { change_details: changes } : {},
+          before_snapshot: before,
+          after_snapshot: after,
         },
       }
     );

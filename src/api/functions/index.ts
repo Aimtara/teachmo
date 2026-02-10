@@ -90,6 +90,10 @@ export async function logAuditEvent<T = GenericPayload>(
       entityType,
       entityId,
       metadata,
+      before: payload.before as Record<string, unknown> | undefined,
+      after: payload.after as Record<string, unknown> | undefined,
+      changes: payload.changes as Record<string, unknown> | undefined,
+      containsPii: payload.contains_pii as boolean | undefined,
     });
 
     return { recorded: Boolean(row?.id), id: row?.id };
