@@ -24,6 +24,12 @@ export default function FounderDashboard() {
   return (
     <div className="p-6">
       <h1 className="text-xl font-semibold mb-4">Founder Control Panel</h1>
+      <section aria-labelledby="moment-contract-heading" className="mb-6">
+        <h2 id="moment-contract-heading" className="text-lg font-medium mb-2">Moment Contract</h2>
+        <pre className="text-xs bg-gray-100 p-2 rounded">
+          {JSON.stringify(MomentContract, null, 2)}
+        </pre>
+      </section>
       {/* Launch Gates Section */}
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-2">Launch Gates</h2>
@@ -106,12 +112,8 @@ export default function FounderDashboard() {
           </tbody>
         </table>
       </section>
-      {/* Moment Contract */}
-      <section className="mb-6">
-        <h2 className="text-lg font-medium mb-2">Moment Contract</h2>
-        <pre className="text-xs bg-gray-100 p-2 rounded">
-          {JSON.stringify(MomentContract, null, 2)}
-        </pre>
+      <section aria-labelledby="governance-events-heading">
+        <h2 id="governance-events-heading" className="text-lg font-medium mb-2">Recent Governance Events</h2>
       </section>
       {/* Governance Drift Summary */}
       <section className="mb-6">
@@ -134,9 +136,11 @@ export default function FounderDashboard() {
           <p className="text-sm">No events logged.</p>
         ) : (
           <ul className="text-xs list-disc pl-5 space-y-1">
-            {events.map((event, idx) => (
-              <li key={idx}>{JSON.stringify(event)}</li>
-            ))}
+            {events.map((event, index) => {
+              // All governance events now include timestamps; include index to ensure unique React keys
+              const key = `${event.type}-${event.timestamp}-${index}`;
+              return <li key={key}>{JSON.stringify(event)}</li>;
+            })}
           </ul>
         )}
       </section>

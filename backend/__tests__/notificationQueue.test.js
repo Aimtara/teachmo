@@ -4,6 +4,7 @@ import {
   applyRetryPolicy,
   selectDueMessages,
   rollupDeliverabilityEvents,
+  buildGradesCondition,
 } from '../jobs/notificationQueue.js';
 
 describe('notification queue helpers', () => {
@@ -54,6 +55,41 @@ describe('notification queue helpers', () => {
       opened: 1,
       clicked: 1,
       total: 5,
+    });
+  });
+
+  describe('buildGradesCondition', () => {
+    test('returns empty condition when no grades provided', () => {
+      const result = buildGradesCondition(1, []);
+      expect(result).toEqual({ sql: '', params: [], nextIdx: 1 });
+    });
+
+    test('filters out empty/null grades', () => {
+      const result = buildGradesCondition(1, ['', null, '  ', undefined]);
+      expect(result).toEqual({ sql: '', params: [], nextIdx: 1 });
+    });
+
+    test('normalizes grades to lowercase', () => {
+      const result = buildGradesCondition(1, ['3', 'K', '12']);
+      expect(result.params[0]).toEqual(['3', 'k', '12']);
+      expect(result.nextIdx).toBe(2);
+    });
+
+    test('generates SQL with delimiter-aware regex patterns', () => {
+      const result = buildGradesCondition(1, ['1', '2']);
+      expect(result.sql).toContain('exists (');
+      expect(result.sql).toContain('unnest($1::text[])');
+      expect(result.sql).toContain("lower(coalesce(p.grades, ''))");
+      // Should use boundary patterns to avoid false positives
+      expect(result.sql).toContain('(^|\\D)');
+      expect(result.sql).toContain('(\\D|$)');
+    });
+
+    test('matches various grade formats in SQL pattern', () => {
+      // This test documents the expected behavior - actual matching happens in SQL
+      const result = buildGradesCondition(1, ['1']);
+      expect(result.sql).toContain('grade ');
+      expect(result.sql).toContain('(st|nd|rd|th)');
     });
   });
 });
