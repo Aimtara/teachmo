@@ -211,7 +211,7 @@ wss.on('connection', async (ws, req) => {
     const payload = await verifyWebSocketToken(token);
     if (!payload) {
       logger.warn('WebSocket connection rejected: missing or invalid token');
-      ws.close(1008, 'Unauthorized'); // Policy Violation close code
+      ws.close(1008, token ? 'Invalid authentication token' : 'Missing authentication token'); // Policy Violation close code
       return;
     }
     // Token is valid, store payload for later use if needed
@@ -223,7 +223,7 @@ wss.on('connection', async (ws, req) => {
     logger.warn('WebSocket connection rejected: token verification failed', {
       error: err.message,
     });
-    ws.close(1008, 'Unauthorized');
+    ws.close(1008, 'Authentication verification failed');
     return;
   }
 
@@ -258,6 +258,7 @@ const shutdown = (signal) => {
 
   // Set a timeout to force-terminate clients if graceful close takes too long
   const SHUTDOWN_TIMEOUT_MS = 10000; // 10 seconds
+  const FORCE_EXIT_TIMEOUT_MS = 2000; // 2 seconds after forced server close
   const forceShutdownTimer = setTimeout(() => {
     logger.warn('Shutdown timeout reached, force-terminating remaining WebSocket clients');
     wss.clients.forEach((client) => {
@@ -275,7 +276,7 @@ const shutdown = (signal) => {
     setTimeout(() => {
       logger.error('Forced process exit after shutdown timeout');
       process.exit(1);
-    }, 2000);
+    }, FORCE_EXIT_TIMEOUT_MS);
   }, SHUTDOWN_TIMEOUT_MS);
 
   wss.close(() => {
