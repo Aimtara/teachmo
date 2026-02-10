@@ -83,9 +83,7 @@ async function upsertSsoUser({ email, displayName, organizationId, schoolId, rol
     `insert into public.user_profiles (user_id, role, district_id, school_id, full_name)
      values ($1, $2, $3, $4, $5)
      on conflict (user_id) do update
-     set role = excluded.role,
-         district_id = excluded.district_id,
-         school_id = excluded.school_id,
+     set school_id = excluded.school_id,
          full_name = excluded.full_name,
          updated_at = now()`,
     [userId, role, organizationId, schoolId ?? null, displayName || null]
