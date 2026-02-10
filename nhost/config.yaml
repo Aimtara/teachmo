@@ -1,15 +1,28 @@
 version: 3
 metadata_directory: metadata
-actions:
-  kind: synchronous
-  # Hasura runs in Docker; localhost from there resolves to the container itself.
-  # Use host.docker.internal so action webhooks can reach the local app server.
-  handler_webhook_baseurl: http://host.docker.internal:3000
 migrations_directory: migrations
 seeds_directory: seeds
 
-# Scheduled serverless jobs (upstream execution triggers)
+# Action configuration
+actions:
+  kind: synchronous
+  # Nhost Cloud automatically resolves functions.
+  # Only uncomment the line below for LOCAL development.
+  # handler_webhook_baseurl: http://host.docker.internal:3000
+
+# Hasura Configuration
+hasura:
+  settings:
+    # CRITICAL: Set to "false" for production to prevent data leaks
+    hasura_graphql_dev_mode: "false"
+    hasura_graphql_enable_console: "false"
+    # Logging enabled for observability (Safe)
+    hasura_graphql_enabled_log_types: "startup, http-log, webhook-log, websocket-log, query-log"
+    # Restrict CORS in production (Optional but recommended)
+    # hasura_graphql_cors_domain: "https://app.teachmo.io"
+
+# Scheduled Triggers (Cron Jobs)
 schedule:
   - name: generate_weekly_briefs
-    cron: "0 6 * * 1" # Monday 06:00 UTC
+    cron: "0 6 * * 1" # Monday 6AM UTC
     action: /generate-weekly-briefs
