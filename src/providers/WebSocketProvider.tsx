@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { getWebSocketUrl } from '@/config/websocket';
 import { flushQueue } from '../utils/OfflineMessageQueue';
 import { createLogger } from '@/utils/logger';
+import { nhost } from '@/lib/nhostClient';
 
 const WSContext = createContext<React.MutableRefObject<WebSocket | null> | null>(null);
 const logger = createLogger('websocket');
@@ -18,19 +19,12 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const isUnmounted = useRef(false);
 
   useEffect(() => {
-    const wsUrl = getWebSocketUrl();
-    if (!wsUrl) {
-      logger.info('WebSocket disabled: no valid endpoint configured');
-      return () => undefined;
-    }
-
     const scheduleReconnect = () => {
       if (isUnmounted.current) return;
       if (reconnectTimer.current !== null) return;
       if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
         logger.warn('WebSocket reconnect limit reached; stopping retries', {
           attempts: reconnectAttempts.current,
-          wsUrl,
         });
         return;
       }
@@ -43,24 +37,39 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       }, backoffMs);
     };
 
-    const connect = () => {
+    const connect = async () => {
       if (isUnmounted.current) return;
+
+      // Get access token from Nhost
+      const token = await nhost.auth.getAccessToken();
+      
+      if (!token) {
+        logger.info('WebSocket connection deferred: no access token available');
+        // Schedule a retry in case the user is still logging in
+        scheduleReconnect();
+        return;
+      }
+
+      const wsUrl = getWebSocketUrl(token);
+      if (!wsUrl) {
+        logger.info('WebSocket disabled: no valid endpoint configured');
+        return;
+      }
 
       const socket = new WebSocket(wsUrl);
       ws.current = socket;
 
       const handleOpen = () => {
         reconnectAttempts.current = 0;
-        logger.info('WebSocket connected', { wsUrl });
+        logger.info('WebSocket connected', { wsUrl: wsUrl.split('?')[0] }); // Log URL without token
         flushQueue(socket);
       };
       const handleClose = () => {
-        logger.warn('WebSocket disconnected', { wsUrl });
+        logger.warn('WebSocket disconnected');
         scheduleReconnect();
       };
       const handleError = (event: Event) => {
         logger.warn('WebSocket error', {
-          wsUrl,
           readyState: socket.readyState,
           eventType: event.type,
         });
