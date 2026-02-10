@@ -22,7 +22,9 @@ import { listAlerts } from '../integrations/alerts.js';
 import {
   createSisJob,
   findSisJob,
+  importSisRoster,
   markSisJobComplete,
+  markSisJobFailed,
   recordSisConnection,
   validateSisConfig,
 } from '../integrations/sis.js';
@@ -186,16 +188,27 @@ router.post('/sis/test', async (req, res) => {
 router.post('/sis/:schoolId/sync', async (req, res) => {
   try {
     const schoolId = req.params.schoolId;
-    const { organizationId, triggeredBy } = req.body || {};
+    const { organizationId, triggeredBy, source, roster } = req.body || {};
     const resolvedOrganizationId = organizationId || schoolId;
 
     const job = await createSisJob({
       schoolId,
       organizationId: resolvedOrganizationId,
       triggeredBy: triggeredBy || 'manual',
+      source: source || 'oneroster',
     });
-    res.json({ status: job.status, jobId: job.id });
+
+    let summary = null;
+    if (roster && typeof roster === 'object') {
+      summary = await importSisRoster(job, roster);
+      await markSisJobComplete(job, summary);
+    }
+
+    res.json({ status: summary ? 'completed' : job.status, jobId: job.id, summary });
   } catch (err) {
+    if (err?.job) {
+      await markSisJobFailed(err.job, err.message);
+    }
     res.status(err.status || 400).json({ error: err.message });
   }
 });
@@ -208,15 +221,10 @@ router.get('/sis/jobs/:jobId', async (req, res) => {
       return;
     }
 
-    if (job.status === 'processing') {
-      job = await markSisJobComplete(job, {
-        users: 128,
-        classes: 12,
-        enrollments: 421,
-      });
-    }
-
-    res.json(job);
+    res.json({
+      ...job,
+      summary: job?.metadata?.summary || null,
+    });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }

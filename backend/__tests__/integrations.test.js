@@ -111,8 +111,31 @@ describe('Integration SIS and Google Classroom endpoints', () => {
 
     const statusRes = await request(app).get(`/api/integrations/sis/jobs/${syncRes.body.jobId}`);
     expect(statusRes.status).toBe(200);
-    expect(statusRes.body.status).toBe('completed');
-    expect(statusRes.body.summary).toHaveProperty('users');
+    expect(statusRes.body.status).toBe('processing');
+    expect(statusRes.body.summary).toBeNull();
+  });
+
+
+  test('imports SIS roster payload and returns summary', async () => {
+    const syncRes = await request(app)
+      .post('/api/integrations/sis/11111111-1111-4111-8111-111111111111/sync')
+      .send({
+        organizationId: '22222222-2222-4222-8222-222222222222',
+        roster: {
+          students: [{ externalId: 's-1', firstName: 'Sam', lastName: 'Student', grade: '4' }],
+          teachers: [{ externalId: 't-1', firstName: 'Tia', lastName: 'Teacher', email: 't@school.org' }],
+          classes: [{ externalId: 'c-1', name: 'Math', teacherExternalId: 't-1' }],
+          enrollments: [{ classExternalId: 'c-1', studentExternalId: 's-1' }],
+        },
+      });
+
+    expect(syncRes.status).toBe(200);
+    expect(syncRes.body.status).toBe('completed');
+    expect(syncRes.body.summary).toEqual({ students: 1, teachers: 1, classes: 1, enrollments: 1 });
+
+    const jobRes = await request(app).get(`/api/integrations/sis/jobs/${syncRes.body.jobId}`);
+    expect(jobRes.status).toBe(200);
+    expect(jobRes.body.summary).toEqual({ students: 1, teachers: 1, classes: 1, enrollments: 1 });
   });
 
   test('rate limits Google Classroom syncs', async () => {
