@@ -44,6 +44,16 @@ const server = app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);
 });
 
+// Attach WebSocket Server to the same HTTP server
+const wss = new WebSocketServer({
+  server,
+  path: '/ws',
+  // Limit maximum incoming message size to prevent memory/CPU abuse
+  maxPayload: 1024 * 1024, // 1 MiB
+  // Disable per-message compression to avoid compression-based attacks by default
+  perMessageDeflate: false,
+});
+
 // Configure WebSocket max payload size to mitigate large-frame DoS
 const DEFAULT_WS_MAX_PAYLOAD_BYTES = 1024 * 1024; // 1 MiB
 const envMaxPayload = process.env.WS_MAX_PAYLOAD_BYTES;
@@ -113,6 +123,40 @@ if (envHeartbeat !== undefined) {
 }
 
 const heartbeatIntervalId = setInterval(() => {
+      wss.clients.forEach((client) => {
+        // Terminate clients that are already marked dead or not in a usable state
+        if (
+          client.isAlive === false ||
+          client.readyState === client.CLOSING ||
+          client.readyState === client.CLOSED
+        ) {
+          try {
+            client.terminate();
+          } catch (err) {
+            logger.error('Failed to terminate WebSocket client during heartbeat', err);
+          }
+          return;
+        }
+
+        // Only attempt to ping sockets that are currently open
+        if (client.readyState === client.OPEN) {
+          client.isAlive = false;
+          try {
+            client.ping();
+          } catch (err) {
+            logger.warn('WebSocket heartbeat ping failed, terminating client', err);
+            try {
+              client.terminate();
+            } catch (terminateErr) {
+              logger.error(
+                'Failed to terminate WebSocket client after ping failure',
+                terminateErr
+              );
+            }
+          }
+        }
+      });
+    }, heartbeatIntervalMs);
   wss.clients.forEach((client) => {
     // Only perform heartbeat on sockets that are currently OPEN
     // 1 corresponds to WebSocket.OPEN in the 'ws' library
