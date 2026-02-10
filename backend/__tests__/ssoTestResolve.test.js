@@ -20,6 +20,7 @@
 
 import request from 'supertest';
 import express from 'express';
+import { SignJWT } from 'jose';
 import ssoRouter from '../routes/sso.js';
 import { attachAuthContext } from '../middleware/auth.js';
 
@@ -53,7 +54,6 @@ describe('SSO /test/resolve endpoint security', () => {
   });
 
   test('rejects authenticated non-admin users', async () => {
-    const { SignJWT } = await import('jose');
     const token = await new SignJWT({
       'https://hasura.io/jwt/claims': {
         'x-hasura-user-id': 'user_parent_123',
@@ -81,7 +81,6 @@ describe('SSO /test/resolve endpoint security', () => {
   });
 
   test('allows authenticated admin users', async () => {
-    const { SignJWT } = await import('jose');
     const token = await new SignJWT({
       'https://hasura.io/jwt/claims': {
         'x-hasura-user-id': 'user_admin_123',
@@ -104,8 +103,11 @@ describe('SSO /test/resolve endpoint security', () => {
         provider: 'saml'
       });
 
-    // The endpoint should return 400 or 200 depending on the SSO configuration
-    // The important part is that it's NOT 401 or 403
+    // The endpoint accepts multiple status codes because without mocking the SSO provider:
+    // - 400: Invalid request (e.g., missing SSO configuration for the organization)
+    // - 200: Success (if SSO configuration exists)
+    // - 500: Internal error (e.g., database connection issues)
+    // The security test verifies admin authentication passes (NOT 401/403).
     expect([400, 200, 500]).toContain(response.status);
   });
 });
