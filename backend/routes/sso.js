@@ -1,7 +1,7 @@
 /* eslint-env node */
 import { Router } from 'express';
 import passport from 'passport';
-import { Strategy as SamlStrategy } from 'passport-saml';
+import { Strategy as SamlStrategy } from '@node-saml/passport-saml';
 import { Strategy as OpenIDConnectStrategy } from 'passport-openidconnect';
 import rateLimit from 'express-rate-limit';
 import { query } from '../db.js';
@@ -139,7 +139,26 @@ async function ensureStrategy({ provider, organizationId, baseUrl }) {
 
   const settings = await loadSsoSettings({ provider, organizationId });
   if (!settings) {
-    throw new Error('SSO provider not configured');
+    // This is an expected client-side error (unknown/misconfigured SSO provider),
+    // so attach HTTP status metadata and avoid treating it as a 500 internally.
+    const error = new Error('SSO provider not configured');
+    error.name = 'SsoProviderNotConfiguredError';
+    // Many Express handlers look at `statusCode` or `status` on the error.
+    error.statusCode = 404;
+    error.status = 404;
+    // Mark as safe/expected so upstream logging can avoid error-level logs.
+    error.expose = true;
+    error.isExpected = true;
+
+    logger.warn(
+      {
+        provider,
+        organizationId,
+      },
+      'SSO provider requested but not configured'
+    );
+
+    throw error;
   }
 
   if (provider === 'saml') {

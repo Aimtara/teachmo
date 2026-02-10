@@ -6,13 +6,20 @@ const MAX_EXPORT_LIMIT = 5000;
 function escapeCsv(value) {
   if (value === null || value === undefined) return '';
   const str = String(value);
-  if (/^[=+\-@]/.test(str)) {
-    return `'${str.replace(/"/g, '""')}"`;
+  const needsExcelEscape = /^[=+\-@]/.test(str);
+  const needsCsvQuote = /[",\n]/.test(str) || needsExcelEscape;
+
+  let escaped = str.replace(/"/g, '""');
+
+  if (needsExcelEscape) {
+    escaped = `'${escaped}`;
   }
-  if (/[",\n]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
+
+  if (needsCsvQuote) {
+    return `"${escaped}"`;
   }
-  return str;
+
+  return escaped;
 }
 
 export async function buildAuditExportCsv({
@@ -24,9 +31,13 @@ export async function buildAuditExportCsv({
 }) {
   const effectiveLimit = Math.min(Math.max(Number(limit) || 500, 1), MAX_EXPORT_LIMIT);
 
-  let where = 'organization_id = $1 and school_id is not distinct from $2';
-  const params = [organizationId, schoolId ?? null];
+  let where = 'organization_id = $1';
+  const params = [organizationId];
 
+  if (schoolId !== null && schoolId !== undefined) {
+    params.push(schoolId);
+    where += ` and school_id = $${params.length}`;
+  }
   if (search) {
     params.push(`%${search}%`);
     params.push(`%${search}%`);
