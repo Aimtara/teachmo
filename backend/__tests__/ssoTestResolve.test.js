@@ -24,6 +24,11 @@ import { SignJWT } from 'jose';
 import ssoRouter from '../routes/sso.js';
 import { attachAuthContext } from '../middleware/auth.js';
 import rateLimit from 'express-rate-limit';
+import { query } from '../db.js';
+
+jest.mock('../db.js', () => ({
+  query: jest.fn(),
+}));
 
 function makeApp() {
   const app = express();
@@ -44,6 +49,7 @@ function makeApp() {
 
 describe('SSO /test/resolve endpoint security', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     process.env.NODE_ENV = 'test';
     process.env.AUTH_MODE = 'mock';
     process.env.AUTH_MOCK_SECRET = 'test-secret-for-sso';
@@ -103,6 +109,22 @@ describe('SSO /test/resolve endpoint security', () => {
       .setExpirationTime('15m')
       .sign(new TextEncoder().encode(process.env.AUTH_MOCK_SECRET));
 
+    // Mock resolveOrganizationId query (when organizationId is provided directly, no query is made)
+    // Mock loadSsoSettings query to return enabled SSO configuration
+    query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'sso-config-1',
+          provider: 'saml',
+          client_id: 'test-client-id',
+          client_secret: 'test-secret',
+          issuer: 'https://idp.example.com',
+          metadata: { entryPoint: 'https://idp.example.com/saml' },
+          is_enabled: true,
+        },
+      ],
+    });
+
     const app = makeApp();
     const response = await request(app)
       .post('/api/sso/test/resolve')
@@ -113,11 +135,13 @@ describe('SSO /test/resolve endpoint security', () => {
         provider: 'saml'
       });
 
-    // The endpoint accepts multiple status codes because without mocking the SSO provider:
-    // - 400: Invalid request (e.g., missing SSO configuration for the organization)
-    // - 200: Success (if SSO configuration exists)
-    // - 500: Internal error (e.g., database connection issues)
-    // The security test verifies admin authentication passes (NOT 401/403).
-    expect([400, 200, 500]).toContain(response.status);
+    // With DB mocked, we should get a deterministic 200 response
+    expect(response.status).toBe(200);
+    expect(response.status).not.toBe(401);
+    expect(response.status).not.toBe(403);
+    
+    // Verify response body shape
+    expect(response.body).toHaveProperty('organizationId', 'test-org-123');
+    expect(response.body).toHaveProperty('enabled', true);
   });
 });
