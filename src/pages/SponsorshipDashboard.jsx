@@ -78,7 +78,7 @@ export default function SponsorshipDashboard() {
       {sponsorships.length === 0 ? (
         <Card className="border-2 border-dashed bg-slate-50">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-4 text-4xl">🤝</div>
+            <div className="mb-4 text-4xl" aria-hidden="true">🤝</div>
             <h3 className="text-lg font-medium text-slate-900">No active sponsorships</h3>
             <p className="mt-2 max-w-sm text-sm text-slate-500">
               Connect with local businesses and national partners to subsidize Teachmo for your families.
