@@ -42,6 +42,7 @@ import { executionBoardRouter } from './routes/executionBoard.js';
 import commandCenterRouter from './routes/commandCenter.js';
 import ssoRouter from './routes/sso.js';
 import auditExportRouter from './routes/auditExport.js';
+import publicPartnersRouter from './routes/publicPartners.js';
 
 // Load environment variables
 dotenv.config();
@@ -121,6 +122,7 @@ app.use('/api/ops', opsRouter);
 app.use('/api/execution-board', executionBoardRouter);
 app.use('/api/command-center', commandCenterRouter);
 app.use('/api/sso', ssoRouter);
+app.use('/api/public', publicPartnersRouter);
 app.use('/api/admin', auditExportRouter);
 
 app.get('/api/metrics', (req, res) => {
