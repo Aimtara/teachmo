@@ -112,7 +112,8 @@ if (envHeartbeat !== undefined) {
 const heartbeatIntervalId = setInterval(() => {
   wss.clients.forEach((client) => {
     // Only perform heartbeat on sockets that are currently OPEN
-    if (client.readyState !== client.OPEN) {
+    // 1 corresponds to WebSocket.OPEN in the 'ws' library
+    if (client.readyState !== 1) {
       return;
     }
 
