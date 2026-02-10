@@ -42,7 +42,14 @@ const server = app.listen(PORT, () => {
 });
 
 // Attach WebSocket Server to the same HTTP server
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({
+  server,
+  path: '/ws',
+  // Limit maximum incoming message size to prevent memory/CPU abuse
+  maxPayload: 1024 * 1024, // 1 MiB
+  // Disable per-message compression to avoid compression-based attacks by default
+  perMessageDeflate: false,
+});
 
 // Validate and parse WS_HEARTBEAT_MS with proper error handling
 const DEFAULT_HEARTBEAT_MS = 30000;
