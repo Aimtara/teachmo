@@ -8,4 +8,4 @@ version = "v2.36.1"
 version = "0.26.0"
 
 [functions]
-node = "18"
+node = "20"
