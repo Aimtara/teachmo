@@ -6,6 +6,7 @@ import { requireTenant } from '../middleware/tenant.js';
 import { enqueueMessage } from '../jobs/notificationQueue.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { auditEvent } from '../security/audit.js';
+import { checkCampaignLimits } from '../utils/campaignLimits.js';
 
 const router = Router();
 
@@ -43,22 +44,45 @@ router.get('/notifications/announcements', requirePermission('view', 'notificati
 router.post('/notifications/announcements', requirePermission('create', 'notifications'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const { channel, title, body, segment, send_at, payload } = req.body || {};
+  const category = req.body?.category || 'general';
+  const allowedCategories = ['general', 'fundraising', 'emergency'];
+  const tenantId = schoolId || organizationId;
   if (!channel || !['email', 'sms', 'push'].includes(channel)) {
     return res.status(400).json({ error: 'channel is required' });
   }
   if (!body) {
     return res.status(400).json({ error: 'body is required' });
   }
-  if (!segment || (!segment.roles && !segment.user_ids && !segment.school_ids)) {
+  if (!allowedCategories.includes(category)) {
+    return res.status(400).json({ error: 'invalid category' });
+  }
+  const hasSegmentFilters = Boolean(
+    segment && (
+      (Array.isArray(segment.roles) && segment.roles.length) ||
+      (Array.isArray(segment.user_ids) && segment.user_ids.length) ||
+      (Array.isArray(segment.school_ids) && segment.school_ids.length) ||
+      (Array.isArray(segment.grades) && segment.grades.length) ||
+      (Array.isArray(segment.grade_levels) && segment.grade_levels.length)
+    )
+  );
+  if (!hasSegmentFilters) {
     return res.status(400).json({ error: 'segment is required' });
+  }
+
+  const limitCheck = await checkCampaignLimits(tenantId, category);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: 'Campaign Limit Exceeded',
+      detail: limitCheck.reason
+    });
   }
 
   const sendAt = send_at ? new Date(send_at) : null;
   const status = sendAt && sendAt.getTime() > Date.now() ? 'scheduled' : 'pending';
   const result = await query(
     `insert into public.notification_messages
-     (organization_id, school_id, channel, title, body, payload, segment, send_at, status, created_by)
-     values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10)
+     (organization_id, school_id, channel, title, body, category, payload, segment, send_at, status, created_by)
+     values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, $10, $11)
      returning *`,
     [
       organizationId,
@@ -66,6 +90,7 @@ router.post('/notifications/announcements', requirePermission('create', 'notific
       channel,
       title || null,
       body,
+      category,
       JSON.stringify(payload || {}),
       JSON.stringify(segment || {}),
       sendAt ? sendAt.toISOString() : null,
@@ -81,7 +106,7 @@ router.post('/notifications/announcements', requirePermission('create', 'notific
     await auditEvent(req, {
       eventType: 'announcement_created',
       severity: 'info',
-      meta: { messageId: message.id, channel, sendAt: send_at || null },
+      meta: { messageId: message.id, channel, category, sendAt: send_at || null },
     });
   }
   res.json({ announcement: message });

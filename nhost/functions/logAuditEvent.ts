@@ -6,9 +6,9 @@ const BodySchema = z.object({
   entity_type: z.string().min(1).optional(),
   entity_id: z.string().uuid().nullable().optional(),
   metadata: z.record(z.any()).optional(),
-  before: z.record(z.any()).optional(),
-  after: z.record(z.any()).optional(),
-  changes: z.record(z.any()).optional(),
+  before: z.record(z.any()).nullable().optional(),
+  after: z.record(z.any()).nullable().optional(),
+  changes: z.record(z.any()).nullable().optional(),
 
   // Accept legacy/UI shapes
   resource_type: z.string().min(1).optional(),
