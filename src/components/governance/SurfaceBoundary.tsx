@@ -1,6 +1,6 @@
 import React from 'react';
 import { getCurrentMoment, MomentContract } from '@/governance/momentContract';
-import { SurfaceType } from '@/governance/surfaces';
+import type { SurfaceType } from '@/governance/surfaces';
 import { logGovernanceEvent } from '@/governance/events';
 
 interface SurfaceBoundaryProps {
