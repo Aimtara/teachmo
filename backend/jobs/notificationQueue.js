@@ -123,7 +123,7 @@ function validateTenantChannel(settings = {}, channel) {
 
 
 
-function buildGradesCondition(startIdx, grades) {
+export function buildGradesCondition(startIdx, grades) {
   if (!grades.length) return { sql: '', params: [], nextIdx: startIdx };
   const normalized = grades
     .map((grade) => String(grade || '').trim().toLowerCase())
@@ -132,13 +132,13 @@ function buildGradesCondition(startIdx, grades) {
 
   // user_profiles.grades is free-form text in this codebase, so match common formats like
   // "3", "grade 3", "3rd", and comma-delimited values using case-insensitive checks.
+  // Use delimiter-aware regular expressions so that grade "1" does not match "10", "11", etc.
   const sql = `exists (
     select 1
     from unnest($${startIdx}::text[]) as g
-    where lower(coalesce(p.grades, '')) like '%' || g || '%'
-       or lower(coalesce(p.grades, '')) like '%grade ' || g || '%'
-       or lower(coalesce(p.grades, '')) like '%' || g || 'rd%'
-       or lower(coalesce(p.grades, '')) like '%' || g || 'th%'
+    where lower(coalesce(p.grades, '')) ~ ('(^|\\D)' || g || '(\\D|$)')
+       or lower(coalesce(p.grades, '')) ~ ('(^|\\W)grade ' || g || '(\\W|$)')
+       or lower(coalesce(p.grades, '')) ~ ('(^|\\D)' || g || '(st|nd|rd|th)(\\D|$)')
   )`;
 
   return { sql, params: [normalized], nextIdx: startIdx + 1 };
