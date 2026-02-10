@@ -119,7 +119,6 @@ describe('SSO /test/resolve endpoint security', () => {
       .setExpirationTime('15m')
       .sign(new TextEncoder().encode(process.env.AUTH_MOCK_SECRET));
 
-    // Mock resolveOrganizationId query (when organizationId is provided directly, no query is made)
     // Mock loadSsoSettings query to return enabled SSO configuration
     query.mockResolvedValueOnce({
       rows: [
@@ -145,9 +144,9 @@ describe('SSO /test/resolve endpoint security', () => {
         provider: 'saml'
       });
 
-    // With DB mocked, we should get a deterministic 200 response
+    // Assert deterministic success response (not 401/403 which would indicate auth failure)
     expect(response.status).toBe(200);
-    
+
     // Verify response body shape
     expect(response.body).toHaveProperty('organizationId', 'test-org-123');
     expect(response.body).toHaveProperty('enabled', true);

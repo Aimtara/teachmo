@@ -61,10 +61,20 @@ export function resolveWebSocketUrl(
   return null;
 }
 
-export function getWebSocketUrl(): string | null {
+export function getWebSocketUrl(token?: string | null): string | null {
   const location = typeof window !== 'undefined'
     ? { protocol: window.location.protocol, host: window.location.host }
     : undefined;
 
-  return resolveWebSocketUrl(import.meta.env, { location });
+  const baseUrl = resolveWebSocketUrl(import.meta.env, { location });
+  
+  if (!baseUrl) return null;
+  
+  // Append token as query parameter if provided
+  if (token) {
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}token=${encodeURIComponent(token)}`;
+  }
+  
+  return baseUrl;
 }
