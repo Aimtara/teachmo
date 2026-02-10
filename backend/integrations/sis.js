@@ -34,8 +34,8 @@ export function validateSisConfig(config = {}) {
   if (!normalized.baseUrl) missing.push('baseUrl');
   if (!normalized.clientId) missing.push('clientId');
   if (!normalized.clientSecret) missing.push('clientSecret');
-  if (!normalized.schoolId) missing.push('schoolId');
-  if (!normalized.organizationId) missing.push('organizationId');
+  // schoolId and organizationId are optional for validation to remain
+  // compatible with existing clients that only send base credentials.
 
   if (missing.length) {
     const error = new Error(`Missing required fields: ${missing.join(', ')}`);
@@ -49,6 +49,8 @@ export function validateSisConfig(config = {}) {
 export async function recordSisConnection(config = {}) {
   const normalized = normalizeConfig(config);
 
+  // Store only masked secret in config. Full secret storage requires KMS/Vault
+  // implementation in Phase 3. For now, avoid persisting raw credentials.
   const result = await query(
     `INSERT INTO public.directory_sources
       (district_id, school_id, name, source_type, config, is_enabled, last_run_at)
@@ -62,8 +64,8 @@ export async function recordSisConnection(config = {}) {
       JSON.stringify({
         baseUrl: normalized.baseUrl,
         clientId: normalized.clientId,
-        clientSecret: encryptSecret(normalized.clientSecret),
         clientSecretMasked: maskSecret(normalized.clientSecret),
+        // Note: Do not persist clientSecret until encryption is implemented
       }),
     ],
   );
@@ -71,7 +73,7 @@ export async function recordSisConnection(config = {}) {
   return result.rows[0] || null;
 }
 
-export async function createSisJob({ schoolId, organizationId, triggeredBy = 'manual' }) {
+export async function createSisJob({ schoolId, organizationId, triggeredBy = 'manual', source = 'oneroster' }) {
   const orgId = organizationId || null;
   if (!orgId) {
     const error = new Error('organizationId is required');
@@ -82,9 +84,9 @@ export async function createSisJob({ schoolId, organizationId, triggeredBy = 'ma
   const result = await query(
     `INSERT INTO public.sis_import_jobs
       (organization_id, school_id, roster_type, source, status, metadata, started_at)
-     VALUES ($1, $2, 'full', 'oneroster', 'processing', $3::jsonb, NOW())
+     VALUES ($1, $2, 'full', $3, 'processing', $4::jsonb, NOW())
      RETURNING id, organization_id, school_id, status, source, created_at, updated_at`,
-    [orgId, schoolId || null, JSON.stringify({ triggeredBy })],
+    [orgId, schoolId || null, source, JSON.stringify({ triggeredBy })],
   );
 
   return result.rows[0] || null;

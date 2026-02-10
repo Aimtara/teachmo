@@ -1,25 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useTenant } from '@/contexts/TenantContext';
-import { apiClient } from '@/services/core/client';
-
-export default function SponsorshipDashboard() {
-  const { organizationId } = useTenant();
-
-  const { data: sponsorships = [], isLoading } = useQuery({
-    queryKey: ['sponsorships', organizationId],
-    queryFn: async () => {
-      const res = await fetch(`/api/partners/sponsorships?org=${encodeURIComponent(organizationId)}`);
-      if (!res.ok) {
-        throw new Error('Failed to load sponsorships');
-      }
-      const data = await res.json();
-      return data?.results || [];
-    },
-    enabled: Boolean(organizationId),
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SponsorshipPartner } from '@/api/entities';
@@ -51,15 +31,6 @@ export default function SponsorshipDashboard() {
       </div>
     );
   }
-
-  return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Sponsorships & Grants</h1>
-          <p className="text-slate-600">Manage corporate partners funding your district initiatives.</p>
-        </div>
-        <Button>Find Sponsors</Button>
 
   if (isError) {
     return (
