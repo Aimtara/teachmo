@@ -1,5 +1,5 @@
-import { Navigate } from 'react-router-dom';
+import UnifiedDiscover from '@/pages/UnifiedDiscover';
 
 export default function UnifiedExplore() {
-  return <Navigate to="/discover" replace />;
+  return <UnifiedDiscover />;
 }

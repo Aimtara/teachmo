@@ -58,4 +58,8 @@ export default function UnifiedDiscover() {
       </div>
     </div>
   );
+import Discover from '@/pages/Discover';
+
+export default function UnifiedDiscover() {
+  return <Discover />;
 }
