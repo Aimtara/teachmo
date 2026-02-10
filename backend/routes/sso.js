@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { query } from '../db.js';
 import { createLogger } from '../utils/logger.js';
 import { issueSsoJwt } from '../utils/ssoJwt.js';
+import { attachAuthContext, requireAdmin } from '../middleware/auth.js';
 import {
   buildOidcConfig,
   buildSamlConfig,
@@ -345,7 +346,7 @@ router.get('/:provider/metadata', async (req, res) => {
   }
 });
 
-router.post('/test/resolve', async (req, res) => {
+router.post('/test/resolve', ssoRateLimiter, attachAuthContext, requireAdmin, async (req, res) => {
   const { email, organizationId, provider } = req.body || {};
   const resolvedOrg = await resolveOrganizationId({ organizationId, email });
   const settings = await loadSsoSettings({ provider, organizationId: resolvedOrg });
