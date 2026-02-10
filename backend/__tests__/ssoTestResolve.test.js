@@ -23,12 +23,22 @@ import express from 'express';
 import { SignJWT } from 'jose';
 import ssoRouter from '../routes/sso.js';
 import { attachAuthContext } from '../middleware/auth.js';
+import rateLimit from 'express-rate-limit';
 
 function makeApp() {
   const app = express();
   app.use(express.json());
   app.use(attachAuthContext);
-  app.use('/api/sso', ssoRouter);
+
+  // Apply rate limiting to SSO routes to prevent abuse of sensitive resolution endpoint
+  const ssoLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use('/api/sso', ssoLimiter, ssoRouter);
   return app;
 }
 
