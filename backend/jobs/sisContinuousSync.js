@@ -57,8 +57,12 @@ async function runSisContinuousSyncCycle() {
 }
 
 export function startSisContinuousSyncScheduler(intervalMs = DEFAULT_INTERVAL_MS) {
-  const enabled = String(process.env.SIS_CONTINUOUS_SYNC_ENABLED || 'true').toLowerCase() !== 'false';
-  if (!enabled) return null;
+  // Default to disabled - explicit opt-in required via env var
+  const enabled = String(process.env.SIS_CONTINUOUS_SYNC_ENABLED || 'false').toLowerCase() === 'true';
+  if (!enabled) {
+    logger.info('SIS continuous sync scheduler is disabled. Set SIS_CONTINUOUS_SYNC_ENABLED=true to enable.');
+    return null;
+  }
 
   const timer = setInterval(() => {
     runSisContinuousSyncCycle().catch((error) => {
@@ -66,6 +70,7 @@ export function startSisContinuousSyncScheduler(intervalMs = DEFAULT_INTERVAL_MS
     });
   }, intervalMs);
 
+  logger.info('SIS continuous sync scheduler started', { intervalMs });
   return timer;
 }
 

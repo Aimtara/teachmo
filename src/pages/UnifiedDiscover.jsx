@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GlobalSearch from '@/components/shared/GlobalSearch';
 import RecommendationsTab from '@/components/discover/RecommendationsTab';
@@ -8,15 +7,13 @@ import LibraryTab from '@/components/discover/LibraryTab';
 import ShortsDiscoverTab from '@/components/discover/ShortsDiscoverTab';
 
 export default function UnifiedDiscover() {
-  const [activeTab, setActiveTab] = useState('for-you');
-
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-0">
-      <div className="sticky top-0 z-30 space-y-3 border-b bg-white px-4 py-3">
-        <h1 className="text-xl font-bold text-slate-900">Discover</h1>
-        <GlobalSearch placeholder="Try 'Math games' or 'Weekend events'..." />
+      <Tabs defaultValue="for-you" className="w-full">
+        <div className="sticky top-0 z-30 space-y-3 border-b bg-white px-4 py-3">
+          <h1 className="text-xl font-bold text-slate-900">Discover</h1>
+          <GlobalSearch placeholder="Try 'Math games' or 'Weekend events'..." />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="no-scrollbar w-full justify-start gap-2 overflow-x-auto bg-transparent p-0">
             <TabsTrigger value="for-you" className="rounded-full border px-4 data-[state=active]:bg-slate-900 data-[state=active]:text-white">
               For You
@@ -34,11 +31,9 @@ export default function UnifiedDiscover() {
               Shorts
             </TabsTrigger>
           </TabsList>
-        </Tabs>
-      </div>
+        </div>
 
-      <div className="mx-auto max-w-7xl space-y-6 p-4">
-        <Tabs value={activeTab} className="w-full">
+        <div className="mx-auto max-w-7xl space-y-6 p-4">
           <TabsContent value="for-you" className="mt-0">
             <RecommendationsTab />
           </TabsContent>
@@ -54,12 +49,8 @@ export default function UnifiedDiscover() {
           <TabsContent value="shorts" className="mt-0">
             <ShortsDiscoverTab />
           </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
     </div>
   );
-import Discover from '@/pages/Discover';
-
-export default function UnifiedDiscover() {
-  return <Discover />;
 }
