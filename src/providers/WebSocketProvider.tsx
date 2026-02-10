@@ -17,6 +17,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const reconnectTimer = useRef<number | null>(null);
   const reconnectAttempts = useRef(0);
   const isUnmounted = useRef(false);
+  const currentToken = useRef<string | null>(null);
 
   useEffect(() => {
     const scheduleReconnect = () => {
@@ -49,6 +50,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         scheduleReconnect();
         return;
       }
+
+      // Store the current token to detect auth changes
+      currentToken.current = token;
 
       const wsUrl = getWebSocketUrl(token);
       if (!wsUrl) {
@@ -83,17 +87,41 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       socket.addEventListener('error', handleError);
     };
 
+    const disconnect = () => {
+      if (reconnectTimer.current !== null) {
+        window.clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = null;
+      }
+      if (ws.current) {
+        ws.current.close();
+        ws.current = null;
+      }
+      currentToken.current = null;
+      reconnectAttempts.current = 0;
+    };
+
+    // Listen for auth state changes
+    const unsubscribe = nhost.auth.onAuthStateChanged(async (_, session) => {
+      const newToken = session?.accessToken || null;
+      
+      // If token changed (login, logout, or refresh), reconnect
+      if (newToken !== currentToken.current) {
+        logger.info('Auth state changed, reconnecting WebSocket');
+        disconnect();
+        
+        // Only reconnect if there's a valid token
+        if (newToken) {
+          connect();
+        }
+      }
+    });
+
     connect();
 
     return () => {
       isUnmounted.current = true;
-      if (reconnectTimer.current !== null) {
-        window.clearTimeout(reconnectTimer.current);
-      }
-      if (ws.current) {
-        ws.current.close();
-      }
-      ws.current = null;
+      unsubscribe();
+      disconnect();
     };
   }, []);
 
