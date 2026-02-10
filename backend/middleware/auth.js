@@ -9,8 +9,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { resolveRoleScopes } from '../rbac.js';
 import { auditEvent } from '../security/audit.js';
-
-const textEncoder = new TextEncoder();
+import { verifyJWT } from '../security/jwt.js';
 
 function getClaim(obj, key) {
   if (!obj) return null;
@@ -37,23 +36,10 @@ function normalizeScopes(input) {
 const envLower = (process.env.NODE_ENV || 'development').toLowerCase();
 const isProd = envLower === 'production';
 
-function isMockAuthMode() {
-  const mode = String(process.env.AUTH_MODE || '').toLowerCase();
-  return mode === 'mock' && String(process.env.NODE_ENV || '').toLowerCase() === 'test';
-}
-
-// JWT verification configuration
-const jwksUrl = process.env.AUTH_JWKS_URL || process.env.NHOST_JWKS_URL || '';
+// LTI-specific JWT verification configuration
 const ltiJwksUrl = process.env.LTI_JWKS_URL || '';
 const ltiIssuer = process.env.LTI_ISSUER || undefined;
 const ltiAudience = process.env.LTI_AUDIENCE || undefined;
-const issuer = process.env.AUTH_ISSUER || process.env.NHOST_JWT_ISSUER || undefined;
-const audience = process.env.AUTH_AUDIENCE || process.env.NHOST_JWT_AUDIENCE || undefined;
-
-let jwks = null;
-if (jwksUrl) {
-  jwks = createRemoteJWKSet(new URL(jwksUrl));
-}
 
 let ltiJwks = null;
 if (ltiJwksUrl) {
@@ -61,58 +47,11 @@ if (ltiJwksUrl) {
 }
 
 async function verifyBearerToken(token) {
-  if (!token) return null;
-
-  // Test-only mock verification: HS256 tokens signed with AUTH_MOCK_SECRET.
-  if (isMockAuthMode()) {
-    const secret = String(process.env.AUTH_MOCK_SECRET || '').trim();
-    if (!secret) throw new Error('AUTH_MOCK_SECRET is required when AUTH_MODE=mock');
-    const { payload } = await jwtVerify(token, textEncoder.encode(secret), {
-      // no issuer/audience constraints in mock mode
-      algorithms: ['HS256'],
-    });
-    return payload;
-  }
-
-  const ssoSecret = String(process.env.SSO_JWT_SECRET || '').trim();
-  if (ssoSecret) {
-    try {
-      const ssoIssuer =
-        (process.env.SSO_JWT_ISSUER || process.env.AUTH_ISSUER || '').trim() || 'teachmo-sso';
-      const ssoAudience =
-        (process.env.SSO_JWT_AUDIENCE || process.env.AUTH_AUDIENCE || '').trim() || 'teachmo-api';
-      const { payload } = await jwtVerify(token, textEncoder.encode(ssoSecret), {
-        issuer: ssoIssuer,
-        audience: ssoAudience,
-        algorithms: ['HS256'],
-      });
-      return payload;
-    } catch {
-      // fall through to JWKS verification
-    }
-  }
-  if (!jwks) {
-    // In production, missing JWKS is a hard failure.
-    if (isProd) {
-      throw new Error('AUTH_JWKS_URL is required in production to verify JWTs');
-    }
-
-    // In non-prod you may opt-in to insecure decode for local testing.
-    const allowInsecure = String(process.env.ALLOW_INSECURE_JWT_DECODE || '').toLowerCase() === 'true';
-    if (!allowInsecure) return null;
-
-    // Minimal, *insecure* decode (dev-only) — does NOT validate signature.
-    const payloadB64 = token.split('.')[1];
-    if (!payloadB64) return null;
-    const json = Buffer.from(payloadB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
-    return JSON.parse(json);
-  }
-
-  const { payload } = await jwtVerify(token, jwks, {
-    issuer,
-    audience,
+  // Use shared JWT verifier with SSO fallback and insecure dev decode enabled
+  return verifyJWT(token, {
+    allowSSOFallback: true,
+    allowInsecureDev: true,
   });
-  return payload;
 }
 
 function getLtiRoles(payload) {
@@ -285,15 +224,6 @@ export function requireSystemAdmin(req, res, next) {
   next();
 }
 
-let orchestratorJwks = null;
-
-function getRemoteJwks() {
-  const url = process.env.AUTH_JWKS_URL;
-  if (!url) return null;
-  if (!orchestratorJwks) orchestratorJwks = createRemoteJWKSet(new URL(url));
-  return orchestratorJwks;
-}
-
 function extractUserId(payload) {
   const hasura = payload?.['https://hasura.io/jwt/claims'];
   const uid = hasura?.['x-hasura-user-id'] || payload?.sub || payload?.userId;
@@ -321,17 +251,13 @@ export async function requireAuthOrService(req, res, next) {
     return res.status(401).json({ error: 'missing_bearer_token' });
   }
 
-  const jwksSet = getRemoteJwks();
-  if (!jwksSet) return res.status(500).json({ error: 'AUTH_JWKS_URL_not_configured' });
-
   try {
-    const issuer = process.env.AUTH_JWT_ISSUER || undefined;
-    const audience = process.env.AUTH_JWT_AUDIENCE || undefined;
-
-    const { payload } = await jwtVerify(token, jwksSet, {
-      issuer,
-      audience
-    });
+    // Use shared JWT verifier (no SSO or insecure fallback for this path)
+    const payload = await verifyJWT(token);
+    
+    if (!payload) {
+      return res.status(401).json({ error: 'invalid_token' });
+    }
 
     const userId = extractUserId(payload);
     if (!userId) return res.status(401).json({ error: 'token_missing_user_id' });
