@@ -1,6 +1,7 @@
 /**
  * Declares the valid UI surfaces in Teachmo.
- * Any component that renders outside of these surfaces will be blocked by governance.
+ * Governance and enforcement mechanisms (e.g., SurfaceBoundary) use these
+ * surface identifiers to determine where components are allowed to render.
  */
 export type SurfaceType =
   | 'PRIMARY_CARD'
