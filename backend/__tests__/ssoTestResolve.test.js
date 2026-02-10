@@ -107,21 +107,6 @@ describe('SSO /test/resolve endpoint security', () => {
   });
 
   test('allows authenticated admin users', async () => {
-    // Mock loadSsoSettings query (returns enabled SSO configuration)
-    query.mockResolvedValueOnce({
-      rows: [
-        {
-          id: 'sso_config_1',
-          provider: 'saml',
-          client_id: 'test-client-id',
-          client_secret: 'test-client-secret',
-          issuer: 'https://test-idp.example.com',
-          metadata: {},
-          is_enabled: true,
-        },
-      ],
-    });
-
     const token = await new SignJWT({
       'https://hasura.io/jwt/claims': {
         'x-hasura-user-id': 'user_admin_123',
@@ -134,7 +119,6 @@ describe('SSO /test/resolve endpoint security', () => {
       .setExpirationTime('15m')
       .sign(new TextEncoder().encode(process.env.AUTH_MOCK_SECRET));
 
-    // Mock resolveOrganizationId query (when organizationId is provided directly, no query is made)
     // Mock loadSsoSettings query to return enabled SSO configuration
     query.mockResolvedValueOnce({
       rows: [
@@ -160,10 +144,8 @@ describe('SSO /test/resolve endpoint security', () => {
         provider: 'saml'
       });
 
-    // Assert deterministic success response
+    // Assert deterministic success response (not 401/403 which would indicate auth failure)
     expect(response.status).toBe(200);
-    expect(response.status).not.toBe(401);
-    expect(response.status).not.toBe(403);
 
     // Verify response body shape
     expect(response.body).toHaveProperty('organizationId', 'test-org-123');
