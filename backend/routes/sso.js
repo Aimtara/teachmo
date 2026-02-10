@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { query } from '../db.js';
 import { createLogger } from '../utils/logger.js';
 import { issueSsoJwt } from '../utils/ssoJwt.js';
+import { attachAuthContext, requireAdmin } from '../middleware/auth.js';
 import {
   buildOidcConfig,
   buildSamlConfig,
@@ -83,9 +84,7 @@ async function upsertSsoUser({ email, displayName, organizationId, schoolId, rol
     `insert into public.user_profiles (user_id, role, district_id, school_id, full_name)
      values ($1, $2, $3, $4, $5)
      on conflict (user_id) do update
-     set role = excluded.role,
-         district_id = excluded.district_id,
-         school_id = excluded.school_id,
+     set school_id = excluded.school_id,
          full_name = excluded.full_name,
          updated_at = now()`,
     [userId, role, organizationId, schoolId ?? null, displayName || null]
@@ -110,7 +109,23 @@ async function finalizeSsoLogin({ req, profile, provider }) {
   const { organizationId, schoolId } = req.ssoContext || {};
   if (!organizationId) throw new Error('Missing organization scope for SSO');
 
-  const role = req.ssoContext?.defaultRole || 'parent';
+  // Derive role server-side: reuse existing profile role if present, otherwise default.
+  let role = 'parent';
+  try {
+    const existingProfile = await query(
+      `select up.role
+       from public.user_profiles up
+       join auth.users u on u.id = up.user_id
+       where u.email = $1
+       limit 1`,
+      [email]
+    );
+    if (existingProfile.rows?.[0]?.role) {
+      role = existingProfile.rows[0].role;
+    }
+  } catch (err) {
+    logger.error({ err }, 'Failed to resolve existing user role during SSO login');
+  }
   const displayName = normalizeProfileName(profile);
 
   const userId = await upsertSsoUser({
@@ -218,7 +233,10 @@ router.get('/:provider/start', ssoRateLimiter, async (req, res, next) => {
     })(req, res, next);
   } catch (error) {
     logger.error('Failed to start SSO', error);
-    return res.status(500).json({ error: 'sso_start_failed' });
+    const status = error.statusCode || error.status || 500;
+    const errorCode =
+      status === 404 ? 'sso_provider_not_configured' : 'sso_start_failed';
+    return res.status(status).json({ error: errorCode });
   }
 });
 
@@ -260,11 +278,35 @@ router.all('/:provider/callback', ssoRateLimiter, async (req, res, next) => {
         return res.status(401).json({ error: 'sso_callback_failed' });
       }
 
-      const redirectTo = req.query.redirectTo || process.env.SSO_REDIRECT_URL;
+      const redirectTo =
+        (typeof req.query.redirectTo === 'string' && req.query.redirectTo) ||
+        process.env.SSO_REDIRECT_URL;
+
       if (redirectTo) {
-        const url = new URL(String(redirectTo));
-        url.searchParams.set('token', result.token);
-        return res.redirect(url.toString());
+        try {
+          const appOrigin = new URL(baseUrl).origin;
+          const redirectUrl = new URL(redirectTo, baseUrl);
+
+          // Enforce same-origin to avoid open redirects
+          if (redirectUrl.origin !== appOrigin) {
+            throw new Error('Invalid redirect origin');
+          }
+
+          // Issue token via secure, HTTP-only cookie instead of query parameter
+          res.cookie('sso_token', result.token, {
+            httpOnly: true,
+            secure: baseUrl.startsWith('https://'),
+            sameSite: 'lax',
+            maxAge: 15 * 60 * 1000, // 15 minutes
+          });
+
+          return res.redirect(redirectUrl.toString());
+        } catch (e) {
+          logger.warn('Invalid redirectTo in SSO callback, falling back to JSON response', {
+            redirectTo,
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
       }
 
       return res.json({
@@ -307,7 +349,7 @@ router.get('/:provider/metadata', async (req, res) => {
   }
 });
 
-router.post('/test/resolve', async (req, res) => {
+router.post('/test/resolve', ssoRateLimiter, attachAuthContext, requireAdmin, async (req, res) => {
   const { email, organizationId, provider } = req.body || {};
   const resolvedOrg = await resolveOrganizationId({ organizationId, email });
   const settings = await loadSsoSettings({ provider, organizationId: resolvedOrg });

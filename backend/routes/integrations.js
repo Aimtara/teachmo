@@ -173,44 +173,53 @@ router.get('/roster/alerts', (req, res) => {
   res.json(listAlerts());
 });
 
-router.post('/sis/test', (req, res) => {
+router.post('/sis/test', async (req, res) => {
   try {
     const config = validateSisConfig(req.body || {});
-    const connection = recordSisConnection(config);
+    const connection = await recordSisConnection(config);
     res.json({ success: true, connectionId: connection.id });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
 });
 
-router.post('/sis/:schoolId/sync', (req, res) => {
+router.post('/sis/:schoolId/sync', async (req, res) => {
   try {
-    const job = createSisJob({
-      schoolId: req.params.schoolId,
-      triggeredBy: req.body?.triggeredBy || 'manual',
+    const schoolId = req.params.schoolId;
+    const { organizationId, triggeredBy } = req.body || {};
+    const resolvedOrganizationId = organizationId || schoolId;
+
+    const job = await createSisJob({
+      schoolId,
+      organizationId: resolvedOrganizationId,
+      triggeredBy: triggeredBy || 'manual',
     });
     res.json({ status: job.status, jobId: job.id });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 
-router.get('/sis/jobs/:jobId', (req, res) => {
-  const job = findSisJob(req.params.jobId);
-  if (!job) {
-    res.status(404).json({ error: 'SIS job not found' });
-    return;
-  }
+router.get('/sis/jobs/:jobId', async (req, res) => {
+  try {
+    let job = await findSisJob(req.params.jobId);
+    if (!job) {
+      res.status(404).json({ error: 'SIS job not found' });
+      return;
+    }
 
-  if (job.status === 'processing') {
-    markSisJobComplete(job, {
-      users: 128,
-      classes: 12,
-      enrollments: 421,
-    });
-  }
+    if (job.status === 'processing') {
+      job = await markSisJobComplete(job, {
+        users: 128,
+        classes: 12,
+        enrollments: 421,
+      });
+    }
 
-  res.json(job);
+    res.json(job);
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
 });
 
 router.post('/google/sync/courses', (req, res) => {

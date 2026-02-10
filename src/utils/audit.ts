@@ -7,7 +7,9 @@ const logger = createLogger('audit');
  * logAuditEvent
  * Writes an audit log entry capturing before and after states for sensitive actions.
  *
- * @param actorId ID of the user performing the action
+ * Note: actor_id is set server-side via Hasura insert permissions using X-Hasura-User-Id.
+ * Do not send actor_id from the client to avoid permission mismatches.
+ *
  * @param action The action performed (e.g., updateUser)
  * @param entityType The entity type (e.g., 'user', 'organization')
  * @param entityId The ID of the entity
@@ -15,14 +17,12 @@ const logger = createLogger('audit');
  * @param after The new state of the entity
  */
 export async function logAuditEvent({
-  actorId,
   action,
   entityType,
   entityId,
   before,
   after,
 }: {
-  actorId: string;
   action: string;
   entityType: string;
   entityId: string;

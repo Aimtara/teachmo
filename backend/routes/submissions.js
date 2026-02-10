@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { asUuidOrNull, getTenantScope, requireDistrictScope } from '../utils/tenantScope.js';
 import { createLogger } from '../utils/logger.js';
+import { scanContent } from '../utils/contentSafety.js';
 
 const router = Router();
 const logger = createLogger('routes.submissions');
@@ -45,12 +46,16 @@ router.post('/', requireDistrictScope, async (req, res) => {
   if (!type) return res.status(400).json({ error: 'type required' });
   if (!title) return res.status(400).json({ error: 'title required' });
 
+  const safetyCheck = scanContent({ title, description });
+  const status = safetyCheck.isSafe ? 'pending' : 'flagged_safety';
+  const reason = safetyCheck.isSafe ? null : safetyCheck.flags.join('; ');
+
   const result = await safeQuery(
     res,
-    `insert into public.partner_submissions (partner_user_id, district_id, type, title, description)
-     values ($1::uuid, $2::uuid, $3, $4, $5)
+    `insert into public.partner_submissions (partner_user_id, district_id, type, title, description, status, reason)
+     values ($1::uuid, $2::uuid, $3, $4, $5, $6, $7)
      returning id, type, title, description, status, reason, created_at, updated_at`,
-    [userId, districtId, type, title, description ?? null]
+    [userId, districtId, type, title, description ?? null, status, reason]
   );
   if (!result) return;
   res.status(201).json(result.rows[0]);
