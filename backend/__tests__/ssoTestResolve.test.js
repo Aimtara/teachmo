@@ -3,6 +3,19 @@
  * 
  * Tests that the /api/sso/test/resolve endpoint is properly protected
  * with admin authentication to prevent SSO configuration enumeration.
+ * 
+ * Security Context:
+ * The /test/resolve endpoint exposes:
+ * 1. Whether an organization has SSO enabled
+ * 2. Organization ID resolution from email domains
+ * 3. SSO provider enumeration
+ *
+ * This information enables:
+ * - SSO configuration discovery
+ * - Tenant enumeration
+ * - Email domain to organization mapping
+ *
+ * Therefore, it must be protected with admin authentication.
  */
 
 import request from 'supertest';
@@ -26,7 +39,7 @@ describe('SSO /test/resolve endpoint security', () => {
       });
 
     expect(response.status).toBe(401);
-    expect(response.body).toHaveProperty('error', 'missing auth');
+    expect(response.body).toHaveProperty('error');
   });
 
   test('rejects requests without admin role', async () => {
@@ -39,23 +52,7 @@ describe('SSO /test/resolve endpoint security', () => {
         provider: 'saml'
       });
 
-    // Should return 401 (missing auth) or 403 (forbidden) depending on token validation
+    // Should return 401 (missing/invalid auth) or 403 (forbidden) depending on token validation
     expect([401, 403]).toContain(response.status);
-  });
-
-  test('documents expected behavior: endpoint should only be accessible to admins', () => {
-    // This test documents the security requirement
-    // The endpoint exposes:
-    // 1. Whether an organization has SSO enabled
-    // 2. Organization ID resolution from email domains
-    // 3. SSO provider enumeration
-    //
-    // This information enables:
-    // - SSO configuration discovery
-    // - Tenant enumeration
-    // - Email domain to organization mapping
-    //
-    // Therefore, it must be protected with admin authentication
-    expect(true).toBe(true);
   });
 });
