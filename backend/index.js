@@ -216,9 +216,10 @@ wss.on('connection', async (ws, req) => {
       payload,
     };
 
-    logger.info(`WebSocket connection established for user ${userId}`);
+    logger.debug(`WebSocket connection established for user ${userId}`);
   } catch (err) {
-    logger.warn('WebSocket connection rejected: token verification failed', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    logger.warn('WebSocket connection rejected: token verification failed -', errorMessage);
     ws.close(1008, 'Authentication failed');
     return;
   }
