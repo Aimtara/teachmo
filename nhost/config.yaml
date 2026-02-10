@@ -2,6 +2,8 @@ version: 3
 metadata_directory: metadata
 actions:
   kind: synchronous
-  handler_webhook_baseurl: http://localhost:3000
+  # Hasura runs in Docker; localhost from there resolves to the container itself.
+  # Use host.docker.internal so action webhooks can reach the local app server.
+  handler_webhook_baseurl: http://host.docker.internal:3000
 migrations_directory: migrations
 seeds_directory: seeds
