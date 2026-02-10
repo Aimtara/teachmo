@@ -41,9 +41,43 @@ const server = app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);
 });
 
-// Attach WebSocket Server to the same HTTP server
-const wss = new WebSocketServer({ server, path: '/ws' });
+// Configure WebSocket max payload size to mitigate large-frame DoS
+const DEFAULT_WS_MAX_PAYLOAD_BYTES = 1024 * 1024; // 1 MiB
+const envMaxPayload = process.env.WS_MAX_PAYLOAD_BYTES;
+let maxPayloadBytes = DEFAULT_WS_MAX_PAYLOAD_BYTES;
 
+if (envMaxPayload !== undefined) {
+  const parsed = Number(envMaxPayload);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    logger.warn(
+      `Invalid WS_MAX_PAYLOAD_BYTES value: "${envMaxPayload}". ` +
+      `Expected a positive number of bytes. Falling back to default ${DEFAULT_WS_MAX_PAYLOAD_BYTES} bytes.`,
+    );
+  } else {
+    maxPayloadBytes = parsed;
+    logger.info(`WebSocket max payload size set to ${maxPayloadBytes} bytes`);
+  }
+}
+
+// Attach WebSocket Server to the same HTTP server with explicit limits
+const wss = new WebSocketServer({
+  server,
+  path: '/ws',
+  maxPayload: maxPayloadBytes,
+  perMessageDeflate: {
+    zlibDeflateOptions: {
+      // See https://nodejs.org/api/zlib.html#zlib_class_options
+      windowBits: 15,
+      memLevel: 8,
+    },
+    zlibInflateOptions: {
+      windowBits: 15,
+    },
+    clientNoContextTakeover: true,
+    serverNoContextTakeover: true,
+    serverMaxWindowBits: 15,
+  },
+});
 // Validate and parse WS_HEARTBEAT_MS with proper error handling
 const DEFAULT_HEARTBEAT_MS = 30000;
 const envHeartbeat = process.env.WS_HEARTBEAT_MS;
