@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { apiClient } from '@/services/core/client';
+import { SponsorshipPartner } from '@/api/entities';
 
 export default function SponsorshipDashboard() {
   const { data: sponsorships = [], isLoading, isError } = useQuery({
     queryKey: ['sponsorship-partners'],
     queryFn: async () => {
-      const response = await apiClient.entity.list('SponsorshipPartner');
+      const response = await SponsorshipPartner.list();
       return response.filter((partner) => partner?.is_active !== false);
     },
   });

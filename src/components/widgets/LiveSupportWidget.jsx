@@ -17,12 +17,13 @@ export default function LiveSupportWidget() {
     if (!message.trim()) return;
     setIsSending(true);
     try {
-      await apiClient.post('/api/support-tickets', { message: message.trim() });
+      // Use functions.invoke instead of post to avoid logging sensitive user data
+      await apiClient.functions.invoke('support-ticket', { message: message.trim() });
       ultraMinimalToast("Message sent! Support will email you shortly.");
       setMessage("");
       setIsOpen(false);
     } catch (error) {
-      console.error('Failed to send support ticket', error);
+      console.error('Failed to send support ticket');
       ultraMinimalToast('Unable to send your message right now. Please try again.');
     } finally {
       setIsSending(false);
