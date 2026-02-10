@@ -163,7 +163,20 @@ wss.on('connection', (ws) => {
       `Received WebSocket message (type=${messageType}${messageSize !== null ? `, size=${messageSize}` : ''})`,
     );
     // Echo for now (or handle your app logic here)
-    ws.send(JSON.stringify({ type: 'ack', received: true }));
+    // Only attempt to send if the WebSocket is currently OPEN (1 = WebSocket.OPEN in 'ws')
+    if (ws.readyState === 1) {
+      try {
+        ws.send(JSON.stringify({ type: 'ack', received: true }));
+      } catch (sendErr) {
+        logger.warn('Failed to send WebSocket ACK in message handler', {
+          error: sendErr,
+        });
+      }
+    } else {
+      logger.debug?.('Skipping WebSocket ACK send; socket is not OPEN', {
+        readyState: ws.readyState,
+      });
+    }
   });
 
   ws.on('error', (err) => {
