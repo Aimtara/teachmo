@@ -65,7 +65,8 @@ export async function recordSisConnection(config = {}) {
         baseUrl: normalized.baseUrl,
         clientId: normalized.clientId,
         clientSecretMasked: maskSecret(normalized.clientSecret),
-        // Note: Do not persist clientSecret until encryption is implemented
+        // TODO(Phase 3): Implement KMS/Vault-backed encryption before persisting clientSecret
+        // Do not persist clientSecret until encryption is implemented
       }),
     ],
   );
