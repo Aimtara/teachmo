@@ -258,11 +258,35 @@ router.all('/:provider/callback', ssoRateLimiter, async (req, res, next) => {
         return res.status(401).json({ error: 'sso_callback_failed' });
       }
 
-      const redirectTo = req.query.redirectTo || process.env.SSO_REDIRECT_URL;
+      const redirectTo =
+        (typeof req.query.redirectTo === 'string' && req.query.redirectTo) ||
+        process.env.SSO_REDIRECT_URL;
+
       if (redirectTo) {
-        const url = new URL(String(redirectTo));
-        url.searchParams.set('token', result.token);
-        return res.redirect(url.toString());
+        try {
+          const appOrigin = new URL(baseUrl).origin;
+          const redirectUrl = new URL(redirectTo, baseUrl);
+
+          // Enforce same-origin to avoid open redirects
+          if (redirectUrl.origin !== appOrigin) {
+            throw new Error('Invalid redirect origin');
+          }
+
+          // Issue token via secure, HTTP-only cookie instead of query parameter
+          res.cookie('sso_token', result.token, {
+            httpOnly: true,
+            secure: baseUrl.startsWith('https://'),
+            sameSite: 'lax',
+            maxAge: 15 * 60 * 1000, // 15 minutes
+          });
+
+          return res.redirect(redirectUrl.toString());
+        } catch (e) {
+          logger.warn('Invalid redirectTo in SSO callback, falling back to JSON response', {
+            redirectTo,
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
       }
 
       return res.json({
