@@ -24,9 +24,9 @@ export default function FounderDashboard() {
           <p className="text-sm">No events logged.</p>
         ) : (
           <ul className="text-xs list-disc pl-5 space-y-1">
-            {events.map((event) => {
-              // All governance events now include timestamps
-              const key = `${event.type}-${event.timestamp}`;
+            {events.map((event, index) => {
+              // All governance events now include timestamps; include index to ensure unique React keys
+              const key = `${event.type}-${event.timestamp}-${index}`;
               return <li key={key}>{JSON.stringify(event)}</li>;
             })}
           </ul>
