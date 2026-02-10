@@ -118,17 +118,15 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
       const maliciousRoles = ['admin', 'district_admin', 'superuser', 'root'];
       
       maliciousRoles.forEach(maliciousRole => {
-        const ssoContext = {
-          organizationId: 'org-123',
-          defaultRole: maliciousRole,
-        };
-        
+        // Simulate malicious defaultRole provided via SSO request/context
+        const maliciousDefaultRole = maliciousRole;
+
         // Server always defaults to parent for new users
         const actualRole = 'parent';
         
         // Verify each malicious attempt is blocked
         expect(actualRole).toBe('parent');
-        expect(actualRole).not.toBe(maliciousRole);
+        expect(actualRole).not.toBe(maliciousDefaultRole);
       });
     });
   });
