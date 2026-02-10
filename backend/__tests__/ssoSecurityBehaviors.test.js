@@ -414,11 +414,11 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
       const maxAge = 15 * 60 * 1000; // 15 minutes in milliseconds
       const maxAgeSeconds = maxAge / 1000; // 900 seconds
       
-      // Tokens in cookies should expire quickly to limit damage from:
-      // - Cookie theft via browser history
-      // - Server logs containing cookies
-      // - XSS attacks that steal cookies
-      // - Session fixation attacks
+      // Tokens in cookies should expire quickly to limit damage if a cookie is compromised, e.g.:
+      // - Replay of a stolen session cookie (e.g., from device compromise or insecure storage)
+      // - Leakage via server logs, analytics, or misconfigured monitoring that capture cookies
+      // - Extended window for cross-site request / CSRF abuse while the session remains valid
+      // - Session fixation or abandoned sessions that would otherwise stay active for too long
       expect(maxAgeSeconds).toBeLessThanOrEqual(900); // ≤ 15 minutes
       expect(maxAgeSeconds).toBeGreaterThan(0);
     });
