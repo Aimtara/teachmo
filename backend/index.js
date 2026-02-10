@@ -98,13 +98,37 @@ if (envHeartbeat !== undefined) {
 
 const heartbeatIntervalId = setInterval(() => {
   wss.clients.forEach((client) => {
+    // Only perform heartbeat on sockets that are currently OPEN
+    if (client.readyState !== client.OPEN) {
+      return;
+    }
+
     if (client.isAlive === false) {
-      client.terminate();
+      try {
+        client.terminate();
+      } catch (terminateErr) {
+        logger.error('Failed to terminate unresponsive WebSocket client during heartbeat', {
+          error: terminateErr,
+        });
+      }
       return;
     }
 
     client.isAlive = false;
-    client.ping();
+    try {
+      client.ping();
+    } catch (pingErr) {
+      logger.warn('WebSocket ping failed during heartbeat; terminating client', {
+        error: pingErr,
+      });
+      try {
+        client.terminate();
+      } catch (terminateErr) {
+        logger.error('Failed to terminate WebSocket client after ping failure', {
+          error: terminateErr,
+        });
+      }
+    }
   });
 }, heartbeatIntervalMs);
 
