@@ -52,7 +52,14 @@ const VOICE_COMMANDS = {
   }
 };
 
-export default function VoiceAssistant({ user, childProfiles = [] }) {
+export default function VoiceAssistant({
+  user,
+  childProfiles = [],
+  text,
+  label = 'Listen',
+  variant = 'default'
+}) {
+  const isReadAloudMode = Boolean(text);
   const [isListening, setIsListening] = useState(false);
   const [isEnabled, setIsEnabled] = useState(true);
   const [lastCommand, setLastCommand] = useState('');
@@ -60,6 +67,7 @@ export default function VoiceAssistant({ user, childProfiles = [] }) {
   const [recognition, setRecognition] = useState(null);
   const [synthesis, setSynthesis] = useState(null);
   const [isSupported, setIsSupported] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState({
     autoSpeak: true,
     language: 'en-US',
@@ -68,9 +76,25 @@ export default function VoiceAssistant({ user, childProfiles = [] }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    initializeVoiceCapabilities();
-    setupVoiceCommands();
-  }, []);
+    if (isReadAloudMode) {
+      if ('speechSynthesis' in window) {
+        setIsSupported(true);
+        setSynthesis(window.speechSynthesis);
+      }
+    } else {
+      initializeVoiceCapabilities();
+      setupVoiceCommands();
+    }
+
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        const synth = window.speechSynthesis;
+        if (synth.speaking) {
+          synth.cancel();
+        }
+      }
+    };
+  }, [isReadAloudMode]);
 
   const initializeVoiceCapabilities = () => {
     // Check for speech recognition support
@@ -179,6 +203,48 @@ export default function VoiceAssistant({ user, childProfiles = [] }) {
     
     logger.debug('Siri shortcuts available', siriShortcuts);
   };
+
+  const handleReadAloud = () => {
+    if (!synthesis || !text) return;
+
+    if (isSpeaking) {
+      synthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    synthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = voiceSettings.language;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    synthesis.speak(utterance);
+  };
+
+  if (isReadAloudMode) {
+    if (!isSupported) return null;
+    const isIconVariant = variant === 'icon';
+    return (
+      <Button
+        type="button"
+        variant={isIconVariant ? 'ghost' : 'outline'}
+        size={isIconVariant ? 'icon' : 'default'}
+        aria-label={label}
+        title={label}
+        onClick={handleReadAloud}
+      >
+        {isIconVariant ? (
+          isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />
+        ) : (
+          <>
+            {isSpeaking ? <VolumeX className="mr-2 h-4 w-4" /> : <Volume2 className="mr-2 h-4 w-4" />}
+            {label}
+          </>
+        )}
+      </Button>
+    );
+  }
 
   const handleVoiceCommand = async (event) => {
     const command = event.results[0][0].transcript.toLowerCase().trim();

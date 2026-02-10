@@ -76,20 +76,20 @@ button:focus-visible {
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --background: 0 0% 98%;
+    --foreground: 202.5 7.8% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 202.5 7.8% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    --popover-foreground: 202.5 7.8% 20%;
+    --primary: 227.7 100% 57.1%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40.4 100% 67.1%;
+    --secondary-foreground: 202.5 7.8% 20%;
     --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted-foreground: 202.5 7.8% 30%;
     --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --accent-foreground: 202.5 7.8% 20%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
@@ -100,7 +100,7 @@ button:focus-visible {
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --radius: 1rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -109,6 +109,31 @@ button:focus-visible {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --teachmo-blue: #2451FF;
+    --teachmo-gold: #FFC857;
+    --teachmo-sage: #2DBF6E;
+    --teachmo-sage-light: #7EE0A9;
+    --teachmo-coral: #FF6B6B;
+    --teachmo-cream: #FAFAFA;
+    --teachmo-warm-white: #FAFAFA;
+    --teachmo-slate: #2F3437;
+  }
+  .theme-partner {
+    --background: 0 0% 100%;
+    --foreground: 202.5 7.8% 20%;
+    --primary: 202.5 7.8% 20%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 146.7 61.9% 46.3%;
+    --secondary-foreground: 0 0% 100%;
+    --radius: 0.5rem;
+    --teachmo-blue: #2F3437;
+    --teachmo-gold: #2DBF6E;
+    --teachmo-sage: #2DBF6E;
+    --teachmo-sage-light: #7EE0A9;
+    --teachmo-coral: #FF6B6B;
+    --teachmo-cream: #FFFFFF;
+    --teachmo-warm-white: #FFFFFF;
+    --teachmo-slate: #2F3437;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -153,6 +178,6 @@ button:focus-visible {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 }

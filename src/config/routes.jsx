@@ -1,4 +1,13 @@
 import { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
+import { MomentGuard } from '@/components/governance/MomentGuard';
+
+const UnifiedDiscover = lazy(() => import('@/pages/UnifiedDiscover'));
+const DiscoverRoute = () => (
+  <MomentGuard surface="EXPLORE">
+    <UnifiedDiscover />
+  </MomentGuard>
+);
 
 // Internal routes are dev-friendly by default, but can be explicitly enabled in production.
 const ENABLE_INTERNAL_ROUTES = import.meta.env.DEV || import.meta.env.VITE_ENABLE_INTERNAL_ROUTES === 'true';
@@ -32,12 +41,20 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'UnifiedDiscover',
     path: '/discover',
-    Component: lazy(() => import('@/pages/Discover.jsx')),
+    Component: DiscoverRoute,
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
     feature: 'DISCOVER',
     fallback: <p className="p-6 text-gray-600">Loading discover...</p>
+  },
+  {
+    name: 'ActivitiesRedirect',
+    path: '/activities',
+    Component: () => <Navigate to="/discover?tab=activities" replace />,
+    requiresAuth: true,
+    allowedRoles: ['parent', 'teacher'],
+    requiredScopes: ['content:read']
   },
   {
     name: 'UnifiedCommunity',
@@ -189,6 +206,15 @@ export const ROUTE_DEFINITIONS = [
     feature: 'TEACHER_MESSAGES',
     fallback: <p className="p-6 text-gray-600">Loading teacher messages...</p>
   },
+
+  {
+    name: 'PartnerRegistration',
+    path: '/partners/register',
+    Component: lazy(() => import('@/pages/public/PartnerRegistration.jsx')),
+    isPublic: true,
+    fallback: <p className="p-6 text-gray-600">Loading partner registration...</p>
+  },
+
   {
     name: 'PartnerDashboard',
     path: '/partners/dashboard',
@@ -267,6 +293,17 @@ export const ROUTE_DEFINITIONS = [
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading partner admin dashboard...</p>
   },
+
+  {
+    name: 'DistrictOverview',
+    path: '/district/overview',
+    Component: lazy(() => import('@/pages/DistrictOverview.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['district_admin', 'system_admin', 'admin'],
+    requiredScopes: ['org:manage'],
+    fallback: <p className="p-6 text-gray-600">Loading district insights...</p>
+  },
+
   {
     name: 'AdminDashboard',
     path: '/admin',
@@ -579,6 +616,27 @@ export const ROUTE_DEFINITIONS = [
     requiredScopes: ['core:dashboard'],
     feature: 'SCHOOL_DIRECTORY',
     fallback: <p className="p-6 text-gray-600">Loading school directory...</p>
+  },
+
+  // --- Teachmo governance and launch instrumentation routes ---
+  {
+    name: 'Today',
+    path: '/today',
+    Component: lazy(() => import('@/components/today/TodayOrchestrator')),
+    requiresAuth: true,
+    allowedRoles: ['parent'],
+    requiredScopes: ['content:read'],
+    fallback: <p className="p-6 text-gray-600">Loading today...</p>
+  },
+  {
+    name: 'FounderDashboard',
+    path: '/founder',
+    Component: lazy(() => import('@/pages/FounderDashboard.jsx')),
+    requiresAuth: true,
+    // Restrict access to internal roles only.
+    allowedRoles: ['system_admin', 'admin'],
+    internalOnly: true,
+    fallback: <p className="p-6 text-gray-600">Loading founder dashboard...</p>
   }
 ];
 

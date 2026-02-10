@@ -40,6 +40,12 @@ export default [
       'no-restricted-imports': [
         'error',
         {
+          paths: [
+            {
+              name: '@/api/base44Client',
+              message: 'Direct legacy API access is forbidden. Use src/domains/* adapters.'
+            }
+          ],
           patterns: [
             {
               group: ['@/API/*', '@/API/**'],
@@ -90,6 +96,12 @@ export default [
       'no-restricted-imports': [
         'error',
         {
+          paths: [
+            {
+              name: '@/api/base44Client',
+              message: 'Direct legacy API access is forbidden. Use src/domains/* adapters.'
+            }
+          ],
           patterns: [
             {
               group: ['@/API/*', '@/API/**'],

@@ -84,6 +84,7 @@ function normalizeSegment(segment = {}) {
     schoolIds: Array.isArray(segment.school_ids) ? segment.school_ids : [],
     districtIds: Array.isArray(segment.district_ids) ? segment.district_ids : [],
     includeDisabled: Boolean(segment.include_disabled),
+    grades: Array.isArray(segment.grades) ? segment.grades : (Array.isArray(segment.grade_levels) ? segment.grade_levels : []),
   };
 }
 
@@ -120,6 +121,29 @@ function validateTenantChannel(settings = {}, channel) {
   return { ok: true };
 }
 
+
+
+export function buildGradesCondition(startIdx, grades) {
+  if (!grades.length) return { sql: '', params: [], nextIdx: startIdx };
+  const normalized = grades
+    .map((grade) => String(grade || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (!normalized.length) return { sql: '', params: [], nextIdx: startIdx };
+
+  // user_profiles.grades is free-form text in this codebase, so match common formats like
+  // "3", "grade 3", "3rd", and comma-delimited values using case-insensitive checks.
+  // Use delimiter-aware regular expressions so that grade "1" does not match "10", "11", etc.
+  const sql = `exists (
+    select 1
+    from unnest($${startIdx}::text[]) as g
+    where lower(coalesce(p.grades, '')) ~ ('(^|\\D)' || g || '(\\D|$)')
+       or lower(coalesce(p.grades, '')) ~ ('(^|\\W)grade ' || g || '(\\W|$)')
+       or lower(coalesce(p.grades, '')) ~ ('(^|\\D)' || g || '(st|nd|rd|th)(\\D|$)')
+  )`;
+
+  return { sql, params: [normalized], nextIdx: startIdx + 1 };
+}
+
 async function loadRecipients({ query, organizationId, schoolId, segment }) {
   const normalized = normalizeSegment(segment);
   const conditions = ['p.district_id = $1'];
@@ -144,6 +168,13 @@ async function loadRecipients({ query, organizationId, schoolId, segment }) {
   if (normalized.roles.length) {
     conditions.push(`p.role = any($${idx++}::text[])`);
     params.push(normalized.roles);
+  }
+
+  const gradeCondition = buildGradesCondition(idx, normalized.grades);
+  if (gradeCondition.sql) {
+    conditions.push(gradeCondition.sql);
+    params.push(...gradeCondition.params);
+    idx = gradeCondition.nextIdx;
   }
 
   if (normalized.userIds.length) {

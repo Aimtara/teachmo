@@ -10,8 +10,8 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        background: 'var(--tm-background, hsl(var(--background)))',
+        foreground: 'var(--tm-foreground, hsl(var(--foreground)))',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -21,11 +21,11 @@ module.exports = {
           foreground: 'hsl(var(--popover-foreground))',
         },
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT: 'var(--tm-primary, hsl(var(--primary)))',
+          foreground: 'var(--tm-primary-foreground, hsl(var(--primary-foreground)))',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
+          DEFAULT: 'var(--tm-secondary, hsl(var(--secondary)))',
           foreground: 'hsl(var(--secondary-foreground))',
         },
         muted: {
@@ -33,7 +33,7 @@ module.exports = {
           foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
+          DEFAULT: 'var(--tm-accent, hsl(var(--accent)))',
           foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {
@@ -62,16 +62,31 @@ module.exports = {
         },
         // Teachmo brand palette
         teachmo: {
-          blue: '#8CBED6',
-          sage: '#7CA982',
-          coral: '#E57264',
-          cream: '#F5F0E6',
-          ink: '#1E1E24',
+          blue: '#2451FF',
+          gold: '#FFC857',
+          sage: '#2DBF6E',
+          coral: '#FF6B6B',
+          slate: '#2F3437',
+          offwhite: '#FAFAFA',
+          ink: '#2F3437',
           highlight: '#FFC857',
           success: '#2DBF6E',
           danger: '#FF6B6B',
           border: '#2F3437',
         },
+        brand: {
+          blue: '#2451FF',
+          gold: '#FFC857',
+          green: '#2DBF6E',
+          coral: '#FF6B6B',
+          slate: '#2F3437',
+          offwhite: '#FAFAFA',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        heading: ['Poppins', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       keyframes: {
         'accordion-down': {
