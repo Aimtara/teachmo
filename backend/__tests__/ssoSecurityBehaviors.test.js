@@ -325,8 +325,8 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
   });
 
   describe('Security implementation verification', () => {
-    test('documents that SSO security fixes are implemented', () => {
-      // This test documents that the security fixes from PR #436 are in place
+    test('verifies all SSO security controls are enabled', () => {
+      // This test verifies that the security fixes from PR #436 are in place
       
       const securityFixes = {
         // Fix 1: Server-side role derivation (lines 111-127)
@@ -473,10 +473,6 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
       
       expect(role).toBe('parent');
       expect(role).not.toBe(ssoContext.defaultRole);
-      
-      // Document that the field can be safely removed in future refactoring
-      const canRemoveField = true;
-      expect(canRemoveField).toBe(true);
     });
 
     test('adding token to redirect URL would fail validation', () => {
@@ -491,18 +487,13 @@ describe('SSO Security Behaviors - Implementation Tests', () => {
       expect(redirectUrl.toString()).toContain(token);
       expect(redirectUrl.searchParams.get('token')).toBe(token);
       
-      // Document why this is wrong
-      const vulnerabilities = [
-        'Token visible in browser history',
-        'Token sent in Referer header',
-        'Token logged by web servers',
-        'Token exposed in client-side JavaScript',
-      ];
-      expect(vulnerabilities.length).toBeGreaterThan(0);
-      
+      // Document vulnerabilities of tokens in URLs:
+      // - Token visible in browser history
+      // - Token sent in Referer header
+      // - Token logged by web servers
+      // - Token exposed in client-side JavaScript
+      // 
       // Correct pattern: token in HTTP-only cookie (lines 292-297)
-      const correctPattern = true;
-      expect(correctPattern).toBe(true);
     });
 
     test('external redirect with token in cookie still protects token', () => {
