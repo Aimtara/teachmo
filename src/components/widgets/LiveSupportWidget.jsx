@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, X, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
+import { apiClient } from '@/services/core/client';
 
 export default function LiveSupportWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,12 +16,18 @@ export default function LiveSupportWidget() {
     e.preventDefault();
     if (!message.trim()) return;
     setIsSending(true);
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    ultraMinimalToast("Message sent! Support will email you shortly.");
-    setMessage("");
-    setIsSending(false);
-    setIsOpen(false);
+    try {
+      // Use functions.invoke instead of post to avoid logging sensitive user data
+      await apiClient.functions.invoke('support-ticket', { message: message.trim() });
+      ultraMinimalToast.show("Message sent! Support will email you shortly.");
+      setMessage("");
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Failed to send support ticket', error);
+      ultraMinimalToast.show('Unable to send your message right now. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
