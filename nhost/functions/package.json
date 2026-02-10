@@ -1,0 +1,10 @@
+{
+  "name": "teachmo-functions",
+  "private": true,
+  "dependencies": {
+    "@nhost/nhost-js": "^3.0.0",
+    "date-fns": "^3.6.0",
+    "graphql-request": "^6.1.0",
+    "openai": "^4.0.0"
+  }
+}
