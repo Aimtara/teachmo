@@ -1,8 +1,8 @@
 import { graphqlRequest } from '@/lib/graphql';
 
 export async function createPartnerSubmission(input) {
-  const query = `mutation CreateSubmission($input: partner_submissions_insert_input!) {
-    insert_partner_submissions_one(object: $input) {
+  const query = `mutation CreateSubmission($input: public_partner_submissions_insert_input!) {
+    insert_public_partner_submissions_one(object: $input) {
       id
       type
       title
