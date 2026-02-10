@@ -73,6 +73,24 @@ async function verifyBearerToken(token) {
     });
     return payload;
   }
+
+  const ssoSecret = String(process.env.SSO_JWT_SECRET || '').trim();
+  if (ssoSecret) {
+    try {
+      const ssoIssuer =
+        (process.env.SSO_JWT_ISSUER || process.env.AUTH_ISSUER || '').trim() || 'teachmo-sso';
+      const ssoAudience =
+        (process.env.SSO_JWT_AUDIENCE || process.env.AUTH_AUDIENCE || '').trim() || 'teachmo-api';
+      const { payload } = await jwtVerify(token, textEncoder.encode(ssoSecret), {
+        issuer: ssoIssuer,
+        audience: ssoAudience,
+        algorithms: ['HS256'],
+      });
+      return payload;
+    } catch {
+      // fall through to JWKS verification
+    }
+  }
   if (!jwks) {
     // In production, missing JWKS is a hard failure.
     if (isProd) {

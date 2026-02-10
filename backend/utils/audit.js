@@ -3,6 +3,20 @@ import { query } from '../db.js';
 
 const SENSITIVE_ENTITY_TYPES = new Set(['user', 'role', 'permission', 'pii']);
 
+function buildChangeDetails(before, after) {
+  if (!before || !after || typeof before !== 'object' || typeof after !== 'object') return null;
+  const changes = {};
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  for (const key of keys) {
+    const beforeValue = before[key];
+    const afterValue = after[key];
+    if (beforeValue !== afterValue) {
+      changes[key] = { before: beforeValue ?? null, after: afterValue ?? null };
+    }
+  }
+  return Object.keys(changes).length ? changes : null;
+}
+
 export async function recordAuditLog({
   actorId,
   action,
@@ -11,15 +25,21 @@ export async function recordAuditLog({
   metadata,
   before,
   after,
+  changes,
   containsPii,
   organizationId,
   schoolId,
 }) {
   const shouldFlagPii =
     typeof containsPii === 'boolean' ? containsPii : SENSITIVE_ENTITY_TYPES.has(entityType);
-  const payload = metadata || {};
+  const payload = metadata ? { ...metadata } : {};
   const beforeSnapshot = before ?? null;
   const afterSnapshot = after ?? null;
+  const diff = changes ?? buildChangeDetails(beforeSnapshot, afterSnapshot);
+
+  if (diff) {
+    payload.change_details = diff;
+  }
 
   await query(
     `insert into public.audit_log
