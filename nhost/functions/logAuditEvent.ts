@@ -6,11 +6,12 @@ const BodySchema = z.object({
   entity_type: z.string().min(1).optional(),
   entity_id: z.string().uuid().nullable().optional(),
   metadata: z.record(z.any()).optional(),
-  before: z.record(z.any()).nullable().optional(),
-  after: z.record(z.any()).nullable().optional(),
-  changes: z.record(z.any()).nullable().optional(),
 
-  // Accept legacy/UI shapes
+  // Phase 1 Requirement: State snapshots for defensibility
+  before: z.record(z.any()).optional(),
+  after: z.record(z.any()).optional(),
+
+  // Legacy fields for backward compatibility
   resource_type: z.string().min(1).optional(),
   resource_id: z.any().optional(),
   details: z.any().optional(),
@@ -26,22 +27,6 @@ const MUTATION = `
   }
 `;
 
-type JsonObject = Record<string, unknown>;
-
-function buildChangeDetails(before?: JsonObject | null, after?: JsonObject | null) {
-  if (!before || !after) return null;
-  const changes: Record<string, { before: unknown; after: unknown }> = {};
-  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
-  keys.forEach((key) => {
-    const beforeValue = before[key];
-    const afterValue = after[key];
-    if (beforeValue !== afterValue) {
-      changes[key] = { before: beforeValue ?? null, after: afterValue ?? null };
-    }
-  });
-  return Object.keys(changes).length ? changes : null;
-}
-
 export default async (req, res) => {
   try {
     const body = BodySchema.parse(req.body ?? {});
@@ -56,11 +41,6 @@ export default async (req, res) => {
       ...(body.severity ? { severity: body.severity } : {}),
     };
 
-    const diff = body.changes ?? buildChangeDetails(body.before, body.after);
-    if (diff) {
-      metadata.change_details = diff;
-    }
-
     const data = await nhostGraphqlRequest({
       query: MUTATION,
       variables: {
@@ -69,10 +49,11 @@ export default async (req, res) => {
           entity_type: entityType,
           entity_id: entityId,
           metadata,
+          // Capture snapshots
           before_snapshot: body.before ?? null,
           after_snapshot: body.after ?? null,
-          actor_id: req.headers?.['x-hasura-user-id'] || null,
-          organization_id: req.headers?.['x-hasura-organization-id'] || null,
+          actor_id: req.headers['x-hasura-user-id'] || null,
+          organization_id: req.headers['x-hasura-organization-id'] || null,
         },
       },
       headers: {
@@ -84,20 +65,8 @@ export default async (req, res) => {
     const row = data?.insert_audit_log_one;
     res.status(200).json({ recorded: Boolean(row?.id), id: row?.id, created_at: row?.created_at });
   } catch (error) {
-    const errorId = `audit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const isValidationError = error instanceof Error && error.name === 'ZodError';
-    const status = isValidationError ? 400 : 500;
-
-    console.error('Audit Log Error', {
-      errorId,
-      name: error instanceof Error ? error.name : undefined,
-      status,
-    });
-
-    res.status(status).json({
-      recorded: false,
-      error: isValidationError ? 'Invalid audit log payload' : 'Failed to record audit event',
-      error_id: errorId,
-    });
+    console.error('Audit Log Error:', error);
+    const status = error?.name === 'ZodError' ? 400 : 500;
+    res.status(status).json({ recorded: false, error: error?.message ?? 'unknown error' });
   }
 };
