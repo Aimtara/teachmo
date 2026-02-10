@@ -21,6 +21,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const isConnecting = useRef(false);
 
   useEffect(() => {
+    let initialConnectionAttempted = false;
+
     const scheduleReconnect = () => {
       if (isUnmounted.current) return;
       if (reconnectTimer.current !== null) return;
@@ -51,10 +53,14 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         
         if (!token) {
           logger.info('WebSocket connection deferred: no access token available');
-          // Schedule a retry in case the user is still logging in
-          scheduleReconnect();
+          // Only retry on initial connection attempt, not after explicit logout
+          if (!initialConnectionAttempted) {
+            scheduleReconnect();
+          }
           return;
         }
+
+        initialConnectionAttempted = true;
 
         // Store the current token to detect auth changes
         currentToken.current = token;
@@ -118,10 +124,15 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       // If token changed (login, logout, or refresh), reconnect
       if (newToken !== currentToken.current) {
         logger.info('Auth state changed, reconnecting WebSocket');
+        
+        // Wait for any pending connection to complete before disconnecting
+        while (isConnecting.current) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
         disconnect();
         
         // Only reconnect if there's a valid token
-        // Wait for any pending connection to complete before starting new one
         if (newToken) {
           await connect();
         }
