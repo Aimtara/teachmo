@@ -18,6 +18,8 @@ interface SurfaceBoundaryProps {
 export function SurfaceBoundary({ surface, moment, children }: SurfaceBoundaryProps) {
   const activeMoment = moment ?? getCurrentMoment();
   const rules = MomentContract[activeMoment];
+  const allowedSurfaces = rules.allowedSurfaces;
+  if (!allowedSurfaces.includes(surface)) {
   if (!rules.allowedSurfaces.includes(surface)) {
     logGovernanceEvent('SURFACE_BLOCKED', { surface, moment: activeMoment });
     return null;

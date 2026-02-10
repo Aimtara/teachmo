@@ -40,40 +40,161 @@ startObservabilitySchedulers();
 startRosterSyncScheduler();
 startSisContinuousSyncScheduler();
 
-const server = http.createServer(app);
-const wss = new WebSocketServer({ noServer: true });
-const heartbeatIntervalMs = Number(process.env.WS_HEARTBEAT_MS ?? 30000);
-const isHeartbeatEnabled = Number.isFinite(heartbeatIntervalMs) && heartbeatIntervalMs > 0;
+const server = app.listen(PORT, () => {
+  logger.info(`Teachmo backend server running on port ${PORT}`);
+});
 
-const heartbeatIntervalId = isHeartbeatEnabled
-  ? setInterval(() => {
+// Attach WebSocket Server to the same HTTP server
+const wss = new WebSocketServer({
+  server,
+  path: '/ws',
+  // Limit maximum incoming message size to prevent memory/CPU abuse
+  maxPayload: 1024 * 1024, // 1 MiB
+  // Disable per-message compression to avoid compression-based attacks by default
+  perMessageDeflate: false,
+});
+
+// Configure WebSocket max payload size to mitigate large-frame DoS
+const DEFAULT_WS_MAX_PAYLOAD_BYTES = 1024 * 1024; // 1 MiB
+const envMaxPayload = process.env.WS_MAX_PAYLOAD_BYTES;
+let maxPayloadBytes = DEFAULT_WS_MAX_PAYLOAD_BYTES;
+
+if (envMaxPayload !== undefined) {
+  const parsed = Number(envMaxPayload);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    logger.warn(
+      `Invalid WS_MAX_PAYLOAD_BYTES value: "${envMaxPayload}". ` +
+      `Expected a positive number of bytes. Falling back to default ${DEFAULT_WS_MAX_PAYLOAD_BYTES} bytes.`,
+    );
+  } else {
+    maxPayloadBytes = parsed;
+    logger.info(`WebSocket max payload size set to ${maxPayloadBytes} bytes`);
+  }
+}
+
+// Configure WebSocket per-message deflate (compression) behind an explicit env flag.
+// Disabled by default to reduce CPU usage and mitigate compression-related DoS risk.
+const isPerMessageDeflateEnabled =
+  String(process.env.WS_PERMESSAGE_DEFLATE_ENABLED || '').toLowerCase() === 'true';
+
+if (isPerMessageDeflateEnabled) {
+  logger.info('WebSocket perMessageDeflate compression ENABLED via WS_PERMESSAGE_DEFLATE_ENABLED.');
+} else {
+  logger.info('WebSocket perMessageDeflate compression DISABLED (default).');
+}
+
+// Attach WebSocket Server to the same HTTP server with explicit limits
+const wss = new WebSocketServer({
+  server,
+  path: '/ws',
+  maxPayload: maxPayloadBytes,
+  perMessageDeflate: isPerMessageDeflateEnabled
+    ? {
+        zlibDeflateOptions: {
+          // See https://nodejs.org/api/zlib.html#zlib_class_options
+          windowBits: 15,
+          memLevel: 8,
+        },
+        zlibInflateOptions: {
+          windowBits: 15,
+        },
+        clientNoContextTakeover: true,
+        serverNoContextTakeover: true,
+        serverMaxWindowBits: 15,
+      }
+    : false,
+});
+// Validate and parse WS_HEARTBEAT_MS with proper error handling
+const DEFAULT_HEARTBEAT_MS = 30000;
+const envHeartbeat = process.env.WS_HEARTBEAT_MS;
+let heartbeatIntervalMs = DEFAULT_HEARTBEAT_MS;
+
+if (envHeartbeat !== undefined) {
+  const parsed = Number(envHeartbeat);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    logger.warn(
+      `Invalid WS_HEARTBEAT_MS value: "${envHeartbeat}". ` +
+      `Expected a positive number. Falling back to default ${DEFAULT_HEARTBEAT_MS}ms.`
+    );
+  } else {
+    heartbeatIntervalMs = parsed;
+    logger.info(`WebSocket heartbeat interval set to ${heartbeatIntervalMs}ms`);
+  }
+}
+
+const heartbeatIntervalId = setInterval(() => {
       wss.clients.forEach((client) => {
-        if (client.isAlive === false) {
-          client.terminate();
+        // Terminate clients that are already marked dead or not in a usable state
+        if (
+          client.isAlive === false ||
+          client.readyState === client.CLOSING ||
+          client.readyState === client.CLOSED
+        ) {
+          try {
+            client.terminate();
+          } catch (err) {
+            logger.error('Failed to terminate WebSocket client during heartbeat', err);
+          }
           return;
         }
 
-        client.isAlive = false;
-        client.ping();
+        // Only attempt to ping sockets that are currently open
+        if (client.readyState === client.OPEN) {
+          client.isAlive = false;
+          try {
+            client.ping();
+          } catch (err) {
+            logger.warn('WebSocket heartbeat ping failed, terminating client', err);
+            try {
+              client.terminate();
+            } catch (terminateErr) {
+              logger.error(
+                'Failed to terminate WebSocket client after ping failure',
+                terminateErr
+              );
+            }
+          }
+        }
       });
-    }, heartbeatIntervalMs)
-  : null;
+    }, heartbeatIntervalMs);
+  wss.clients.forEach((client) => {
+    // Only perform heartbeat on sockets that are currently OPEN
+    // 1 corresponds to WebSocket.OPEN in the 'ws' library
+    if (client.readyState !== 1) {
+      return;
+    }
 
-server.on('upgrade', (req, socket, head) => {
-  logger.info(`UPGRADE ${req.url}`);
-  const { url } = req;
-  if (!url || !url.startsWith('/ws')) {
-    socket.destroy();
-    return;
-  }
+    if (client.isAlive === false) {
+      try {
+        client.terminate();
+      } catch (terminateErr) {
+        logger.error('Failed to terminate unresponsive WebSocket client during heartbeat', {
+          error: terminateErr,
+        });
+      }
+      return;
+    }
 
-  wss.handleUpgrade(req, socket, head, (ws) => {
-    wss.emit('connection', ws, req);
+    client.isAlive = false;
+    try {
+      client.ping();
+    } catch (pingErr) {
+      logger.warn('WebSocket ping failed during heartbeat; terminating client', {
+        error: pingErr,
+      });
+      try {
+        client.terminate();
+      } catch (terminateErr) {
+        logger.error('Failed to terminate WebSocket client after ping failure', {
+          error: terminateErr,
+        });
+      }
+    }
   });
-});
+}, heartbeatIntervalMs);
 
-wss.on('connection', (ws, req) => {
-  logger.info(`New WebSocket connection established (${req?.socket?.remoteAddress || 'unknown'})`);
+wss.on('connection', (ws) => {
+  logger.info('New WebSocket connection established');
   ws.isAlive = true;
 
   ws.on('pong', () => {
@@ -89,16 +210,25 @@ wss.on('connection', (ws, req) => {
       `Received WebSocket message (type=${messageType}${messageSize !== null ? `, size=${messageSize}` : ''})`,
     );
     // Echo for now (or handle your app logic here)
-    ws.send(JSON.stringify({ type: 'ack', received: true }));
+    // Only attempt to send if the WebSocket is currently OPEN (1 = WebSocket.OPEN in 'ws')
+    if (ws.readyState === 1) {
+      try {
+        ws.send(JSON.stringify({ type: 'ack', received: true }));
+      } catch (sendErr) {
+        logger.warn('Failed to send WebSocket ACK in message handler', {
+          error: sendErr,
+        });
+      }
+    } else {
+      logger.debug?.('Skipping WebSocket ACK send; socket is not OPEN', {
+        readyState: ws.readyState,
+      });
+    }
   });
 
   ws.on('error', (err) => {
     logger.error('WebSocket error:', err);
   });
-});
-
-server.listen(PORT, '0.0.0.0', () => {
-  logger.info(`Teachmo backend server running on port ${PORT}`);
 });
 
 const shutdown = (signal) => {
