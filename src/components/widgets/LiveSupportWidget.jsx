@@ -23,7 +23,7 @@ export default function LiveSupportWidget() {
       setMessage("");
       setIsOpen(false);
     } catch (error) {
-      console.error('Failed to send support ticket');
+      console.error('Failed to send support ticket', error);
       ultraMinimalToast.show('Unable to send your message right now. Please try again.');
     } finally {
       setIsSending(false);
