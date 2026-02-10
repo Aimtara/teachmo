@@ -123,7 +123,7 @@ function validateTenantChannel(settings = {}, channel) {
 
 
 
-function buildGradesCondition(startIdx, grades) {
+export function buildGradesCondition(startIdx, grades) {
   if (!grades.length) return { sql: '', params: [], nextIdx: startIdx };
   const normalized = grades
     .map((grade) => String(grade || '').trim().toLowerCase())
