@@ -4,7 +4,7 @@ import { MomentContract } from '@/governance/momentContract';
 
 /**
  * A minimal dashboard for founders to inspect governance state.
- * This page is intentionally simple and unstyled to discourage frequent use.
+ * This page is intentionally simple and minimally styled to discourage frequent use.
  */
 export default function FounderDashboard() {
   const events = getGovernanceEvents();
