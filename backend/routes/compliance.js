@@ -21,7 +21,7 @@ async function safeQuery(res, sql, params = []) {
   }
 }
 
-async function deleteUserRecords(res, { userId, organizationId, schoolId }) {
+async function deleteUserRecords(res, { userId, organizationId, profileIds = [] }) {
   const steps = [
     {
       key: 'notification_queue',
@@ -52,6 +52,13 @@ async function deleteUserRecords(res, { userId, organizationId, schoolId }) {
       key: 'notification_priorities',
       sql: `delete from public.notification_priorities where user_id = $1`,
       params: [userId],
+    },
+    {
+      key: 'messages',
+      sql: `delete from public.messages
+            where sender_user_id = $1
+               or (array_length($2::uuid[], 1) is not null and sender_id = any($2::uuid[]))`,
+      params: [userId, profileIds],
     },
     {
       key: 'analytics_events',
@@ -287,7 +294,15 @@ router.post('/users/:id/hard-delete', async (req, res) => {
   const user = userResult.rows?.[0];
   if (!user) return res.status(404).json({ error: 'user_not_found' });
 
-  const deletionSummary = await deleteUserRecords(res, { userId, organizationId, schoolId });
+  const profileIdsResult = await safeQuery(
+    res,
+    `select id from public.profiles where user_id = $1`,
+    [userId]
+  );
+  if (!profileIdsResult) return;
+  const profileIds = (profileIdsResult.rows || []).map((row) => row.id).filter(Boolean);
+
+  const deletionSummary = await deleteUserRecords(res, { userId, organizationId, schoolId, profileIds });
   if (!deletionSummary) return;
 
   await safeQuery(
@@ -307,6 +322,12 @@ router.post('/users/:id/hard-delete', async (req, res) => {
   await safeQuery(
     res,
     `delete from public.user_profiles
+     where user_id = $1`,
+    [userId]
+  );
+  await safeQuery(
+    res,
+    `delete from public.profiles
      where user_id = $1`,
     [userId]
   );

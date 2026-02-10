@@ -1,6 +1,6 @@
 import React from 'react';
 import { getCurrentMoment, MomentContract } from '@/governance/momentContract';
-import type { SurfaceType } from '@/governance/surfaces';
+import { SurfaceType } from '@/governance/surfaces';
 import { logGovernanceEvent } from '@/governance/events';
 
 interface SurfaceBoundaryProps {
@@ -20,6 +20,7 @@ export function SurfaceBoundary({ surface, moment, children }: SurfaceBoundaryPr
   const rules = MomentContract[activeMoment];
   const allowedSurfaces = rules.allowedSurfaces;
   if (!allowedSurfaces.includes(surface)) {
+  if (!rules.allowedSurfaces.includes(surface)) {
     logGovernanceEvent('SURFACE_BLOCKED', { surface, moment: activeMoment });
     return null;
   }

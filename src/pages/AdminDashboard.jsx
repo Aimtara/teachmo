@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { bootstrapOrganization } from '@/domains/onboarding';
-import { createProfile } from '@/domains/auth';
+import { createProfile, fetchUserProfile } from '@/domains/auth';
 import { graphqlRequest } from '@/lib/graphql';
 import { useTelemetry } from '@/utils/useTelemetry';
+import { logAuditEvent } from '@/api/functions';
 
 export default function AdminDashboard() {
   const [orgForm, setOrgForm] = useState({ organizationName: '', schoolName: '' });
@@ -58,12 +59,24 @@ export default function AdminDashboard() {
 
   const handleUserSubmit = async (evt) => {
     evt.preventDefault();
-    await createProfile({
+    const before = await fetchUserProfile(userForm.userId);
+    const after = await createProfile({
       user_id: userForm.userId,
       full_name: userForm.fullName,
       app_role: userForm.role,
       organization_id: userForm.organizationId || null,
       school_id: userForm.schoolId || null
+    });
+    await logAuditEvent({
+      action: before ? 'user.role_change' : 'user.create_profile',
+      entity_type: 'user',
+      entity_id: userForm.userId,
+      before,
+      after,
+      metadata: {
+        organization_id: userForm.organizationId || null,
+        school_id: userForm.schoolId || null,
+      },
     });
     log('admin_assign_role', {
       userId: userForm.userId,

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { nhost } from '@/lib/nhostClient';
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
@@ -110,11 +111,25 @@ export default function Login() {
             </button>
           </form>
         )}
+        <p className="text-center text-sm text-gray-600">
+          Don&apos;t have an account?{' '}
+          <Link to="/onboarding" className="font-semibold text-emerald-700 hover:text-emerald-800">
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );
 }
-
+<div className="mt-6 text-center text-sm">
+  <span className="text-gray-600">Don't have an account? </span>
+  <Link 
+    to="/onboarding" 
+    className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
+  >
+    Sign up for free
+  </Link>
+</div>
 /**
  * AutoSSORedirect triggers an immediate signIn with the given provider when mounted.
  * It calls onStart before initiating the redirect and onError if the call fails.
