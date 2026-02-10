@@ -134,6 +134,22 @@ describe('SSO /test/resolve endpoint security', () => {
       .setExpirationTime('15m')
       .sign(new TextEncoder().encode(process.env.AUTH_MOCK_SECRET));
 
+    // Mock resolveOrganizationId query (when organizationId is provided directly, no query is made)
+    // Mock loadSsoSettings query to return enabled SSO configuration
+    query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'sso-config-1',
+          provider: 'saml',
+          client_id: 'test-client-id',
+          client_secret: 'test-secret',
+          issuer: 'https://idp.example.com',
+          metadata: { entryPoint: 'https://idp.example.com/saml' },
+          is_enabled: true,
+        },
+      ],
+    });
+
     const app = makeApp();
     const response = await request(app)
       .post('/api/sso/test/resolve')
