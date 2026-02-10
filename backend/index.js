@@ -9,6 +9,7 @@ import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
 import { startObservabilitySchedulers } from './jobs/observabilityScheduler.js';
 import { startRosterSyncScheduler } from './jobs/rosterSyncScheduler.js';
+import { startSisContinuousSyncScheduler } from './jobs/sisContinuousSync.js';
 import { createLogger } from './utils/logger.js';
 import { runMigrations } from './migrate.js';
 import { performStartupCheck } from './utils/envCheck.js';
@@ -37,6 +38,7 @@ startRetentionPurgeScheduler();
 startNotificationQueueScheduler();
 startObservabilitySchedulers();
 startRosterSyncScheduler();
+startSisContinuousSyncScheduler();
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });

@@ -1,15 +1,12 @@
+import crypto from 'crypto';
 import { hasuraRequest } from './lib/hasura.js';
 import { parse } from 'csv-parse/sync';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
-
-// Whitelist of valid SIS roster table names to prevent GraphQL injection
-const ALLOWED_TABLES = new Set([
-  'sis_roster_students',
-  'sis_roster_teachers',
-  'sis_roster_classes',
-  'sis_roster_enrollments'
-]);
+const ROSTER_ROLE_MAP = {
+  students: 'student',
+  teachers: 'teacher',
+};
 
 function parseCsv(text) {
   if (!text) return [];
@@ -55,6 +52,10 @@ function resolveExternalId(record, keys) {
   return null;
 }
 
+function stableChecksum(payload) {
+  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
 async function createImportJob(userId, organizationId, rosterType, metadata = {}) {
   const query = `
     mutation CreateImportJob($object: sis_import_jobs_insert_input!) {
@@ -70,6 +71,7 @@ async function createImportJob(userId, organizationId, rosterType, metadata = {}
         user_id: userId,
         organization_id: organizationId,
         roster_type: rosterType,
+        source: 'oneroster',
         status: 'processing',
         metadata,
       },
@@ -92,35 +94,93 @@ async function updateImportJob(jobId, changes) {
   });
 }
 
+async function insertSisRosters(objects) {
+  if (!objects.length) return 0;
+  const mutation = `
+    mutation InsertRosters($objects: [sis_rosters_insert_input!]!) {
+      insert_sis_rosters(objects: $objects) {
+        affected_rows
+      }
+    }
+  `;
+  const result = await hasuraRequest({
+    query: mutation,
+    variables: { objects },
+  });
+  return result?.insert_sis_rosters?.affected_rows ?? 0;
+}
+
 function getRosterConfig(rosterType) {
   switch (rosterType) {
     case 'students':
       return {
-        tableName: 'sis_roster_students',
         idKeys: ['sourcedId', 'id', 'student_id', 'external_id'],
         idFieldName: 'student ID',
       };
     case 'teachers':
       return {
-        tableName: 'sis_roster_teachers',
         idKeys: ['sourcedId', 'id', 'teacher_id', 'external_id'],
         idFieldName: 'teacher ID',
       };
     case 'classes':
       return {
-        tableName: 'sis_roster_classes',
         idKeys: ['sourcedId', 'id', 'class_id', 'external_id'],
         idFieldName: 'class ID',
       };
     case 'enrollments':
       return {
-        tableName: 'sis_roster_enrollments',
         idKeys: [],
         idFieldName: 'class ID or student ID',
       };
     default:
       return null;
   }
+}
+
+function buildRosterPayload({ rosterType, record, extId, classId, studentId, teacherId }) {
+  const cleanRecord = { ...record };
+  delete cleanRecord.__lineNumber;
+
+  if (rosterType === 'enrollments') {
+    return {
+      roster_type: rosterType,
+      external_id: `${classId}:${studentId}`,
+      data: {
+        ...cleanRecord,
+        class_external_id: classId,
+        student_external_id: studentId,
+      },
+    };
+  }
+
+  if (rosterType === 'classes') {
+    return {
+      roster_type: rosterType,
+      external_id: extId,
+      data: {
+        ...cleanRecord,
+        class_name: record.name || record.title || record.className || 'Untitled Class',
+        teacher_external_id: teacherId,
+      },
+    };
+  }
+
+  return {
+    roster_type: rosterType,
+    external_id: extId,
+    data: {
+      ...cleanRecord,
+      first_name: record.first_name || record.givenName || record.firstName || null,
+      last_name: record.last_name || record.familyName || record.lastName || null,
+      grade: rosterType === 'students'
+        ? (record.grade || record.grade_level || record.gradeLevel || null)
+        : null,
+      email: rosterType === 'teachers'
+        ? (record.email || record.emailAddress || null)
+        : null,
+      mapped_role: ROSTER_ROLE_MAP[rosterType] || null,
+    },
+  };
 }
 
 export default async function sisRosterImport(req, res) {
@@ -161,6 +221,7 @@ export default async function sisRosterImport(req, res) {
     jobId = await createImportJob(userId, organizationId, rosterType, {
       file_name: fileName,
       file_size: fileSize,
+      storage_table: 'sis_rosters',
     });
 
     const config = getRosterConfig(rosterType);
@@ -168,11 +229,7 @@ export default async function sisRosterImport(req, res) {
       return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
     }
 
-    const { tableName, idKeys, idFieldName } = config;
-
-    if (!ALLOWED_TABLES.has(tableName)) {
-      return res.status(400).json({ error: `Unknown roster type: ${rosterType}` });
-    }
+    const { idKeys, idFieldName } = config;
 
     if (!rawRecords.length) {
       await updateImportJob(jobId, {
@@ -185,6 +242,7 @@ export default async function sisRosterImport(req, res) {
           inserted_count: 0,
           skipped_count: 0,
           errors: [],
+          storage_table: 'sis_rosters',
         },
       });
       return res.status(200).json({ ok: true, inserted: 0, skipped: 0, jobId, warnings: [] });
@@ -207,14 +265,16 @@ export default async function sisRosterImport(req, res) {
           return;
         }
 
-        const { __lineNumber, ...cleanRecord } = record;
+        const payload = buildRosterPayload({ rosterType, record, classId, studentId });
         validObjects.push({
-          job_id: jobId,
-          organization_id: organizationId,
+          district_id: organizationId,
           school_id: schoolId,
-          class_external_id: classId,
-          student_external_id: studentId,
-          data: cleanRecord,
+          source: 'oneroster',
+          roster_type: payload.roster_type,
+          external_id: payload.external_id,
+          status: 'active',
+          data: payload.data,
+          checksum: stableChecksum(payload.data),
         });
         return;
       }
@@ -238,53 +298,38 @@ export default async function sisRosterImport(req, res) {
           errors.push(`Row ${lineNumber}: Missing teacher ID`);
           return;
         }
-        const { __lineNumber, ...cleanRecord } = record;
+
+        const payload = buildRosterPayload({ rosterType, record, extId, teacherId });
         validObjects.push({
-          job_id: jobId,
-          organization_id: organizationId,
+          district_id: organizationId,
           school_id: schoolId,
-          external_id: extId,
-          name: record.name || record.title || record.className || 'Untitled Class',
-          teacher_external_id: teacherId,
-          data: cleanRecord,
+          source: 'oneroster',
+          roster_type: payload.roster_type,
+          external_id: payload.external_id,
+          status: 'active',
+          data: payload.data,
+          checksum: stableChecksum(payload.data),
         });
         return;
       }
 
-      const { __lineNumber, ...cleanRecord } = record;
+      const payload = buildRosterPayload({ rosterType, record, extId });
       validObjects.push({
-        job_id: jobId,
-        organization_id: organizationId,
+        district_id: organizationId,
         school_id: schoolId,
-        external_id: extId,
-        first_name: record.first_name || record.givenName || record.firstName || null,
-        last_name: record.last_name || record.familyName || record.lastName || null,
-        grade: rosterType === 'students'
-          ? (record.grade || record.grade_level || record.gradeLevel || null)
-          : null,
-        email: rosterType === 'teachers'
-          ? (record.email || record.emailAddress || null)
-          : null,
-        data: cleanRecord,
+        source: 'oneroster',
+        roster_type: payload.roster_type,
+        external_id: payload.external_id,
+        status: 'active',
+        data: payload.data,
+        checksum: stableChecksum(payload.data),
       });
     });
 
     let inserted = 0;
     if (validObjects.length) {
       try {
-        const mutation = `
-          mutation InsertRoster($objects: [${tableName}_insert_input!]!) {
-            insert_${tableName}(objects: $objects) {
-              affected_rows
-            }
-          }
-        `;
-        const result = await hasuraRequest({
-          query: mutation,
-          variables: { objects: validObjects },
-        });
-        const responseKey = `insert_${tableName}`;
-        inserted = result?.[responseKey]?.affected_rows ?? 0;
+        inserted = await insertSisRosters(validObjects);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         errors.push(`Batch error: ${message}`);
@@ -300,6 +345,8 @@ export default async function sisRosterImport(req, res) {
       inserted_count: inserted,
       skipped_count: skippedCount,
       errors: errors.slice(0, 50),
+      storage_table: 'sis_rosters',
+      role_mapping: ROSTER_ROLE_MAP[rosterType] || null,
     };
 
     try {
@@ -322,6 +369,7 @@ export default async function sisRosterImport(req, res) {
       skipped: skippedCount,
       jobId,
       warnings: errors.slice(0, 5),
+      roleMapping: ROSTER_ROLE_MAP[rosterType] || null,
     });
   } catch (err) {
     if (jobId) {
@@ -331,6 +379,7 @@ export default async function sisRosterImport(req, res) {
           finished_at: new Date().toISOString(),
           metadata: {
             errors: [err instanceof Error ? err.message : 'Unknown error'],
+            storage_table: 'sis_rosters',
           },
         });
       } catch (updateError) {
