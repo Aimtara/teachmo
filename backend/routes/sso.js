@@ -108,7 +108,23 @@ async function finalizeSsoLogin({ req, profile, provider }) {
   const { organizationId, schoolId } = req.ssoContext || {};
   if (!organizationId) throw new Error('Missing organization scope for SSO');
 
-  const role = req.ssoContext?.defaultRole || 'parent';
+  // Derive role server-side: reuse existing profile role if present, otherwise default.
+  let role = 'parent';
+  try {
+    const existingProfile = await query(
+      `select up.role
+       from public.user_profiles up
+       join auth.users u on u.id = up.user_id
+       where u.email = $1
+       limit 1`,
+      [email]
+    );
+    if (existingProfile.rows?.[0]?.role) {
+      role = existingProfile.rows[0].role;
+    }
+  } catch (err) {
+    logger.error({ err }, 'Failed to resolve existing user role during SSO login');
+  }
   const displayName = normalizeProfileName(profile);
 
   const userId = await upsertSsoUser({
