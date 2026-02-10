@@ -12,8 +12,12 @@ export default function SponsorshipDashboard() {
   const { data: sponsorships = [], isLoading } = useQuery({
     queryKey: ['sponsorships', organizationId],
     queryFn: async () => {
-      const response = await apiClient.get('/api/partners/sponsorships', { org: organizationId });
-      return response?.results || [];
+      const res = await fetch(`/api/partners/sponsorships?org=${encodeURIComponent(organizationId)}`);
+      if (!res.ok) {
+        throw new Error('Failed to load sponsorships');
+      }
+      const data = await res.json();
+      return data?.results || [];
     },
     enabled: Boolean(organizationId),
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
