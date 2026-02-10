@@ -1,8 +1,8 @@
 export type GovernanceEvent =
-  | { type: 'SURFACE_BLOCKED'; surface: string; moment: string; timestamp: number }
-  | { type: 'AI_TRUNCATED'; moment: string; timestamp: number }
-  | { type: 'ROUTE_DENIED'; route: string; moment: string; timestamp: number }
-  | { type: 'COGNITIVE_BUDGET_EXCEEDED'; moment: string; timestamp: number };
+  | { type: 'SURFACE_BLOCKED'; surface: SurfaceType; moment: MomentId; timestamp: number }
+  | { type: 'AI_TRUNCATED'; moment: MomentId; timestamp: number }
+  | { type: 'ROUTE_DENIED'; route: string; moment: MomentId; timestamp: number }
+  | { type: 'COGNITIVE_BUDGET_EXCEEDED'; moment: MomentId; timestamp: number };
 
 type GovernanceEventPayload<T extends GovernanceEvent['type']> =
   Omit<Extract<GovernanceEvent, { type: T }>, 'type' | 'timestamp'>;
