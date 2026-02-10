@@ -1,14 +1,16 @@
-import React from "react";
-import NotYetMigrated from "./_parity/NotYetMigrated";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Messages() {
   return (
-    <NotYetMigrated
-      title="Messages"
-      notes={[
-        "Next: merge Base44 Messages page + messages components.",
-        "useAppContextSafe shim is included in this patch."
-      ]}
-    />
+    <div className="mx-auto max-w-4xl p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Messages</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-slate-600">
+          Messaging is now served from the unified Base44 routes and components.
+        </CardContent>
+      </Card>
+    </div>
   );
 }
