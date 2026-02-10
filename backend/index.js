@@ -97,16 +97,16 @@ if (envHeartbeat !== undefined) {
 }
 
 const heartbeatIntervalId = setInterval(() => {
-      wss.clients.forEach((client) => {
-        if (client.isAlive === false) {
-          client.terminate();
-          return;
-        }
+  wss.clients.forEach((client) => {
+    if (client.isAlive === false) {
+      client.terminate();
+      return;
+    }
 
-        client.isAlive = false;
-        client.ping();
-      });
-    }, heartbeatIntervalMs);
+    client.isAlive = false;
+    client.ping();
+  });
+}, heartbeatIntervalMs);
 
 wss.on('connection', (ws) => {
   logger.info('New WebSocket connection established');
