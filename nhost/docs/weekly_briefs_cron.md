@@ -55,6 +55,16 @@ jobs:
             -d '{"trigger":"cron"}'
 ```
 
+
+### Option C: Nhost-native scheduler (recommended when available)
+Use the `schedule` block in `nhost/config.yaml` (tracked in this repo) to run:
+
+- `name`: `generate_weekly_briefs`
+- `cron`: `0 6 * * 1`
+- `action`: `/generate-weekly-briefs`
+
+Adjust the cron expression as needed for your district timezone/SLA.
+
 ## Observability
 
 - Admin UI shows the most recent run.

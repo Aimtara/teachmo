@@ -24,6 +24,9 @@ npm run dev
 - Serverless functions: `nhost/functions/health.js`, `nhost/functions/track-event.js`
 - Setup docs: `nhost/docs/hasura_setup.md`, `nhost/docs/permissions.md`
 
+Hasura runtime settings (CORS, console/dev mode defaults, JWT secret placeholder)
+are configured in `nhost/nhost.toml`.
+
 Start Nhost locally with `nhost up` and apply migrations; use the docs to track tables and permissions.
 
 ## Architecture overview
