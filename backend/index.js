@@ -106,15 +106,6 @@ async function verifyWebSocketToken(token) {
   });
   return payload;
 }
-// Attach WebSocket Server to the same HTTP server
-const wss = new WebSocketServer({
-  server,
-  path: '/ws',
-  // Limit maximum incoming message size to prevent memory/CPU abuse
-  maxPayload: 1024 * 1024, // 1 MiB
-  // Disable per-message compression to avoid compression-based attacks by default
-  perMessageDeflate: false,
-});
 
 // Configure WebSocket max payload size to mitigate large-frame DoS
 const DEFAULT_WS_MAX_PAYLOAD_BYTES = 1024 * 1024; // 1 MiB
@@ -218,40 +209,6 @@ const heartbeatIntervalId = setInterval(() => {
           }
         }
       });
-    }, heartbeatIntervalMs);
-  wss.clients.forEach((client) => {
-    // Guard against closed/closing sockets before attempting ping/terminate
-    if (client.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    if (client.isAlive === false) {
-      try {
-        client.terminate();
-      } catch (terminateErr) {
-        logger.error('Failed to terminate unresponsive WebSocket client during heartbeat', {
-          error: terminateErr,
-        });
-      }
-      return;
-    }
-
-    client.isAlive = false;
-    try {
-      client.ping();
-    } catch (pingErr) {
-      logger.warn('WebSocket ping failed during heartbeat; terminating client', {
-        error: pingErr,
-      });
-      try {
-        client.terminate();
-      } catch (terminateErr) {
-        logger.error('Failed to terminate WebSocket client after ping failure', {
-          error: terminateErr,
-        });
-      }
-    }
-  });
 }, heartbeatIntervalMs);
 
 wss.on('connection', async (ws, req) => {
