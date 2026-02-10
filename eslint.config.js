@@ -117,7 +117,7 @@ export default [
               message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
             },
             {
-              group: ['@/api/base44', '@/api/base44/*'],
+              group: ['@/api/base44', '@/api/base44/*', '@/api/base44/**'],
               message:
                 'Legacy Base44 access is deprecated. Use the Domain Modules or Adapters in src/api/adapters instead. See ADR 0001.'
             },
@@ -133,13 +133,105 @@ export default [
   {
     files: ['src/api/adapters/**/*.{js,jsx,ts,tsx}'],
     rules: {
-      'no-restricted-imports': 'off'
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/API/*', '@/API/**'],
+              caseSensitive: true,
+              message: 'Use "@/api" instead of "@/API".'
+            },
+            {
+              group: ['@/api/functions/*', '@/api/functions/**'],
+              message: 'Use "@/api/functions" barrel imports instead of direct file paths.'
+            },
+            {
+              group: ['@/api/entities/*', '@/api/entities/**'],
+              message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
+            }
+            // Base44-related restrictions are intentionally omitted for adapters
+          ]
+        }
+      ]
     }
   },
   {
     files: ['src/domain/**/*.{js,jsx,ts,tsx}', 'src/domains/**/*.{js,jsx,ts,tsx}'],
     rules: {
-      'no-restricted-imports': 'off'
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/API/*', '@/API/**'],
+              caseSensitive: true,
+              message: 'Use "@/api" instead of "@/API".'
+            },
+            {
+              group: ['@/api/functions/*', '@/api/functions/**'],
+              message: 'Use "@/api/functions" barrel imports instead of direct file paths.'
+            },
+            {
+              group: ['@/api/entities/*', '@/api/entities/**'],
+              message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
+            }
+            // Base44-related restrictions are intentionally omitted for domain modules
+          ]
+        }
+      ]
+    }
+  },
+  {
+    files: ['src/backend/**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/API/*', '@/API/**'],
+              caseSensitive: true,
+              message: 'Use "@/api" instead of "@/API".'
+            },
+            {
+              group: ['@/api/functions/*', '@/api/functions/**'],
+              message: 'Use "@/api/functions" barrel imports instead of direct file paths.'
+            },
+            {
+              group: ['@/api/entities/*', '@/api/entities/**'],
+              message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
+            }
+            // Base44-related restrictions are intentionally omitted for backend modules
+          ]
+        }
+      ]
+    }
+  },
+  {
+    files: ['src/api/base44Client.js'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/API/*', '@/API/**'],
+              caseSensitive: true,
+              message: 'Use "@/api" instead of "@/API".'
+            },
+            {
+              group: ['@/api/functions/*', '@/api/functions/**'],
+              message: 'Use "@/api/functions" barrel imports instead of direct file paths.'
+            },
+            {
+              group: ['@/api/entities/*', '@/api/entities/**'],
+              message: 'Use "@/api/entities" barrel imports instead of direct file paths.'
+            }
+            // Base44 SDK import is intentionally allowed for base44Client.js
+          ]
+        }
+      ]
     }
   }
 ];
