@@ -203,7 +203,7 @@ wss.on('connection', async (ws, req) => {
     // Extract user ID from JWT payload
     const hasuraClaims = payload?.['https://hasura.io/jwt/claims'] || payload?.['https://nhost.io/jwt/claims'] || {};
     const userId = hasuraClaims['x-hasura-user-id'] || payload.sub || payload.user_id;
-    
+
     if (!userId) {
       logger.warn('WebSocket connection rejected: token missing user ID');
       ws.close(1008, 'Invalid token claims');
