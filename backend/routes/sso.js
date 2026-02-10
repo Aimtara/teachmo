@@ -7,7 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { query } from '../db.js';
 import { createLogger } from '../utils/logger.js';
 import { issueSsoJwt } from '../utils/ssoJwt.js';
-import { attachAuthContext, requireAdmin } from '../middleware/auth.js';
+import { requireAdmin } from '../middleware/auth.js';
 import {
   buildOidcConfig,
   buildSamlConfig,
