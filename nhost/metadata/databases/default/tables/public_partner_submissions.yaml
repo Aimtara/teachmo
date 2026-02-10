@@ -43,3 +43,25 @@ update_permissions:
         status:
           _eq: pending
       check: {}
+
+
+event_triggers:
+  - name: partner_submission_workflow_handoff
+    definition:
+      enable_manual: false
+      insert:
+        columns: "*"
+      update:
+        columns:
+          - status
+          - updated_at
+    retry_conf:
+      interval_sec: 10
+      num_retries: 3
+      timeout_sec: 60
+    webhook_from_env: PARTNER_SUBMISSION_EVENT_WEBHOOK
+    headers:
+      - name: x-hasura-event-secret
+        value_from_env: HASURA_EVENT_WEBHOOK_SECRET
+      - name: x-teachmo-event-source
+        value: hasura_partner_submissions

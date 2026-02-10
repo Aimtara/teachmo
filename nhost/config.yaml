@@ -7,3 +7,9 @@ actions:
   handler_webhook_baseurl: http://host.docker.internal:3000
 migrations_directory: migrations
 seeds_directory: seeds
+
+# Scheduled serverless jobs (upstream execution triggers)
+schedule:
+  - name: generate_weekly_briefs
+    cron: "0 6 * * 1" # Monday 06:00 UTC
+    action: /generate-weekly-briefs
