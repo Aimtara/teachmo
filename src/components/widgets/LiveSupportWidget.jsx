@@ -19,12 +19,12 @@ export default function LiveSupportWidget() {
     try {
       // Use functions.invoke instead of post to avoid logging sensitive user data
       await apiClient.functions.invoke('support-ticket', { message: message.trim() });
-      ultraMinimalToast.show("Message sent! Support will email you shortly.");
+      ultraMinimalToast("Message sent! Support will email you shortly.");
       setMessage("");
       setIsOpen(false);
     } catch (error) {
-      console.error('Failed to send support ticket', error);
-      ultraMinimalToast.show('Unable to send your message right now. Please try again.');
+      console.error('Failed to send support ticket');
+      ultraMinimalToast('Unable to send your message right now. Please try again.');
     } finally {
       setIsSending(false);
     }

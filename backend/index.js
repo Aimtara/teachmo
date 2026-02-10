@@ -1,8 +1,7 @@
 /* eslint-env node */
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
-import { WebSocketServer, WebSocket } from 'ws';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { WebSocketServer } from 'ws';
 import app from './app.js';
 import { seedDemoData, seedExecutionBoardData, seedOpsDemoData } from './seed.js';
 import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
@@ -13,6 +12,7 @@ import { startSisContinuousSyncScheduler } from './jobs/sisContinuousSync.js';
 import { createLogger } from './utils/logger.js';
 import { runMigrations } from './migrate.js';
 import { performStartupCheck } from './utils/envCheck.js';
+import { verifyJWT, extractToken } from './security/jwt.js';
 
 // Load environment variables
 dotenv.config();
@@ -43,69 +43,6 @@ startSisContinuousSyncScheduler();
 const server = app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);
 });
-
-// JWT verification for WebSocket authentication
-const jwksUrl = process.env.AUTH_JWKS_URL || process.env.NHOST_JWKS_URL || '';
-const issuer = process.env.AUTH_ISSUER || process.env.NHOST_JWT_ISSUER || undefined;
-const audience = process.env.AUTH_AUDIENCE || process.env.NHOST_JWT_AUDIENCE || undefined;
-const envLower = (process.env.NODE_ENV || 'development').toLowerCase();
-const isProd = envLower === 'production';
-
-if (isProd && jwksUrl && (!issuer || !audience)) {
-  logger.warn(
-    'JWT verification is configured with JWKS in production but AUTH_ISSUER and/or AUTH_AUDIENCE (or Nhost JWT equivalents) are missing. ' +
-      'Issuer/audience claim checks will be skipped; this weakens token validation. ' +
-      'Set AUTH_ISSUER and AUTH_AUDIENCE (or NHOST_JWT_ISSUER and NHOST_JWT_AUDIENCE) to enable full verification.'
-  );
-}
-let jwks = null;
-if (jwksUrl) {
-  jwks = createRemoteJWKSet(new URL(jwksUrl));
-}
-
-const textEncoder = new TextEncoder();
-
-function isMockAuthMode() {
-  const mode = String(process.env.AUTH_MODE || '').toLowerCase();
-  return mode === 'mock' && String(process.env.NODE_ENV || '').toLowerCase() === 'test';
-}
-
-async function verifyWebSocketToken(token) {
-  if (!token) return null;
-
-  // Test-only mock verification: HS256 tokens signed with AUTH_MOCK_SECRET.
-  if (isMockAuthMode()) {
-    const secret = String(process.env.AUTH_MOCK_SECRET || '').trim();
-    if (!secret) throw new Error('AUTH_MOCK_SECRET is required when AUTH_MODE=mock');
-    const { payload } = await jwtVerify(token, textEncoder.encode(secret), {
-      algorithms: ['HS256'],
-    });
-    return payload;
-  }
-
-  if (!jwks) {
-    // In production, missing JWKS is a hard failure.
-    if (isProd) {
-      throw new Error('AUTH_JWKS_URL is required in production to verify JWTs');
-    }
-
-    // In non-prod you may opt-in to insecure decode for local testing.
-    const allowInsecure = String(process.env.ALLOW_INSECURE_JWT_DECODE || '').toLowerCase() === 'true';
-    if (!allowInsecure) return null;
-
-    // Minimal, *insecure* decode (dev-only) — does NOT validate signature.
-    const payloadB64 = token.split('.')[1];
-    if (!payloadB64) return null;
-    const json = Buffer.from(payloadB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
-    return JSON.parse(json);
-  }
-
-  const { payload } = await jwtVerify(token, jwks, {
-    issuer,
-    audience,
-  });
-  return payload;
-}
 
 // Configure WebSocket max payload size to mitigate large-frame DoS
 const DEFAULT_WS_MAX_PAYLOAD_BYTES = 1024 * 1024; // 1 MiB
@@ -156,6 +93,11 @@ const wss = new WebSocketServer({
         serverMaxWindowBits: 15,
       }
     : false,
+});
+
+// Add error handler for WebSocketServer to prevent process crashes
+wss.on('error', (err) => {
+  logger.error('WebSocketServer error:', { error: err });
 });
 // Validate and parse WS_HEARTBEAT_MS with proper error handling
 const DEFAULT_HEARTBEAT_MS = 30000;
@@ -212,12 +154,8 @@ const heartbeatIntervalId = setInterval(() => {
 }, heartbeatIntervalMs);
 
 wss.on('connection', async (ws, req) => {
-  // Extract and verify JWT, preferring Authorization header over query parameter
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const tokenFromQuery = url.searchParams.get('token');
-  const authHeader = req.headers.authorization || '';
-  const tokenFromHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const token = tokenFromHeader || tokenFromQuery;
+  // Extract token from Authorization header (preferred) or query parameter
+  const token = extractToken(req, { allowQuery: true });
 
   if (!token) {
     logger.warn('WebSocket connection rejected: missing authentication token');
@@ -225,8 +163,9 @@ wss.on('connection', async (ws, req) => {
     return;
   }
 
+  // Verify JWT during the WebSocket handshake
   try {
-    const payload = await verifyWebSocketToken(token);
+    const payload = await verifyJWT(token);
     if (!payload) {
       logger.warn('WebSocket connection rejected: invalid or expired token');
       ws.close(1008, 'Invalid authentication token');
@@ -252,7 +191,7 @@ wss.on('connection', async (ws, req) => {
     logger.debug(`WebSocket connection established for user ${userId}`);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    logger.warn('WebSocket connection rejected: token verification failed -', errorMessage);
+    logger.warn('WebSocket connection rejected: token verification failed', { error: errorMessage });
     ws.close(1008, 'Authentication failed');
     return;
   }
@@ -298,7 +237,37 @@ const shutdown = (signal) => {
   if (heartbeatIntervalId) {
     clearInterval(heartbeatIntervalId);
   }
+
+  // Set a timeout to force-terminate clients if graceful close takes too long
+  const SHUTDOWN_TIMEOUT_MS = 10000; // 10 seconds
+  const FINAL_EXIT_TIMEOUT_MS = 2000; // 2 seconds after forced server close
+  let finalExitTimer = null;
+  
+  const forceShutdownTimer = setTimeout(() => {
+    logger.warn('Shutdown timeout reached, force-terminating remaining WebSocket clients');
+    wss.clients.forEach((client) => {
+      try {
+        client.terminate();
+      } catch (err) {
+        logger.error('Error force-terminating WebSocket client', { error: err });
+      }
+    });
+    // Force close the HTTP server and exit
+    server.close(() => {
+      process.exit(0);
+    });
+    // If server.close doesn't complete, force exit after another 2 seconds
+    finalExitTimer = setTimeout(() => {
+      logger.error('Forced process exit after shutdown timeout');
+      process.exit(1);
+    }, FINAL_EXIT_TIMEOUT_MS);
+  }, SHUTDOWN_TIMEOUT_MS);
+
   wss.close(() => {
+    clearTimeout(forceShutdownTimer);
+    if (finalExitTimer) {
+      clearTimeout(finalExitTimer);
+    }
     server.close(() => {
       process.exit(0);
     });
