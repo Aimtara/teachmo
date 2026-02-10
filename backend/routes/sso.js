@@ -346,7 +346,7 @@ router.get('/:provider/metadata', async (req, res) => {
   }
 });
 
-router.post('/test/resolve', attachAuthContext, requireAdmin, async (req, res) => {
+router.post('/test/resolve', ssoRateLimiter, attachAuthContext, requireAdmin, async (req, res) => {
   const { email, organizationId, provider } = req.body || {};
   const resolvedOrg = await resolveOrganizationId({ organizationId, email });
   const settings = await loadSsoSettings({ provider, organizationId: resolvedOrg });
