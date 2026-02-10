@@ -206,6 +206,15 @@ export const ROUTE_DEFINITIONS = [
     feature: 'TEACHER_MESSAGES',
     fallback: <p className="p-6 text-gray-600">Loading teacher messages...</p>
   },
+
+  {
+    name: 'PartnerRegistration',
+    path: '/partners/register',
+    Component: lazy(() => import('@/pages/public/PartnerRegistration.jsx')),
+    isPublic: true,
+    fallback: <p className="p-6 text-gray-600">Loading partner registration...</p>
+  },
+
   {
     name: 'PartnerDashboard',
     path: '/partners/dashboard',
@@ -284,6 +293,17 @@ export const ROUTE_DEFINITIONS = [
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading partner admin dashboard...</p>
   },
+
+  {
+    name: 'DistrictOverview',
+    path: '/district/overview',
+    Component: lazy(() => import('@/pages/DistrictOverview.jsx')),
+    requiresAuth: true,
+    allowedRoles: ['district_admin', 'system_admin', 'admin'],
+    requiredScopes: ['org:manage'],
+    fallback: <p className="p-6 text-gray-600">Loading district insights...</p>
+  },
+
   {
     name: 'AdminDashboard',
     path: '/admin',
