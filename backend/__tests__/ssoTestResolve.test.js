@@ -137,8 +137,6 @@ describe('SSO /test/resolve endpoint security', () => {
 
     // With DB mocked, we should get a deterministic 200 response
     expect(response.status).toBe(200);
-    expect(response.status).not.toBe(401);
-    expect(response.status).not.toBe(403);
     
     // Verify response body shape
     expect(response.body).toHaveProperty('organizationId', 'test-org-123');
