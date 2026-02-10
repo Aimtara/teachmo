@@ -22,10 +22,20 @@ import request from 'supertest';
 import express from 'express';
 import ssoRouter from '../routes/sso.js';
 import { attachAuthContext } from '../middleware/auth.js';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 app.use(express.json());
+
+const ssoRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(attachAuthContext);
+app.use('/api/sso', ssoRateLimiter);
 app.use('/api/sso', ssoRouter);
 
 describe('SSO /test/resolve endpoint security', () => {
