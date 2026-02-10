@@ -2,7 +2,42 @@
 version = "14"
 
 [hasura]
+# Hasura GraphQL Engine version (Docker tag).
 version = "v2.36.1"
+
+# IMPORTANT:
+# - Keep real secrets in local env files / CI / Nhost Cloud secrets.
+# - These placeholders are for local bootstrap guidance only.
+adminSecret = "CHANGE_ME_LOCAL_ONLY"
+webhookSecret = "CHANGE_ME_LOCAL_ONLY"
+
+[[hasura.jwtSecrets]]
+type = "HS256"
+key = "CHANGE_ME_LOCAL_ONLY"
+
+[hasura.settings]
+# Local frontend dev origin; tighten for production deploy origins.
+corsDomain = ["http://localhost:5173"]
+devMode = false
+enableAllowList = false
+enableConsole = false
+enableRemoteSchemaPermissions = false
+enabledAPIs = ["metadata", "graphql", "config"]
+liveQueriesMultiplexedRefetchInterval = 1000
+stringifyNumericTypes = false
+
+[hasura.logs]
+level = "warn"
+
+[hasura.events]
+httpPoolSize = 10
+
+[hasura.resources]
+replicas = 1
+
+[hasura.resources.compute]
+cpu = 500
+memory = 1024
 
 [auth]
 version = "0.26.0"
