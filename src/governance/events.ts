@@ -83,11 +83,11 @@ export function logGovernanceEvent<T extends GovernanceEvent['type']>(
   // Append the event to our internal array. In a real implementation this
   // could post to an API or analytics service. For now we store it and
   // persist a bounded history to localStorage for cross-session inspection.
-  const event: GovernanceEvent = { 
-    type: eventType, 
+  const event: Extract<GovernanceEvent, { type: T }> = {
+    type: eventType,
     timestamp: Date.now(),
-    ...payload 
-  } as GovernanceEvent;
+    ...payload,
+  };
   events.push(event);
 
   // Enforce max history size in memory as well.
