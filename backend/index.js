@@ -71,13 +71,37 @@ if (envHeartbeat !== undefined) {
 
 const heartbeatIntervalId = setInterval(() => {
       wss.clients.forEach((client) => {
-        if (client.isAlive === false) {
-          client.terminate();
+        // Terminate clients that are already marked dead or not in a usable state
+        if (
+          client.isAlive === false ||
+          client.readyState === client.CLOSING ||
+          client.readyState === client.CLOSED
+        ) {
+          try {
+            client.terminate();
+          } catch (err) {
+            logger.error('Failed to terminate WebSocket client during heartbeat', err);
+          }
           return;
         }
 
-        client.isAlive = false;
-        client.ping();
+        // Only attempt to ping sockets that are currently open
+        if (client.readyState === client.OPEN) {
+          client.isAlive = false;
+          try {
+            client.ping();
+          } catch (err) {
+            logger.warn('WebSocket heartbeat ping failed, terminating client', err);
+            try {
+              client.terminate();
+            } catch (terminateErr) {
+              logger.error(
+                'Failed to terminate WebSocket client after ping failure',
+                terminateErr
+              );
+            }
+          }
+        }
       });
     }, heartbeatIntervalMs);
 
