@@ -61,7 +61,9 @@ async function applySqlFile(filepath, filename) {
   } catch (e) {
     await query('ROLLBACK');
     console.error(`❌ Failed ${filename}`);
-    printMissingBaseSchemaGuidance(e, filename);
+    if (filename.startsWith('nhost:')) {
+      printMissingBaseSchemaGuidance(e, filename);
+    }
     throw e;
   }
 }
