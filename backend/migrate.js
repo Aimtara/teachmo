@@ -6,6 +6,7 @@ import { query } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, '..');
 
 async function ensureMigrationsTable() {
   await query(`
@@ -26,6 +27,29 @@ async function recordApplied(filename) {
   await query('INSERT INTO schema_migrations(filename) VALUES ($1)', [filename]);
 }
 
+function collectSqlFiles(dirPath, matcher = (name) => name.endsWith('.sql')) {
+  if (!fs.existsSync(dirPath)) return [];
+
+  const files = [];
+  const stack = [dirPath];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const absolute = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(absolute);
+      } else if (matcher(entry.name)) {
+        files.push(absolute);
+      }
+    }
+  }
+
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
 async function applySqlFile(filepath, filename) {
   const sql = fs.readFileSync(filepath, 'utf8');
   await query('BEGIN');
@@ -37,16 +61,63 @@ async function applySqlFile(filepath, filename) {
   } catch (e) {
     await query('ROLLBACK');
     console.error(`❌ Failed ${filename}`);
+    printMissingBaseSchemaGuidance(e, filename);
     throw e;
   }
 }
 
-export async function runMigrations() {
-  await ensureMigrationsTable();
+async function isAuditLogPresent() {
+  const res = await query(`
+    SELECT to_regclass('public.audit_log') AS relation_name
+  `);
+  return Boolean(res.rows?.[0]?.relation_name);
+}
 
+async function applyNhostSchemaMigrations() {
+  const nhostMigrationsDir = path.join(repoRoot, 'nhost', 'migrations');
+  const upFiles = collectSqlFiles(nhostMigrationsDir, (name) => name === 'up.sql');
+
+  if (upFiles.length === 0) {
+    console.warn('⚠️ No Nhost migration files found; skipping Nhost schema bootstrap.');
+    return;
+  }
+
+  console.log(`Applying ${upFiles.length} Nhost migration files to bootstrap base schema...`);
+
+  for (const filepath of upFiles) {
+    const relative = path.relative(repoRoot, filepath).split(path.sep).join('/');
+    const migrationName = `nhost:${relative}`;
+
+    if (await alreadyApplied(migrationName)) continue;
+    await applySqlFile(filepath, migrationName);
+  }
+
+  console.log('✅ Nhost schema bootstrap completed');
+}
+
+async function ensureNhostBaseSchema() {
+  const shouldBootstrap = String(process.env.AUTO_APPLY_NHOST_SCHEMA || 'true').toLowerCase() !== 'false';
+  if (!shouldBootstrap) return;
+
+  const hasAuditLog = await isAuditLogPresent();
+  if (hasAuditLog) return;
+
+  console.log('⚠️ public.audit_log is missing; bootstrapping Nhost base schema from local migrations...');
+  await applyNhostSchemaMigrations();
+
+  const hasAuditLogAfterBootstrap = await isAuditLogPresent();
+  if (!hasAuditLogAfterBootstrap) {
+    throw new Error(
+      'Nhost schema bootstrap completed but public.audit_log is still missing. Ensure local nhost migrations are up to date or run `nhost up --remote`.'
+    );
+  }
+}
+
+
+async function applyBackendMigrations() {
   const migrationsDir = path.join(__dirname, 'migrations');
   if (!fs.existsSync(migrationsDir)) {
-    console.log('No migrations directory found; skipping.');
+    console.log('No backend migrations directory found; skipping downstream migrations.');
     return;
   }
 
@@ -55,11 +126,50 @@ export async function runMigrations() {
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
+  console.log(`Applying ${files.length} backend migration files (downstream phase)...`);
+
   for (const filename of files) {
     if (await alreadyApplied(filename)) continue;
     const filepath = path.join(migrationsDir, filename);
     await applySqlFile(filepath, filename);
   }
+
+  console.log('✅ Backend downstream migrations completed');
+}
+
+function printMissingBaseSchemaGuidance(error, filename) {
+  const message = String(error?.message || '');
+  const detail = String(error?.detail || '');
+  const hint = String(error?.hint || '');
+  const metadata = `${message}\n${detail}\n${hint}`.toLowerCase();
+
+  const missingAuditLog =
+    metadata.includes('relation "public.audit_log" does not exist') ||
+    metadata.includes('relation public.audit_log does not exist');
+
+  if (!missingAuditLog) return;
+
+  console.error('');
+  console.error('💡 Migration dependency issue detected.');
+  console.error(
+    `The backend migration "${filename}" expects Nhost/Hasura base tables (like public.audit_log) to exist first.`
+  );
+  console.error('This backend can bootstrap schema from local nhost/migrations automatically.');
+  console.error('If you need to push the same schema manually to a remote app, run:');
+  console.error('  - nhost swara up');
+  console.error('  - or: nhost up --remote');
+  console.error('If needed, run "nhost link" first so the local workspace points to the correct remote app.');
+  console.error('');
+}
+
+export async function runMigrations() {
+  await ensureMigrationsTable();
+
+  console.log('➡️ Migration phase 1/2: upstream Nhost base schema');
+  await ensureNhostBaseSchema();
+
+  console.log('➡️ Migration phase 2/2: downstream backend schema updates');
+  await applyBackendMigrations();
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

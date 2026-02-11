@@ -29,6 +29,23 @@ are configured in `nhost/nhost.toml`.
 
 Start Nhost locally with `nhost up` and apply migrations; use the docs to track tables and permissions.
 
+When deploying to a remote/pilot database, apply Nhost migrations before running backend SQL migrations.
+
+Migration execution is now explicit in two phases:
+- **Upstream base schema phase**: auto-bootstraps Nhost schema from local `nhost/migrations/**/up.sql`
+  when `public.audit_log` is missing (set `AUTO_APPLY_NHOST_SCHEMA=false` to disable).
+- **Downstream backend phase**: applies `backend/migrations/*.sql` after the upstream schema is present.
+
+If you need to push the upstream schema manually to a remote Nhost app, run:
+
+```bash
+nhost swara up
+# or
+nhost up --remote
+```
+
+If your local project is not linked yet, run `nhost link` and select the correct remote app.
+
 ## Architecture overview
 
 ```mermaid
