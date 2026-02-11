@@ -1,7 +1,26 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-const registryPath = path.resolve(process.cwd(), 'config/feature_flags.json');
+
+function resolveRegistryPath() {
+  const candidates = [
+    process.env.FEATURE_FLAGS_PATH,
+    path.resolve(process.cwd(), 'config/feature_flags.json'),
+    path.resolve(process.cwd(), '../config/feature_flags.json'),
+  ].filter(Boolean);
+
+  const match = candidates.find((candidate) => fs.existsSync(candidate));
+
+  if (!match) {
+    throw new Error(
+      `Feature flag registry not found. Checked: ${candidates.join(', ')}`,
+    );
+  }
+
+  return match;
+}
+
+const registryPath = resolveRegistryPath();
 
 function loadRegistry() {
   const raw = fs.readFileSync(registryPath, 'utf8');

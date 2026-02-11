@@ -1,6 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { evaluateFlag, getRegistry } from '../utils/featureFlags.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const backendDir = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(backendDir, '..');
 
 test('feature flag registry entries include test matrix coverage', () => {
   const registry = getRegistry();
@@ -13,7 +19,6 @@ test('feature flag registry entries include test matrix coverage', () => {
 });
 
 test('feature flag registry matches frontend defaults', () => {
-  const repoRoot = path.resolve(process.cwd());
   const contents = fs.readFileSync(path.join(repoRoot, 'src/config/features.ts'), 'utf8');
   const start = contents.indexOf('export const FEATURES');
   const end = contents.indexOf('} as const', start);
@@ -22,6 +27,20 @@ test('feature flag registry matches frontend defaults', () => {
 
   const registryKeys = getRegistry().flags.map((flag) => flag.key);
   expect(new Set(keys)).toEqual(new Set(registryKeys));
+});
+
+test('backend feature flag registry stays in sync with repo config source', () => {
+  const backendRegistryPath = path.join(backendDir, 'config/feature_flags.json');
+  const rootRegistryPath = path.join(repoRoot, 'config/feature_flags.json');
+
+  expect(fs.existsSync(backendRegistryPath)).toBe(true);
+
+  if (!fs.existsSync(rootRegistryPath)) return;
+
+  const backendRegistry = JSON.parse(fs.readFileSync(backendRegistryPath, 'utf8'));
+  const rootRegistry = JSON.parse(fs.readFileSync(rootRegistryPath, 'utf8'));
+
+  expect(backendRegistry).toEqual(rootRegistry);
 });
 
 test('evaluateFlag honors allowlist, denylist, canary, and rollout', () => {
