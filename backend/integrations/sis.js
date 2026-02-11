@@ -16,6 +16,14 @@ function encryptSecret(secret) {
   return secret;
 }
 
+function shouldUseFallbackStore() {
+  // Fallback to in-memory store when:
+  // - DB is explicitly disabled via env var, OR
+  // - We're in test environment (NODE_ENV=test)
+  // Otherwise, throw errors to make production failures visible
+  return process.env.DISABLE_DB === 'true' || process.env.NODE_ENV === 'test';
+}
+
 function normalizeConfig(config = {}) {
   return {
     type: config.type || 'oneroster',
@@ -62,7 +70,7 @@ export async function recordSisConnection(config = {}, schoolId) {
        RETURNING id, source_type AS type, config->>'baseUrl' AS base_url, last_run_at AS last_tested_at`,
       [
         schoolId,
-        normalized.type,
+        `${normalized.type} SIS`,
         normalized.type,
         JSON.stringify(dbConfig),
       ],
@@ -70,15 +78,7 @@ export async function recordSisConnection(config = {}, schoolId) {
 
     return result.rows[0];
   } catch (err) {
-    // Fallback to in-memory store when:
-    // - DB is explicitly disabled via env var, OR
-    // - We're in test environment (NODE_ENV=test)
-    // Otherwise, rethrow to make production failures visible
-    const shouldFallback = 
-      process.env.DISABLE_DB === 'true' || 
-      process.env.NODE_ENV === 'test';
-    
-    if (shouldFallback) {
+    if (shouldUseFallbackStore()) {
       const connection = {
         id: createId('sis'),
         ...normalized,
@@ -113,15 +113,7 @@ export async function createSisJob({ schoolId, organizationId, source, rosterTyp
 
     return result.rows[0];
   } catch (err) {
-    // Fallback to in-memory store when:
-    // - DB is explicitly disabled via env var, OR
-    // - We're in test environment (NODE_ENV=test)
-    // Otherwise, rethrow to make production failures visible
-    const shouldFallback = 
-      process.env.DISABLE_DB === 'true' || 
-      process.env.NODE_ENV === 'test';
-    
-    if (shouldFallback) {
+    if (shouldUseFallbackStore()) {
       const job = {
         id: createId('sis_job'),
         school_id: schoolId,

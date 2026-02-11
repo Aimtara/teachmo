@@ -179,8 +179,7 @@ router.post('/sis/test', async (req, res) => {
   try {
     const { schoolId, ...config } = req.body || {};
     if (!schoolId) {
-      res.status(400).json({ error: 'schoolId is required' });
-      return;
+      return res.status(400).json({ error: 'schoolId is required' });
     }
     const validatedConfig = validateSisConfig(config);
     const connection = await recordSisConnection(validatedConfig, schoolId);
