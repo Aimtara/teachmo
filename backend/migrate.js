@@ -27,28 +27,7 @@ async function recordApplied(filename) {
   await query('INSERT INTO schema_migrations(filename) VALUES ($1)', [filename]);
 }
 
-function collectSqlFiles(dirPath, matcher = (name) => name.endsWith('.sql')) {
-  if (!fs.existsSync(dirPath)) return [];
 
-  const files = [];
-  const stack = [dirPath];
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-    const entries = fs.readdirSync(current, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const absolute = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(absolute);
-      } else if (matcher(entry.name)) {
-        files.push(absolute);
-      }
-    }
-  }
-
-  return files.sort((a, b) => a.localeCompare(b));
-}
 
 async function applySqlFile(filepath, filename) {
   const sql = fs.readFileSync(filepath, 'utf8');
@@ -61,58 +40,44 @@ async function applySqlFile(filepath, filename) {
   } catch (e) {
     await query('ROLLBACK');
     console.error(`❌ Failed ${filename}`);
-    if (filename.startsWith('nhost:')) {
-      printMissingBaseSchemaGuidance(e, filename);
-    }
+    printMissingBaseSchemaGuidance(e, filename);
     throw e;
   }
 }
 
-async function isAuditLogPresent() {
-  const res = await query(`
-    SELECT to_regclass('public.audit_log') AS relation_name
-  `);
-  return Boolean(res.rows?.[0]?.relation_name);
-}
+async function verifyNhostBaseSchema() {
+  // Check for critical base tables that Nhost migrations should provide
+  const requiredTables = ['audit_log', 'profiles', 'organizations', 'schools'];
+  const missingTables = [];
 
-async function applyNhostSchemaMigrations() {
-  const nhostMigrationsDir = path.join(repoRoot, 'nhost', 'migrations');
-  const upFiles = collectSqlFiles(nhostMigrationsDir, (name) => name === 'up.sql');
-
-  if (upFiles.length === 0) {
-    console.warn('⚠️ No Nhost migration files found; skipping Nhost schema bootstrap.');
-    return;
+  for (const tableName of requiredTables) {
+    const res = await query(`SELECT to_regclass($1) AS relation_name`, [`public.${tableName}`]);
+    if (!res.rows?.[0]?.relation_name) {
+      missingTables.push(tableName);
+    }
   }
 
-  console.log(`Applying ${upFiles.length} Nhost migration files to bootstrap base schema...`);
-
-  for (const filepath of upFiles) {
-    const relative = path.relative(repoRoot, filepath).split(path.sep).join('/');
-    const migrationName = `nhost:${relative}`;
-
-    if (await alreadyApplied(migrationName)) continue;
-    await applySqlFile(filepath, migrationName);
+  if (missingTables.length > 0) {
+    console.error('');
+    console.error('❌ Required Nhost base tables are missing from the database:');
+    console.error(`   ${missingTables.map(t => `public.${t}`).join(', ')}`);
+    console.error('');
+    console.error('Backend migrations depend on the Nhost/Hasura base schema being applied first.');
+    console.error('Please apply Nhost migrations before running backend migrations:');
+    console.error('');
+    console.error('  For local development:');
+    console.error('    nhost up');
+    console.error('');
+    console.error('  For remote/production environments:');
+    console.error('    nhost up --remote');
+    console.error('');
+    console.error('  If your local workspace is not linked to a remote app:');
+    console.error('    nhost link');
+    console.error('');
+    throw new Error(`Missing required Nhost base tables: ${missingTables.join(', ')}`);
   }
 
-  console.log('✅ Nhost schema bootstrap completed');
-}
-
-async function ensureNhostBaseSchema() {
-  const shouldBootstrap = String(process.env.AUTO_APPLY_NHOST_SCHEMA || 'true').toLowerCase() !== 'false';
-  if (!shouldBootstrap) return;
-
-  const hasAuditLog = await isAuditLogPresent();
-  if (hasAuditLog) return;
-
-  console.log('⚠️ public.audit_log is missing; bootstrapping Nhost base schema from local migrations...');
-  await applyNhostSchemaMigrations();
-
-  const hasAuditLogAfterBootstrap = await isAuditLogPresent();
-  if (!hasAuditLogAfterBootstrap) {
-    throw new Error(
-      'Nhost schema bootstrap completed but public.audit_log is still missing. Ensure local nhost migrations are up to date or run `nhost up --remote`.'
-    );
-  }
+  console.log('✅ Nhost base schema verified');
 }
 
 
@@ -145,33 +110,62 @@ function printMissingBaseSchemaGuidance(error, filename) {
   const hint = String(error?.hint || '');
   const metadata = `${message}\n${detail}\n${hint}`.toLowerCase();
 
-  const missingAuditLog =
-    metadata.includes('relation "public.audit_log" does not exist') ||
-    metadata.includes('relation public.audit_log does not exist');
+  // Check for common "relation does not exist" or "table does not exist" errors
+  const missingRelation =
+    metadata.includes('does not exist') &&
+    (metadata.includes('relation') || metadata.includes('table'));
 
-  if (!missingAuditLog) return;
+  if (!missingRelation) return;
 
   console.error('');
   console.error('💡 Migration dependency issue detected.');
   console.error(
-    `The backend migration "${filename}" expects Nhost/Hasura base tables (like public.audit_log) to exist first.`
+    `The backend migration "${filename}" expects Nhost/Hasura base tables to exist first.`
   );
-  console.error('This backend can bootstrap schema from local nhost/migrations automatically.');
-  console.error('If you need to push the same schema manually to a remote app, run:');
-  console.error('  - nhost up');
-  console.error('  - or: nhost up --remote');
-  console.error('If needed, run "nhost link" first so the local workspace points to the correct remote app.');
+  console.error('');
+  console.error('Please apply Nhost migrations before running backend migrations:');
+  console.error('');
+  console.error('  For local development:');
+  console.error('    nhost up');
+  console.error('');
+  console.error('  For remote/production environments:');
+  console.error('    nhost up --remote');
+  console.error('');
+  console.error('  If your local workspace is not linked to a remote app:');
+  console.error('    nhost link');
   console.error('');
 }
 
+// Use a PostgreSQL advisory lock to ensure only one migration runner executes at a time.
+// Integer literal must fit in a signed BIGINT (int8); choose an arbitrary but stable value.
+const MIGRATION_ADVISORY_LOCK_KEY = 7623849172638491n;
+
+async function withMigrationAdvisoryLock(fn) {
+  // Acquire an exclusive advisory lock for the duration of the migration run.
+  // This will block if another process currently holds the same lock key.
+  await query('SELECT pg_advisory_lock($1);', [MIGRATION_ADVISORY_LOCK_KEY]);
+  try {
+    return await fn();
+  } finally {
+    try {
+      await query('SELECT pg_advisory_unlock($1);', [MIGRATION_ADVISORY_LOCK_KEY]);
+    } catch (unlockError) {
+      // Do not mask the original migration error, but log unlock issues for observability.
+      console.error('Failed to release migration advisory lock:', unlockError);
+    }
+  }
+}
+
 export async function runMigrations() {
-  await ensureMigrationsTable();
+  await withMigrationAdvisoryLock(async () => {
+    await ensureMigrationsTable();
 
-  console.log('➡️ Migration phase 1/2: upstream Nhost base schema');
-  await ensureNhostBaseSchema();
+    console.log('➡️ Migration phase 1/2: verifying Nhost base schema');
+    await verifyNhostBaseSchema();
 
-  console.log('➡️ Migration phase 2/2: downstream backend schema updates');
-  await applyBackendMigrations();
+    console.log('➡️ Migration phase 2/2: applying backend schema updates');
+    await applyBackendMigrations();
+  });
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

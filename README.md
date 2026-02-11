@@ -31,40 +31,55 @@ Start Nhost locally with `nhost up` and apply migrations; use the docs to track 
 
 When deploying to a remote/pilot database, apply Nhost migrations before running backend SQL migrations.
 
-Migration execution is now explicit in two phases:
-- **Upstream base schema phase**: auto-bootstraps Nhost schema from local `nhost/migrations/**/up.sql`
-  when `public.audit_log` is missing (set `AUTO_APPLY_NHOST_SCHEMA=false` to disable).
-- **Downstream backend phase**: applies `backend/migrations/*.sql` after the upstream schema is present.
+### Migration execution flow
 
-If you need to push the upstream schema manually to a remote Nhost app, run:
+The backend migration system runs in two phases:
+
+1. **Phase 1: Nhost base schema verification** - Verifies that required Nhost/Hasura base tables 
+   (`audit_log`, `profiles`, `organizations`, `schools`) exist in the database.
+   
+2. **Phase 2: Backend migrations** - Applies `backend/migrations/*.sql` files for application-specific 
+   schema changes that depend on the Nhost base schema.
+
+**Important**: The backend migration runner does NOT apply Nhost migrations. You must apply Nhost 
+migrations separately using the Nhost CLI before running backend migrations.
+
+### Applying Nhost migrations
+
+**For local development:**
+
+```bash
+nhost up
+```
+
+This starts the local Nhost environment and applies all migrations in `nhost/migrations/` to your 
+local database.
+
+**For remote/production environments:**
 
 ```bash
 nhost up --remote
 ```
 
-If your local project is not linked yet, run `nhost link` and select the correct remote app.
+This applies local migrations to the remote Nhost app's database. If your local workspace is not 
+linked to a remote app yet, first run:
 
-### Nhost migrations & auto-bootstrap behavior
+```bash
+nhost link
+```
 
-**When `public.audit_log` is missing**
+Then select the correct remote app from the list.
 
-The upstream auto-bootstrap runs only when the target Postgres database does **not** have the
-`public.audit_log` table. This typically happens when:
+### Migration workflow
 
-- You are targeting a **brand-new** database with no Nhost migrations applied yet.
-- The database was **manually created or reset** outside of Nhost (e.g., a vanilla Postgres instance).
-- A staging/pilot database was provisioned without first running Nhost migrations.
+1. Create Nhost migrations for schema changes: `nhost migrations create <name>`
+2. Apply Nhost migrations: `nhost up` (local) or `nhost up --remote` (remote)
+3. Create backend migrations in `backend/migrations/` for application-specific changes
+4. Run backend migrations: `node backend/migrate.js` or via your deployment process
 
-In these cases, the backend will apply all local `nhost/migrations/**/up.sql` files to the database
-(unless `AUTO_APPLY_NHOST_SCHEMA=false` is set), and then run `backend/migrations/*.sql`.
+If backend migrations fail due to missing tables, the migration runner will detect this and 
+provide clear guidance on applying Nhost migrations first.
 
-**`nhost up --remote` vs. auto-bootstrap**
-
-- For **production and long-lived staging** environments, prefer letting **Nhost manage migrations**
-  and use:
-
-  ```bash
-  nhost up --remote
 ## Architecture overview
 
 ```mermaid
