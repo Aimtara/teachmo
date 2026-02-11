@@ -158,7 +158,7 @@ function printMissingBaseSchemaGuidance(error, filename) {
   );
   console.error('This backend can bootstrap schema from local nhost/migrations automatically.');
   console.error('If you need to push the same schema manually to a remote app, run:');
-  console.error('  - nhost swara up');
+  console.error('  - nhost up');
   console.error('  - or: nhost up --remote');
   console.error('If needed, run "nhost link" first so the local workspace points to the correct remote app.');
   console.error('');
