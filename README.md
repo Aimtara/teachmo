@@ -46,6 +46,27 @@ nhost up --remote
 
 If your local project is not linked yet, run `nhost link` and select the correct remote app.
 
+### Nhost migrations & auto-bootstrap behavior
+
+**When `public.audit_log` is missing**
+
+The upstream auto-bootstrap runs only when the target Postgres database does **not** have the
+`public.audit_log` table. This typically happens when:
+
+- You are targeting a **brand-new** database with no Nhost migrations applied yet.
+- The database was **manually created or reset** outside of Nhost (e.g., a vanilla Postgres instance).
+- A staging/pilot database was provisioned without first running Nhost migrations.
+
+In these cases, the backend will apply all local `nhost/migrations/**/up.sql` files to the database
+(unless `AUTO_APPLY_NHOST_SCHEMA=false` is set), and then run `backend/migrations/*.sql`.
+
+**`nhost up --remote` vs. auto-bootstrap**
+
+- For **production and long-lived staging** environments, prefer letting **Nhost manage migrations**
+  and use:
+
+  ```bash
+  nhost up --remote
 ## Architecture overview
 
 ```mermaid
