@@ -16,11 +16,19 @@ function encryptSecret(secret) {
   return secret;
 }
 
+function shouldUseFallbackStore() {
+  // Fallback to in-memory store when:
+  // - DB is explicitly disabled via env var, OR
+  // - We're in test environment (NODE_ENV=test)
+  // Otherwise, throw errors to make production failures visible
+  return process.env.DISABLE_DB === 'true' || process.env.NODE_ENV === 'test';
+}
+
 function normalizeConfig(config = {}) {
   return {
     type: config.type || 'oneroster',
-    baseUrl: clampString(config.baseUrl || ''),
-    clientId: clampString(config.clientId || ''),
+    baseUrl: clampString((config.baseUrl || '').trim()),
+    clientId: clampString((config.clientId || '').trim()),
     clientSecret: config.clientSecret || '',
   };
 }
@@ -43,70 +51,91 @@ export function validateSisConfig(config = {}) {
   return normalizeConfig(config);
 }
 
-export async function recordSisConnection(config = {}, organizationId) {
+export async function recordSisConnection(config = {}, schoolId) {
   const normalized = normalizeConfig(config);
+  const dbConfig = {
+    type: normalized.type,
+    baseUrl: normalized.baseUrl,
+    clientId: normalized.clientId,
+    clientSecretEncrypted: encryptSecret(normalized.clientSecret),
+  };
+
   try {
     const result = await query(
       `INSERT INTO public.directory_sources
-       (organization_id, type, base_url, client_id, client_secret_encrypted, status, last_tested_at)
-       VALUES ($1, $2, $3, $4, $5, 'active', NOW())
-       ON CONFLICT (organization_id, type)
-       DO UPDATE SET base_url = $3, client_id = $4, client_secret_encrypted = $5, last_tested_at = NOW()
-       RETURNING id, type, base_url, last_tested_at`,
+       (school_id, name, source_type, config, is_enabled, last_run_at)
+       VALUES ($1, $2, $3, $4::jsonb, true, NOW())
+       ON CONFLICT (school_id, source_type, name)
+       DO UPDATE SET config = $4::jsonb, is_enabled = true, last_run_at = NOW()
+       RETURNING id, source_type AS type, config->>'baseUrl' AS base_url, last_run_at AS last_tested_at`,
       [
-        organizationId,
+        schoolId,
+        `${normalized.type} SIS`,
         normalized.type,
-        normalized.baseUrl,
-        normalized.clientId,
-        encryptSecret(normalized.clientSecret),
+        JSON.stringify(dbConfig),
       ],
     );
 
     return result.rows[0];
-  } catch {
-    const connection = {
-      id: createId('sis'),
-      ...normalized,
-      clientSecret: maskSecret(normalized.clientSecret),
-      createdAt: nowIso(),
-      lastTestedAt: nowIso(),
-    };
-    integrationStore.sisConnections.push(connection);
-    return connection;
+  } catch (err) {
+    if (shouldUseFallbackStore()) {
+      const connection = {
+        id: createId('sis'),
+        ...normalized,
+        clientSecret: maskSecret(normalized.clientSecret),
+        createdAt: nowIso(),
+        lastTestedAt: nowIso(),
+      };
+      integrationStore.sisConnections.push(connection);
+      return connection;
+    }
+    throw err;
   }
 }
 
-export async function createSisJob({ schoolId, organizationId, triggeredBy = 'manual' }) {
+export async function createSisJob({ schoolId, organizationId, source, rosterType }) {
+  // Validate required fields
+  if (!source) {
+    throw new Error('source is required for SIS import job');
+  }
+  if (!rosterType) {
+    throw new Error('rosterType is required for SIS import job');
+  }
+
   try {
     const result = await query(
       `INSERT INTO public.sis_import_jobs
-       (organization_id, school_id, status, triggered_by, metadata, created_at)
-       VALUES ($1, $2, 'processing', $3, '{}'::jsonb, NOW())
-       RETURNING id, status, triggered_by, metadata, created_at`,
-      [organizationId, schoolId, triggeredBy],
+       (organization_id, school_id, roster_type, source, status, metadata, created_at)
+       VALUES ($1, $2, $3, $4, 'pending', '{}'::jsonb, NOW())
+       RETURNING id, organization_id, school_id, roster_type, source, status, metadata, created_at`,
+      [organizationId, schoolId, rosterType, source],
     );
 
     return result.rows[0];
-  } catch {
-    const job = {
-      id: createId('sis_job'),
-      school_id: schoolId,
-      organization_id: organizationId,
-      status: 'processing',
-      triggered_by: triggeredBy,
-      metadata: {},
-      created_at: nowIso(),
-      updated_at: nowIso(),
-    };
-    integrationStore.sisJobs.push(job);
-    return job;
+  } catch (err) {
+    if (shouldUseFallbackStore()) {
+      const job = {
+        id: createId('sis_job'),
+        school_id: schoolId,
+        organization_id: organizationId,
+        roster_type: rosterType,
+        source,
+        status: 'pending',
+        metadata: {},
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      integrationStore.sisJobs.push(job);
+      return job;
+    }
+    throw err;
   }
 }
 
 export async function findSisJob(jobId) {
   try {
     const result = await query(
-      `SELECT id, organization_id, school_id, status, triggered_by, metadata, created_at, updated_at
+      `SELECT id, organization_id, school_id, roster_type, source, status, metadata, error, created_at, updated_at, started_at, finished_at
        FROM public.sis_import_jobs
        WHERE id = $1
        LIMIT 1`,
@@ -134,15 +163,28 @@ export async function updateSisJobStatus(jobId, status, summary = {}, error = nu
     ...(error ? { error } : {}),
   };
 
+  // Derive a plain-text error message for the dedicated `error` column.
+  // Keep structured details in `metadata.error`.
+  const errorText = error
+    ? clampString(
+        typeof error === 'string'
+          ? error
+          : (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+              ? error.message
+              : String(error)),
+      )
+    : null;
+
   try {
     const result = await query(
       `UPDATE public.sis_import_jobs
        SET status = $2,
            metadata = COALESCE(metadata, '{}'::jsonb) || $3::jsonb,
+           error = $4,
            updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
-      [jobId, status, JSON.stringify(metadata)],
+      [jobId, status, JSON.stringify(metadata), errorText],
     );
     return result.rows[0] || null;
   } catch {
@@ -153,6 +195,7 @@ export async function updateSisJobStatus(jobId, status, summary = {}, error = nu
       ...(job.metadata || {}),
       ...metadata,
     };
+    job.error = errorText;
     job.updated_at = nowIso();
     return job;
   }

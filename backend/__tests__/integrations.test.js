@@ -96,6 +96,7 @@ describe('Integration SIS and Google Classroom endpoints', () => {
     const testRes = await request(app)
       .post('/api/integrations/sis/test')
       .send({
+        schoolId: 'school-1',
         type: 'oneroster',
         baseUrl: 'https://district.example/oneroster',
         clientId: 'client-id',
@@ -105,13 +106,18 @@ describe('Integration SIS and Google Classroom endpoints', () => {
     expect(testRes.status).toBe(200);
     expect(testRes.body.success).toBe(true);
 
-    const syncRes = await request(app).post('/api/integrations/sis/school-1/sync').send({});
+    const syncRes = await request(app)
+      .post('/api/integrations/sis/school-1/sync')
+      .send({
+        rosterType: 'full',
+        source: 'oneroster',
+      });
     expect(syncRes.status).toBe(200);
-    expect(syncRes.body.status).toBe('processing');
+    expect(syncRes.body.status).toBe('pending');
 
     const statusRes = await request(app).get(`/api/integrations/sis/jobs/${syncRes.body.jobId}`);
     expect(statusRes.status).toBe(200);
-    expect(statusRes.body.status).toBe('processing');
+    expect(statusRes.body.status).toBe('pending');
     expect(statusRes.body.summary).toBeNull();
   });
 
@@ -121,6 +127,8 @@ describe('Integration SIS and Google Classroom endpoints', () => {
       .post('/api/integrations/sis/11111111-1111-4111-8111-111111111111/sync')
       .send({
         organizationId: '22222222-2222-4222-8222-222222222222',
+        rosterType: 'full',
+        source: 'oneroster',
         roster: {
           students: [{ externalId: 's-1', firstName: 'Sam', lastName: 'Student', grade: '4' }],
           teachers: [{ externalId: 't-1', firstName: 'Tia', lastName: 'Teacher', email: 't@school.org' }],

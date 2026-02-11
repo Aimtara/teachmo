@@ -177,8 +177,12 @@ router.get('/roster/alerts', (req, res) => {
 
 router.post('/sis/test', async (req, res) => {
   try {
-    const config = validateSisConfig(req.body || {});
-    const connection = await recordSisConnection(config);
+    const { schoolId, ...config } = req.body || {};
+    if (!schoolId) {
+      return res.status(400).json({ error: 'schoolId is required' });
+    }
+    const validatedConfig = validateSisConfig(config);
+    const connection = await recordSisConnection(validatedConfig, schoolId);
     res.json({ success: true, connectionId: connection.id });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
@@ -188,13 +192,13 @@ router.post('/sis/test', async (req, res) => {
 router.post('/sis/:schoolId/sync', async (req, res) => {
   try {
     const schoolId = req.params.schoolId;
-    const { organizationId, triggeredBy, source, roster } = req.body || {};
+    const { organizationId, rosterType, source, roster } = req.body || {};
     const resolvedOrganizationId = organizationId || schoolId;
 
     const job = await createSisJob({
       schoolId,
       organizationId: resolvedOrganizationId,
-      triggeredBy: triggeredBy || 'manual',
+      rosterType: rosterType || 'full',
       source: source || 'oneroster',
     });
 
