@@ -137,7 +137,16 @@ function printMissingBaseSchemaGuidance(error, filename) {
 }
 
 // Use a PostgreSQL advisory lock to ensure only one migration runner executes at a time.
-// Integer literal must fit in a signed BIGINT (int8); choose an arbitrary but stable value.
+// This prevents race conditions when multiple backend instances start concurrently during deployment.
+// 
+// The lock key (7623849172638491) was chosen as an arbitrary but stable 64-bit integer that's
+// unlikely to collide with other advisory locks in the system. If you're using advisory locks
+// elsewhere in your application, consider deriving this from a hash of "teachmo:migrations".
+//
+// This implementation uses a blocking lock: if another process holds the lock, this process will
+// wait indefinitely until the lock is released. For typical migration runs (< 1 minute), this
+// provides predictable serialization. If migrations take longer or you need more control, consider
+// using pg_try_advisory_lock() with retry logic and timeout handling.
 const MIGRATION_ADVISORY_LOCK_KEY = 7623849172638491n;
 
 async function withMigrationAdvisoryLock(fn) {
