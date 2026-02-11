@@ -39,8 +39,6 @@ Migration execution is now explicit in two phases:
 If you need to push the upstream schema manually to a remote Nhost app, run:
 
 ```bash
-nhost swara up
-# or
 nhost up --remote
 ```
 
