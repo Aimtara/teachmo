@@ -29,6 +29,42 @@ are configured in `nhost/nhost.toml`.
 
 Start Nhost locally with `nhost up` and apply migrations; use the docs to track tables and permissions.
 
+When deploying to a remote/pilot database, apply Nhost migrations before running backend SQL migrations.
+
+Migration execution is now explicit in two phases:
+- **Upstream base schema phase**: auto-bootstraps Nhost schema from local `nhost/migrations/**/up.sql`
+  when `public.audit_log` is missing (set `AUTO_APPLY_NHOST_SCHEMA=false` to disable).
+- **Downstream backend phase**: applies `backend/migrations/*.sql` after the upstream schema is present.
+
+If you need to push the upstream schema manually to a remote Nhost app, run:
+
+```bash
+nhost up --remote
+```
+
+If your local project is not linked yet, run `nhost link` and select the correct remote app.
+
+### Nhost migrations & auto-bootstrap behavior
+
+**When `public.audit_log` is missing**
+
+The upstream auto-bootstrap runs only when the target Postgres database does **not** have the
+`public.audit_log` table. This typically happens when:
+
+- You are targeting a **brand-new** database with no Nhost migrations applied yet.
+- The database was **manually created or reset** outside of Nhost (e.g., a vanilla Postgres instance).
+- A staging/pilot database was provisioned without first running Nhost migrations.
+
+In these cases, the backend will apply all local `nhost/migrations/**/up.sql` files to the database
+(unless `AUTO_APPLY_NHOST_SCHEMA=false` is set), and then run `backend/migrations/*.sql`.
+
+**`nhost up --remote` vs. auto-bootstrap**
+
+- For **production and long-lived staging** environments, prefer letting **Nhost manage migrations**
+  and use:
+
+  ```bash
+  nhost up --remote
 ## Architecture overview
 
 ```mermaid
