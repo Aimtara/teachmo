@@ -37,10 +37,10 @@ test('backend feature flag registry stays in sync with repo config source', () =
 
   if (!fs.existsSync(rootRegistryPath)) return;
 
-  const backendRegistry = fs.readFileSync(backendRegistryPath, 'utf8');
-  const rootRegistry = fs.readFileSync(rootRegistryPath, 'utf8');
+  const backendRegistry = JSON.parse(fs.readFileSync(backendRegistryPath, 'utf8'));
+  const rootRegistry = JSON.parse(fs.readFileSync(rootRegistryPath, 'utf8'));
 
-  expect(backendRegistry).toBe(rootRegistry);
+  expect(backendRegistry).toEqual(rootRegistry);
 });
 
 test('evaluateFlag honors allowlist, denylist, canary, and rollout', () => {
