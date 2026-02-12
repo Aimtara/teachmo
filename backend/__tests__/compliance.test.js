@@ -1,14 +1,14 @@
+import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
-import complianceRouter from '../routes/compliance.js';
-import { runRetentionPurge } from '../jobs/retentionPurge.js';
-import { query } from '../db.js';
 
-jest.mock('../db.js', () => ({
-  query: jest.fn(),
+const query = jest.fn();
+
+await jest.unstable_mockModule('../db.js', () => ({
+  query,
 }));
 
-jest.mock('../middleware/auth.js', () => ({
+await jest.unstable_mockModule('../middleware/auth.js', () => ({
   requireAuth: (req, _res, next) => {
     req.auth = { userId: 'admin-user', role: 'system_admin', scopes: ['users:manage'] };
     next();
@@ -16,16 +16,19 @@ jest.mock('../middleware/auth.js', () => ({
   requireAdmin: (_req, _res, next) => next(),
 }));
 
-jest.mock('../middleware/tenant.js', () => ({
+await jest.unstable_mockModule('../middleware/tenant.js', () => ({
   requireTenant: (req, _res, next) => {
     req.tenant = { organizationId: 'org-1', schoolId: null };
     next();
   },
 }));
 
-jest.mock('../middleware/permissions.js', () => ({
+await jest.unstable_mockModule('../middleware/permissions.js', () => ({
   requireAnyScope: () => (_req, _res, next) => next(),
 }));
+
+const { default: complianceRouter } = await import('../routes/compliance.js');
+const { runRetentionPurge } = await import('../jobs/retentionPurge.js');
 
 const app = express();
 app.use(express.json());
