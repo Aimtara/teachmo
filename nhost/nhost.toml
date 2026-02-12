@@ -5,6 +5,7 @@ version = "14"
 # Hasura GraphQL Engine version (Docker tag).
 version = "v2.36.1"
 adminSecret = "{{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}"
+webhookSecret = "{{ secrets.NHOST_WEBHOOK_SECRET }}"
 
 # IMPORTANT:
 # - Do NOT commit secrets here. Configure adminSecret, webhookSecret,
