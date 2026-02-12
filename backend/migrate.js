@@ -164,14 +164,62 @@ function printMissingBaseSchemaGuidance(error, filename) {
   console.error('');
 }
 
+/**
+ * Wraps migration execution with a PostgreSQL advisory lock to prevent
+ * concurrent migration runs (e.g., during parallel deployments).
+ * Uses lock key 7623849172638491 (derived from 'teachmo-migrations' string hash).
+ */
+async function withMigrationAdvisoryLock(fn) {
+  const LOCK_KEY = 7623849172638491; // Derived from hash of 'teachmo-migrations'
+  let lockAcquired = false;
+  
+  console.log('🔒 Acquiring migration advisory lock...');
+  
+  try {
+    // Try to acquire the lock (non-blocking check first)
+    const lockResult = await query('SELECT pg_try_advisory_lock($1) AS acquired', [LOCK_KEY]);
+    lockAcquired = lockResult.rows[0]?.acquired === true;
+    
+    if (!lockAcquired) {
+      console.log('⏳ Another migration is in progress. Waiting for lock...');
+      // Blocking acquire - will wait until lock is available
+      const blockingResult = await query('SELECT pg_advisory_lock($1)', [LOCK_KEY]);
+      // pg_advisory_lock returns void on success, throws on error
+      if (blockingResult) {
+        lockAcquired = true;
+        console.log('🔒 Advisory lock acquired (after waiting)');
+      }
+    } else {
+      console.log('🔒 Advisory lock acquired');
+    }
+    
+    // Execute the migration function
+    await fn();
+    
+  } finally {
+    // Only release the lock if it was successfully acquired
+    if (lockAcquired) {
+      try {
+        await query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]);
+        console.log('🔓 Advisory lock released');
+      } catch (unlockError) {
+        console.error('⚠️ Failed to release advisory lock:', unlockError);
+        // Log but don't throw - the lock will be released when the connection closes
+      }
+    }
+  }
+}
+
 export async function runMigrations() {
-  await ensureMigrationsTable();
+  await withMigrationAdvisoryLock(async () => {
+    await ensureMigrationsTable();
 
-  console.log('➡️ Migration phase 1/2: upstream Nhost base schema');
-  await ensureNhostBaseSchema();
+    console.log('➡️ Migration phase 1/2: upstream Nhost base schema');
+    await ensureNhostBaseSchema();
 
-  console.log('➡️ Migration phase 2/2: downstream backend schema updates');
-  await applyBackendMigrations();
+    console.log('➡️ Migration phase 2/2: downstream backend schema updates');
+    await applyBackendMigrations();
+  });
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
