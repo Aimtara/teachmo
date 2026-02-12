@@ -21,7 +21,7 @@ describe('campaign limits', () => {
     query.mockResolvedValueOnce({ rows: [{ count: '2' }] });
     const result = await checkCampaignLimits('tenant-1', 'fundraising');
     expect(result.allowed).toBe(false);
-    expect(result.reason).toMatch(/Fundraising messages are limited to 2 per week/);
+    expect(result.reason).toMatch(/Fundraising campaigns limited to 2 per week/);
   });
 
   test('allows when under limit', async () => {
