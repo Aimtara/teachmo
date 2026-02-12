@@ -5,24 +5,31 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// Secure endpoint for authenticated partners
-router.post('/partners/submissions', requireAuth, async (req, res) => {
+function normalizeSubmissionPayload(body = {}) {
+  const title = body.title ?? body.programName ?? null;
+  const description = body.description ?? body.details ?? null;
+  const type = body.type ?? 'general';
+
+  return {
+    type,
+    title,
+    description,
+    content: body.content && typeof body.content === 'object' ? body.content : {},
+  };
+}
+
+async function createSubmission(req, res) {
   try {
-    const { type, title, description, content } = req.body;
+    const { type, title, description, content } = normalizeSubmissionPayload(req.body);
     const partnerId = req.user?.partnerId || req.auth?.userId;
 
     if (!partnerId) {
       return res.status(401).json({ error: 'Partner identity missing' });
     }
 
-    // 1. Run Automated Safety Scan
     const safetyCheck = scanContent({ title, description, content });
-
-    // 2. Determine Initial Status
-    // If flagged, it goes to "Safety Review". If clean, it goes to "Content Review".
     const initialStatus = safetyCheck.isSafe ? 'pending_content_review' : 'flagged_for_safety';
 
-    // 3. Insert into DB
     const result = await query(
       `INSERT INTO public.partner_submissions
        (partner_id, type, title, content, status, safety_flags, created_at)
@@ -31,11 +38,26 @@ router.post('/partners/submissions', requireAuth, async (req, res) => {
       [partnerId, type, title, { description, ...content }, initialStatus, JSON.stringify(safetyCheck.flags)],
     );
 
-    res.status(201).json(result.rows[0]);
+    const submission = result.rows[0] || {};
+    const flags = Array.isArray(submission.safety_flags)
+      ? submission.safety_flags
+      : JSON.parse(submission.safety_flags || '[]');
+
+    return res.status(201).json({
+      ...submission,
+      accepted: submission.status === 'pending_content_review',
+      flags,
+    });
   } catch (error) {
     console.error('Submission error:', error);
-    res.status(500).json({ error: 'Failed to process submission' });
+    return res.status(500).json({ error: 'Failed to process submission' });
   }
-});
+}
+
+// Secure endpoint for authenticated partners
+router.post('/partners/submissions', requireAuth, createSubmission);
+
+// Backward-compatible endpoint path for legacy clients
+router.post('/', requireAuth, createSubmission);
 
 export default router;
