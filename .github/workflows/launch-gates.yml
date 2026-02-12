@@ -32,7 +32,7 @@ jobs:
       DB_NAME: teachmo
     services:
       postgres:
-        image: postgres:13
+        image: postgres:14
         ports:
           - 5432:5432
         env:

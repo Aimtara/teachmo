@@ -65,6 +65,8 @@ In these cases, the backend will apply all local `nhost/migrations/**/up.sql` fi
 
   ```bash
   nhost up --remote
+  ```
+
 ## Architecture overview
 
 ```mermaid
