@@ -14,7 +14,7 @@ ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS deleted_by uuid NULL;
 ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS deleted_reason text NULL;
 ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
 
--- Foreign keys (Using DROP+ADD pattern to ensure compatibility and idempotency)
+-- Foreign keys (Using DROP+ADD pattern because Postgres does not support 'ADD CONSTRAINT IF NOT EXISTS')
 ALTER TABLE public.messages DROP CONSTRAINT IF EXISTS messages_hidden_by_fkey;
 ALTER TABLE public.messages ADD CONSTRAINT messages_hidden_by_fkey FOREIGN KEY (hidden_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
 
