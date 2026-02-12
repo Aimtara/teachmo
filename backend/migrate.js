@@ -183,9 +183,12 @@ async function withMigrationAdvisoryLock(fn) {
     if (!lockAcquired) {
       console.log('⏳ Another migration is in progress. Waiting for lock...');
       // Blocking acquire - will wait until lock is available
-      await query('SELECT pg_advisory_lock($1)', [LOCK_KEY]);
-      lockAcquired = true;
-      console.log('🔒 Advisory lock acquired (after waiting)');
+      const blockingResult = await query('SELECT pg_advisory_lock($1)', [LOCK_KEY]);
+      // pg_advisory_lock returns void on success, throws on error
+      if (blockingResult) {
+        lockAcquired = true;
+        console.log('🔒 Advisory lock acquired (after waiting)');
+      }
     } else {
       console.log('🔒 Advisory lock acquired');
     }
@@ -196,8 +199,13 @@ async function withMigrationAdvisoryLock(fn) {
   } finally {
     // Only release the lock if it was successfully acquired
     if (lockAcquired) {
-      await query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]);
-      console.log('🔓 Advisory lock released');
+      try {
+        await query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]);
+        console.log('🔓 Advisory lock released');
+      } catch (unlockError) {
+        console.error('⚠️ Failed to release advisory lock:', unlockError);
+        // Log but don't throw - the lock will be released when the connection closes
+      }
     }
   }
 }
