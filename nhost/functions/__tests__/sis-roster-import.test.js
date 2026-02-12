@@ -32,7 +32,7 @@ describe('sis-roster-import', () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-123' } })
         // Mock the insert mutation for valid records
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 2 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 2 } })
         // Mock updateImportJob
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-123' } });
 
@@ -82,7 +82,7 @@ describe('sis-roster-import', () => {
     test('skips teacher rows with missing external IDs', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-456' } })
-        .mockResolvedValueOnce({ insert_sis_roster_teachers: { affected_rows: 1 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 1 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-456' } });
 
       req.body = {
@@ -109,7 +109,7 @@ describe('sis-roster-import', () => {
     test('skips class rows with missing external IDs', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-789' } })
-        .mockResolvedValueOnce({ insert_sis_roster_classes: { affected_rows: 1 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 1 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-789' } });
 
       req.body = {
@@ -136,7 +136,7 @@ describe('sis-roster-import', () => {
     test('skips enrollment rows with missing class ID or student ID', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-101' } })
-        .mockResolvedValueOnce({ insert_sis_roster_enrollments: { affected_rows: 1 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 1 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-101' } });
 
       req.body = {
@@ -197,7 +197,7 @@ describe('sis-roster-import', () => {
     test('limits error messages to 50 in job metadata', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-many-errors' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 0 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 0 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-many-errors' } });
 
       // Create 60 records with missing IDs
@@ -224,7 +224,7 @@ describe('sis-roster-import', () => {
     test('limits warning messages to 5 in API response', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-warnings-5' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 0 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 0 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-warnings-5' } });
 
       const records = Array.from({ length: 10 }, (_, i) => ({
@@ -250,7 +250,7 @@ describe('sis-roster-import', () => {
     test('handles updateImportJob failure gracefully', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-update-fail' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 1 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 1 } })
         .mockRejectedValueOnce(new Error('Failed to update job'));
 
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
@@ -288,7 +288,7 @@ describe('sis-roster-import', () => {
     test('accurately reflects record counts in job metadata', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-counts' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 2 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 2 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-counts' } });
 
       req.body = {
@@ -321,7 +321,7 @@ describe('sis-roster-import', () => {
     test('sets status to completed when no errors occur', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-success' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 2 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 2 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-success' } });
 
       req.body = {
@@ -345,7 +345,7 @@ describe('sis-roster-import', () => {
     test('sets status to completed_with_errors when rows are skipped', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-partial' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 1 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 1 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-partial' } });
 
       req.body = {
@@ -368,7 +368,7 @@ describe('sis-roster-import', () => {
     test('includes finished_at timestamp in job metadata', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-timestamp' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 1 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 1 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-timestamp' } });
 
       req.body = {
@@ -397,7 +397,7 @@ describe('sis-roster-import', () => {
     test('parses CSV and skips rows with missing IDs', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-csv' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 2 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 2 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-csv' } });
 
       req.body = {
@@ -426,7 +426,7 @@ student-2,Bob,Johnson,5`,
     test('tries multiple ID field names in order', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-multi-keys' } })
-        .mockResolvedValueOnce({ insert_sis_roster_students: { affected_rows: 3 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 3 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-multi-keys' } });
 
       req.body = {
@@ -492,7 +492,7 @@ student-2,Bob,Johnson,5`,
     test('imports classes with teacher IDs when provided', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-class-teachers' } })
-        .mockResolvedValueOnce({ insert_sis_roster_classes: { affected_rows: 2 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 2 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-class-teachers' } });
 
       req.body = {
@@ -514,13 +514,17 @@ student-2,Bob,Johnson,5`,
         expect.arrayContaining([
           expect.objectContaining({ 
             external_id: 'class-1',
-            name: 'Math 101',
-            teacher_external_id: 'teacher-1',
+            data: expect.objectContaining({
+              class_name: 'Math 101',
+              teacher_external_id: 'teacher-1',
+            }),
           }),
           expect.objectContaining({ 
             external_id: 'class-2',
-            name: 'English 101',
-            teacher_external_id: 'teacher-2',
+            data: expect.objectContaining({
+              class_name: 'English 101',
+              teacher_external_id: 'teacher-2',
+            }),
           }),
         ])
       );
@@ -529,7 +533,7 @@ student-2,Bob,Johnson,5`,
     test('skips classes with missing teacher IDs', async () => {
       hasuraRequest
         .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-class-no-teachers' } })
-        .mockResolvedValueOnce({ insert_sis_roster_classes: { affected_rows: 0 } })
+        .mockResolvedValueOnce({ insert_sis_rosters: { affected_rows: 0 } })
         .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-class-no-teachers' } });
 
       req.body = {
