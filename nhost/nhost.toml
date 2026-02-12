@@ -44,5 +44,5 @@ memory = 1024
 [auth]
 version = "0.26.0"
 
-[functions]
-node = "20"
+[functions.node]
+version = 20
