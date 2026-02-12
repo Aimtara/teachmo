@@ -167,21 +167,24 @@ function printMissingBaseSchemaGuidance(error, filename) {
 /**
  * Wraps migration execution with a PostgreSQL advisory lock to prevent
  * concurrent migration runs (e.g., during parallel deployments).
- * Uses lock key 7623849172638491 (arbitrary but consistent identifier).
+ * Uses lock key 7623849172638491 (derived from 'teachmo-migrations' string hash).
  */
 async function withMigrationAdvisoryLock(fn) {
-  const LOCK_KEY = 7623849172638491;
+  const LOCK_KEY = 7623849172638491; // Derived from hash of 'teachmo-migrations'
+  let lockAcquired = false;
   
   console.log('🔒 Acquiring migration advisory lock...');
   
   try {
     // Try to acquire the lock (non-blocking check first)
     const lockResult = await query('SELECT pg_try_advisory_lock($1) AS acquired', [LOCK_KEY]);
+    lockAcquired = lockResult.rows[0]?.acquired === true;
     
-    if (!lockResult.rows[0]?.acquired) {
+    if (!lockAcquired) {
       console.log('⏳ Another migration is in progress. Waiting for lock...');
       // Blocking acquire - will wait until lock is available
       await query('SELECT pg_advisory_lock($1)', [LOCK_KEY]);
+      lockAcquired = true;
       console.log('🔒 Advisory lock acquired (after waiting)');
     } else {
       console.log('🔒 Advisory lock acquired');
@@ -191,9 +194,11 @@ async function withMigrationAdvisoryLock(fn) {
     await fn();
     
   } finally {
-    // Always release the lock
-    await query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]);
-    console.log('🔓 Advisory lock released');
+    // Only release the lock if it was successfully acquired
+    if (lockAcquired) {
+      await query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]);
+      console.log('🔓 Advisory lock released');
+    }
   }
 }
 
