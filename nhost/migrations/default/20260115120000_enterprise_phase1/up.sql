@@ -1,4 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+ALTER TABLE IF EXISTS public.analytics_events ALTER COLUMN organization_id DROP NOT NULL;
+ALTER TABLE IF EXISTS public.audit_log ALTER COLUMN organization_id DROP NOT NULL;
 ALTER TABLE IF EXISTS public.audit_log ALTER COLUMN actor_id DROP NOT NULL;
 ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS school_id uuid;
 ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS actor_id uuid;
