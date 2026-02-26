@@ -2,6 +2,19 @@
 
 -- Safety: required extension for gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+ALTER TABLE IF EXISTS public.tenant_settings ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.tenant_settings ADD COLUMN IF NOT EXISTS school_id uuid;
+ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS partner_user_id uuid;
+ALTER TABLE IF EXISTS public.partner_incentive_applications ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_incentive_applications ADD COLUMN IF NOT EXISTS partner_user_id uuid;
+ALTER TABLE IF EXISTS public.partner_contracts ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_contracts ADD COLUMN IF NOT EXISTS partner_user_id uuid;
+ALTER TABLE IF EXISTS public.partner_onboarding_tasks ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_training_courses ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.user_profiles ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.user_profiles ADD COLUMN IF NOT EXISTS school_id uuid;
 
 -- Safety Patch: Explicitly add columns in case tables already exist
 ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS actor_user_id uuid;
