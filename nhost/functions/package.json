@@ -3,11 +3,15 @@
   "private": true,
   "dependencies": {
     "@nhost/nhost-js": "^3.0.0",
+    "csv-parse": "^6.1.0",
     "date-fns": "^3.6.0",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
     "graphql-request": "^6.1.0",
     "nodemailer": "^8.0.1",
     "openai": "^4.0.0",
     "pg": "^8.19.0",
+    "ssh2-sftp-client": "^12.0.1",
     "zod": "^3.25.76"
   }
 }
