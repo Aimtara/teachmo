@@ -3,6 +3,23 @@
 -- Safety: required extension for gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Safety Patch: Explicitly add columns in case tables already exist
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS actor_user_id uuid;
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS school_id uuid;
+
+ALTER TABLE IF EXISTS public.ai_interactions ADD COLUMN IF NOT EXISTS actor_user_id uuid;
+ALTER TABLE IF EXISTS public.ai_interactions ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.ai_interactions ADD COLUMN IF NOT EXISTS school_id uuid;
+
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS actor_user_id uuid;
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS school_id uuid;
+
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS school_id uuid;
+
 -- -----------------------------
 -- Helper functions for DB-level RLS using Hasura session variables
 -- -----------------------------
