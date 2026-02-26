@@ -77,6 +77,23 @@ CREATE TABLE IF NOT EXISTS public.ai_usage_logs (
 );
 
 CREATE INDEX IF NOT EXISTS ai_usage_logs_created_idx
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS school_id uuid;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS actor_id uuid;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS model text;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS prompt_hash text;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS response_hash text;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS status text DEFAULT 'logged';
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS flagged boolean DEFAULT false;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS reviewer_id uuid;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS usage_log_id uuid;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS school_id uuid;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS reviewer_id uuid;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
   ON public.ai_usage_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS ai_usage_logs_actor_idx
   ON public.ai_usage_logs(actor_id);
