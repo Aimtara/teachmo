@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 COPY package.json package-lock.json ./
-RUN npm install
+RUN rm -f package-lock.json && npm install
 
 COPY . .
 # Validate required env for a production build (VITE_NHOST_BACKEND_URL)
