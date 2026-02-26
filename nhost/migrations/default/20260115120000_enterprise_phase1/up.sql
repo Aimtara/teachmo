@@ -1,4 +1,11 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+ALTER TABLE IF EXISTS public.tenant_sso_settings ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.feature_flags ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.ai_policy_docs ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.sis_rosters ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.audit_log ADD COLUMN IF NOT EXISTS district_id uuid;
 
 -- -----------------------------
 -- Enterprise governance tables
