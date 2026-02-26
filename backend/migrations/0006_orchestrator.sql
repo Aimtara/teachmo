@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS orchestrator_artifacts, orchestrator_runs CASCADE;
+
 -- Phase 8: orchestrator router + specialists logging
 
 create table if not exists orchestrator_runs (
