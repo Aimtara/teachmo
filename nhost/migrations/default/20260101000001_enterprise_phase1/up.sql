@@ -381,6 +381,14 @@ CREATE INDEX IF NOT EXISTS sis_roster_enrollments_job_idx ON public.sis_roster_e
 
 -- -----------------------------
 -- AI governance foundations
+CREATE TABLE IF NOT EXISTS public.ai_usage_logs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS public.ai_review_queue (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
 -- -----------------------------
 ALTER TABLE public.ai_usage_logs
   ADD COLUMN IF NOT EXISTS organization_id uuid,
