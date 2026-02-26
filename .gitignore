@@ -8,3 +8,5 @@ public/icon.png
 public/pwa-192x192.png
 public/pwa-512x512.png
 dist/
+
+.secrets
