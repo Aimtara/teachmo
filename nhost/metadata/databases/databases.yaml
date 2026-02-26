@@ -1,4 +1,4 @@
 - name: default
   kind: postgres
   configuration: {}
-  tables: "!include default/tables/tables.yaml"
+  tables: []
