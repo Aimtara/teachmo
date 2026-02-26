@@ -14,6 +14,13 @@ ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS error text;
 ALTER TABLE IF EXISTS public.workflow_run_steps ADD COLUMN IF NOT EXISTS status text DEFAULT 'planned';
 
 -- Proactively add Partner fields
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS event_ts timestamptz DEFAULT now();
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS admin_user_id uuid;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS entity text;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS entity_id uuid;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS action text;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
 ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
 ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS type text;
 ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS reason text;
