@@ -443,7 +443,7 @@ SELECT * FROM public.ai_usage_logs;
 -- -----------------------------
 -- JWT custom claims (Hasura)
 -- -----------------------------
-CREATE OR REPLACE FUNCTION auth.jwt_custom_claims(user_id uuid)
+CREATE OR REPLACE FUNCTION public.jwt_custom_claims(user_id uuid)
 RETURNS jsonb
 LANGUAGE sql
 STABLE
