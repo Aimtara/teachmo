@@ -15,6 +15,8 @@ COPY . .
 # In CI or local Docker builds, set it via --build-arg or environment.
 ARG VITE_NHOST_SUBDOMAIN
 ENV VITE_NHOST_SUBDOMAIN=${VITE_NHOST_SUBDOMAIN}
+ARG VITE_NHOST_REGION
+ENV VITE_NHOST_REGION=${VITE_NHOST_REGION}
 RUN node scripts/preflight-env.mjs
 RUN npm run prebuild
 RUN npm run build
