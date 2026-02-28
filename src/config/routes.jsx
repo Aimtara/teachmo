@@ -16,26 +16,26 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'Landing',
     path: '/',
-    Component: lazy(() => import('@/pages/Landing.jsx')),
+    Component: lazy(() => import('@/pages/Landing')),
     isPublic: true
   },
   {
     name: 'Login',
     path: '/login',
-    Component: lazy(() => import('@/pages/Login.jsx')),
+    Component: lazy(() => import('@/pages/Login')),
     isPublic: true,
     fallback: <p className="p-6 text-gray-600">Loading login...</p>
   },
   {
     name: 'Onboarding',
     path: '/onboarding',
-    Component: lazy(() => import('@/pages/Onboarding.jsx')),
+    Component: lazy(() => import('@/pages/Onboarding')),
     isPublic: true
   },
   {
     name: 'AuthCallback',
     path: '/auth/callback',
-    Component: lazy(() => import('@/pages/AuthCallback.jsx')),
+    Component: lazy(() => import('@/pages/AuthCallback')),
     isPublic: true
   },
   {
@@ -59,7 +59,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'UnifiedCommunity',
     path: '/community',
-    Component: lazy(() => import('@/pages/Community.jsx')),
+    Component: lazy(() => import('@/pages/Community')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
@@ -69,7 +69,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'Calendar',
     path: '/calendar',
-    Component: lazy(() => import('@/pages/Calendar.jsx')),
+    Component: lazy(() => import('@/pages/Calendar')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
@@ -79,7 +79,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'Messages',
     path: '/messages',
-    Component: lazy(() => import('@/pages/Messages.jsx')),
+    Component: lazy(() => import('@/pages/Messages')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher'],
     requiredScopes: ['content:read'],
@@ -89,7 +89,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'MessagingRequests',
     path: '/messages/requests',
-    Component: lazy(() => import('@/pages/MessagingRequests.jsx')),
+    Component: lazy(() => import('@/pages/MessagingRequests')),
     requiresAuth: true,
     allowedRoles: ['teacher', 'school_admin', 'district_admin', 'admin', 'system_admin'],
     requiredScopes: ['content:read'],
@@ -99,7 +99,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AIAssistant',
     path: '/ai-assistant',
-    Component: lazy(() => import('@/pages/AIAssistant.jsx')),
+    Component: lazy(() => import('@/pages/AIAssistant')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
     requiredScopes: ['core:dashboard'],
@@ -109,7 +109,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AIExplainability',
     path: '/ai/explainability/:id',
-    Component: lazy(() => import('@/pages/AIExplainability.jsx')),
+    Component: lazy(() => import('@/pages/AIExplainability')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'admin', 'system_admin'],
     requiredScopes: ['core:dashboard'],
@@ -119,7 +119,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'Settings',
     path: '/settings',
-    Component: lazy(() => import('@/pages/Settings.jsx')),
+    Component: lazy(() => import('@/pages/Settings')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
     requiredScopes: ['core:dashboard'],
@@ -128,7 +128,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'Dashboard',
     path: '/dashboard',
-    Component: lazy(() => import('@/pages/Dashboard.jsx')),
+    Component: lazy(() => import('@/pages/Dashboard')),
     allowedRoles: ['parent', 'teacher', 'system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['core:dashboard'],
     fallback: <p className="p-6 text-gray-600">Loading dashboard...</p>
@@ -136,7 +136,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'ParentDashboard',
     path: '/parent/dashboard',
-    Component: lazy(() => import('@/pages/ParentDashboard.jsx')),
+    Component: lazy(() => import('@/pages/ParentDashboard')),
     allowedRoles: ['parent'],
     requiredScopes: ['content:read'],
     fallback: <p className="p-6 text-gray-600">Loading parent dashboard...</p>
@@ -144,7 +144,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'WeeklyBriefDetail',
     path: '/briefs/:id',
-    Component: lazy(() => import('@/pages/WeeklyBriefDetail.jsx')),
+    Component: lazy(() => import('@/pages/WeeklyBriefDetail')),
     requiresAuth: true,
     allowedRoles: ['parent'],
     requiredScopes: ['content:read'],
@@ -171,7 +171,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'TeacherDashboard',
     path: '/teacher/dashboard',
-    Component: lazy(() => import('@/pages/TeacherDashboard.jsx')),
+    Component: lazy(() => import('@/pages/TeacherDashboard')),
     allowedRoles: ['teacher'],
     requiredScopes: ['classrooms:manage'],
     fallback: <p className="p-6 text-gray-600">Loading teacher dashboard...</p>
@@ -179,7 +179,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'TeacherClasses',
     path: '/teacher-classes',
-    Component: lazy(() => import('@/pages/TeacherClasses.jsx')),
+    Component: lazy(() => import('@/pages/TeacherClasses')),
     requiresAuth: true,
     allowedRoles: ['teacher'],
     requiredScopes: ['classrooms:manage'],
@@ -189,7 +189,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'TeacherAssignments',
     path: '/teacher-assignments',
-    Component: lazy(() => import('@/pages/TeacherAssignments.jsx')),
+    Component: lazy(() => import('@/pages/TeacherAssignments')),
     requiresAuth: true,
     allowedRoles: ['teacher'],
     requiredScopes: ['classrooms:manage'],
@@ -199,7 +199,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'TeacherMessages',
     path: '/teacher-messages',
-    Component: lazy(() => import('@/pages/TeacherMessages.jsx')),
+    Component: lazy(() => import('@/pages/TeacherMessages')),
     requiresAuth: true,
     allowedRoles: ['teacher'],
     requiredScopes: ['classrooms:manage'],
@@ -210,7 +210,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerRegistration',
     path: '/partners/register',
-    Component: lazy(() => import('@/pages/public/PartnerRegistration.jsx')),
+    Component: lazy(() => import('@/pages/public/PartnerRegistration')),
     isPublic: true,
     fallback: <p className="p-6 text-gray-600">Loading partner registration...</p>
   },
@@ -218,14 +218,14 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerDashboard',
     path: '/partners/dashboard',
-    Component: lazy(() => import('@/pages/PartnerDashboard.jsx')),
+    Component: lazy(() => import('@/pages/PartnerDashboard')),
     allowedRoles: ['admin', 'system_admin'],
     fallback: <p className="p-6 text-gray-600">Loading partner portal...</p>
   },
   {
     name: 'PartnerPortal',
     path: '/partners',
-    Component: lazy(() => import('@/pages/PartnerPortal.jsx')),
+    Component: lazy(() => import('@/pages/PartnerPortal')),
     requiresAuth: true,
     allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
@@ -234,7 +234,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerPortalPublic',
     path: '/partner',
-    Component: lazy(() => import('@/pages/PartnerPortal.jsx')),
+    Component: lazy(() => import('@/pages/PartnerPortal')),
     requiresAuth: true,
     allowedRoles: ['partner', 'admin', 'system_admin'],
     fallback: <p className="p-6 text-gray-600">Loading partner portal...</p>
@@ -242,7 +242,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerSubmissions',
     path: '/partners/submissions',
-    Component: lazy(() => import('@/pages/PartnerSubmissions.jsx')),
+    Component: lazy(() => import('@/pages/PartnerSubmissions')),
     requiresAuth: true,
     allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
@@ -251,7 +251,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerTraining',
     path: '/partners/training',
-    Component: lazy(() => import('@/pages/PartnerTraining.jsx')),
+    Component: lazy(() => import('@/pages/PartnerTraining')),
     requiresAuth: true,
     allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
@@ -260,7 +260,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerOffers',
     path: '/partners/offers',
-    Component: lazy(() => import('@/pages/PartnerOffers.tsx')),
+    Component: lazy(() => import('@/pages/PartnerOffers')),
     requiresAuth: true,
     allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
@@ -269,7 +269,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerBilling',
     path: '/partners/billing',
-    Component: lazy(() => import('@/pages/PartnerBilling.jsx')),
+    Component: lazy(() => import('@/pages/PartnerBilling')),
     requiresAuth: true,
     allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
@@ -278,7 +278,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'PartnerIncentives',
     path: '/partners/incentives',
-    Component: lazy(() => import('@/pages/PartnerIncentives.jsx')),
+    Component: lazy(() => import('@/pages/PartnerIncentives')),
     requiresAuth: true,
     allowedRoles: ['partner', 'admin', 'system_admin'],
     internalOnly: true,
@@ -287,7 +287,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminPartners',
     path: '/admin/partners',
-    Component: lazy(() => import('@/pages/PartnerDashboard.jsx')),
+    Component: lazy(() => import('@/pages/PartnerDashboard')),
     allowedRoles: ['system_admin', 'admin'],
     requiredScopes: ['org:manage'],
     internalOnly: true,
@@ -297,7 +297,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'DistrictOverview',
     path: '/district/overview',
-    Component: lazy(() => import('@/pages/DistrictOverview.jsx')),
+    Component: lazy(() => import('@/pages/DistrictOverview')),
     requiresAuth: true,
     allowedRoles: ['district_admin', 'system_admin', 'admin'],
     requiredScopes: ['org:manage'],
@@ -307,7 +307,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminDashboard',
     path: '/admin',
-    Component: lazy(() => import('@/pages/AdminDashboard.jsx')),
+    Component: lazy(() => import('@/pages/AdminDashboard')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['org:manage'],
     fallback: <p className="p-6 text-gray-600">Loading admin dashboard...</p>
@@ -315,7 +315,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminExecutionBoard',
     path: '/admin/execution-board',
-    Component: lazy(() => import('@/pages/AdminExecutionBoard.jsx')),
+    Component: lazy(() => import('@/pages/AdminExecutionBoard')),
     requiresAuth: true,
     allowedRoles: ['system_admin'],
     requiredScopes: ['system:manage'],
@@ -325,7 +325,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminCommandCenter',
     path: '/admin/command-center',
-    Component: lazy(() => import('@/pages/AdminCommandCenter.jsx')),
+    Component: lazy(() => import('@/pages/AdminCommandCenter')),
     requiresAuth: true,
     allowedRoles: ['system_admin'],
     requiredScopes: ['system:manage'],
@@ -335,7 +335,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'ExecutionBoard',
     path: '/internal/execution-board',
-    Component: lazy(() => import('@/pages/ExecutionBoard.jsx')),
+    Component: lazy(() => import('@/pages/ExecutionBoard')),
     requiresAuth: true,
     allowedRoles: ['system_admin'],
     requiredScopes: ['system:manage'],
@@ -345,7 +345,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'CommandCenter',
     path: '/internal/command-center',
-    Component: lazy(() => import('@/pages/CommandCenter.jsx')),
+    Component: lazy(() => import('@/pages/CommandCenter')),
     requiresAuth: true,
     allowedRoles: ['system_admin'],
     requiredScopes: ['system:manage'],
@@ -355,7 +355,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminWeeklyBriefs',
     path: '/admin/weekly-briefs',
-    Component: lazy(() => import('@/pages/AdminWeeklyBriefs.jsx')),
+    Component: lazy(() => import('@/pages/AdminWeeklyBriefs')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['org:manage'],
     internalOnly: true,
@@ -364,7 +364,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminAnalytics',
     path: '/admin/analytics',
-    Component: lazy(() => import('@/pages/AdminAnalytics.jsx')),
+    Component: lazy(() => import('@/pages/AdminAnalytics')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['reporting:view'],
     requiredActions: ['analytics:view'],
@@ -374,7 +374,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminObservability',
     path: '/admin/observability',
-    Component: lazy(() => import('@/pages/AdminObservability.jsx')),
+    Component: lazy(() => import('@/pages/AdminObservability')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['org:manage'],
     internalOnly: true,
@@ -383,7 +383,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'OpsOrchestrator',
     path: '/ops/orchestrator',
-    Component: lazy(() => import('@/pages/OpsOrchestrator.jsx')),
+    Component: lazy(() => import('@/pages/OpsOrchestrator')),
     allowedRoles: ['system_admin'],
     requiredScopes: ['system:manage'],
     internalOnly: true,
@@ -392,7 +392,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminSystemHealth',
     path: '/admin/system-health',
-    Component: lazy(() => import('@/pages/AdminSystemHealth.jsx')),
+    Component: lazy(() => import('@/pages/AdminSystemHealth')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['org:manage'],
     internalOnly: true,
@@ -401,7 +401,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminNotifications',
     path: '/admin/notifications',
-    Component: lazy(() => import('@/pages/AdminNotifications.jsx')),
+    Component: lazy(() => import('@/pages/AdminNotifications')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['org:manage'],
     requiredActions: ['org:manage'],
@@ -411,7 +411,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminWorkflows',
     path: '/admin/workflows',
-    Component: lazy(() => import('@/pages/AdminWorkflows.jsx')),
+    Component: lazy(() => import('@/pages/AdminWorkflows')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['automation:manage'],
     requiredActions: ['automation:manage'],
@@ -421,7 +421,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminTenantSettings',
     path: '/admin/tenant-settings',
-    Component: lazy(() => import('@/pages/AdminTenantSettings.jsx')),
+    Component: lazy(() => import('@/pages/AdminTenantSettings')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['org:manage'],
     requiredActions: ['tenant:manage'],
@@ -431,7 +431,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminSSOSettings',
     path: '/admin/sso',
-    Component: lazy(() => import('@/pages/AdminSSOSettings.jsx')),
+    Component: lazy(() => import('@/pages/AdminSSOSettings')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['tenant:manage'],
     requiredActions: ['tenant:manage'],
@@ -442,7 +442,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminTenantDomains',
     path: '/admin/tenant-domains',
-    Component: lazy(() => import('@/pages/AdminTenantDomains.jsx')),
+    Component: lazy(() => import('@/pages/AdminTenantDomains')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['tenant:manage'],
     requiredActions: ['tenant:manage'],
@@ -453,7 +453,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminUsers',
     path: '/admin/users',
-    Component: lazy(() => import('@/pages/AdminUsers.jsx')),
+    Component: lazy(() => import('@/pages/AdminUsers')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin'],
     requiredScopes: ['users:manage'],
     requiredActions: ['users:manage'],
@@ -463,7 +463,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminAuditLogs',
     path: '/admin/audit-logs',
-    Component: lazy(() => import('@/pages/AdminAuditLogs.jsx')),
+    Component: lazy(() => import('@/pages/AdminAuditLogs')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['safety:review'],
     requiredActions: ['safety:review'],
@@ -474,7 +474,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminCompliance',
     path: '/admin/compliance',
-    Component: lazy(() => import('@/pages/AdminCompliance.jsx')),
+    Component: lazy(() => import('@/pages/AdminCompliance')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['safety:review'],
     internalOnly: true,
@@ -483,7 +483,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminFeatureFlags',
     path: '/admin/feature-flags',
-    Component: lazy(() => import('@/pages/AdminFeatureFlags.jsx')),
+    Component: lazy(() => import('@/pages/AdminFeatureFlags')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['tenant:manage'],
     requiredActions: ['tenant:manage'],
@@ -494,7 +494,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminAIReview',
     path: '/admin/ai-review',
-    Component: lazy(() => import('@/pages/AdminAIReview.jsx')),
+    Component: lazy(() => import('@/pages/AdminAIReview')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['safety:review'],
     requiredActions: ['safety:review'],
@@ -505,7 +505,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminAIReviewQueue',
     path: '/admin/ai-review-queue',
-    Component: lazy(() => import('@/pages/AdminAIReviewQueue.jsx')),
+    Component: lazy(() => import('@/pages/AdminAIReviewQueue')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['safety:review'],
     requiredActions: ['safety:review'],
@@ -516,7 +516,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminAIGovernance',
     path: '/admin/ai-governance',
-    Component: lazy(() => import('@/pages/AdminAIGovernance.jsx')),
+    Component: lazy(() => import('@/pages/AdminAIGovernance')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['safety:review'],
     requiredActions: ['safety:review'],
@@ -527,7 +527,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminAIPrompts',
     path: '/admin/ai-prompts',
-    Component: lazy(() => import('@/pages/AIPromptLibrary.jsx')),
+    Component: lazy(() => import('@/pages/AIPromptLibrary')),
     allowedRoles: ['system_admin', 'admin'],
     requiredScopes: ['safety:review'],
     feature: 'ENTERPRISE_AI_GOVERNANCE',
@@ -537,7 +537,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminSISRoster',
     path: '/admin/sis-roster',
-    Component: lazy(() => import('@/pages/AdminSISRoster.jsx')),
+    Component: lazy(() => import('@/pages/AdminSISRoster')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['directory:manage'],
     requiredActions: ['directory:manage'],
@@ -548,7 +548,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminIntegrationHealth',
     path: '/admin/integration-health',
-    Component: lazy(() => import('@/pages/AdminIntegrationHealth.jsx')),
+    Component: lazy(() => import('@/pages/AdminIntegrationHealth')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['directory:manage'],
     requiredActions: ['directory:manage'],
@@ -558,7 +558,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminLMSIntegration',
     path: '/admin/lms-integrations',
-    Component: lazy(() => import('@/pages/AdminLMSIntegration.jsx')),
+    Component: lazy(() => import('@/pages/AdminLMSIntegration')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['directory:manage'],
     requiredActions: ['directory:manage'],
@@ -567,7 +567,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminIntegrationSettings',
     path: '/admin/integrations',
-    Component: lazy(() => import('@/pages/admin/integrations/IntegrationSettings.jsx')),
+    Component: lazy(() => import('@/pages/admin/integrations/IntegrationSettings')),
     allowedRoles: ['system_admin', 'school_admin', 'district_admin', 'admin'],
     requiredScopes: ['directory:manage'],
     requiredActions: ['directory:manage'],
@@ -576,7 +576,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AIFineTuning',
     path: '/admin/ai-fine-tuning',
-    Component: lazy(() => import('@/pages/AIFineTuning.jsx')),
+    Component: lazy(() => import('@/pages/AIFineTuning')),
     allowedRoles: ['system_admin'],
     internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading AI fine-tuning...</p>
@@ -584,7 +584,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminModerationQueue',
     path: '/admin/moderation/messages',
-    Component: lazy(() => import('@/pages/AdminModerationQueue.jsx')),
+    Component: lazy(() => import('@/pages/AdminModerationQueue')),
     allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
     requiredScopes: ['safety:review'],
     requiredActions: ['safety:review'],
@@ -593,7 +593,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminMessagingBlocklist',
     path: '/admin/moderation/blocks',
-    Component: lazy(() => import('@/pages/AdminMessagingBlocklist.jsx')),
+    Component: lazy(() => import('@/pages/AdminMessagingBlocklist')),
     allowedRoles: ['school_admin', 'district_admin', 'system_admin', 'admin'],
     requiredScopes: ['safety:review'],
     requiredActions: ['safety:review'],
@@ -602,7 +602,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AITransparency',
     path: '/ai/transparency',
-    Component: lazy(() => import('@/pages/AITransparency.jsx')),
+    Component: lazy(() => import('@/pages/AITransparency')),
     isPublic: true,
     feature: 'ENTERPRISE_TRANSPARENCY',
     fallback: <p className="p-6 text-gray-600">Loading AI transparency...</p>
@@ -610,7 +610,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'SchoolDirectory',
     path: '/school-directory',
-    Component: lazy(() => import('@/pages/SchoolDirectory.jsx')),
+    Component: lazy(() => import('@/pages/SchoolDirectory')),
     requiresAuth: true,
     allowedRoles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
     requiredScopes: ['core:dashboard'],
@@ -631,7 +631,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'FounderDashboard',
     path: '/founder',
-    Component: lazy(() => import('@/pages/FounderDashboard.jsx')),
+    Component: lazy(() => import('@/pages/FounderDashboard')),
     requiresAuth: true,
     // Restrict access to internal roles only.
     allowedRoles: ['system_admin', 'admin'],
