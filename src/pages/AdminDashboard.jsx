@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { bootstrapOrganization } from '@/domains/onboarding';
+// import { bootstrapOrganization } from '@/domains/onboarding';
 import { createProfile, fetchUserProfile } from '@/domains/auth';
 import { graphqlRequest } from '@/lib/graphql';
 import { useTelemetry } from '@/utils/useTelemetry';
@@ -45,10 +45,10 @@ export default function AdminDashboard() {
 
   const handleOrgSubmit = async (evt) => {
     evt.preventDefault();
-    const data = await bootstrapOrganization({
-      organizationName: orgForm.organizationName,
-      schoolName: orgForm.schoolName
-    });
+    // const data = await bootstrapOrganization({
+    //   organizationName: orgForm.organizationName,
+    //   schoolName: orgForm.schoolName
+  //   });
     log('organization_bootstrap', {
       organizationName: orgForm.organizationName,
       schoolName: orgForm.schoolName,
