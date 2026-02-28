@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import logger from '@/utils/logger';
-import { useAuthenticationStatus, useUserData } from '@nhost/react';
+// 1. IMPORT ADDED: Brought in useAccessToken and isAuthenticated
+import { useAuthenticationStatus, useUserData, useAccessToken } from '@nhost/react';
 import { nhost } from '@/lib/nhostClient';
 import { fetchUserProfile } from '@/domains/auth';
 
@@ -75,8 +76,11 @@ function resolveTenantClaims(
 }
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuthenticationStatus();
+  // 2. HOOK ADDED: Grab the explicit token and auth state
+  const { isLoading, isAuthenticated } = useAuthenticationStatus();
   const user = useUserData();
+  const accessToken = useAccessToken();
+
   const [state, setState] = useState<TenantState>({
     organizationId: null,
     schoolId: null,
@@ -87,14 +91,16 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     (async () => {
       if (isLoading) return;
-      // When no authenticated user, clear tenant info
-      if (!user) {
+      
+      // 3. GUARD ADDED: Do not proceed unless we have the user AND the physical token
+      if (!isAuthenticated || !user || !accessToken) {
         if (mounted) setState({ organizationId: null, schoolId: null, loading: false });
         return;
       }
+
       try {
-        const token = await nhost.auth.getAccessToken();
-        const claims = decodeToken(token);
+        // We no longer need nhost.auth.getAccessToken() because we have it from the hook
+        const claims = decodeToken(accessToken);
         const tenant = resolveTenantClaims(user, claims);
         let profileTenant = { organizationId: null, schoolId: null };
         try {
@@ -122,7 +128,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [isLoading, user]);
+  // 4. DEPENDENCY ADDED: React will re-run this effect the exact millisecond the token arrives
+  }, [isLoading, isAuthenticated, user, accessToken]);
 
   const value = useMemo(() => state, [state.organizationId, state.schoolId, state.loading]);
 
