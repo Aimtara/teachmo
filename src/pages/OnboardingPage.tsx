@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserData, useAccessToken } from '@nhost/react';
 import OnboardingManager, { OnboardingStep } from '../components/OnboardingManager';
 import { nhost } from '../lib/nhostClient';
@@ -26,7 +26,7 @@ export default function Onboarding() {
     return (savedIntent as OnboardingPath) || null;
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedPath) {
       sessionStorage.removeItem('onboarding_intent');
     }
