@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { Navigate } from 'react-router-dom';
 import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
-import { nhost } from '@/lib/nhostClient';
 import { logAnalyticsEvent } from '@/observability/telemetry';
 
 export default function AuthCallback() {
@@ -11,9 +10,7 @@ export default function AuthCallback() {
   const { role, loading: roleLoading, needsOnboarding, tenantScope } = useUserRoleState();
   const loggedRef = useRef(false);
 
-  useEffect(() => {
-    nhost.auth.refreshSession();
-  }, []);
+  // The rogue nhost.auth.refreshSession() has been completely removed!
 
   useEffect(() => {
     if (loggedRef.current) return;
