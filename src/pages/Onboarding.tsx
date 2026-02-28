@@ -4,25 +4,26 @@ import { useUserData } from '@nhost/react';
 import OnboardingManager, { OnboardingStep } from '../components/OnboardingManager'; 
 import { nhost } from '../lib/nhostClient'; // Adjust path if needed
 
-// The GraphQL instruction to save the profile
+// The CORRECTED GraphQL instruction to save the profile
 const CREATE_PROFILE_MUTATION = `
-  mutation CreateUserProfile($userId: uuid!, $role: String!, $schoolId: uuid) {
+  mutation CreateUserProfile($userId: uuid!, $role: String!, $schoolId: uuid, $districtId: uuid) {
     insert_user_profiles_one(
       object: {
         user_id: $userId,
         role: $role,
         school_id: $schoolId,
-        onboarding_completed: true
+        district_id: $districtId
       }, 
       on_conflict: {
-        constraint: user_profiles_user_id_key, 
-        update_columns: [role, school_id, onboarding_completed]
+        constraint: user_profiles_pkey, 
+        update_columns: [role, school_id, district_id]
       }
     ) {
-      id
+      user_id
     }
   }
 `;
+
 type OnboardingPath = 'parent' | 'district' | null;
 
 export default function Onboarding() {
@@ -42,7 +43,8 @@ export default function Onboarding() {
         const { error } = await nhost.graphql.request(CREATE_PROFILE_MUTATION, {
           userId: user.id,
           role: 'parent',
-          schoolId: null // Explicitly null for B2C
+          schoolId: null,
+          districtId: null
         });
 
         if (error) {
@@ -61,12 +63,10 @@ export default function Onboarding() {
     },
   ];
 
-  
-
   // ==========================================
   // PATH B: The Enterprise / District Flow
   // ==========================================
-const districtSteps: OnboardingStep[] = [
+  const districtSteps: OnboardingStep[] = [
     {
       id: 'verify_district_code',
       title: 'Setting up District Profile...',
@@ -77,8 +77,9 @@ const districtSteps: OnboardingStep[] = [
         // on the screen and pass it here instead of null!
         const { error } = await nhost.graphql.request(CREATE_PROFILE_MUTATION, {
           userId: user.id,
-          role: 'district_staff', 
-          schoolId: null 
+          role: 'staff', 
+          schoolId: null,
+          districtId: null
         });
 
         if (error) {
