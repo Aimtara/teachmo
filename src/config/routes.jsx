@@ -29,7 +29,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'Onboarding',
     path: '/onboarding',
-    Component: lazy(() => import('@/pages/Onboarding')),
+    Component: lazy(() => import('@/pages/OnboardingPage')),
     isPublic: true
   },
   {

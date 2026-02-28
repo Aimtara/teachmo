@@ -36,7 +36,7 @@ const TeacherAssignments = React.lazy(() => import('@/pages/TeacherAssignments')
 // Other pages
 const Notifications = React.lazy(() => import('@/pages/Notifications'));
 const Landing = React.lazy(() => import('@/pages/Landing'));
-const Onboarding = React.lazy(() => import('@/pages/Onboarding'));
+const Onboarding = React.lazy(() => import('@/pages/OnboardingPage'));
 const PartnerPortal = React.lazy(() => import('@/pages/PartnerPortal'));
 const PartnerSubmissions = React.lazy(() => import('@/pages/PartnerSubmissions'));
 const PartnerTraining = React.lazy(() => import('@/pages/PartnerTraining'));
