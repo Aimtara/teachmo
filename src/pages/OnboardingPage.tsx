@@ -19,7 +19,7 @@ type OnboardingPath = 'parent' | 'district' | null;
 
 export default function Onboarding() {
   const user = useUserData();
-  const accessToken = useAccessToken(); // 1. Explicitly grab the token!
+  const accessToken = useAccessToken();
 
   const [selectedPath, setSelectedPath] = useState<OnboardingPath>(() => {
     const savedIntent = sessionStorage.getItem('onboarding_intent');
@@ -40,7 +40,6 @@ export default function Onboarding() {
         if (!user?.id) throw new Error("No authenticated user found.");
         if (!accessToken) throw new Error("Waiting for authentication token...");
 
-        // 2. Force the token into the headers so Hasura knows who you are
         const { error } = await nhost.graphql.request(
           UPDATE_PROFILE_MUTATION,
           { userId: user.id, appRole: 'parent' },
