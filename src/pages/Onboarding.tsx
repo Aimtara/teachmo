@@ -2,7 +2,27 @@ import React, { useState } from 'react';
 import { useUserData } from '@nhost/react';
 // IMPORTANT: Make sure this import path matches where your component is located!
 import OnboardingManager, { OnboardingStep } from '../components/OnboardingManager'; 
+import { nhost } from '../lib/nhostClient'; // Adjust path if needed
 
+// The GraphQL instruction to save the profile
+const CREATE_PROFILE_MUTATION = `
+  mutation CreateUserProfile($userId: uuid!, $role: String!, $schoolId: uuid) {
+    insert_user_profiles_one(
+      object: {
+        user_id: $userId,
+        role: $role,
+        school_id: $schoolId,
+        onboarding_completed: true
+      }, 
+      on_conflict: {
+        constraint: user_profiles_user_id_key, 
+        update_columns: [role, school_id, onboarding_completed]
+      }
+    ) {
+      id
+    }
+  }
+`;
 type OnboardingPath = 'parent' | 'district' | null;
 
 export default function Onboarding() {
@@ -17,43 +37,62 @@ export default function Onboarding() {
       id: 'init_parent_profile',
       title: 'Creating Parent Profile...',
       run: async () => {
-        // Here we explicitly tell Hasura: "This is a parent. school_id is NULL."
-        // This prevents the Hasura permissions crash!
-        console.log(`Setting up B2C profile for user: ${user?.id}`);
-        await new Promise((res) => setTimeout(res, 1200)); // Simulated loading
+        if (!user?.id) throw new Error("No authenticated user found.");
+        
+        const { error } = await nhost.graphql.request(CREATE_PROFILE_MUTATION, {
+          userId: user.id,
+          role: 'parent',
+          schoolId: null // Explicitly null for B2C
+        });
+
+        if (error) {
+          console.error("Hasura Error:", error);
+          throw new Error("Failed to save parent profile.");
+        }
       },
     },
     {
       id: 'finalize_parent',
       title: 'Finalizing Account...',
       run: async () => {
-        console.log('Redirecting parent to dashboard...');
         await new Promise((res) => setTimeout(res, 800));
-        // window.location.href = '/dashboard'; 
+        window.location.href = '/dashboard'; // Send them into the app!
       },
     },
   ];
 
+  
+
   // ==========================================
   // PATH B: The Enterprise / District Flow
   // ==========================================
-  const districtSteps: OnboardingStep[] = [
+const districtSteps: OnboardingStep[] = [
     {
       id: 'verify_district_code',
-      title: 'Verifying District Credentials...',
+      title: 'Setting up District Profile...',
       run: async () => {
-        // Here we will eventually prompt for an invite code or verify their school email
-        console.log(`Connecting B2B profile for user: ${user?.id}`);
-        await new Promise((res) => setTimeout(res, 1500));
+        if (!user?.id) throw new Error("No authenticated user found.");
+        
+        // Note: In the future, you can capture a real schoolId from a text input 
+        // on the screen and pass it here instead of null!
+        const { error } = await nhost.graphql.request(CREATE_PROFILE_MUTATION, {
+          userId: user.id,
+          role: 'district_staff', 
+          schoolId: null 
+        });
+
+        if (error) {
+          console.error("Hasura Error:", error);
+          throw new Error("Failed to save district profile.");
+        }
       },
     },
     {
       id: 'finalize_district',
       title: 'Linking to School Portal...',
       run: async () => {
-        console.log('Redirecting staff to district portal...');
         await new Promise((res) => setTimeout(res, 800));
-        // window.location.href = '/district-dashboard';
+        window.location.href = '/district-dashboard'; // Send them to the enterprise portal
       },
     },
   ];
