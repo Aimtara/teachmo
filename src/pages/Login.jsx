@@ -12,6 +12,9 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [redirecting, setRedirecting] = useState(false);
+  
+  // NEW: State to track which path they chose before logging in
+  const [selectedFlow, setSelectedFlow] = useState(null);
 
   // Fetch tenant SSO settings (enabled providers and requireSso flag)
   const { data: ssoSettings } = useTenantSSOSettings();
@@ -32,18 +35,73 @@ export default function Login() {
     }
   };
 
+  // NEW: Function to save their intent and reveal the login form
+  const handleFlowSelection = (flow) => {
+    sessionStorage.setItem('onboarding_intent', flow);
+    setSelectedFlow(flow);
+  };
+
+  // ==========================================
+  // PHASE 1: The Pre-Login "Fork in the Road"
+  // ==========================================
+  if (!selectedFlow) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-8 shadow-lg">
+          <h1 className="mb-2 text-center text-2xl font-bold text-gray-900">Welcome to Teachmo</h1>
+          <p className="mb-8 text-center text-gray-600">How will you be using the platform?</p>
+          
+          <div className="flex flex-col gap-4">
+            <button
+              onClick={() => handleFlowSelection('parent')}
+              className="flex flex-col items-start rounded-lg border-2 border-gray-200 p-4 transition-all hover:border-sky-500 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <span className="text-lg font-semibold text-gray-900">I'm a Parent or Guardian</span>
+              <span className="text-sm text-gray-500">Manage your family's education and resources.</span>
+            </button>
+
+            <button
+              onClick={() => handleFlowSelection('district')}
+              className="flex flex-col items-start rounded-lg border-2 border-gray-200 p-4 transition-all hover:border-emerald-500 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <span className="text-lg font-semibold text-gray-900">I'm with a School or District</span>
+              <span className="text-sm text-gray-500">Log in as a teacher, administrator, or staff member.</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // PHASE 2: The Actual Login Form
+  // ==========================================
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        
+        {/* NEW: A back button so they can change their mind */}
+        <button 
+          onClick={() => setSelectedFlow(null)}
+          className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          &larr; Back to roles
+        </button>
+
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-semibold text-gray-900">Sign in to Teachmo</h1>
-          <p className="text-sm text-gray-600">Use your school account to continue</p>
+          {/* Dynamic header based on their selection! */}
+          <h1 className="text-2xl font-semibold text-gray-900">
+            {selectedFlow === 'parent' ? 'Sign in as a Parent' : 'Sign in to your School Account'}
+          </h1>
+          <p className="text-sm text-gray-600">Use your preferred method to continue</p>
         </div>
+        
         {error && (
           <p role="alert" className="text-red-600 text-sm text-center">
             {error}
           </p>
         )}
+
         {/* Automatically redirect to the only enabled SSO provider when required */}
         {requireSso && enabledProviders.length === 1 && (
           <AutoSSORedirect
@@ -52,6 +110,12 @@ export default function Login() {
             onStart={() => setRedirecting(true)}
           />
         )}
+
+        {/* Show redirect message when auto-redirecting */}
+        {redirecting && (
+          <p className="text-center text-sm text-gray-500">Redirecting to your single sign-on provider…</p>
+        )}
+
         {/* If multiple providers or SSO optional, show provider buttons */}
         {(!requireSso || enabledProviders.length !== 1) && (
           <SocialLoginButtons
@@ -59,11 +123,8 @@ export default function Login() {
             providers={enabledProviders.length ? enabledProviders : null}
           />
         )}
-        {/* Show redirect message when auto-redirecting */}
-        {redirecting && (
-          <p className="text-center text-sm text-gray-500">Redirecting to your single sign-on provider…</p>
-        )}
-        <div className="relative">
+
+        <div className="relative mt-6">
           <div className="absolute inset-0 flex items-center" aria-hidden="true">
             <div className="w-full border-t border-gray-200" />
           </div>
@@ -71,12 +132,11 @@ export default function Login() {
             <span className="bg-gray-50 px-2 text-gray-500">or</span>
           </div>
         </div>
+
         {!requireSso && (
           <form className="mt-8 space-y-4" onSubmit={handleEmailLogin}>
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
+              <label htmlFor="email" className="sr-only">Email address</label>
               <input
                 id="email"
                 name="email"
@@ -89,9 +149,7 @@ export default function Login() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
+              <label htmlFor="password" className="sr-only">Password</label>
               <input
                 id="password"
                 name="password"
@@ -111,25 +169,21 @@ export default function Login() {
             </button>
           </form>
         )}
-        <p className="text-center text-sm text-gray-600">
-          Don&apos;t have an account?{' '}
-          <Link to="/onboarding" className="font-semibold text-emerald-700 hover:text-emerald-800">
-            Sign up
+
+        <div className="mt-6 text-center text-sm">
+          <span className="text-gray-600">Don't have an account? </span>
+          <Link 
+            to="/onboarding" 
+            className="font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
+          >
+            Sign up for free
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );
 }
-<div className="mt-6 text-center text-sm">
-  <span className="text-gray-600">Don't have an account? </span>
-  <Link 
-    to="/onboarding" 
-    className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
-  >
-    Sign up for free
-  </Link>
-</div>
+
 /**
  * AutoSSORedirect triggers an immediate signIn with the given provider when mounted.
  * It calls onStart before initiating the redirect and onError if the call fails.
