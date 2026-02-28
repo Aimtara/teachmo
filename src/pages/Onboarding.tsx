@@ -28,7 +28,18 @@ type OnboardingPath = 'parent' | 'district' | null;
 
 export default function Onboarding() {
   const user = useUserData();
-  const [selectedPath, setSelectedPath] = useState<OnboardingPath>(null);
+// 1. Read the post-it note as soon as the page loads
+  const [selectedPath, setSelectedPath] = useState<OnboardingPath>(() => {
+    const savedIntent = sessionStorage.getItem('onboarding_intent');
+    return (savedIntent as OnboardingPath) || null;
+  });
+
+  // 2. Throw the post-it note away so it doesn't haunt future logins
+  React.useEffect(() => {
+    if (selectedPath) {
+      sessionStorage.removeItem('onboarding_intent');
+    }
+  }, [selectedPath]);
 
   // ==========================================
   // PATH A: The Consumer / Parent Flow
