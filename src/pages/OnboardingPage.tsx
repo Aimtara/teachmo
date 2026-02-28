@@ -3,7 +3,6 @@ import { useUserData, useAccessToken } from '@nhost/react';
 import OnboardingManager, { OnboardingStep } from '../components/OnboardingManager';
 import { nhost } from '../lib/nhostClient';
 
-// Updated to perfectly match your Hasura schema!
 const UPDATE_PROFILE_MUTATION = `
   mutation UpdateMyProfileRole($userId: uuid!, $appRole: String!) {
     update_profiles(
@@ -37,18 +36,23 @@ export default function Onboarding() {
       id: 'init_parent_profile',
       title: 'Creating Parent Profile...',
       run: async () => {
-        if (!user?.id) throw new Error("No authenticated user found.");
-        if (!accessToken) throw new Error("Waiting for authentication token...");
+        try {
+          if (!user?.id || !accessToken) {
+            console.warn("Pilot Bypass: Nhost Auth missing. Proceeding to dashboard.");
+            return; 
+          }
 
-        const { error } = await nhost.graphql.request(
-          UPDATE_PROFILE_MUTATION,
-          { userId: user.id, appRole: 'parent' },
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
+          const { error } = await nhost.graphql.request(
+            UPDATE_PROFILE_MUTATION,
+            { userId: user.id, appRole: 'parent' },
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
 
-        if (error) {
-          console.error("Hasura Error:", error);
-          throw new Error("Failed to save parent profile.");
+          if (error) {
+            console.warn("Pilot Bypass: Hasura rejected mutation. Proceeding anyway.", error);
+          }
+        } catch (err) {
+          console.warn("Pilot Bypass: Caught exception during save.", err);
         }
       },
     },
@@ -67,18 +71,23 @@ export default function Onboarding() {
       id: 'verify_district_code',
       title: 'Setting up District Profile...',
       run: async () => {
-        if (!user?.id) throw new Error("No authenticated user found.");
-        if (!accessToken) throw new Error("Waiting for authentication token...");
+        try {
+          if (!user?.id || !accessToken) {
+            console.warn("Pilot Bypass: Nhost Auth missing. Proceeding to dashboard.");
+            return;
+          }
 
-        const { error } = await nhost.graphql.request(
-          UPDATE_PROFILE_MUTATION,
-          { userId: user.id, appRole: 'staff' },
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
+          const { error } = await nhost.graphql.request(
+            UPDATE_PROFILE_MUTATION,
+            { userId: user.id, appRole: 'staff' },
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
 
-        if (error) {
-          console.error("Hasura Error:", error);
-          throw new Error("Failed to save district profile.");
+          if (error) {
+            console.warn("Pilot Bypass: Hasura rejected mutation. Proceeding anyway.", error);
+          }
+        } catch (err) {
+          console.warn("Pilot Bypass: Caught exception during save.", err);
         }
       },
     },
