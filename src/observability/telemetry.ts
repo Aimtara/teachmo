@@ -90,6 +90,7 @@ function sanitizeTelemetryClientMetadata(input?: Record<string, unknown>): Recor
  * Fire-and-forget telemetry. We never want UX to break because analytics is down.
  */
 export async function trackEvent(input: TelemetryEventInput): Promise<void> {
+  return;
   try {
     const safeInput: TelemetryEventInput = {
       ...input,
