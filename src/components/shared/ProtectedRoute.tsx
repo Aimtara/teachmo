@@ -5,8 +5,6 @@ import { useUserRoleState } from '@/hooks/useUserRole';
 import { canAll, type Action, type Role } from '@/security/permissions';
 import { canAccess } from '@/config/rbac';
 
-const E2E_SESSION_KEY = 'teachmo_e2e_session';
-
 type Props = {
   children: React.ReactNode;
   requiredRole?: string | string[];
@@ -32,40 +30,20 @@ export default function ProtectedRoute({
   requireAuth,
   requiresAuth,
 }: Props) {
-  const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const location = useLocation();
+
+  // 🚀 GOD MODE DEV SWITCH
+  // If we are running locally (npm run dev), act as a Superadmin and immediately 
+  // grant access to the requested page, skipping all Nhost and RBAC checks.
+  if (import.meta.env.DEV) {
+    return <>{children}</>;
+  }
+
+  // ====================================================================
+  // PRODUCTION SECURITY LOGIC (Only runs when deployed)
+  // ====================================================================
+  const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const { role, loading: roleLoading, needsOnboarding } = useUserRoleState();
-
-  const e2eBypass = React.useMemo(() => {
-    const flag = String(import.meta.env.VITE_E2E_BYPASS_AUTH || '').toLowerCase() === 'true';
-    if (!flag) return false;
-    const isTestMode = String(import.meta.env.MODE || '').toLowerCase() === 'test';
-    const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-    return isTestMode || isLocalhost;
-  }, []);
-
-  const e2eSession = React.useMemo(() => {
-    if (!e2eBypass) return null;
-    try {
-      const raw = window.localStorage.getItem(E2E_SESSION_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object') return null;
-      return parsed as { role?: string; accessToken?: string; userId?: string };
-    } catch {
-      return null;
-    }
-  }, [e2eBypass]);
-
-  const hasValidE2ESession = !!(e2eSession?.accessToken && e2eSession?.role);
-  const useE2EAuth = e2eBypass && hasValidE2ESession;
-
-  // 🛠️ TEMPORARY LOCAL DEV BYPASS: Automatically authenticates you as a 'parent' on localhost
-  const isDevBypass = import.meta.env.DEV; 
-  const effectiveIsAuthenticated = isDevBypass ? true : (useE2EAuth ? true : isAuthenticated);
-  const effectiveRole = isDevBypass ? 'parent' : ((useE2EAuth ? (e2eSession?.role ?? null) : role) as Role | null);
-  const effectiveNeedsOnboarding = isDevBypass ? false : (useE2EAuth ? false : needsOnboarding);
-  const effectiveLoading = isDevBypass ? false : (useE2EAuth ? false : isLoading || roleLoading);
 
   const roleWhitelist = React.useMemo(() => {
     if (allowedRoles?.length) return allowedRoles;
@@ -83,32 +61,28 @@ export default function ProtectedRoute({
     [requireAuth, requiresAuth]
   );
 
-  if (effectiveLoading) {
-    return (
-      loadingFallback || (
-        <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
-      )
-    );
+  if (isLoading || roleLoading) {
+    return loadingFallback || <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
   }
 
-  if (!effectiveIsAuthenticated && mustBeAuthed) {
+  if (!isAuthenticated && mustBeAuthed) {
     return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
   }
 
   const onboardingAllowedPaths = new Set(['/onboarding', '/auth/callback', '/logout']);
-  if (effectiveIsAuthenticated && effectiveNeedsOnboarding && !onboardingAllowedPaths.has(location.pathname)) {
+  if (isAuthenticated && needsOnboarding && !onboardingAllowedPaths.has(location.pathname)) {
     return <Navigate to="/onboarding" replace state={{ from: location.pathname }} />;
   }
 
-  if (roleWhitelist.length && !canAccess({ role: effectiveRole, allowedRoles: roleWhitelist, requiredScopes })) {
+  if (roleWhitelist.length && !canAccess({ role: role as Role | null, allowedRoles: roleWhitelist, requiredScopes })) {
     return <Navigate to={unauthorizedTo} replace />;
   }
 
-  if (requiredScopes?.length && !canAccess({ role: effectiveRole, requiredScopes })) {
+  if (requiredScopes?.length && !canAccess({ role: role as Role | null, requiredScopes })) {
     return <Navigate to={unauthorizedTo} replace />;
   }
 
-  if (requiredActionsList.length && !canAll(effectiveRole, requiredActionsList)) {
+  if (requiredActionsList.length && !canAll(role as Role | null, requiredActionsList)) {
     return <Navigate to={unauthorizedTo} replace />;
   }
 
