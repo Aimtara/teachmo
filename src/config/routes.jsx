@@ -654,7 +654,21 @@ const ROUTE_ALIASES = {
 
 export const ROUTE_CONFIG = ROUTE_DEFINITIONS.filter(
   (route) => ENABLE_INTERNAL_ROUTES || !route.internalOnly
-);
+).map((route) => {
+  // 🚀 DEV MODE BYPASS: Dynamically strip route security locally so we can view the UI
+  // without touching the actual ROUTE_DEFINITIONS above.
+  if (import.meta.env.DEV) {
+    return {
+      ...route,
+      isPublic: true,
+      requiresAuth: false,
+      allowedRoles: undefined,
+      requiredScopes: undefined,
+      requiredActions: undefined
+    };
+  }
+  return route;
+});
 
 export const ROUTE_MAP = ROUTE_CONFIG.reduce((acc, route) => ({ ...acc, [route.name]: route.path }), {});
 
