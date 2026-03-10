@@ -2,14 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useUserData, useAccessToken } from '@nhost/react';
 import OnboardingManager, { OnboardingStep } from '../components/OnboardingManager';
 import { nhost } from '../lib/nhostClient';
+import { getDefaultPathForRole } from '@/config/rbac';
 
 const UPDATE_PROFILE_MUTATION = `
-  mutation UpdateMyProfileRole($userId: uuid!, $appRole: String!) {
+  mutation UpdateMyProfile($userId: uuid!, $appRole: String!, $fullName: String!) {
     update_profiles(
       where: { user_id: { _eq: $userId } },
-      _set: { app_role: $appRole }
+      _set: { app_role: $appRole, full_name: $fullName }
     ) {
       affected_rows
+    }
+  }
+`;
+
+const INSERT_PROFILE_MUTATION = `
+  mutation CreateMyProfile($userId: uuid!, $appRole: String!, $fullName: String!) {
+    insert_profiles_one(object: { user_id: $userId, app_role: $appRole, full_name: $fullName }) {
+      id
     }
   }
 `;
@@ -31,29 +40,53 @@ export default function Onboarding() {
     }
   }, [selectedPath]);
 
+  const resolveFullName = () => {
+    const metadataName = typeof user?.metadata?.full_name === 'string' ? user.metadata.full_name.trim() : '';
+    const displayName = typeof user?.displayName === 'string' ? user.displayName.trim() : '';
+    const emailName = typeof user?.email === 'string' ? user.email.split('@')[0] : '';
+
+    return metadataName || displayName || emailName || 'Teachmo User';
+  };
+
+  const persistProfile = async (appRole: 'parent' | 'teacher') => {
+    if (!user?.id || !accessToken) {
+      throw new Error('You must be signed in to complete onboarding.');
+    }
+
+    const fullName = resolveFullName();
+    const headers = { headers: { Authorization: `Bearer ${accessToken}` } };
+
+    const { data: updated, error: updateError } = await nhost.graphql.request(
+      UPDATE_PROFILE_MUTATION,
+      { userId: user.id, appRole, fullName },
+      headers
+    );
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    if ((updated as { update_profiles?: { affected_rows?: number } })?.update_profiles?.affected_rows) {
+      return;
+    }
+
+    const { error: insertError } = await nhost.graphql.request(
+      INSERT_PROFILE_MUTATION,
+      { userId: user.id, appRole, fullName },
+      headers
+    );
+
+    if (insertError) {
+      throw insertError;
+    }
+  };
+
   const parentSteps: OnboardingStep[] = [
     {
       id: 'init_parent_profile',
       title: 'Creating Parent Profile...',
       run: async () => {
-        try {
-          if (!user?.id || !accessToken) {
-            console.warn("Pilot Bypass: Nhost Auth missing. Proceeding to dashboard.");
-            return; 
-          }
-
-          const { error } = await nhost.graphql.request(
-            UPDATE_PROFILE_MUTATION,
-            { userId: user.id, appRole: 'parent' },
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
-
-          if (error) {
-            console.warn("Pilot Bypass: Hasura rejected mutation. Proceeding anyway.", error);
-          }
-        } catch (err) {
-          console.warn("Pilot Bypass: Caught exception during save.", err);
-        }
+        await persistProfile('parent');
       },
     },
     {
@@ -61,7 +94,7 @@ export default function Onboarding() {
       title: 'Finalizing Account...',
       run: async () => {
         await new Promise((res) => setTimeout(res, 800));
-        window.location.href = '/dashboard'; 
+        window.location.href = getDefaultPathForRole('parent');
       },
     },
   ];
@@ -71,24 +104,7 @@ export default function Onboarding() {
       id: 'verify_district_code',
       title: 'Setting up District Profile...',
       run: async () => {
-        try {
-          if (!user?.id || !accessToken) {
-            console.warn("Pilot Bypass: Nhost Auth missing. Proceeding to dashboard.");
-            return;
-          }
-
-          const { error } = await nhost.graphql.request(
-            UPDATE_PROFILE_MUTATION,
-            { userId: user.id, appRole: 'staff' },
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
-
-          if (error) {
-            console.warn("Pilot Bypass: Hasura rejected mutation. Proceeding anyway.", error);
-          }
-        } catch (err) {
-          console.warn("Pilot Bypass: Caught exception during save.", err);
-        }
+        await persistProfile('teacher');
       },
     },
     {
@@ -96,7 +112,7 @@ export default function Onboarding() {
       title: 'Linking to School Portal...',
       run: async () => {
         await new Promise((res) => setTimeout(res, 800));
-        window.location.href = '/district-dashboard';
+        window.location.href = getDefaultPathForRole('teacher');
       },
     },
   ];
