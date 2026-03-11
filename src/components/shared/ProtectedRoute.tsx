@@ -4,6 +4,7 @@ import { useAuthenticationStatus } from '@nhost/react';
 import { useUserRoleState } from '@/hooks/useUserRole';
 import { canAll, type Action, type Role } from '@/security/permissions';
 import { canAccess } from '@/config/rbac';
+import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
 
 type Props = {
   children: React.ReactNode;
@@ -69,9 +70,25 @@ export default function ProtectedRoute({
     return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
   }
 
-  const onboardingAllowedPaths = new Set(['/onboarding', '/auth/callback', '/logout']);
+  // G1: force onboarding for authenticated users missing required identity fields.
+  const onboardingAllowedPaths = new Set([
+    '/onboarding',
+    '/onboarding/parent',
+    '/onboarding/teacher',
+    '/auth/callback',
+    '/logout',
+  ]);
   if (isAuthenticated && needsOnboarding && !onboardingAllowedPaths.has(location.pathname)) {
-    return <Navigate to="/onboarding" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to={resolveOnboardingPath({
+          role,
+          preferredFlow: getSavedOnboardingFlowPreference(),
+        })}
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   }
 
   if (roleWhitelist.length && !canAccess({ role: role as Role | null, allowedRoles: roleWhitelist, requiredScopes })) {

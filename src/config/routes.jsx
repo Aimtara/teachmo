@@ -156,20 +156,17 @@ export const ROUTE_DEFINITIONS = [
     name: 'ParentOnboarding',
     path: '/onboarding/parent',
     Component: lazy(() => import('@/pages/onboarding/parent')),
-    isPublic: true,
     requiresAuth: true,
     allowedRoles: ['parent'],
-    internalOnly: true,
+    allowedRoles: ['parent'],
     fallback: <p className="p-6 text-gray-600">Loading parent onboarding...</p>
   },
   {
     name: 'TeacherOnboarding',
     path: '/onboarding/teacher',
     Component: lazy(() => import('@/pages/onboarding/teacher')),
-    isPublic: true,
     requiresAuth: true,
     allowedRoles: ['teacher'],
-    internalOnly: true,
     fallback: <p className="p-6 text-gray-600">Loading teacher onboarding...</p>
   },
   {
