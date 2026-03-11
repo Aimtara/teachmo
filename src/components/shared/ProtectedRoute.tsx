@@ -78,7 +78,7 @@ export default function ProtectedRoute({
     '/auth/callback',
     '/logout',
   ]);
-  if (effectiveIsAuthenticated && effectiveNeedsOnboarding && !onboardingAllowedPaths.has(location.pathname)) {
+  if (isAuthenticated && needsOnboarding && !onboardingAllowedPaths.has(location.pathname)) {
     return (
       <Navigate
         to={resolveOnboardingPath({

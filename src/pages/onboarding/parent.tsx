@@ -2,9 +2,10 @@ import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useUserData } from '@nhost/react';
-import { useNavigate } from 'react-router-dom';
+import { useAuthenticationStatus, useUserData } from '@nhost/react';
+import { Navigate, useNavigate } from 'react-router-dom';
 
+import { useUserRoleState } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -58,6 +59,8 @@ export default function ParentOnboardingPage() {
   const user = useUserData();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus();
+  const { role, loading: roleLoading, needsOnboarding } = useUserRoleState();
 
   const defaultValues = useMemo(
     () => ({
@@ -80,6 +83,20 @@ export default function ParentOnboardingPage() {
     resolver: zodResolver(parentOnboardingSchema),
     defaultValues
   });
+
+  if (authLoading || roleLoading) {
+    return <div role="status" aria-live="polite" className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
+  }
+
+  // Deny access to users who already have a non-parent role (they shouldn't complete parent onboarding).
+  if (isAuthenticated && role && role !== 'parent') {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Users who have already completed onboarding don't need to be here.
+  if (isAuthenticated && !needsOnboarding) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const onSubmit = async (values: ParentFormValues) => {
     if (!user?.id) {
