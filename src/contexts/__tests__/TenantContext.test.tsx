@@ -169,7 +169,14 @@ describe('TenantProvider', () => {
     authState.user = { id: 'u-unauthorized', metadata: {} };
     const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
     authState.accessToken = `h.${payload}.s`;
-    fetchUserProfileMock.mockRejectedValue(new GraphQLRequestError({ kind: 'auth', message: '401 Unauthorized', code: 'invalid-jwt' }));
+    const unauthorizedError = Object.assign(new Error('GraphQL unauthorized'), {
+      name: 'GraphQLRequestError',
+      normalized: {
+        kind: 'auth',
+        code: 'UNAUTHENTICATED',
+      },
+    });
+    fetchUserProfileMock.mockRejectedValue(unauthorizedError as any);
 
     render(
       <TenantProvider>
@@ -203,6 +210,37 @@ describe('TenantProvider', () => {
       expect(screen.getByTestId('loading').textContent).toBe('false');
       expect(screen.getByTestId('org').textContent).toBe('none');
     });
+
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
+  it('does not force sign-out when the effect has been cleaned up before unauthorized error resolves', async () => {
+    // Simulate a stale effect invocation: the component unmounts before the
+    // async fetchUserProfile rejects, so mounted is false at rejection time.
+    let rejectProfile!: (err: Error) => void;
+    fetchUserProfileMock.mockImplementation(
+      () => new Promise<never>((_, reject) => { rejectProfile = reject; })
+    );
+
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-stale', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+
+    const { unmount } = render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    // Unmount (cleanup) before the async operation settles — sets mounted=false.
+    unmount();
+
+    // Now reject with an unauthorized error; should not trigger signOut.
+    rejectProfile(new Error('GraphQL request failed: 401 Unauthorized'));
+
+    // Allow any pending microtasks to flush.
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(signOutMock).not.toHaveBeenCalled();
   });
