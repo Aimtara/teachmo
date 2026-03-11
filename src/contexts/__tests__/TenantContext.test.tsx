@@ -193,6 +193,35 @@ describe('TenantProvider', () => {
     expect(signOutMock).toHaveBeenCalledTimes(1);
   });
 
+  it('does not force sign-out when component unmounts before unauthorized fallback resolves', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-unmount', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+
+    let rejectProfileFetch!: (err: Error) => void;
+    fetchUserProfileMock.mockImplementation(
+      () => new Promise<never>((_, reject) => { rejectProfileFetch = reject; })
+    );
+
+    const { unmount } = render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    // Unmount before the async profile fetch settles.
+    unmount();
+
+    // Now reject with an unauthorized error; the guard must prevent sign-out.
+    rejectProfileFetch(new Error('401 Unauthorized'));
+
+    // Give microtasks/promises time to settle.
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
   it('does not force sign-out for non-auth fallback errors', async () => {
     authState.isAuthenticated = true;
     authState.user = { id: 'u-network', metadata: {} };
