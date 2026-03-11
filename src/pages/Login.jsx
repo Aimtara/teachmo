@@ -285,7 +285,7 @@ export default function Login() {
   );
 }
 
-function AutoSSORedirect({ provider, onStart, onError, redirectTo }) {
+function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.location.origin}/auth/callback` }) {
   useEffect(() => {
     async function go() {
       try {
