@@ -158,6 +158,7 @@ export const ROUTE_DEFINITIONS = [
     Component: lazy(() => import('@/pages/onboarding/parent')),
     requiresAuth: true,
     allowedRoles: ['parent'],
+    allowedRoles: ['parent'],
     fallback: <p className="p-6 text-gray-600">Loading parent onboarding...</p>
   },
   {
