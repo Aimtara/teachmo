@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { TenantProvider, useTenant } from '@/contexts/TenantContext';
 import { fetchUserProfile } from '@/domains/auth';
+import { GraphQLRequestError } from '@/lib/hasuraErrors';
 
 const authState = {
   isLoading: false,
@@ -168,7 +169,7 @@ describe('TenantProvider', () => {
     authState.user = { id: 'u-unauthorized', metadata: {} };
     const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
     authState.accessToken = `h.${payload}.s`;
-    fetchUserProfileMock.mockRejectedValue(new Error('GraphQL request failed: 401 Unauthorized'));
+    fetchUserProfileMock.mockRejectedValue(new GraphQLRequestError({ kind: 'auth', message: '401 Unauthorized', code: 'invalid-jwt' }));
 
     render(
       <TenantProvider>
@@ -190,7 +191,7 @@ describe('TenantProvider', () => {
     authState.user = { id: 'u-network', metadata: {} };
     const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
     authState.accessToken = `h.${payload}.s`;
-    fetchUserProfileMock.mockRejectedValue(new Error('network timeout'));
+    fetchUserProfileMock.mockRejectedValue(new GraphQLRequestError({ kind: 'network', message: 'network timeout' }));
 
     render(
       <TenantProvider>
