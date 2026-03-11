@@ -32,7 +32,10 @@ export function useAuthGuard() {
       setUser({
         ...(profile ?? {}),
         email: authUser?.email ?? null,
-        user_id: authUser?.id ?? null
+        user_id: authUser?.id ?? null,
+        metadata: authUser?.metadata ?? {},
+        roles: Array.isArray(authUser?.roles) ? authUser.roles : [],
+        defaultRole: authUser?.defaultRole ?? null,
       });
       setStatus('authenticated');
     } catch (err) {

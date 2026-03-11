@@ -1,9 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import logger from '@/utils/logger';
-// 1. IMPORT ADDED: Brought in useAccessToken and isAuthenticated
 import { useAuthenticationStatus, useUserData, useAccessToken } from '@nhost/react';
-import { nhost } from '@/lib/nhostClient';
-import { fetchUserProfile } from '@/domains/auth';
 
 type TenantState = {
   organizationId: string | null;
@@ -36,10 +33,6 @@ const TenantContext = createContext<TenantState>({
   loading: true
 });
 
-/**
- * Decode a JWT token payload. Returns the decoded claims or null if decoding fails.
- * The return type is a dictionary of claims keyed by string.
- */
 function decodeToken(token?: string | null): AccessTokenClaims | null {
   if (!token) return null;
   const parts = token.split('.');
@@ -53,10 +46,6 @@ function decodeToken(token?: string | null): AccessTokenClaims | null {
   }
 }
 
-/**
- * Resolve tenant identifiers (organization and school) from the user metadata and JWT claims.
- * Accepts a user object with optional metadata and a dictionary of token claims.
- */
 function resolveTenantClaims(
   user: { metadata?: UserMetadata | null } | null,
   tokenClaims: AccessTokenClaims | null
@@ -76,7 +65,6 @@ function resolveTenantClaims(
 }
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
-  // 2. HOOK ADDED: Grab the explicit token and auth state
   const { isLoading, isAuthenticated } = useAuthenticationStatus();
   const user = useUserData();
   const accessToken = useAccessToken();
@@ -88,47 +76,29 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (isLoading) return;
-      
-      // 3. GUARD ADDED: Do not proceed unless we have the user AND the physical token
-      if (!isAuthenticated || !user || !accessToken) {
-        if (mounted) setState({ organizationId: null, schoolId: null, loading: false });
-        return;
-      }
+    if (isLoading) {
+      setState((prev) => ({ ...prev, loading: true }));
+      return;
+    }
 
-      try {
-        // We no longer need nhost.auth.getAccessToken() because we have it from the hook
-        const claims = decodeToken(accessToken);
-        const tenant = resolveTenantClaims(user, claims);
-        let profileTenant = { organizationId: null, schoolId: null };
-        try {
-          const profile = await fetchUserProfile(user.id);
-          profileTenant = {
-            organizationId: profile?.organization_id ?? null,
-            schoolId: profile?.school_id ?? null
-          };
-        } catch (err) {
-          logger.error('Failed to fetch user profile for tenant resolution', err);
-          profileTenant = { organizationId: null, schoolId: null };
-        }
-        if (mounted) {
-          setState({
-            organizationId: profileTenant.organizationId || tenant.organizationId,
-            schoolId: profileTenant.schoolId || tenant.schoolId,
-            loading: false
-          });
-        }
-      } catch (error) {
-        logger.error('TenantProvider encountered an error resolving tenant info', error);
-        if (mounted) setState({ organizationId: null, schoolId: null, loading: false });
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  // 4. DEPENDENCY ADDED: React will re-run this effect the exact millisecond the token arrives
+    if (!isAuthenticated) {
+      setState({ organizationId: null, schoolId: null, loading: false });
+      return;
+    }
+
+    // Token lag guard: authenticated can flip true before accessToken is available.
+    if (!accessToken || !user) {
+      setState((prev) => ({ ...prev, loading: true }));
+      return;
+    }
+
+    const claims = decodeToken(accessToken);
+    const tenant = resolveTenantClaims(user, claims);
+    setState({
+      organizationId: tenant.organizationId,
+      schoolId: tenant.schoolId,
+      loading: false
+    });
   }, [isLoading, isAuthenticated, user, accessToken]);
 
   const value = useMemo(() => state, [state.organizationId, state.schoolId, state.loading]);
