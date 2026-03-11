@@ -58,9 +58,9 @@ BEGIN
 END $$;
 
 ALTER TABLE public.message_threads
-  ADD CONSTRAINT IF NOT EXISTS message_threads_request_fk
+  ADD CONSTRAINT message_threads_request_fk
     FOREIGN KEY (request_id) REFERENCES public.messaging_requests(id) ON DELETE SET NULL,
-  ADD CONSTRAINT IF NOT EXISTS message_threads_school_requester_target_key
+  ADD CONSTRAINT message_threads_school_requester_target_key
     UNIQUE (school_id, requester_user_id, target_user_id);
 
 CREATE INDEX IF NOT EXISTS mt_school_idx ON public.message_threads(school_id, created_at DESC);

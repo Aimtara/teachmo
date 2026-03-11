@@ -11,23 +11,38 @@ import {
 } from '@/config/rbac';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import { reconcileProfileRole } from '@/domains/auth';
+import { getSavedActiveRole } from '@/lib/activeRole';
 
 function resolveNhostRole(user: ReturnType<typeof useUserData>) {
   if (!user) return undefined;
 
-  const metadataRole =
-    typeof user?.metadata?.preferred_active_role === 'string'
-      ? user.metadata.preferred_active_role
-      : typeof user?.metadata?.role === 'string'
-        ? user.metadata.role
-        : undefined;
+  const candidateRoles = [
+    getSavedActiveRole(),
+    typeof user?.metadata?.preferred_active_role === 'string' ? user.metadata.preferred_active_role : null,
+    typeof user?.metadata?.role === 'string' ? user.metadata.role : null,
+    ...(Array.isArray(user?.roles) ? user.roles : []),
+    typeof user?.defaultRole === 'string' ? user.defaultRole : null,
+  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
 
-  const claimRole =
-    metadataRole ||
-    (Array.isArray(user?.roles) && typeof user.roles[0] === 'string' ? user.roles[0] : undefined) ||
-    (typeof user?.defaultRole === 'string' ? user.defaultRole : undefined);
+  if (!candidateRoles.length) return normalizeRole(undefined);
 
-  return normalizeRole(claimRole);
+  const normalizedAllowedRoles = new Set(
+    [
+      ...(Array.isArray(user?.roles) ? user.roles : []),
+      typeof user?.defaultRole === 'string' ? user.defaultRole : null,
+    ]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0)
+      .map((value) => normalizeRole(value))
+  );
+
+  for (const role of candidateRoles) {
+    const normalized = normalizeRole(role);
+    if (!normalizedAllowedRoles.size || normalizedAllowedRoles.has(normalized)) {
+      return normalized;
+    }
+  }
+
+  return normalizeRole(candidateRoles[0]);
 }
 
 export type UserRoleSource = 'jwt' | 'profile' | 'unknown';

@@ -4,7 +4,7 @@ ALTER TABLE public.directory_import_previews
   ADD COLUMN IF NOT EXISTS applied_at timestamptz NULL;
 
 ALTER TABLE public.directory_import_previews
-  ADD CONSTRAINT IF NOT EXISTS dip_approval_fkey
+  ADD CONSTRAINT dip_approval_fkey
   FOREIGN KEY (approval_id) REFERENCES public.directory_deactivation_approvals(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS dip_requires_approval_idx

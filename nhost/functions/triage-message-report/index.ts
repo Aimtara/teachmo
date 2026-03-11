@@ -40,10 +40,6 @@ function makeHasuraClient() {
     });
 
     const json = await response.json() as HasuraResponse<unknown>;
-    if (json.errors && json.errors.length > 0) {
-      console.error('Hasura error', json.errors);
-      throw new Error(json.errors[0].message);
-    const json = await response.json();
     if (json.errors) {
       logger.error('Hasura error', json.errors);
       throw new Error(getHasuraErrorMessage(json.errors));

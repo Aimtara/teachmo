@@ -173,6 +173,14 @@ CREATE INDEX IF NOT EXISTS sis_roster_enrollments_job_idx ON public.sis_roster_e
 
 -- -----------------------------
 -- AI governance foundations
+CREATE TABLE IF NOT EXISTS public.ai_usage_logs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS public.ai_review_queue (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
 -- -----------------------------
 ALTER TABLE public.ai_policy_docs
   ADD COLUMN IF NOT EXISTS organization_id uuid NULL,
@@ -205,7 +213,7 @@ ON CONFLICT (slug) DO NOTHING;
 -- -----------------------------
 -- JWT custom claims (Hasura)
 -- -----------------------------
-CREATE OR REPLACE FUNCTION auth.jwt_custom_claims(user_id uuid)
+CREATE OR REPLACE FUNCTION public.jwt_custom_claims(user_id uuid)
 RETURNS jsonb
 LANGUAGE sql
 STABLE

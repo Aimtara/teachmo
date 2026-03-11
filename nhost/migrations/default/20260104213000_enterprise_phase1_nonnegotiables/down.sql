@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS auth.jwt_custom_claims(uuid);
+DROP FUNCTION IF EXISTS public.jwt_custom_claims(uuid);
 
 DROP INDEX IF EXISTS ai_review_queue_org_idx;
 DROP INDEX IF EXISTS ai_usage_logs_org_idx;

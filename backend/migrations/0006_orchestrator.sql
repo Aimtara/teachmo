@@ -1,9 +1,11 @@
+DROP TABLE IF EXISTS orchestrator_artifacts, orchestrator_runs CASCADE;
+
 -- Phase 8: orchestrator router + specialists logging
 
 create table if not exists orchestrator_runs (
   id uuid primary key default gen_random_uuid(),
   request_id uuid,
-  organization_id uuid,
+  district_id uuid,
   school_id uuid,
   user_id uuid,
   role text,
@@ -19,7 +21,7 @@ create table if not exists orchestrator_runs (
   created_at timestamptz not null default now()
 );
 
-create index if not exists idx_orchestrator_runs_org on orchestrator_runs(organization_id, school_id);
+create index if not exists idx_orchestrator_runs_district on orchestrator_runs(district_id, school_id);
 create index if not exists idx_orchestrator_runs_route on orchestrator_runs(route);
 create index if not exists idx_orchestrator_runs_created_at on orchestrator_runs(created_at);
 

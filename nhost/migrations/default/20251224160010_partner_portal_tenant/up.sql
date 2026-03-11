@@ -118,6 +118,16 @@ CREATE TABLE IF NOT EXISTS public.partner_onboarding_progress (
   UNIQUE (partner_id, task_id)
 );
 
+ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE IF EXISTS public.partner_incentives ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE IF EXISTS public.partner_incentive_applications ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE IF EXISTS public.partner_courses ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE IF EXISTS public.partner_course_enrollments ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE IF EXISTS public.partner_contracts ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE IF EXISTS public.partner_onboarding_tasks ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE IF EXISTS public.partner_onboarding_progress ADD COLUMN IF NOT EXISTS organization_id uuid;
+
 CREATE INDEX IF NOT EXISTS partner_submissions_org_idx ON public.partner_submissions(organization_id);
 CREATE INDEX IF NOT EXISTS partner_submissions_partner_idx ON public.partner_submissions(partner_id);
 CREATE INDEX IF NOT EXISTS partner_incentives_org_idx ON public.partner_incentives(organization_id);

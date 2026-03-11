@@ -62,7 +62,6 @@ function makeHasuraClient(): HasuraClient {
     if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
       throw new Error(json.errors[0].message);
-      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };
@@ -222,7 +221,7 @@ export default async (req: Request, res: Response) => {
     const nowIso = new Date().toISOString();
 
     // Lightweight safety checks
-    const urlCount = (messageBody.match(/https?:\\/\\/[^\\s]+/gi) || []).length;
+    const urlCount = (messageBody.match(/https?:\/\/[^\s]+/gi) || []).length;
     const containsProfanity = PROFANITY_LIST.some((word) => word && messageBody.toLowerCase().includes(word));
     let flaggedReason: string | null = null;
     if (LINK_FLAG_THRESHOLD > 0 && urlCount >= LINK_FLAG_THRESHOLD) {

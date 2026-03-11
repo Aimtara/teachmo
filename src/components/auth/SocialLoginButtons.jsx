@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { nhost } from '@/lib/nhostClient';
 
 // Labels for known providers.  The values can be customized per tenant as needed.
@@ -30,16 +31,23 @@ const OPTIONAL_PROVIDERS = [
  * the default provider list.  Optionally include optional providers
  * if includeOptional=true.
  */
-export function SocialLoginButtons({ onError, includeOptional = false, providers = null }) {
+export function SocialLoginButtons({
+  onError,
+  includeOptional = false,
+  providers = null,
+  redirectTo = `${window.location.origin}/auth/callback`,
+  onBeforeRedirect,
+}) {
   const [activeProvider, setActiveProvider] = useState(null);
 
   const handleLogin = async (provider) => {
     setActiveProvider(provider);
     try {
+      onBeforeRedirect?.(provider);
       await nhost.auth.signIn({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo,
         }
       });
     } catch (error) {
@@ -84,3 +92,11 @@ export function SocialLoginButtons({ onError, includeOptional = false, providers
 }
 
 export default SocialLoginButtons;
+
+SocialLoginButtons.propTypes = {
+  onError: PropTypes.func,
+  includeOptional: PropTypes.bool,
+  providers: PropTypes.arrayOf(PropTypes.string),
+  redirectTo: PropTypes.string,
+  onBeforeRedirect: PropTypes.func,
+};
