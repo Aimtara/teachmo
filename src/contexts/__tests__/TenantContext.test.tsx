@@ -193,6 +193,50 @@ describe('TenantProvider', () => {
     expect(signOutMock).toHaveBeenCalledTimes(1);
   });
 
+  it('calls signOut only once when the unauthorized fallback is triggered multiple times in the same session', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-unauth-guard', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    const unauthorizedError = Object.assign(new Error('GraphQL unauthorized'), {
+      name: 'GraphQLRequestError',
+      normalized: {
+        kind: 'authorization',
+        code: 'UNAUTHENTICATED',
+      },
+    });
+    fetchUserProfileMock.mockRejectedValue(unauthorizedError as any);
+
+    const { rerender } = render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    // Wait for the first sign-out to complete.
+    await waitFor(() => {
+      expect(signOutMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Change the user object reference while keeping the same user.id and accessToken.
+    // This causes the main tenant-resolution effect to re-run (user reference changed)
+    // but does NOT reset the unauthorizedRecoveryAttemptedRef guard (user.id unchanged).
+    authState.user = { id: 'u-unauth-guard', metadata: {} };
+
+    rerender(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+    });
+
+    // The guard must prevent a second sign-out call.
+    expect(signOutMock).toHaveBeenCalledTimes(1);
+  });
+
   it('does not force sign-out when component unmounts before unauthorized fallback resolves', async () => {
     authState.isAuthenticated = true;
     authState.user = { id: 'u-unmount', metadata: {} };
