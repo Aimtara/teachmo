@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { nhost } from '@/lib/nhostClient';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const parentOnboardingSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
   lastName: z.string().min(2, 'Last name is required'),
@@ -22,7 +24,14 @@ const parentOnboardingSchema = z.object({
     .min(7, 'Enter a valid phone number')
     .regex(/^[0-9+\-() ]+$/, 'Phone number can only include digits and basic symbols'),
   city: z.string().min(2, 'City is required'),
-  schoolId: z.string().trim().optional(),
+  schoolId: z
+    .string()
+    .trim()
+    .refine(
+      (val) => !val || UUID_REGEX.test(val),
+      { message: 'School ID must be a valid UUID (e.g. 123e4567-e89b-12d3-a456-426614174000)' }
+    )
+    .optional(),
   childrenCount: z
     .coerce.number().int().min(1, 'At least one child is required'),
   notes: z.string().optional()
