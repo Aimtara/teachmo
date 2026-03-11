@@ -77,7 +77,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoading) {
-      setState((prev) => ({ ...prev, loading: true }));
+      setState({ organizationId: null, schoolId: null, loading: true });
       return;
     }
 
@@ -88,7 +88,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     // Token lag guard: authenticated can flip true before accessToken is available.
     if (!accessToken || !user) {
-      setState((prev) => ({ ...prev, loading: true }));
+      setState({ organizationId: null, schoolId: null, loading: true });
       return;
     }
 
