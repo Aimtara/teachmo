@@ -19,6 +19,11 @@ export default function Layout({ currentPageName = 'Dashboard', children }) {
 
   const handleLogout = useLogout();
 
+  React.useEffect(() => {
+    if (status === 'unauthorized') {
+      handleLogout();
+    }
+  }, [status, handleLogout]);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <a
