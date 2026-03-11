@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { TenantProvider, useTenant } from '@/contexts/TenantContext';
 import { fetchUserProfile } from '@/domains/auth';
+import { GraphQLRequestError } from '@/lib/hasuraErrors';
 
 const authState = {
   isLoading: false,
@@ -22,6 +23,19 @@ vi.mock('@/domains/auth', () => ({
 
 const fetchUserProfileMock = vi.mocked(fetchUserProfile);
 
+
+const { signOutMock } = vi.hoisted(() => ({
+  signOutMock: vi.fn(),
+}));
+
+vi.mock('@/lib/nhostClient', () => ({
+  nhost: {
+    auth: {
+      signOut: signOutMock,
+    },
+  },
+}));
+
 function Consumer() {
   const tenant = useTenant();
   return (
@@ -39,6 +53,7 @@ describe('TenantProvider', () => {
     authState.user = null;
     authState.accessToken = null;
     fetchUserProfileMock.mockReset();
+    signOutMock.mockReset();
   });
 
   it('keeps loading true when authenticated but token is not ready (token lag)', () => {
@@ -148,4 +163,126 @@ describe('TenantProvider', () => {
 
     expect(fetchUserProfileMock).toHaveBeenCalledWith('u-fallback');
   });
+
+  it('stops loading when profile fallback fails with unauthorized error', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-unauthorized', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    const unauthorizedError = new GraphQLRequestError({
+      kind: 'auth',
+      message: 'GraphQL unauthorized',
+      code: 'UNAUTHENTICATED',
+    });
+    fetchUserProfileMock.mockRejectedValue(unauthorizedError);
+
+    render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId('org').textContent).toBe('none');
+    });
+
+    expect(fetchUserProfileMock).toHaveBeenCalledWith('u-unauthorized');
+    expect(signOutMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls signOut only once when the unauthorized fallback is triggered multiple times in the same session', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-unauth-guard', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    const unauthorizedError = Object.assign(new Error('GraphQL unauthorized'), {
+      name: 'GraphQLRequestError',
+      normalized: {
+        kind: 'auth',
+        code: 'UNAUTHENTICATED',
+      },
+    });
+    fetchUserProfileMock.mockRejectedValue(unauthorizedError as any);
+
+    const { rerender } = render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    // Wait for the first sign-out to complete.
+    await waitFor(() => {
+      expect(signOutMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Change the user object reference while keeping the same user.id and accessToken.
+    // This causes the main tenant-resolution effect to re-run (user reference changed)
+    // but does NOT reset the unauthorizedRecoveryAttemptedRef guard (user.id unchanged).
+    authState.user = { id: 'u-unauth-guard', metadata: {} };
+
+    rerender(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+    });
+
+    // The guard must prevent a second sign-out call.
+    expect(signOutMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not force sign-out when component unmounts before unauthorized fallback resolves', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-unmount', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+
+    let rejectProfileFetch!: (err: Error) => void;
+    fetchUserProfileMock.mockImplementation(
+      () => new Promise<never>((_, reject) => { rejectProfileFetch = reject; })
+    );
+
+    const { unmount } = render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    // Unmount before the async profile fetch settles — sets mounted=false.
+    unmount();
+
+    // Now reject with an unauthorized error; the mounted guard must prevent sign-out.
+    rejectProfileFetch(new Error('401 Unauthorized'));
+
+    // Give microtasks/promises time to settle.
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
+  it('does not force sign-out for non-auth fallback errors', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-network', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    fetchUserProfileMock.mockRejectedValue(new GraphQLRequestError({ kind: 'network', message: 'network timeout' }));
+
+    render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId('org').textContent).toBe('none');
+    });
+
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
 });

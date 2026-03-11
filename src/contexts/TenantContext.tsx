@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import logger from '@/utils/logger';
 import { useAuthenticationStatus, useUserData, useAccessToken } from '@nhost/react';
 import { fetchUserProfile } from '@/domains/auth';
+import { nhost } from '@/lib/nhostClient';
+import { GraphQLRequestError } from '@/lib/hasuraErrors';
 
 type TenantState = {
   organizationId: string | null;
@@ -65,6 +67,14 @@ function resolveTenantClaims(
   return { organizationId, schoolId };
 }
 
+function isUnauthorizedError(err: unknown) {
+  if (err instanceof GraphQLRequestError) {
+    return err.normalized.kind === 'auth';
+  }
+  const message = err instanceof Error ? err.message : String(err ?? '');
+  return /401|unauthorized|jwt/i.test(message);
+}
+
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated } = useAuthenticationStatus();
   const user = useUserData();
@@ -75,6 +85,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     schoolId: null,
     loading: true
   });
+  const unauthorizedRecoveryAttemptedRef = useRef(false);
+
+  // Reset the unauthorized recovery guard when the auth session changes
+  useEffect(() => {
+    unauthorizedRecoveryAttemptedRef.current = false;
+  }, [isAuthenticated, user?.id, accessToken]);
 
   useEffect(() => {
     let mounted = true;
@@ -113,6 +129,27 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           return;
         } catch (err) {
           logger.error('Failed profile fallback fetch', err);
+          if (mounted) {
+            setState({
+              organizationId: tenant.organizationId,
+              schoolId: tenant.schoolId,
+              loading: false
+            });
+          }
+
+          if (mounted && isUnauthorizedError(err)) {
+            logger.warn('Profile fallback returned unauthorized; forcing sign-out to clear stale session token.');
+
+            if (!unauthorizedRecoveryAttemptedRef.current) {
+              unauthorizedRecoveryAttemptedRef.current = true;
+              try {
+                await nhost.auth.signOut();
+              } catch (signOutError) {
+                logger.error('Failed to force sign-out after unauthorized profile fallback.', signOutError);
+              }
+            }
+          }
+          return;
         }
       }
 
