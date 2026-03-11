@@ -4,6 +4,7 @@ import { useAuthenticationStatus } from '@nhost/react';
 
 import { ROUTE_CONFIG } from '@/config/routes.jsx';
 import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
+import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import FeatureGate from '@/components/shared/FeatureGate';
 import Landing from './Landing.jsx';
@@ -21,7 +22,14 @@ function RoleRedirect() {
     return <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
   if (!isAuthenticated) return <Landing />;
 
-  if (needsOnboarding) return <Navigate to="/onboarding" replace />;
+  if (needsOnboarding) {
+    return (
+      <Navigate
+        to={resolveOnboardingPath({ role, preferredFlow: getSavedOnboardingFlowPreference() })}
+        replace
+      />
+    );
+  }
 
   return <Navigate to={getDefaultPathForRole(role)} replace />;
 }

@@ -21,7 +21,7 @@ const parentOnboardingSchema = z.object({
     .min(7, 'Enter a valid phone number')
     .regex(/^[0-9+\-() ]+$/, 'Phone number can only include digits and basic symbols'),
   city: z.string().min(2, 'City is required'),
-  schoolId: z.string().min(2, 'School ID is required'),
+  schoolId: z.string().trim().optional(),
   childrenCount: z
     .coerce.number().int().min(1, 'At least one child is required'),
   notes: z.string().optional()
@@ -91,6 +91,8 @@ export default function ParentOnboardingPage() {
       return;
     }
 
+    const normalizedSchoolId = values.schoolId?.trim();
+
     const profileInput = {
       user_id: user.id,
       first_name: values.firstName,
@@ -100,7 +102,7 @@ export default function ParentOnboardingPage() {
       role: 'parent',
       notes: values.notes,
       children_count: values.childrenCount,
-      school_id: values.schoolId
+      school_id: normalizedSchoolId || null
     };
 
     const { error: profileError, data: profileData } = await nhost.graphql.request(CREATE_PARENT_PROFILE, {
@@ -119,19 +121,21 @@ export default function ParentOnboardingPage() {
 
     const profileId = profileData.insert_user_profiles_one.user_id;
 
-    const { error: linkError } = await nhost.graphql.request(LINK_PARENT_SCHOOL, {
-      parentId: profileId,
-      schoolId: values.schoolId
-    });
-
-    if (linkError) {
-      console.error('Failed to link school', linkError);
-      toast({
-        variant: 'destructive',
-        title: 'School connection failed',
-        description: 'We saved your profile, but could not connect your school. Please try again.'
+    if (normalizedSchoolId) {
+      const { error: linkError } = await nhost.graphql.request(LINK_PARENT_SCHOOL, {
+        parentId: profileId,
+        schoolId: normalizedSchoolId
       });
-      return;
+
+      if (linkError) {
+        console.error('Failed to link school', linkError);
+        toast({
+          variant: 'destructive',
+          title: 'School connection failed',
+          description: 'We saved your profile, but could not connect your school. Please try again.'
+        });
+        return;
+      }
     }
 
     const { error: roleError } = await nhost.graphql.request(ASSIGN_PARENT_ROLE, {
@@ -150,7 +154,9 @@ export default function ParentOnboardingPage() {
 
     toast({
       title: 'Welcome to Teachmo!',
-      description: 'Your profile is set up and connected to your school.'
+      description: normalizedSchoolId
+        ? 'Your profile is set up and connected to your school.'
+        : 'Your profile is set up. You can connect a school later from settings.'
     });
 
     navigate('/dashboard');
@@ -203,8 +209,8 @@ export default function ParentOnboardingPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="schoolId">School ID</Label>
-                  <Input id="schoolId" placeholder="Enter your school's ID" {...register('schoolId')} />
+                  <Label htmlFor="schoolId">School ID (optional)</Label>
+                  <Input id="schoolId" placeholder="If you have one, enter your school's ID" {...register('schoolId')} />
                   {errors.schoolId && <p className="text-sm text-red-600">{errors.schoolId.message}</p>}
                 </div>
                 <div className="space-y-2">

@@ -4,6 +4,7 @@ import { useAuthenticationStatus } from '@nhost/react';
 import { useUserRoleState } from '@/hooks/useUserRole';
 import { canAll, type Action, type Role } from '@/security/permissions';
 import { canAccess } from '@/config/rbac';
+import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
 
 const E2E_SESSION_KEY = 'teachmo_e2e_session';
 
@@ -97,9 +98,24 @@ export default function ProtectedRoute({
   }
 
   // G1: force onboarding for authenticated users missing required identity fields.
-  const onboardingAllowedPaths = new Set(['/onboarding', '/auth/callback', '/logout']);
+  const onboardingAllowedPaths = new Set([
+    '/onboarding',
+    '/onboarding/parent',
+    '/onboarding/teacher',
+    '/auth/callback',
+    '/logout',
+  ]);
   if (effectiveIsAuthenticated && effectiveNeedsOnboarding && !onboardingAllowedPaths.has(location.pathname)) {
-    return <Navigate to="/onboarding" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to={resolveOnboardingPath({
+          role,
+          preferredFlow: getSavedOnboardingFlowPreference(),
+        })}
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   }
 
   if (roleWhitelist.length && !canAccess({ role: effectiveRole, allowedRoles: roleWhitelist, requiredScopes })) {

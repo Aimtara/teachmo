@@ -3,12 +3,14 @@ import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { Navigate } from 'react-router-dom';
 import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
 import { nhost } from '@/lib/nhostClient';
+import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
 import { logAnalyticsEvent } from '@/observability/telemetry';
 
 export default function AuthCallback() {
   const { isAuthenticated, isLoading, error } = useAuthenticationStatus();
   const user = useUserData();
   const { role, loading: roleLoading, needsOnboarding, tenantScope } = useUserRoleState();
+  const flowFromQuery = new URLSearchParams(window.location.search).get('flow');
   const loggedRef = useRef(false);
 
   useEffect(() => {
@@ -31,7 +33,17 @@ export default function AuthCallback() {
   }, [isAuthenticated, isLoading, roleLoading, tenantScope?.organizationId, tenantScope?.schoolId, user?.id, role]);
 
   if (isAuthenticated && !isLoading && !roleLoading) {
-    if (needsOnboarding) return <Navigate to="/onboarding" replace />;
+    if (needsOnboarding) {
+      return (
+        <Navigate
+          to={resolveOnboardingPath({
+            role,
+            preferredFlow: flowFromQuery ?? getSavedOnboardingFlowPreference(),
+          })}
+          replace
+        />
+      );
+    }
     return <Navigate to={getDefaultPathForRole(role)} replace />;
   }
 
