@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import logger from '@/utils/logger';
 import { useAuthenticationStatus, useUserData, useAccessToken } from '@nhost/react';
+import { fetchUserProfile } from '@/domains/auth';
 
 type TenantState = {
   organizationId: string | null;
@@ -76,32 +77,62 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (isLoading) {
-      setState({ organizationId: null, schoolId: null, loading: true });
-      return;
-    }
+    let mounted = true;
 
-    if (!isAuthenticated) {
-      setState({ organizationId: null, schoolId: null, loading: false });
-      return;
-    }
+    const resolveTenant = async () => {
+      if (isLoading) {
+        if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
+        return;
+      }
 
-    // Token lag guard: authenticated can flip true before accessToken is available.
-    if (!accessToken || !user) {
-      setState({ organizationId: null, schoolId: null, loading: true });
-      return;
-    }
+      if (!isAuthenticated) {
+        if (mounted) setState({ organizationId: null, schoolId: null, loading: false });
+        return;
+      }
 
-    const claims = decodeToken(accessToken);
-    const tenant = resolveTenantClaims(user, claims);
-    setState({
-      organizationId: tenant.organizationId,
-      schoolId: tenant.schoolId,
-      loading: false
-    });
+      // Token lag guard: authenticated can flip true before accessToken is available.
+      if (!accessToken || !user) {
+        if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
+        return;
+      }
+
+      const claims = decodeToken(accessToken);
+      const tenant = resolveTenantClaims(user, claims);
+
+      if (!tenant.organizationId || !tenant.schoolId) {
+        try {
+          if (!user.id) throw new Error('Missing user id for profile fallback');
+          const profile = await fetchUserProfile(user.id);
+          if (mounted) {
+            setState({
+              organizationId: tenant.organizationId ?? profile?.organization_id ?? null,
+              schoolId: tenant.schoolId ?? profile?.school_id ?? null,
+              loading: false
+            });
+          }
+          return;
+        } catch (err) {
+          logger.error('Failed profile fallback fetch', err);
+        }
+      }
+
+      if (mounted) {
+        setState({
+          organizationId: tenant.organizationId,
+          schoolId: tenant.schoolId,
+          loading: false
+        });
+      }
+    };
+
+    resolveTenant();
+
+    return () => {
+      mounted = false;
+    };
   }, [isLoading, isAuthenticated, user, accessToken]);
 
-  const value = useMemo(() => state, [state.organizationId, state.schoolId, state.loading]);
+  const value = useMemo(() => state, [state]);
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;
 }

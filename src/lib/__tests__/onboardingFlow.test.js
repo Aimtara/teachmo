@@ -3,6 +3,8 @@ import {
   normalizeOnboardingFlow,
   saveOnboardingFlowPreference,
   getSavedOnboardingFlowPreference,
+  clearSavedOnboardingFlowPreference,
+  ONBOARDING_FLOW_KEY,
   resolveOnboardingPath,
 } from '../onboardingFlow';
 
@@ -30,17 +32,17 @@ describe('saveOnboardingFlowPreference', () => {
 
   it('persists the parent flow', () => {
     saveOnboardingFlowPreference(ONBOARDING_FLOWS.PARENT);
-    expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBe(ONBOARDING_FLOWS.PARENT);
+    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.PARENT);
   });
 
   it('normalizes and persists the district flow for unknown values', () => {
     saveOnboardingFlowPreference('anything-else');
-    expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBe(ONBOARDING_FLOWS.DISTRICT);
+    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.DISTRICT);
   });
 
   it('persists the district flow', () => {
     saveOnboardingFlowPreference(ONBOARDING_FLOWS.DISTRICT);
-    expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBe(ONBOARDING_FLOWS.DISTRICT);
+    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.DISTRICT);
   });
 });
 
@@ -80,9 +82,9 @@ describe('resolveOnboardingPath', () => {
     );
   });
 
-  it('routes a parent role with district flow to /onboarding', () => {
+  it('routes a parent role to /onboarding/parent regardless of flow', () => {
     expect(resolveOnboardingPath({ role: 'parent', preferredFlow: ONBOARDING_FLOWS.DISTRICT })).toBe(
-      '/onboarding'
+      '/onboarding/parent'
     );
   });
 
@@ -95,5 +97,18 @@ describe('resolveOnboardingPath', () => {
   it('falls back to /onboarding for unknown roles and unknown flows', () => {
     expect(resolveOnboardingPath({ role: 'unknown', preferredFlow: undefined })).toBe('/onboarding');
     expect(resolveOnboardingPath({ role: undefined, preferredFlow: null })).toBe('/onboarding');
+  });
+});
+
+
+describe('clearSavedOnboardingFlowPreference', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  it('removes the saved onboarding flow from session storage', () => {
+    saveOnboardingFlowPreference(ONBOARDING_FLOWS.PARENT);
+    clearSavedOnboardingFlowPreference();
+    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBeNull();
   });
 });

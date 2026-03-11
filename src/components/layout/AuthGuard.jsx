@@ -1,65 +1,42 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
-import { graphqlRequest } from '@/lib/graphql';
 import { useTenantFeatureFlags } from '@/hooks/useTenantFeatureFlags';
 
 export function useAuthGuard() {
-  const [user, setUser] = React.useState(null);
-  const [status, setStatus] = React.useState('loading');
-  const [error, setError] = React.useState(null);
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const authUser = useUserData();
 
   useTenantFeatureFlags();
 
-  const loadUser = React.useCallback(async () => {
-    if (!authUser?.id) return;
-    setStatus('loading');
-    setError(null);
-    try {
-      const query = `query AuthProfile($userId: uuid!) {
-        profiles(where: { user_id: { _eq: $userId } }, limit: 1) {
-          id
-          user_id
-          full_name
-          app_role
-          organization_id
-          school_id
-        }
-      }`;
-      const data = await graphqlRequest({ query, variables: { userId: authUser.id } });
-      const profile = data?.profiles?.[0] ?? null;
-      setUser({
-        ...(profile ?? {}),
-        email: authUser?.email ?? null,
-        user_id: authUser?.id ?? null,
-        metadata: authUser?.metadata ?? {},
-        roles: Array.isArray(authUser?.roles) ? authUser.roles : [],
-        defaultRole: authUser?.defaultRole ?? null,
-      });
-      setStatus('authenticated');
-    } catch (err) {
-      setError(err);
-      setStatus('error');
-    }
-  }, [authUser?.id, authUser?.email]);
+  const status = (isLoading || (isAuthenticated && !authUser))
+    ? 'loading'
+    : isAuthenticated ? 'authenticated' : 'unauthorized';
 
-  React.useEffect(() => {
-    if (isLoading) {
-      setStatus('loading');
-      return;
-    }
+  const user = React.useMemo(() => {
+    if (!isAuthenticated || !authUser) return null;
 
-    if (!isAuthenticated) {
-      setUser(null);
-      setStatus('unauthorized');
-      return;
-    }
+    return {
+      id: authUser.id,
+      user_id: authUser.id,
+      email: authUser.email,
+      full_name: authUser.displayName || authUser.metadata?.full_name || '',
+      app_role:
+        authUser.defaultRole ||
+        authUser.metadata?.app_role ||
+        authUser.metadata?.preferred_active_role ||
+        (Array.isArray(authUser.roles) && authUser.roles.length ? authUser.roles[0] : null),
+      organization_id: authUser.metadata?.organization_id || authUser.metadata?.org_id || null,
+      school_id: authUser.metadata?.school_id || null,
+      roles: Array.isArray(authUser.roles) ? authUser.roles : [],
+      metadata: authUser.metadata || {},
+      defaultRole: authUser.defaultRole ?? null,
+    };
+  }, [isAuthenticated, authUser]);
 
-    loadUser();
-  }, [isAuthenticated, isLoading, loadUser]);
+  const refresh = React.useCallback(() => {}, []);
 
-  return { user, status, error, refresh: loadUser };
+  return { user, status, error: null, refresh };
 }
 
 export function AuthGuardState({ status, error, onRetry }) {
@@ -84,7 +61,7 @@ export function AuthGuardState({ status, error, onRetry }) {
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded" role="alert">
         <p className="font-semibold text-red-800">We hit a connection issue</p>
-        <p className="text-red-700 mb-3">Please try again in a moment.</p>
+        {error ? <p className="text-red-700 mb-3">{String(error?.message || error)}</p> : null}
         <button
           type="button"
           onClick={onRetry}
@@ -99,3 +76,14 @@ export function AuthGuardState({ status, error, onRetry }) {
 
   return null;
 }
+
+AuthGuardState.propTypes = {
+  status: PropTypes.string.isRequired,
+  error: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
+  onRetry: PropTypes.func,
+};
+
+AuthGuardState.defaultProps = {
+  error: null,
+  onRetry: undefined,
+};
