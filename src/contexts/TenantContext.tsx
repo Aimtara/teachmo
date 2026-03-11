@@ -3,6 +3,7 @@ import logger from '@/utils/logger';
 import { useAuthenticationStatus, useUserData, useAccessToken } from '@nhost/react';
 import { fetchUserProfile } from '@/domains/auth';
 import { nhost } from '@/lib/nhostClient';
+import { GraphQLRequestError } from '@/lib/hasuraErrors';
 
 type TenantState = {
   organizationId: string | null;
@@ -67,6 +68,9 @@ function resolveTenantClaims(
 }
 
 function isUnauthorizedError(err: unknown) {
+  if (err instanceof GraphQLRequestError) {
+    return err.normalized.kind === 'auth';
+  }
   const message = err instanceof Error ? err.message : String(err ?? '');
   return /401|unauthorized|jwt/i.test(message);
 }
