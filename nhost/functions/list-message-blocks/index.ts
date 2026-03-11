@@ -42,7 +42,6 @@ function makeHasuraClient(): HasuraClient {
     if (json.errors && json.errors.length > 0) {
       logger.error('Hasura error', json.errors);
       throw new Error(json.errors[0].message);
-      throw new Error(getHasuraErrorMessage(json.errors));
     }
     return json;
   };

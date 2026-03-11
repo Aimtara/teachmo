@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { bootstrapOrganization } from '@/domains/onboarding';
+// import { bootstrapOrganization } from '@/domains/onboarding';
 import { createProfile, fetchUserProfile } from '@/domains/auth';
 import { graphqlRequest } from '@/lib/graphql';
 import { useTelemetry } from '@/utils/useTelemetry';
@@ -43,20 +43,22 @@ export default function AdminDashboard() {
     staleTime: 1000 * 60 * 5
   });
 
-  const handleOrgSubmit = async (evt) => {
+const handleOrgSubmit = async (evt) => {
     evt.preventDefault();
-    const data = await bootstrapOrganization({
-      organizationName: orgForm.organizationName,
-      schoolName: orgForm.schoolName
-    });
-    log('organization_bootstrap', {
-      organizationName: orgForm.organizationName,
-      schoolName: orgForm.schoolName,
-      organizationId: data.organization?.id
-    });
-    setMessage(`Created/updated organization ${data.organization?.name}`);
+    // const data = await bootstrapOrganization({
+    //   organizationName: orgForm.organizationName,
+    //   schoolName: orgForm.schoolName
+    // });
+    // log('organization_bootstrap', {
+    //   organizationName: orgForm.organizationName,
+    //   schoolName: orgForm.schoolName,
+    //   organizationId: data.organization?.id
+    // });
+    // setMessage(`Created/updated organization ${data.organization?.name}`);
+    
+    setMessage('Enterprise creation temporarily disabled while we upgrade the platform.');
   };
-
+  
   const handleUserSubmit = async (evt) => {
     evt.preventDefault();
     const before = await fetchUserProfile(userForm.userId);

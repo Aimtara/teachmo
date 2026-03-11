@@ -4,7 +4,7 @@ ALTER TABLE public.message_threads
   ADD COLUMN IF NOT EXISTS last_message_preview text;
 
 ALTER TABLE public.message_threads
-  ADD CONSTRAINT IF NOT EXISTS message_threads_created_by_fkey
+  ADD CONSTRAINT message_threads_created_by_fkey
     FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 UPDATE public.message_threads

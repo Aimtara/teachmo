@@ -2,6 +2,68 @@
 
 -- Safety: required extension for gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Proactively add Workflow fields
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS trigger jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS definition jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS version int DEFAULT 1;
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS status text DEFAULT 'running';
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS input jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS output jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS error text;
+ALTER TABLE IF EXISTS public.workflow_run_steps ADD COLUMN IF NOT EXISTS status text DEFAULT 'planned';
+
+-- Proactively add Partner fields
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS event_ts timestamptz DEFAULT now();
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS admin_user_id uuid;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS entity text;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS entity_id uuid;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS action text;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
+ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS type text;
+ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE IF EXISTS public.partner_incentive_applications ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
+ALTER TABLE IF EXISTS public.partner_contracts ADD COLUMN IF NOT EXISTS status text DEFAULT 'draft';
+ALTER TABLE IF EXISTS public.partner_contracts ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+
+-- Proactively add Analytics fields
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS event_name text;
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS event_ts timestamptz DEFAULT now();
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS entity_type text;
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS entity_id uuid;
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.tenant_settings ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.tenant_settings ADD COLUMN IF NOT EXISTS school_id uuid;
+ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_submissions ADD COLUMN IF NOT EXISTS partner_user_id uuid;
+ALTER TABLE IF EXISTS public.partner_incentive_applications ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_incentive_applications ADD COLUMN IF NOT EXISTS partner_user_id uuid;
+ALTER TABLE IF EXISTS public.partner_contracts ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_contracts ADD COLUMN IF NOT EXISTS partner_user_id uuid;
+ALTER TABLE IF EXISTS public.partner_onboarding_tasks ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_training_courses ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.partner_submission_audits ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.user_profiles ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.user_profiles ADD COLUMN IF NOT EXISTS school_id uuid;
+
+-- Safety Patch: Explicitly add columns in case tables already exist
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS actor_user_id uuid;
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.analytics_events ADD COLUMN IF NOT EXISTS school_id uuid;
+
+ALTER TABLE IF EXISTS public.ai_interactions ADD COLUMN IF NOT EXISTS actor_user_id uuid;
+ALTER TABLE IF EXISTS public.ai_interactions ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.ai_interactions ADD COLUMN IF NOT EXISTS school_id uuid;
+
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS actor_user_id uuid;
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.workflow_runs ADD COLUMN IF NOT EXISTS school_id uuid;
+
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.workflow_definitions ADD COLUMN IF NOT EXISTS school_id uuid;
 
 -- -----------------------------
 -- Helper functions for DB-level RLS using Hasura session variables

@@ -9,5 +9,5 @@ CREATE INDEX IF NOT EXISTS scd_active_school_idx
 
 -- Optional FK
 ALTER TABLE public.school_contact_directory
-  ADD CONSTRAINT IF NOT EXISTS scd_created_by_fkey
+  ADD CONSTRAINT scd_created_by_fkey
   FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;

@@ -5,7 +5,7 @@ ALTER TABLE public.message_thread_invites
   ADD COLUMN IF NOT EXISTS revoked_by uuid NULL;
 
 ALTER TABLE public.message_thread_invites
-  ADD CONSTRAINT IF NOT EXISTS message_thread_invites_revoked_by_fkey
+  ADD CONSTRAINT message_thread_invites_revoked_by_fkey
   FOREIGN KEY (revoked_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS mti_thread_status_idx

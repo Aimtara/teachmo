@@ -1,24 +1,58 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, Bell } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import { nhost } from '@/lib/nhostClient';
 import { NotificationsAPI } from '@/api/adapters';
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
+import { getDefaultPathForRole, normalizeRole } from '@/config/rbac';
+import { getSavedActiveRole, saveActiveRole } from '@/lib/activeRole';
+
+function formatRoleLabel(role) {
+  return role.replaceAll('_', ' ');
+}
 
 export default function Header({ user, onLogout }) {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [unreadCount, setUnreadCount] = React.useState(0);
   const menuId = React.useId();
   const menuRef = React.useRef(null);
 
-  const roleLabel = user?.app_role || user?.role || 'parent';
+  const availableRoles = React.useMemo(() => {
+    const deduped = new Set(
+      [
+        ...(Array.isArray(user?.roles) ? user.roles : []),
+        user?.defaultRole,
+        user?.app_role,
+      ].filter(Boolean)
+    );
+    return Array.from(deduped).map((role) => normalizeRole(role));
+  }, [user?.roles, user?.defaultRole, user?.app_role]);
+
+  const roleLabel = React.useMemo(() => {
+    const savedActiveRole = getSavedActiveRole();
+    if (savedActiveRole) {
+      const savedRole = normalizeRole(savedActiveRole);
+      if (availableRoles.includes(savedRole)) {
+        return savedRole;
+      }
+    }
+
+    return normalizeRole(user?.app_role || user?.role || user?.defaultRole || availableRoles[0] || 'parent');
+  }, [availableRoles, user?.app_role, user?.role, user?.defaultRole]);
   const streak = user?.login_streak ?? 0;
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
-    await nhost.auth.signOut();
-    onLogout?.();
+    await onLogout?.();
+  };
+
+  const handleRoleSwitch = (nextRole) => {
+    const normalizedRole = normalizeRole(nextRole);
+    saveActiveRole(normalizedRole);
+    setIsMenuOpen(false);
+    navigate(getDefaultPathForRole(normalizedRole));
   };
 
   React.useEffect(() => {
@@ -113,7 +147,7 @@ export default function Header({ user, onLogout }) {
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900">{user?.full_name || 'User'}</p>
-                <p className="text-xs text-gray-600 capitalize">{roleLabel}</p>
+                <p className="text-xs text-gray-600 capitalize">{formatRoleLabel(roleLabel)}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-500" />
             </button>
@@ -129,6 +163,25 @@ export default function Header({ user, onLogout }) {
                   <p className="text-sm font-semibold text-gray-900">{user?.full_name}</p>
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
+                {availableRoles.length > 1 && (
+                  <div className="px-4 py-3 border-b border-gray-50">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Switch profile</p>
+                    <div className="space-y-1">
+                      {availableRoles.map((role) => (
+                        <button
+                          key={role}
+                          type="button"
+                          className={`w-full rounded px-2 py-1 text-left text-sm ${
+                            role === roleLabel ? 'bg-emerald-50 font-semibold text-emerald-800' : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => handleRoleSwitch(role)}
+                        >
+                          {formatRoleLabel(role)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="py-2">
                   <a
                     className="block px-4 py-2 text-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
@@ -153,3 +206,21 @@ export default function Header({ user, onLogout }) {
     </header>
   );
 }
+
+Header.propTypes = {
+  user: PropTypes.shape({
+    full_name: PropTypes.string,
+    email: PropTypes.string,
+    login_streak: PropTypes.number,
+    role: PropTypes.string,
+    app_role: PropTypes.string,
+    defaultRole: PropTypes.string,
+    roles: PropTypes.arrayOf(PropTypes.string),
+  }),
+  onLogout: PropTypes.func,
+};
+
+Header.defaultProps = {
+  user: null,
+  onLogout: undefined,
+};

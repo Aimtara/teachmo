@@ -6,29 +6,24 @@ import MobileNavigation from './MobileNavigation';
 import { AuthGuardState, useAuthGuard } from './AuthGuard';
 import { createPageUrl } from '@/utils';
 import { ROLE_DEFINITIONS } from '@/config/navigation';
-import { useSignOut } from '@nhost/react';
+import { useLogout } from '@/hooks/useLogout';
 
 export default function Layout({ currentPageName = 'Dashboard', children }) {
   const { user, status, refresh } = useAuthGuard();
   const role = user?.app_role || user?.role || 'parent';
-  const { signOut } = useSignOut();
-
-  React.useEffect(() => {
-    if (status === 'unauthorized') {
-      window.location.pathname = createPageUrl('Login');
-    }
-  }, [status]);
 
   const shouldShowGuard = status === 'loading' || status === 'unauthorized' || status === 'error';
 
   const defaultPage = ROLE_DEFINITIONS[role]?.defaultPage || 'Dashboard';
   const currentMobilePath = createPageUrl(currentPageName || defaultPage);
 
-  const handleLogout = () => {
-    signOut().catch(() => {});
-    window.location.pathname = createPageUrl('Login');
-  };
+  const handleLogout = useLogout();
 
+  React.useEffect(() => {
+    if (status === 'unauthorized') {
+      handleLogout();
+    }
+  }, [status, handleLogout]);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <a

@@ -17,16 +17,32 @@ type EventPayload = {
   metadata?: Record<string, unknown>;
 };
 
+// 1. ADDED: Define exactly who is allowed to talk to this function
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // Allows cross-origin requests
+  'Access-Control-Allow-Methods': 'OPTIONS, POST',
+  'Access-Control-Allow-Headers': 'Content-Type, x-nhost-user-id, x-hasura-user-id, Authorization',
+};
+
+// 2. UPDATED: Inject the CORS headers into every standard JSON response
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...corsHeaders 
+    },
   });
 
 const WORKFLOW_MAX_STEPS = 50;
 const MAX_BODY_BYTES = 32_768; // 32KB
 
 export default async function handler(req: Request) {
+  // 3. ADDED: Catch the browser's preflight check and give it the green light
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
   if (req.method !== 'POST') {
     return json(405, { error: 'Method not allowed' });
   }

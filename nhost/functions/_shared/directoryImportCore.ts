@@ -500,3 +500,7 @@ export async function failJob(
     { id: params.id, errors: params.errors, timestamp }
   );
 }
+
+export function sha256(data: string): string {
+  return require('crypto').createHash('sha256').update(data).digest('hex');
+}

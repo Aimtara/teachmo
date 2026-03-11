@@ -1,0 +1,44 @@
+// backend/security/anomalyAgent.ts
+import { dispatchAlert } from '../alerts/dispatcher';
+
+export async function detectAndMitigateAnomalies(eventData: any, redisClient: any) {
+  const { tenantId, parentId, eventType } = eventData;
+  const timeWindow = 60; // seconds
+
+  // Track event frequency in Redis
+  const key = `anomaly:${tenantId}:${parentId}:${eventType}`;
+  const currentCount = await redisClient.incr(key);
+  await redisClient.expire(key, timeWindow);
+
+  // 1. Detect Duplicate Storms (e.g., SIS sync goes crazy)
+  if (eventType === 'notification_dispatched' && currentCount > 10) {
+    // Mitigate: Temporarily raise throttle
+    await applyMitigation(tenantId, parentId, 'throttle_notifications', '15m');
+    
+    // Escalate: Warn ops via Slack
+    await dispatchAlert({
+      severity: 'warn',
+      message: `Duplicate storm detected for Parent ${parentId}. Auto-mitigation applied.`,
+      tenantId
+    });
+    
+    return { status: 'mitigated', action: 'throttled' };
+  }
+
+  // 2. Detect Auth Probing (Safety first)
+  if (eventType === 'forbidden_child_access_attempt' && currentCount > 3) {
+    // Mitigate: Lock account/session
+    await applyMitigation(tenantId, parentId, 'lock_session', '1h');
+    
+    // Escalate: Error to PagerDuty
+    await dispatchAlert({
+      severity: 'error',
+      message: `Repeated forbidden access attempts by User ${parentId}. Session locked.`,
+      tenantId
+    });
+
+    return { status: 'mitigated', action: 'session_locked' };
+  }
+
+  return { status: 'clear' };
+}

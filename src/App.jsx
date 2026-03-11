@@ -1,6 +1,4 @@
-// Use only the modern NhostProvider. The NhostReactProvider has been deprecated
-// and can cause context issues when nested with NhostProvider. See
-// https://docs.nhost.io/reference/deprecated/react/signed-in for details.
+// Use only the modern NhostProvider. The NhostReactProvider has been deprecated.
 import { NhostProvider } from '@nhost/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -17,9 +15,6 @@ import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
 import LiveSupportWidget from './components/support/LiveSupportWidget';
 import FeatureFlagProvider from './providers/FeatureFlagProvider.jsx';
 import { I18nProvider } from './components/shared/InternationalizationProvider';
-// NOTE: GlobalErrorBoundary replaces the legacy ErrorBoundary component.
-// The old src/components/shared/ErrorBoundary.jsx file is intentionally unused and can be removed
-// once no longer needed for reference.
 import GlobalErrorBoundary from './components/shared/GlobalErrorBoundary';
 import { useStore } from './components/hooks/useStore';
 import { isFeatureEnabled } from './utils/featureFlags';
@@ -32,35 +27,32 @@ function App() {
     }
     return isFeatureEnabled('FEATURE_I18N');
   });
-  const appContent = (
-    <WebSocketProvider>
-      <TypingIndicatorProvider>
-        {/* Wrap the application with NhostProvider once. NhostReactProvider has been removed */}
-        <NhostProvider nhost={nhost}>
-          <QueryClientProvider client={queryClient}>
-            <TenantProvider>
-              <TenantBrandingProvider>
-                <FeatureFlagProvider>
-                  <Pages />
-                  <LiveSupportWidget />
-                </FeatureFlagProvider>
-              </TenantBrandingProvider>
-            </TenantProvider>
-            {/* Required for legacy Base44 UI components that call ultraMinimalToast() */}
-            <UltraMinimalToast />
-            {/* Shadcn-style toasts for components using useToast() */}
-            <Toaster />
-            <HotToaster position="top-right" />
-            {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
-          </QueryClientProvider>
-        </NhostProvider>
-      </TypingIndicatorProvider>
-    </WebSocketProvider>
-  );
 
   return (
     <GlobalErrorBoundary>
-      <I18nProvider enabled={featureI18nEnabled}>{appContent}</I18nProvider>
+      {/* NhostProvider is now anchored at the absolute top so it never remounts! */}
+      <NhostProvider nhost={nhost}>
+        <QueryClientProvider client={queryClient}>
+          <I18nProvider enabled={featureI18nEnabled}>
+            <WebSocketProvider>
+              <TypingIndicatorProvider>
+                <TenantProvider>
+                  <TenantBrandingProvider>
+                    <FeatureFlagProvider>
+                      <Pages />
+                      <LiveSupportWidget />
+                    </FeatureFlagProvider>
+                  </TenantBrandingProvider>
+                </TenantProvider>
+                <UltraMinimalToast />
+                <Toaster />
+                <HotToaster position="top-right" />
+                {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
+              </TypingIndicatorProvider>
+            </WebSocketProvider>
+          </I18nProvider>
+        </QueryClientProvider>
+      </NhostProvider>
     </GlobalErrorBoundary>
   );
 }

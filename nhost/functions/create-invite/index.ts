@@ -118,7 +118,7 @@ export default async (req: any, res: any) => {
       return res.status(400).json({ ok: false, reason: 'contact_inactive' });
     }
 
-    const targetDistrictId = contact?.district_id ?? districtIdRaw || scope.districtId || null;
+    const targetDistrictId = contact?.district_id || districtIdRaw || scope.districtId || null;
     if (role === 'district_admin' && scope.districtId && targetDistrictId && scope.districtId !== targetDistrictId) {
       return res.status(403).json({ ok: false, reason: 'scope_mismatch' });
     }

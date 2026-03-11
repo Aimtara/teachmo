@@ -1,4 +1,31 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+ALTER TABLE IF EXISTS public.analytics_events ALTER COLUMN organization_id DROP NOT NULL;
+ALTER TABLE IF EXISTS public.audit_log ALTER COLUMN organization_id DROP NOT NULL;
+ALTER TABLE IF EXISTS public.audit_log ALTER COLUMN actor_id DROP NOT NULL;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS school_id uuid;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS actor_id uuid;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS model text;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS prompt_hash text;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS response_hash text;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS status text DEFAULT 'logged';
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS flagged boolean DEFAULT false;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS reviewer_id uuid;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS usage_log_id uuid;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS school_id uuid;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS reviewer_id uuid;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+ALTER TABLE IF EXISTS public.tenant_sso_settings ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.feature_flags ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.ai_policy_docs ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.ai_usage_logs ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.ai_review_queue ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.sis_rosters ADD COLUMN IF NOT EXISTS district_id uuid;
+ALTER TABLE IF EXISTS public.audit_log ADD COLUMN IF NOT EXISTS district_id uuid;
 
 -- -----------------------------
 -- Enterprise governance tables

@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import logger from '@/utils/logger';
-import { useAuthenticationStatus, useUserData } from '@nhost/react';
-import { nhost } from '@/lib/nhostClient';
+import { useAuthenticationStatus, useUserData, useAccessToken } from '@nhost/react';
 import { fetchUserProfile } from '@/domains/auth';
+import { nhost } from '@/lib/nhostClient';
+import { GraphQLRequestError } from '@/lib/hasuraErrors';
 
 type TenantState = {
   organizationId: string | null;
@@ -35,10 +36,6 @@ const TenantContext = createContext<TenantState>({
   loading: true
 });
 
-/**
- * Decode a JWT token payload. Returns the decoded claims or null if decoding fails.
- * The return type is a dictionary of claims keyed by string.
- */
 function decodeToken(token?: string | null): AccessTokenClaims | null {
   if (!token) return null;
   const parts = token.split('.');
@@ -52,10 +49,6 @@ function decodeToken(token?: string | null): AccessTokenClaims | null {
   }
 }
 
-/**
- * Resolve tenant identifiers (organization and school) from the user metadata and JWT claims.
- * Accepts a user object with optional metadata and a dictionary of token claims.
- */
 function resolveTenantClaims(
   user: { metadata?: UserMetadata | null } | null,
   tokenClaims: AccessTokenClaims | null
@@ -74,57 +67,109 @@ function resolveTenantClaims(
   return { organizationId, schoolId };
 }
 
+function isUnauthorizedError(err: unknown) {
+  if (err instanceof GraphQLRequestError) {
+    return err.normalized.kind === 'auth';
+  }
+  const message = err instanceof Error ? err.message : String(err ?? '');
+  return /401|unauthorized|jwt/i.test(message);
+}
+
 export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuthenticationStatus();
+  const { isLoading, isAuthenticated } = useAuthenticationStatus();
   const user = useUserData();
+  const accessToken = useAccessToken();
+
   const [state, setState] = useState<TenantState>({
     organizationId: null,
     schoolId: null,
     loading: true
   });
+  const unauthorizedRecoveryAttemptedRef = useRef(false);
+
+  // Reset the unauthorized recovery guard when the auth session changes
+  useEffect(() => {
+    unauthorizedRecoveryAttemptedRef.current = false;
+  }, [isAuthenticated, user?.id, accessToken]);
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      if (isLoading) return;
-      // When no authenticated user, clear tenant info
-      if (!user) {
+
+    const resolveTenant = async () => {
+      if (isLoading) {
+        if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
+        return;
+      }
+
+      if (!isAuthenticated) {
         if (mounted) setState({ organizationId: null, schoolId: null, loading: false });
         return;
       }
-      try {
-        const token = await nhost.auth.getAccessToken();
-        const claims = decodeToken(token);
-        const tenant = resolveTenantClaims(user, claims);
-        let profileTenant = { organizationId: null, schoolId: null };
-        try {
-          const profile = await fetchUserProfile(user.id);
-          profileTenant = {
-            organizationId: profile?.organization_id ?? null,
-            schoolId: profile?.school_id ?? null
-          };
-        } catch (err) {
-          logger.error('Failed to fetch user profile for tenant resolution', err);
-          profileTenant = { organizationId: null, schoolId: null };
-        }
-        if (mounted) {
-          setState({
-            organizationId: profileTenant.organizationId || tenant.organizationId,
-            schoolId: profileTenant.schoolId || tenant.schoolId,
-            loading: false
-          });
-        }
-      } catch (error) {
-        logger.error('TenantProvider encountered an error resolving tenant info', error);
-        if (mounted) setState({ organizationId: null, schoolId: null, loading: false });
+
+      // Token lag guard: authenticated can flip true before accessToken is available.
+      if (!accessToken || !user) {
+        if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
+        return;
       }
-    })();
+
+      const claims = decodeToken(accessToken);
+      const tenant = resolveTenantClaims(user, claims);
+
+      if (!tenant.organizationId || !tenant.schoolId) {
+        try {
+          if (!user.id) throw new Error('Missing user id for profile fallback');
+          const profile = await fetchUserProfile(user.id);
+          if (mounted) {
+            setState({
+              organizationId: tenant.organizationId ?? profile?.organization_id ?? null,
+              schoolId: tenant.schoolId ?? profile?.school_id ?? null,
+              loading: false
+            });
+          }
+          return;
+        } catch (err) {
+          logger.error('Failed profile fallback fetch', err);
+          if (mounted) {
+            setState({
+              organizationId: tenant.organizationId,
+              schoolId: tenant.schoolId,
+              loading: false
+            });
+          }
+
+          if (mounted && isUnauthorizedError(err)) {
+            logger.warn('Profile fallback returned unauthorized; forcing sign-out to clear stale session token.');
+
+            if (!unauthorizedRecoveryAttemptedRef.current) {
+              unauthorizedRecoveryAttemptedRef.current = true;
+              try {
+                await nhost.auth.signOut();
+              } catch (signOutError) {
+                logger.error('Failed to force sign-out after unauthorized profile fallback.', signOutError);
+              }
+            }
+          }
+          return;
+        }
+      }
+
+      if (mounted) {
+        setState({
+          organizationId: tenant.organizationId,
+          schoolId: tenant.schoolId,
+          loading: false
+        });
+      }
+    };
+
+    resolveTenant();
+
     return () => {
       mounted = false;
     };
-  }, [isLoading, user]);
+  }, [isLoading, isAuthenticated, user, accessToken]);
 
-  const value = useMemo(() => state, [state.organizationId, state.schoolId, state.loading]);
+  const value = useMemo(() => state, [state]);
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;
 }

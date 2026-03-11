@@ -1,14 +1,11 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
 import { useAuthenticationStatus } from '@nhost/react';
 import { Navigate } from 'react-router-dom';
-import SocialLoginButtons from '@/components/auth/SocialLoginButtons';
 import { useUserRole, getDefaultPathForRole } from '@/hooks/useUserRole';
 
 export default function Landing() {
   const { isAuthenticated } = useAuthenticationStatus();
   const role = useUserRole();
-  const [error, setError] = useState(null);
 
   if (isAuthenticated) {
     return <Navigate to={getDefaultPathForRole(role)} replace />;
@@ -24,22 +21,25 @@ export default function Landing() {
         </div>
 
         <div className="bg-white shadow-lg rounded-xl p-8 space-y-6">
-          <SocialLoginButtons onError={setError} />
-          {error && (
-            <p className="text-sm text-red-600" role="alert">
-              {error.message || 'Something went wrong while connecting to your provider.'}
-            </p>
-          )}
+          <p className="text-center text-sm text-gray-600">
+            Select parent/guardian or school/district sign in to continue with the correct onboarding flow.
+          </p>
+          <Link
+            to="/login"
+            className="w-full inline-flex justify-center rounded-md bg-emerald-600 py-2 px-4 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            Continue to sign in
+          </Link>
           <p className="text-xs text-gray-500 text-center">
             By signing in you agree to the Teachmo privacy policy and acceptable use guidelines.
           </p>
           <div className="mt-6 text-center text-sm">
-            <span className="text-gray-600">Don't have an account? </span>
+            <span className="text-gray-600">Don&apos;t have an account? </span>
             <Link
-              to="/onboarding"
+              to="/login?flow=parent"
               className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
             >
-              Sign up for free
+              Start parent sign up
             </Link>
           </div>
         </div>
