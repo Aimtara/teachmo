@@ -196,47 +196,59 @@ export default function Login() {
           {!requireSso || selectedFlow === ONBOARDING_FLOWS.PARENT ? (
             <form className="space-y-4" onSubmit={authMode === AUTH_MODES.SIGN_UP ? handleCreateAccount : handleEmailLogin}>
               {selectedFlow === ONBOARDING_FLOWS.PARENT && authMode === AUTH_MODES.SIGN_UP && (
+                <div>
+                  <label htmlFor="fullName" className="sr-only">Full name</label>
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    placeholder="Full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+              )}
+              <div>
+                <label htmlFor="email" className="sr-only">Email address</label>
                 <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  placeholder="Full name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                 />
-              )}
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-              />
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-              />
-              {selectedFlow === ONBOARDING_FLOWS.PARENT && authMode === AUTH_MODES.SIGN_UP && (
+              </div>
+              <div>
+                <label htmlFor="password" className="sr-only">Password</label>
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
+                  id="password"
+                  name="password"
                   type="password"
                   required
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                 />
+              </div>
+              {selectedFlow === ONBOARDING_FLOWS.PARENT && authMode === AUTH_MODES.SIGN_UP && (
+                <div>
+                  <label htmlFor="confirmPassword" className="sr-only">Confirm password</label>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    required
+                    placeholder="Confirm password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
               )}
               <button
                 type="submit"
@@ -276,7 +288,7 @@ export default function Login() {
   );
 }
 
-function AutoSSORedirect({ provider, onStart, onError, redirectTo }) {
+function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.location.origin}/auth/callback` }) {
   useEffect(() => {
     async function go() {
       try {
