@@ -47,3 +47,6 @@ create unique index if not exists feature_flags_org_key_idx
 create unique index if not exists feature_flags_org_school_key_idx
   on public.feature_flags (organization_id, school_id, key)
   where school_id is not null;
+
+create index if not exists feature_flags_org_idx
+  on public.feature_flags (organization_id);
