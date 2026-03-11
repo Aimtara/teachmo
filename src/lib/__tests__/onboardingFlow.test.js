@@ -6,6 +6,8 @@ import {
   resolveOnboardingPath,
 } from '../onboardingFlow';
 
+const ONBOARDING_FLOW_KEY = 'teachmo:onboarding-flow';
+
 describe('normalizeOnboardingFlow', () => {
   it('returns parent for the parent flow value', () => {
     expect(normalizeOnboardingFlow('parent')).toBe(ONBOARDING_FLOWS.PARENT);
@@ -25,28 +27,28 @@ describe('normalizeOnboardingFlow', () => {
 
 describe('saveOnboardingFlowPreference', () => {
   beforeEach(() => {
-    window.sessionStorage.clear();
+    window.sessionStorage.removeItem(ONBOARDING_FLOW_KEY);
   });
 
   it('persists the parent flow', () => {
     saveOnboardingFlowPreference(ONBOARDING_FLOWS.PARENT);
-    expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBe(ONBOARDING_FLOWS.PARENT);
+    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.PARENT);
   });
 
   it('normalizes and persists the district flow for unknown values', () => {
     saveOnboardingFlowPreference('anything-else');
-    expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBe(ONBOARDING_FLOWS.DISTRICT);
+    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.DISTRICT);
   });
 
   it('persists the district flow', () => {
     saveOnboardingFlowPreference(ONBOARDING_FLOWS.DISTRICT);
-    expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBe(ONBOARDING_FLOWS.DISTRICT);
+    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.DISTRICT);
   });
 });
 
 describe('getSavedOnboardingFlowPreference', () => {
   beforeEach(() => {
-    window.sessionStorage.clear();
+    window.sessionStorage.removeItem(ONBOARDING_FLOW_KEY);
   });
 
   it('returns district when nothing has been saved (default)', () => {
