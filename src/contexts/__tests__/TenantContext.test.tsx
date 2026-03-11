@@ -168,7 +168,14 @@ describe('TenantProvider', () => {
     authState.user = { id: 'u-unauthorized', metadata: {} };
     const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
     authState.accessToken = `h.${payload}.s`;
-    fetchUserProfileMock.mockRejectedValue(new Error('GraphQL request failed: 401 Unauthorized'));
+    const unauthorizedError = Object.assign(new Error('GraphQL unauthorized'), {
+      name: 'GraphQLRequestError',
+      normalized: {
+        kind: 'authorization',
+        code: 'UNAUTHENTICATED',
+      },
+    });
+    fetchUserProfileMock.mockRejectedValue(unauthorizedError as any);
 
     render(
       <TenantProvider>
