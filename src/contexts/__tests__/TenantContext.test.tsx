@@ -22,6 +22,19 @@ vi.mock('@/domains/auth', () => ({
 
 const fetchUserProfileMock = vi.mocked(fetchUserProfile);
 
+
+const { signOutMock } = vi.hoisted(() => ({
+  signOutMock: vi.fn(),
+}));
+
+vi.mock('@/lib/nhostClient', () => ({
+  nhost: {
+    auth: {
+      signOut: signOutMock,
+    },
+  },
+}));
+
 function Consumer() {
   const tenant = useTenant();
   return (
@@ -39,6 +52,7 @@ describe('TenantProvider', () => {
     authState.user = null;
     authState.accessToken = null;
     fetchUserProfileMock.mockReset();
+    signOutMock.mockReset();
   });
 
   it('keeps loading true when authenticated but token is not ready (token lag)', () => {
@@ -148,4 +162,48 @@ describe('TenantProvider', () => {
 
     expect(fetchUserProfileMock).toHaveBeenCalledWith('u-fallback');
   });
+
+  it('stops loading when profile fallback fails with unauthorized error', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-unauthorized', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    fetchUserProfileMock.mockRejectedValue(new Error('GraphQL request failed: 401 Unauthorized'));
+
+    render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId('org').textContent).toBe('none');
+    });
+
+    expect(fetchUserProfileMock).toHaveBeenCalledWith('u-unauthorized');
+    expect(signOutMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not force sign-out for non-auth fallback errors', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-network', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    fetchUserProfileMock.mockRejectedValue(new Error('network timeout'));
+
+    render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId('org').textContent).toBe('none');
+    });
+
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
 });
