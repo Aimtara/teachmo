@@ -24,6 +24,22 @@ alter table if exists public.feature_flags
 -- so we use partial indexes for org-level and school-level scopes.
 drop index if exists feature_flags_scope_key_idx;
 
+-- De-duplicate any existing org-scope rows (school_id is null) that would
+-- violate the new unique index on (organization_id, key).
+with duplicates as (
+  select
+    id,
+    row_number() over (
+      partition by organization_id, key
+      order by updated_at desc, created_at desc, id desc
+    ) as rn
+  from public.feature_flags
+  where school_id is null
+)
+delete from public.feature_flags ff
+using duplicates d
+where ff.id = d.id
+  and d.rn > 1;
 create unique index if not exists feature_flags_org_key_idx
   on public.feature_flags (organization_id, key)
   where school_id is null;
