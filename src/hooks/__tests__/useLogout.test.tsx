@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useLogout } from '@/hooks/useLogout';
+import { ONBOARDING_FLOW_KEY } from '@/lib/onboardingFlow';
 
 const navigateMock = vi.fn();
 const signOutMock = vi.fn().mockResolvedValue(undefined);
@@ -28,8 +29,9 @@ describe('useLogout', () => {
   beforeEach(() => {
     navigateMock.mockReset();
     signOutMock.mockClear();
-    window.sessionStorage.setItem('teachmo:onboarding-flow', 'parent');
+    window.sessionStorage.setItem(ONBOARDING_FLOW_KEY, 'parent');
     window.sessionStorage.setItem('teachmo:active-role', 'teacher');
+    window.sessionStorage.setItem('onboarding_intent', 'parent');
   });
 
   it('signs out, clears cache/session artifacts, and navigates to login', async () => {
@@ -49,8 +51,9 @@ describe('useLogout', () => {
       expect(cancelSpy).toHaveBeenCalled();
       expect(signOutMock).toHaveBeenCalled();
       expect(clearSpy).toHaveBeenCalled();
-      expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBeNull();
+      expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBeNull();
       expect(window.sessionStorage.getItem('teachmo:active-role')).toBeNull();
+      expect(window.sessionStorage.getItem('onboarding_intent')).toBeNull();
       expect(navigateMock).toHaveBeenCalledWith('/login', { replace: true });
     });
   });

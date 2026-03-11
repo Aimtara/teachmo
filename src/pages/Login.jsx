@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
@@ -39,6 +39,7 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState('');
   const [redirecting, setRedirecting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: ssoSettings } = useTenantSSOSettings();
   const requireSso = ssoSettings?.requireSso || false;
@@ -50,6 +51,7 @@ export default function Login() {
     saveOnboardingFlowPreference(flow);
     setError(null);
     setNotice('');
+    setRedirecting(false);
     if (flow === ONBOARDING_FLOWS.DISTRICT) {
       setAuthMode(AUTH_MODES.SIGN_IN);
     }
@@ -57,14 +59,16 @@ export default function Login() {
 
   const handleEmailLogin = async (event) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setError(null);
     setNotice('');
+    setIsSubmitting(true);
 
     try {
       saveOnboardingFlowPreference(selectedFlow);
       clearSavedActiveRole();
       const result = await nhost.auth.signIn({
-        email,
+        email: email.trim(),
         password,
       });
       if (result?.error) {
@@ -73,11 +77,14 @@ export default function Login() {
     } catch (err) {
       logger.error('Email login failed', err);
       setError(err?.message || 'Login failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleCreateAccount = async (event) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setError(null);
     setNotice('');
 
@@ -86,11 +93,12 @@ export default function Login() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       saveOnboardingFlowPreference(ONBOARDING_FLOWS.PARENT);
       clearSavedActiveRole();
       const { session, error: signUpError } = await nhost.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           displayName: fullName || undefined,
@@ -106,8 +114,6 @@ export default function Login() {
       }
 
       if (session) {
-        await nhost.auth.refreshSession();
-        navigate('/onboarding/parent', { replace: true });
         return;
       }
 
@@ -116,9 +122,19 @@ export default function Login() {
     } catch (err) {
       logger.error('Email sign up failed', err);
       setError(err?.message || 'Could not create account');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const handleSsoError = useCallback((err) => {
+    setRedirecting(false);
+    setError(err?.message || 'Login failed');
+  }, []);
+
+  const handleSsoStart = useCallback(() => {
+    setRedirecting(true);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -177,8 +193,8 @@ export default function Login() {
             <AutoSSORedirect
               provider={enabledProviders[0]}
               redirectTo={oauthRedirectTo}
-              onError={(err) => setError(err?.message || 'Login failed')}
-              onStart={() => setRedirecting(true)}
+              onError={handleSsoError}
+              onStart={handleSsoStart}
             />
           )}
 
@@ -268,9 +284,10 @@ export default function Login() {
               )}
               <button
                 type="submit"
-                className="w-full flex justify-center rounded-md bg-emerald-600 py-2 px-4 text-sm font-semibold text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                disabled={isSubmitting}
+                className="w-full flex justify-center rounded-md bg-emerald-600 py-2 px-4 text-sm font-semibold text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {authMode === AUTH_MODES.SIGN_UP ? 'Create account' : 'Sign in'}
+                {isSubmitting ? 'Working…' : authMode === AUTH_MODES.SIGN_UP ? 'Create account' : 'Sign in'}
               </button>
             </form>
           ) : (
@@ -305,6 +322,8 @@ export default function Login() {
 }
 
 function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.location.origin}/auth/callback` }) {
+  const startedForKeyRef = useRef('');
+
   useEffect(() => {
     async function go() {
       try {
@@ -322,9 +341,12 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
       }
     }
 
-    if (provider) {
-      go();
-    }
+    if (!provider) return;
+
+    const runKey = `${provider}:${redirectTo}`;
+    if (startedForKeyRef.current === runKey) return;
+    startedForKeyRef.current = runKey;
+    go();
   }, [onError, onStart, provider, redirectTo]);
 
   return null;

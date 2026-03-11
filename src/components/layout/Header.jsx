@@ -1,11 +1,12 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, Bell } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { NotificationsAPI } from '@/api/adapters';
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher';
 import { getDefaultPathForRole, normalizeRole } from '@/config/rbac';
-import { saveActiveRole } from '@/lib/activeRole';
+import { getSavedActiveRole, saveActiveRole } from '@/lib/activeRole';
 
 function formatRoleLabel(role) {
   return role.replaceAll('_', ' ');
@@ -29,7 +30,17 @@ export default function Header({ user, onLogout }) {
     return Array.from(deduped).map((role) => normalizeRole(role));
   }, [user?.roles, user?.defaultRole, user?.app_role]);
 
-  const roleLabel = normalizeRole(user?.app_role || user?.role || 'parent');
+  const roleLabel = React.useMemo(() => {
+    const savedActiveRole = getSavedActiveRole();
+    if (savedActiveRole) {
+      const savedRole = normalizeRole(savedActiveRole);
+      if (availableRoles.includes(savedRole)) {
+        return savedRole;
+      }
+    }
+
+    return normalizeRole(user?.app_role || user?.role || user?.defaultRole || availableRoles[0] || 'parent');
+  }, [availableRoles, user?.app_role, user?.role, user?.defaultRole]);
   const streak = user?.login_streak ?? 0;
 
   const handleLogout = async () => {
@@ -195,3 +206,21 @@ export default function Header({ user, onLogout }) {
     </header>
   );
 }
+
+Header.propTypes = {
+  user: PropTypes.shape({
+    full_name: PropTypes.string,
+    email: PropTypes.string,
+    login_streak: PropTypes.number,
+    role: PropTypes.string,
+    app_role: PropTypes.string,
+    defaultRole: PropTypes.string,
+    roles: PropTypes.arrayOf(PropTypes.string),
+  }),
+  onLogout: PropTypes.func,
+};
+
+Header.defaultProps = {
+  user: null,
+  onLogout: undefined,
+};

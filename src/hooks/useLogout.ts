@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSignOut } from '@nhost/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { clearSavedActiveRole } from '@/lib/activeRole';
-
-const ONBOARDING_FLOW_KEY = 'teachmo:onboarding-flow';
+import { clearSavedOnboardingFlowPreference } from '@/lib/onboardingFlow';
 
 /**
  * Centralized logout that clears auth session + cached tenant/user data.
@@ -25,8 +24,9 @@ export function useLogout() {
 
     queryClient.clear();
     clearSavedActiveRole();
+    clearSavedOnboardingFlowPreference();
     if (typeof window !== 'undefined') {
-      window.sessionStorage.removeItem(ONBOARDING_FLOW_KEY);
+      window.sessionStorage.removeItem('onboarding_intent');
     }
 
     navigate('/login', { replace: true });
