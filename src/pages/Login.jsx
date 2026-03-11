@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuthenticationStatus } from '@nhost/react';
 import { nhost } from '@/lib/nhostClient';
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
 import useTenantSSOSettings from '@/hooks/useTenantSSOSettings';
 import { createLogger } from '@/utils/logger';
+import { clearSavedActiveRole } from '@/lib/activeRole';
 import {
   ONBOARDING_FLOWS,
   getSavedOnboardingFlowPreference,
@@ -20,6 +22,8 @@ const AUTH_MODES = {
 
 export default function Login() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthenticationStatus();
   const initialFlow = useMemo(() => {
     const flowParam = searchParams.get('flow');
     if (flowParam !== null) return normalizeOnboardingFlow(flowParam);
@@ -58,10 +62,14 @@ export default function Login() {
 
     try {
       saveOnboardingFlowPreference(selectedFlow);
-      await nhost.auth.signIn({
+      clearSavedActiveRole();
+      const result = await nhost.auth.signIn({
         email,
         password,
       });
+      if (result?.error) {
+        throw result.error;
+      }
     } catch (err) {
       logger.error('Email login failed', err);
       setError(err?.message || 'Login failed');
@@ -80,6 +88,7 @@ export default function Login() {
 
     try {
       saveOnboardingFlowPreference(ONBOARDING_FLOWS.PARENT);
+      clearSavedActiveRole();
       const { session, error: signUpError } = await nhost.auth.signUp({
         email,
         password,
@@ -98,7 +107,7 @@ export default function Login() {
 
       if (session) {
         await nhost.auth.refreshSession();
-        window.location.assign('/onboarding/parent');
+        navigate('/onboarding/parent', { replace: true });
         return;
       }
 
@@ -109,6 +118,13 @@ export default function Login() {
       setError(err?.message || 'Could not create account');
     }
   };
+
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const flow = normalizeOnboardingFlow(searchParams.get('flow') ?? selectedFlow);
+    navigate(`/auth/callback?flow=${flow}`, { replace: true });
+  }, [isAuthenticated, navigate, searchParams, selectedFlow]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -173,7 +189,10 @@ export default function Login() {
                 selectedFlow === ONBOARDING_FLOWS.DISTRICT && enabledProviders.length ? enabledProviders : null
               }
               redirectTo={oauthRedirectTo}
-              onBeforeRedirect={() => saveOnboardingFlowPreference(selectedFlow)}
+              onBeforeRedirect={() => {
+                saveOnboardingFlowPreference(selectedFlow);
+                clearSavedActiveRole();
+              }}
             />
           )}
 
@@ -289,6 +308,7 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
   useEffect(() => {
     async function go() {
       try {
+        clearSavedActiveRole();
         onStart?.();
         await nhost.auth.signIn({
           provider,

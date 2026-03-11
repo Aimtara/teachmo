@@ -7,6 +7,10 @@ import Login from '@/pages/Login.jsx';
 
 expect.extend(toHaveNoViolations);
 
+vi.mock('@nhost/react', () => ({
+  useAuthenticationStatus: () => ({ isAuthenticated: false }),
+}));
+
 vi.mock('@/lib/nhostClient', () => ({
   nhost: {
     auth: {
@@ -35,11 +39,8 @@ vi.mock('@/utils/logger', () => ({
 
 vi.mock('@/lib/onboardingFlow', () => ({
   ONBOARDING_FLOWS: { PARENT: 'parent', DISTRICT: 'district' },
-  normalizeOnboardingFlow: jest.fn((v) => v || 'parent'),
-  getSavedOnboardingFlowPreference: jest.fn(() => 'district'),
-  saveOnboardingFlowPreference: jest.fn(),
-  getSavedOnboardingFlowPreference: vi.fn(() => 'parent'),
   normalizeOnboardingFlow: vi.fn((v) => v || 'parent'),
+  getSavedOnboardingFlowPreference: vi.fn(() => 'parent'),
   saveOnboardingFlowPreference: vi.fn(),
 }));
 
@@ -61,10 +62,11 @@ describe('Login page accessibility', () => {
   it('passes a11y checks on parent sign-up view', async () => {
     const user = userEvent.setup();
     const { container } = renderLogin('?flow=parent');
-    // Click the toggle button by accessible name to enter sign-up mode
+
     await act(async () => {
       await user.click(screen.getByRole('button', { name: /create a new account/i }));
     });
+
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });

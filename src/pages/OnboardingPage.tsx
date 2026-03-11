@@ -3,6 +3,7 @@ import { useUserData, useAccessToken } from '@nhost/react';
 import OnboardingManager, { OnboardingStep } from '../components/OnboardingManager';
 import { nhost } from '../lib/nhostClient';
 import { getDefaultPathForRole } from '@/config/rbac';
+import { useNavigate } from 'react-router-dom';
 
 const UPDATE_PROFILE_MUTATION = `
   mutation UpdateMyProfile($userId: uuid!, $appRole: String!, $fullName: String!) {
@@ -27,6 +28,7 @@ type OnboardingPath = 'parent' | 'district' | null;
 
 export default function Onboarding() {
   const user = useUserData();
+  const navigate = useNavigate();
   const accessToken = useAccessToken();
 
   const [selectedPath, setSelectedPath] = useState<OnboardingPath>(() => {
@@ -94,7 +96,7 @@ export default function Onboarding() {
       title: 'Finalizing Account...',
       run: async () => {
         await new Promise((res) => setTimeout(res, 800));
-        window.location.href = getDefaultPathForRole('parent');
+        navigate(getDefaultPathForRole('parent'), { replace: true });
       },
     },
   ];
@@ -112,7 +114,7 @@ export default function Onboarding() {
       title: 'Linking to School Portal...',
       run: async () => {
         await new Promise((res) => setTimeout(res, 800));
-        window.location.href = getDefaultPathForRole('teacher');
+        navigate(getDefaultPathForRole('teacher'), { replace: true });
       },
     },
   ];
