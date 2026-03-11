@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useSearchParams } from 'react-router-dom';
 import { nhost } from '@/lib/nhostClient';
@@ -25,6 +25,7 @@ export default function Login() {
   );
 
   const [selectedFlow, setSelectedFlow] = useState(initialFlow);
+  const isFirstRender = useRef(true);
   const [authMode, setAuthMode] = useState(AUTH_MODES.SIGN_IN);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,9 +34,6 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState('');
   const [redirecting, setRedirecting] = useState(false);
-  
-  // NEW: State to track which path they chose before logging in
-  const [selectedFlow, setSelectedFlow] = useState(null);
 
   const { data: ssoSettings } = useTenantSSOSettings();
   const requireSso = ssoSettings?.requireSso || false;
@@ -43,6 +41,10 @@ export default function Login() {
   const oauthRedirectTo = `${window.location.origin}/auth/callback?flow=${selectedFlow}`;
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     saveOnboardingFlowPreference(selectedFlow);
     setError(null);
     setNotice('');
