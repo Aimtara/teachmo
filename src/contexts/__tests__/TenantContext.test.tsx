@@ -224,6 +224,19 @@ describe('TenantProvider', () => {
     authState.user = { id: 'u-unauth-guard', metadata: {} };
 
     rerender(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+    });
+
+    // The guard must prevent a second sign-out call.
+    expect(signOutMock).toHaveBeenCalledTimes(1);
+  });
+
   it('does not force sign-out when component unmounts before unauthorized fallback resolves', async () => {
     authState.isAuthenticated = true;
     authState.user = { id: 'u-unmount', metadata: {} };
@@ -241,12 +254,6 @@ describe('TenantProvider', () => {
       </TenantProvider>
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('loading').textContent).toBe('false');
-    });
-
-    // The guard must prevent a second sign-out call.
-    expect(signOutMock).toHaveBeenCalledTimes(1);
     // Unmount before the async profile fetch settles.
     unmount();
 
