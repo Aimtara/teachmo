@@ -136,7 +136,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           if (isUnauthorizedError(err)) {
             logger.warn('Profile fallback returned unauthorized; forcing sign-out to clear stale session token.');
 
-            if (!unauthorizedRecoveryAttemptedRef.current) {
+            if (mounted && !unauthorizedRecoveryAttemptedRef.current) {
               unauthorizedRecoveryAttemptedRef.current = true;
               try {
                 await nhost.auth.signOut();
