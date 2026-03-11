@@ -83,12 +83,14 @@ export default function Onboarding() {
     }
   };
 
-  const parentSteps: OnboardingStep[] = [
+const parentSteps: OnboardingStep[] = [
     {
       id: 'init_parent_profile',
       title: 'Creating Parent Profile...',
       run: async () => {
         await persistProfile('parent');
+        // FIX: Force Nhost to fetch a fresh token so the new claims are instantly recognized!
+        await nhost.auth.refreshSession();
       },
     },
     {
@@ -107,6 +109,8 @@ export default function Onboarding() {
       title: 'Setting up District Profile...',
       run: async () => {
         await persistProfile('teacher');
+        // FIX: Force Nhost to fetch a fresh token so the new claims are instantly recognized!
+        await nhost.auth.refreshSession();
       },
     },
     {
