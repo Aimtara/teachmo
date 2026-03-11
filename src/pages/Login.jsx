@@ -189,7 +189,10 @@ export default function Login() {
                 selectedFlow === ONBOARDING_FLOWS.DISTRICT && enabledProviders.length ? enabledProviders : null
               }
               redirectTo={oauthRedirectTo}
-              onBeforeRedirect={() => saveOnboardingFlowPreference(selectedFlow)}
+              onBeforeRedirect={() => {
+                saveOnboardingFlowPreference(selectedFlow);
+                clearSavedActiveRole();
+              }}
             />
           )}
 
@@ -305,6 +308,7 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
   useEffect(() => {
     async function go() {
       try {
+        clearSavedActiveRole();
         onStart?.();
         await nhost.auth.signIn({
           provider,
