@@ -7,6 +7,7 @@ import useTenantSSOSettings from '@/hooks/useTenantSSOSettings';
 import { createLogger } from '@/utils/logger';
 import {
   ONBOARDING_FLOWS,
+  getSavedOnboardingFlowPreference,
   normalizeOnboardingFlow,
   saveOnboardingFlowPreference,
 } from '@/lib/onboardingFlow';
@@ -19,10 +20,11 @@ const AUTH_MODES = {
 
 export default function Login() {
   const [searchParams] = useSearchParams();
-  const initialFlow = useMemo(
-    () => normalizeOnboardingFlow(searchParams.get('flow')),
-    [searchParams]
-  );
+  const initialFlow = useMemo(() => {
+    const flowParam = searchParams.get('flow');
+    if (flowParam !== null) return normalizeOnboardingFlow(flowParam);
+    return getSavedOnboardingFlowPreference();
+  }, [searchParams]);
 
   const [selectedFlow, setSelectedFlow] = useState(initialFlow);
   const [authMode, setAuthMode] = useState(AUTH_MODES.SIGN_IN);
@@ -33,9 +35,6 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState('');
   const [redirecting, setRedirecting] = useState(false);
-  
-  // NEW: State to track which path they chose before logging in
-  const [selectedFlow, setSelectedFlow] = useState(null);
 
   const { data: ssoSettings } = useTenantSSOSettings();
   const requireSso = ssoSettings?.requireSso || false;
@@ -43,13 +42,17 @@ export default function Login() {
   const oauthRedirectTo = `${window.location.origin}/auth/callback?flow=${selectedFlow}`;
 
   useEffect(() => {
-    saveOnboardingFlowPreference(selectedFlow);
     setError(null);
     setNotice('');
     if (selectedFlow === ONBOARDING_FLOWS.DISTRICT) {
       setAuthMode(AUTH_MODES.SIGN_IN);
     }
   }, [selectedFlow]);
+
+  const handleFlowChange = (flow) => {
+    setSelectedFlow(flow);
+    saveOnboardingFlowPreference(flow);
+  };
 
   const handleEmailLogin = async (event) => {
     event.preventDefault();
@@ -121,7 +124,7 @@ export default function Login() {
         <div className="grid gap-3 sm:grid-cols-2">
           <button
             type="button"
-            onClick={() => setSelectedFlow(ONBOARDING_FLOWS.PARENT)}
+            onClick={() => handleFlowChange(ONBOARDING_FLOWS.PARENT)}
             className={`rounded-xl border p-4 text-left transition ${
               selectedFlow === ONBOARDING_FLOWS.PARENT
                 ? 'border-emerald-500 bg-emerald-50 shadow-sm'
@@ -135,7 +138,7 @@ export default function Login() {
           </button>
           <button
             type="button"
-            onClick={() => setSelectedFlow(ONBOARDING_FLOWS.DISTRICT)}
+            onClick={() => handleFlowChange(ONBOARDING_FLOWS.DISTRICT)}
             className={`rounded-xl border p-4 text-left transition ${
               selectedFlow === ONBOARDING_FLOWS.DISTRICT
                 ? 'border-indigo-500 bg-indigo-50 shadow-sm'
@@ -193,47 +196,59 @@ export default function Login() {
           {!requireSso || selectedFlow === ONBOARDING_FLOWS.PARENT ? (
             <form className="space-y-4" onSubmit={authMode === AUTH_MODES.SIGN_UP ? handleCreateAccount : handleEmailLogin}>
               {selectedFlow === ONBOARDING_FLOWS.PARENT && authMode === AUTH_MODES.SIGN_UP && (
+                <div>
+                  <label htmlFor="fullName" className="sr-only">Full name</label>
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    placeholder="Full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+              )}
+              <div>
+                <label htmlFor="email" className="sr-only">Email address</label>
                 <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  placeholder="Full name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                 />
-              )}
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-              />
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-              />
-              {selectedFlow === ONBOARDING_FLOWS.PARENT && authMode === AUTH_MODES.SIGN_UP && (
+              </div>
+              <div>
+                <label htmlFor="password" className="sr-only">Password</label>
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
+                  id="password"
+                  name="password"
                   type="password"
                   required
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                 />
+              </div>
+              {selectedFlow === ONBOARDING_FLOWS.PARENT && authMode === AUTH_MODES.SIGN_UP && (
+                <div>
+                  <label htmlFor="confirmPassword" className="sr-only">Confirm password</label>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    required
+                    placeholder="Confirm password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
               )}
               <button
                 type="submit"
@@ -273,7 +288,7 @@ export default function Login() {
   );
 }
 
-function AutoSSORedirect({ provider, onStart, onError, redirectTo }) {
+function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.location.origin}/auth/callback` }) {
   useEffect(() => {
     async function go() {
       try {

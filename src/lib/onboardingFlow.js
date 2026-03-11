@@ -22,9 +22,7 @@ export function getSavedOnboardingFlowPreference() {
 
 export function resolveOnboardingPath({ role, preferredFlow }) {
   if (role === 'teacher') return '/onboarding/teacher';
-  if (role === 'parent' && normalizeOnboardingFlow(preferredFlow) !== ONBOARDING_FLOWS.DISTRICT) {
-    return '/onboarding/parent';
-  }
+  if (role === 'parent') return '/onboarding/parent';
   if (normalizeOnboardingFlow(preferredFlow) === ONBOARDING_FLOWS.PARENT) return '/onboarding/parent';
   return '/onboarding';
 }
