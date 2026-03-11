@@ -33,6 +33,9 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState('');
   const [redirecting, setRedirecting] = useState(false);
+  
+  // NEW: State to track which path they chose before logging in
+  const [selectedFlow, setSelectedFlow] = useState(null);
 
   const { data: ssoSettings } = useTenantSSOSettings();
   const requireSso = ssoSettings?.requireSso || false;

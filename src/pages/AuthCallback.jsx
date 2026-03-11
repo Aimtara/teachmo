@@ -13,9 +13,7 @@ export default function AuthCallback() {
   const flowFromQuery = new URLSearchParams(window.location.search).get('flow');
   const loggedRef = useRef(false);
 
-  useEffect(() => {
-    nhost.auth.refreshSession();
-  }, []);
+  // The rogue nhost.auth.refreshSession() has been completely removed!
 
   useEffect(() => {
     if (loggedRef.current) return;
