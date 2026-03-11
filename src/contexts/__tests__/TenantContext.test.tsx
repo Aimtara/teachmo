@@ -48,6 +48,37 @@ describe('TenantProvider', () => {
     expect(screen.getByTestId('org').textContent).toBe('none');
   });
 
+  it('clears tenant identifiers on auth transition when token is not yet available', () => {
+    // Start with a fully authenticated user so tenant state is populated.
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u1', metadata: { organization_id: 'org_1' } };
+    const payload = btoa(
+      JSON.stringify({ 'https://hasura.io/jwt/claims': { 'x-hasura-organization-id': 'org_1' } })
+    );
+    authState.accessToken = `h.${payload}.s`;
+
+    const { rerender } = render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    expect(screen.getByTestId('org').textContent).toBe('org_1');
+
+    // Simulate token lag during a user switch – token and user cleared before new token arrives.
+    authState.accessToken = null;
+    authState.user = null;
+
+    rerender(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    expect(screen.getByTestId('loading').textContent).toBe('true');
+    expect(screen.getByTestId('org').textContent).toBe('none');
+  });
+
   it('resolves tenant from token/user once access token exists', () => {
     authState.isAuthenticated = true;
     authState.user = { id: 'u1', metadata: { organization_id: 'org_meta' } };
