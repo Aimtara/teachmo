@@ -31,6 +31,7 @@ jest.mock('@/utils/logger', () => ({
 jest.mock('@/lib/onboardingFlow', () => ({
   ONBOARDING_FLOWS: { PARENT: 'parent', DISTRICT: 'district' },
   normalizeOnboardingFlow: jest.fn((v) => v || 'parent'),
+  getSavedOnboardingFlowPreference: jest.fn(() => 'district'),
   saveOnboardingFlowPreference: jest.fn(),
 }));
 
