@@ -133,7 +133,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             });
           }
 
-          if (isUnauthorizedError(err)) {
+          if (mounted && isUnauthorizedError(err)) {
             logger.warn('Profile fallback returned unauthorized; forcing sign-out to clear stale session token.');
 
             if (!unauthorizedRecoveryAttemptedRef.current) {
