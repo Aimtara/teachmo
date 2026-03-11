@@ -2,14 +2,17 @@
  * Handles manual roster ingestion for schools without automated SIS.
  * Validates schema conformity before processing.
  */
+import { z } from 'zod';
 
-export interface RosterRow {
-  student_id: string;
-  first_name: string;
-  last_name: string;
-  parent_email: string;
-  grade_level: string;
-}
+const rosterRowSchema = z.object({
+  student_id: z.string().min(1),
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
+  parent_email: z.string().email(),
+  grade_level: z.string().optional().default(''),
+});
+
+export type RosterRow = z.infer<typeof rosterRowSchema>;
 
 export const CsvRosterService = {
   validateHeader(header: string[]): boolean {
@@ -38,15 +41,16 @@ export const CsvRosterService = {
 
       const rowData: Record<string, string> = {};
       header.forEach((key, index) => {
-        rowData[key] = row[index];
+        rowData[key] = row[index] ?? '';
       });
 
-      if (!rowData.student_id || !rowData.parent_email) {
-        errors.push(`Row ${i + 1}: Missing student ID or parent email.`);
+      const parsed = rosterRowSchema.safeParse(rowData);
+      if (!parsed.success) {
+        errors.push(`Row ${i + 1}: Invalid row data.`);
         continue;
       }
 
-      validRows.push(rowData as RosterRow);
+      validRows.push(parsed.data);
     }
 
     return { validRows, errors };

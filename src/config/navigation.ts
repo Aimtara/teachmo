@@ -23,7 +23,8 @@ import {
   CreditCard,
   Handshake,
   Globe,
-  ShieldCheck
+  ShieldCheck,
+  type LucideIcon,
 } from 'lucide-react';
 import { isRouteEnabled } from './routes';
 import { isFeatureEnabled } from './features';
@@ -31,44 +32,63 @@ import { canAccess, getDefaultPathForRole, normalizeRole } from './rbac';
 
 export { PUBLIC_PAGES, ROUTE_MAP } from './routes';
 
-export const ROLE_DEFINITIONS = {
-  parent: {
-    label: 'Parent',
-    defaultPage: 'ParentDashboard'
-  },
-  teacher: {
-    label: 'Teacher',
-    defaultPage: 'TeacherDashboard'
-  },
-  school_admin: {
-    label: 'School Admin',
-    defaultPage: 'AdminDashboard'
-  },
-  district_admin: {
-    label: 'District Admin',
-    defaultPage: 'AdminDashboard'
-  },
-  system_admin: {
-    label: 'System Admin',
-    defaultPage: 'AdminDashboard'
-  },
-  partner: {
-    label: 'Partner',
-    defaultPage: 'PartnerPortal'
-  }
+type RoleDefinition = {
+  label: string;
+  defaultPage: string;
 };
 
-export const NAV_STRUCTURE = [
+type FeatureKey =
+  | 'DISCOVER'
+  | 'COMMUNITY'
+  | 'MESSAGING'
+  | 'CALENDAR'
+  | 'TEACHER_CLASSES'
+  | 'TEACHER_ASSIGNMENTS'
+  | 'TEACHER_MESSAGES'
+  | 'ENTERPRISE_SSO'
+  | 'ENTERPRISE_AUDIT_LOGS'
+  | 'ENTERPRISE_FEATURE_FLAGS'
+  | 'ENTERPRISE_AI_GOVERNANCE'
+  | 'ENTERPRISE_AI_REVIEW'
+  | 'ENTERPRISE_SIS_ROSTER'
+  | 'ENTERPRISE_TRANSPARENCY'
+  | 'AI_ASSISTANT'
+  | 'SCHOOL_DIRECTORY';
+
+type NavigationItem = {
+  name: string;
+  page?: string;
+  pageByRole?: Record<string, string>;
+  icon: LucideIcon;
+  roles?: string[];
+  requiredScopes?: string[];
+  mobilePrimary?: boolean;
+  mobileSecondary?: boolean;
+  feature?: FeatureKey;
+  children?: NavigationItem[];
+  badge?: string;
+  label?: string;
+  isPrimary?: boolean;
+};
+
+export const ROLE_DEFINITIONS: Record<string, RoleDefinition> = {
+  parent: { label: 'Parent', defaultPage: 'ParentDashboard' },
+  teacher: { label: 'Teacher', defaultPage: 'TeacherDashboard' },
+  school_admin: { label: 'School Admin', defaultPage: 'AdminDashboard' },
+  district_admin: { label: 'District Admin', defaultPage: 'AdminDashboard' },
+  system_admin: { label: 'System Admin', defaultPage: 'AdminDashboard' },
+  partner: { label: 'Partner', defaultPage: 'PartnerPortal' },
+};
+
+export const NAV_STRUCTURE: NavigationItem[] = [
   {
     name: 'Dashboard',
     page: 'Dashboard',
-    pageByRole: {
-      teacher: 'TeacherDashboard'
-    },
+    pageByRole: { teacher: 'TeacherDashboard' },
     icon: Home,
     roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
     requiredScopes: ['core:dashboard'],
-    mobilePrimary: true
+    mobilePrimary: true,
   },
   {
     name: 'Learning',
@@ -81,8 +101,8 @@ export const NAV_STRUCTURE = [
       { name: 'Achievements', page: 'Achievements', icon: Award, mobileSecondary: true },
       { name: 'Journal', page: 'Journal', icon: FileText, mobileSecondary: true },
       { name: 'Activities', page: 'Activities', icon: Compass, mobileSecondary: true },
-      { name: 'Library', page: 'Library', icon: BookOpen, mobileSecondary: true }
-    ]
+      { name: 'Library', page: 'Library', icon: BookOpen, mobileSecondary: true },
+    ],
   },
   {
     name: 'Community',
@@ -93,8 +113,8 @@ export const NAV_STRUCTURE = [
     children: [
       { name: 'Community Feed', page: 'UnifiedCommunity', icon: Users, mobileSecondary: true },
       { name: 'Messages', page: 'Messages', icon: MessageCircle, badge: '3', mobilePrimary: true, feature: 'MESSAGING' },
-      { name: 'Calendar', page: 'Calendar', icon: Calendar, mobilePrimary: true, feature: 'CALENDAR' }
-    ]
+      { name: 'Calendar', page: 'Calendar', icon: Calendar, mobilePrimary: true, feature: 'CALENDAR' },
+    ],
   },
   {
     name: 'Teaching',
@@ -104,8 +124,8 @@ export const NAV_STRUCTURE = [
     children: [
       { name: 'My Classes', page: 'TeacherClasses', icon: School, mobilePrimary: true, feature: 'TEACHER_CLASSES' },
       { name: 'Assignments', page: 'TeacherAssignments', icon: FileText, mobileSecondary: true, feature: 'TEACHER_ASSIGNMENTS' },
-      { name: 'Teacher Messages', page: 'TeacherMessages', icon: MessageCircle, mobilePrimary: true, feature: 'TEACHER_MESSAGES' }
-    ]
+      { name: 'Teacher Messages', page: 'TeacherMessages', icon: MessageCircle, mobilePrimary: true, feature: 'TEACHER_MESSAGES' },
+    ],
   },
   {
     name: 'Administration',
@@ -130,14 +150,7 @@ export const NAV_STRUCTURE = [
       { name: 'Compliance Center', page: 'AdminCompliance', icon: ShieldCheck, requiredScopes: ['safety:review'] },
       { name: 'Feature Flags', page: 'AdminFeatureFlags', icon: BadgePercent, requiredScopes: ['tenant:manage'], feature: 'ENTERPRISE_FEATURE_FLAGS' },
       { name: 'AI Governance', page: 'AdminAIGovernance', icon: Bot, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_GOVERNANCE' },
-      {
-        name: 'AI Prompts',
-        page: 'AdminAIPrompts',
-        icon: FileText,
-        roles: ['system_admin', 'admin'],
-        requiredScopes: ['safety:review'],
-        feature: 'ENTERPRISE_AI_GOVERNANCE'
-      },
+      { name: 'AI Prompts', page: 'AdminAIPrompts', icon: FileText, roles: ['system_admin', 'admin'], requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_GOVERNANCE' },
       { name: 'AI Review Queue', page: 'AdminAIReviewQueue', icon: Shield, requiredScopes: ['safety:review'], feature: 'ENTERPRISE_AI_REVIEW' },
       { name: 'SIS Roster', page: 'AdminSISRoster', icon: School, requiredScopes: ['directory:manage'], feature: 'ENTERPRISE_SIS_ROSTER' },
       { name: 'Integration Health', page: 'AdminIntegrationHealth', icon: Globe, requiredScopes: ['directory:manage'] },
@@ -145,8 +158,8 @@ export const NAV_STRUCTURE = [
       { name: 'Integration Settings', page: 'AdminIntegrationSettings', icon: Globe, requiredScopes: ['directory:manage'] },
       { name: 'Workflows', page: 'AdminWorkflows', icon: Compass, requiredScopes: ['automation:manage'] },
       { name: 'Message Reports', page: 'AdminModerationQueue', icon: Shield, requiredScopes: ['safety:review'] },
-      { name: 'Messaging Blocks', page: 'AdminMessagingBlocklist', icon: Shield, requiredScopes: ['safety:review'] }
-    ]
+      { name: 'Messaging Blocks', page: 'AdminMessagingBlocklist', icon: Shield, requiredScopes: ['safety:review'] },
+    ],
   },
   {
     name: 'Tools',
@@ -157,8 +170,8 @@ export const NAV_STRUCTURE = [
       { name: 'AI Coach', page: 'AIAssistant', icon: Bot, mobilePrimary: true, feature: 'AI_ASSISTANT' },
       { name: 'AI Transparency', page: 'AITransparency', icon: FileText, mobileSecondary: true, feature: 'ENTERPRISE_TRANSPARENCY' },
       { name: 'School Directory', page: 'SchoolDirectory', icon: School, feature: 'SCHOOL_DIRECTORY' },
-      { name: 'Notifications', page: 'Notifications', icon: Bell }
-    ]
+      { name: 'Notifications', page: 'Notifications', icon: Bell },
+    ],
   },
   {
     name: 'Partner Portal',
@@ -171,8 +184,8 @@ export const NAV_STRUCTURE = [
       { name: 'Incentives', page: 'PartnerIncentives', icon: Award },
       { name: 'Billing', page: 'PartnerBilling', icon: CreditCard },
       { name: 'Submissions', page: 'PartnerSubmissions', icon: FileText },
-      { name: 'Training', page: 'PartnerTraining', icon: BookOpen }
-    ]
+      { name: 'Training', page: 'PartnerTraining', icon: BookOpen },
+    ],
   },
   {
     name: 'Settings',
@@ -180,23 +193,23 @@ export const NAV_STRUCTURE = [
     icon: Settings,
     roles: ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'],
     requiredScopes: ['core:dashboard'],
-    mobileSecondary: true
-  }
+    mobileSecondary: true,
+  },
 ];
 
-const hasAccess = (item, userRole) =>
+const hasAccess = (item: NavigationItem, userRole: string): boolean =>
   canAccess({ role: userRole, allowedRoles: item.roles, requiredScopes: item.requiredScopes });
-const isFeatureVisible = (item) => !item.feature || isFeatureEnabled(item.feature);
+const isFeatureVisible = (item: NavigationItem): boolean => !item.feature || isFeatureEnabled(item.feature);
 
-export function getNavigationForRole(userRole = 'parent') {
+export function getNavigationForRole(userRole = 'parent'): NavigationItem[] {
   const normalizedRole = normalizeRole(userRole);
 
   return NAV_STRUCTURE
     .filter((section) => hasAccess(section, normalizedRole) && isFeatureVisible(section))
     .map((section) => {
-      const baseSection = {
+      const baseSection: NavigationItem = {
         ...section,
-        page: section.pageByRole?.[normalizedRole] || section.page
+        page: section.pageByRole?.[normalizedRole] || section.page,
       };
 
       if (!section.children) return baseSection;
@@ -208,7 +221,7 @@ export function getNavigationForRole(userRole = 'parent') {
             {
               ...child,
               roles: child.roles || section.roles,
-              requiredScopes: child.requiredScopes || section.requiredScopes
+              requiredScopes: child.requiredScopes || section.requiredScopes,
             },
             normalizedRole
           )
@@ -219,13 +232,13 @@ export function getNavigationForRole(userRole = 'parent') {
     })
     .map((section) => ({
       ...section,
-      page: section.page || section.pageByRole?.[normalizedRole]
+      page: section.page || section.pageByRole?.[normalizedRole],
     }))
     .filter((section) => !section.page || isRouteEnabled(section.page))
     .filter((section) => !section.children || section.children.length > 0);
 }
 
-export function getMobileNavigation(userRole = 'parent') {
+export function getMobileNavigation(userRole = 'parent'): NavigationItem[] {
   const normalizedRole = normalizeRole(userRole);
   const nav = getNavigationForRole(normalizedRole);
   const homePage =
@@ -233,7 +246,7 @@ export function getMobileNavigation(userRole = 'parent') {
     ROLE_DEFINITIONS.parent.defaultPage ||
     getDefaultPathForRole(normalizedRole);
 
-  const flattened = [];
+  const flattened: NavigationItem[] = [];
   nav.forEach((section) => {
     if (section.page && (section.mobilePrimary || section.mobileSecondary)) {
       flattened.push({ ...section, isPrimary: Boolean(section.mobilePrimary) });
@@ -248,8 +261,8 @@ export function getMobileNavigation(userRole = 'parent') {
     }
   });
 
-  const uniqueByPage = new Map();
-  flattened.forEach(item => {
+  const uniqueByPage = new Map<string | undefined, NavigationItem>();
+  flattened.forEach((item) => {
     if (!uniqueByPage.has(item.page)) {
       uniqueByPage.set(item.page, item);
     }
@@ -261,7 +274,7 @@ export function getMobileNavigation(userRole = 'parent') {
     label: 'Home',
     name: 'Home',
     page: homePage,
-    isPrimary: true
+    isPrimary: true,
   });
 
   return mobileItems;
