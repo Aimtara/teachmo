@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useLogout } from '@/hooks/useLogout';
@@ -45,11 +45,13 @@ describe('useLogout', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'logout' }));
 
-    expect(cancelSpy).toHaveBeenCalled();
-    expect(signOutMock).toHaveBeenCalled();
-    expect(clearSpy).toHaveBeenCalled();
-    expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBeNull();
-    expect(window.sessionStorage.getItem('teachmo:active-role')).toBeNull();
-    expect(navigateMock).toHaveBeenCalledWith('/login', { replace: true });
+    await waitFor(() => {
+      expect(cancelSpy).toHaveBeenCalled();
+      expect(signOutMock).toHaveBeenCalled();
+      expect(clearSpy).toHaveBeenCalled();
+      expect(window.sessionStorage.getItem('teachmo:onboarding-flow')).toBeNull();
+      expect(window.sessionStorage.getItem('teachmo:active-role')).toBeNull();
+      expect(navigateMock).toHaveBeenCalledWith('/login', { replace: true });
+    });
   });
 });
