@@ -35,6 +35,9 @@ vi.mock('@/utils/logger', () => ({
 
 vi.mock('@/lib/onboardingFlow', () => ({
   ONBOARDING_FLOWS: { PARENT: 'parent', DISTRICT: 'district' },
+  normalizeOnboardingFlow: jest.fn((v) => v || 'parent'),
+  getSavedOnboardingFlowPreference: jest.fn(() => 'district'),
+  saveOnboardingFlowPreference: jest.fn(),
   getSavedOnboardingFlowPreference: vi.fn(() => 'parent'),
   normalizeOnboardingFlow: vi.fn((v) => v || 'parent'),
   saveOnboardingFlowPreference: vi.fn(),
