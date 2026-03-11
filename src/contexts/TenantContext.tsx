@@ -83,6 +83,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   });
   const unauthorizedRecoveryAttemptedRef = useRef(false);
 
+  // Reset the unauthorized recovery guard when the auth session changes
+  useEffect(() => {
+    unauthorizedRecoveryAttemptedRef.current = false;
+  }, [isAuthenticated, user?.id, accessToken]);
+
   useEffect(() => {
     let mounted = true;
 
