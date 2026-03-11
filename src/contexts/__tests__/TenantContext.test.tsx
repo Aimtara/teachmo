@@ -171,7 +171,7 @@ describe('TenantProvider', () => {
     const unauthorizedError = Object.assign(new Error('GraphQL unauthorized'), {
       name: 'GraphQLRequestError',
       normalized: {
-        kind: 'authorization',
+        kind: 'auth',
         code: 'UNAUTHENTICATED',
       },
     });
