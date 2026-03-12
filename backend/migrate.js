@@ -126,11 +126,24 @@ async function applyNhostSchemaMigrations() {
 }
 
 async function ensureNhostBaseSchema() {
-  const shouldBootstrap = String(process.env.AUTO_APPLY_NHOST_SCHEMA || 'true').toLowerCase() !== 'false';
-  if (!shouldBootstrap) return true;
-
   const hasAuditLog = await isAuditLogPresent();
   if (hasAuditLog) return true;
+
+  const shouldBootstrap = String(process.env.AUTO_APPLY_NHOST_SCHEMA || 'true').toLowerCase() !== 'false';
+  if (!shouldBootstrap) {
+    if (REQUIRE_NHOST_BASE_SCHEMA) {
+      throw new Error(
+        'Nhost base schema (public.audit_log) is missing and AUTO_APPLY_NHOST_SCHEMA=false. ' +
+          'Either set AUTO_APPLY_NHOST_SCHEMA=true to bootstrap automatically, or run `nhost up --remote` to apply the base schema manually.'
+      );
+    }
+    console.warn(
+      '⚠️ public.audit_log is missing and AUTO_APPLY_NHOST_SCHEMA=false. ' +
+        'Skipping downstream backend migrations. ' +
+        'Run `nhost up --remote` to apply the base schema manually, then redeploy.'
+    );
+    return false;
+  }
 
   console.log('⚠️ public.audit_log is missing; bootstrapping Nhost base schema from local migrations...');
 
