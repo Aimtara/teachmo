@@ -97,14 +97,14 @@ export default function OAuth2Consent() {
 
     try {
       const consentResponse = await nhost.auth.oauth2LoginPost({
-        requestId,
+        request_id: requestId,
       });
 
       if (consentResponse?.error) {
         throw consentResponse.error;
       }
 
-      const redirectUri = consentResponse?.body?.redirectUri;
+      const redirectUri = consentResponse?.body?.redirectUri || consentResponse?.body?.redirect_uri;
       if (!redirectUri) {
         throw new Error('No redirect URI was returned by Nhost Auth.');
       }
