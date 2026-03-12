@@ -125,7 +125,7 @@ describe('OAuth2Consent – behaviour', () => {
     mockOauth2LoginGet.mockResolvedValue({ body: sampleDetails });
     renderConsent();
     await screen.findByRole('button', { name: /approve and continue/i });
-    expect(screen.getByRole('link', { name: /deny and return home/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /deny access/i })).toBeInTheDocument();
   });
 
   it('disables the approve button while the approval request is in flight', async () => {
