@@ -38,6 +38,14 @@ export const ROUTE_DEFINITIONS = [
     Component: lazy(() => import('@/pages/AuthCallback')),
     isPublic: true
   },
+
+  {
+    name: 'OAuth2Consent',
+    path: '/oauth2/login',
+    Component: lazy(() => import('@/pages/OAuth2Consent')),
+    isPublic: true,
+    fallback: <p className="p-6 text-gray-600">Loading consent page...</p>
+  },
   {
     name: 'UnifiedDiscover',
     path: '/discover',
@@ -157,7 +165,6 @@ export const ROUTE_DEFINITIONS = [
     path: '/onboarding/parent',
     Component: lazy(() => import('@/pages/onboarding/parent')),
     requiresAuth: true,
-    allowedRoles: ['parent'],
     allowedRoles: ['parent'],
     fallback: <p className="p-6 text-gray-600">Loading parent onboarding...</p>
   },

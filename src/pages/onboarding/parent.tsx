@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
-import { useUserRoleState } from '@/hooks/useUserRole';
+import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { nhost } from '@/lib/nhostClient';
+import { clearSavedOnboardingFlowPreference } from '@/lib/onboardingFlow';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -70,6 +71,7 @@ export default function ParentOnboardingPage() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus();
   const { role, loading: roleLoading, needsOnboarding } = useUserRoleState();
+  const defaultPath = getDefaultPathForRole(role);
 
   const defaultValues = useMemo(
     () => ({
@@ -104,7 +106,7 @@ export default function ParentOnboardingPage() {
 
   // Users who have already completed onboarding don't need to be here.
   if (isAuthenticated && !needsOnboarding) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={defaultPath} replace />;
   }
 
   const onSubmit = async (values: ParentFormValues) => {
@@ -178,6 +180,14 @@ export default function ParentOnboardingPage() {
       return;
     }
 
+    try {
+      await nhost.auth.refreshSession();
+    } catch (refreshError) {
+      console.warn('Unable to refresh session after parent onboarding', refreshError);
+    }
+
+    clearSavedOnboardingFlowPreference();
+
     toast({
       title: 'Welcome to Teachmo!',
       description: normalizedSchoolId
@@ -185,7 +195,7 @@ export default function ParentOnboardingPage() {
         : 'Your profile is set up. You can connect a school later from settings.'
     });
 
-    navigate('/dashboard');
+    navigate(getDefaultPathForRole('parent'));
   };
 
   return (
