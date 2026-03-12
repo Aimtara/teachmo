@@ -19,7 +19,7 @@ export type QueuedMutationResponse = {
 };
 
 export type HttpRequestOptions = {
-  method?: string;
-  headers?: Record<string, string>;
-  body?: unknown;
+  method?: RequestInit['method'];
+  headers?: HeadersInit;
+  body?: BodyInit | null;
 };
