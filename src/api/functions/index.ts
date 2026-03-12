@@ -10,8 +10,8 @@ import { logger } from '@/lib/logger';
 
 // Re-export existing functions from the Base44 module to preserve behaviour.
 export const {
-  googleClassroomSync,
-  googleAuth,
+  googleClassroomSync: rawGoogleClassroomSync,
+  googleAuth: rawGoogleAuth,
   syncSISData,
   bulkUserManagement,
   assignDefaultPermissions,
@@ -24,8 +24,8 @@ export const {
   eventSubscriptions,
   realEventSearch,
   // Additional function invokers
-  submitSchoolParticipationRequest,
-  searchSchools,
+  submitSchoolParticipationRequest: rawSubmitSchoolParticipationRequest,
+  searchSchools: rawSearchSchools,
   moderateContent,
   submitReport,
   shortsRecommendations,
@@ -43,6 +43,51 @@ export { orchestrate, orchestrateAction };
 // --- Additional helpers used across the app ---
 
 export type GenericPayload = Record<string, unknown>;
+
+
+export type FunctionEnvelope<T> = { data?: T; error?: string };
+
+
+export type GoogleAuthData = { authUrl?: string; success?: boolean; error?: string };
+export async function googleAuth(params: GenericPayload): Promise<FunctionEnvelope<GoogleAuthData>> {
+  const response = await rawGoogleAuth(params);
+  return (response && typeof response === 'object') ? (response as FunctionEnvelope<GoogleAuthData>) : {};
+}
+
+export type GoogleSyncData = { success?: boolean; totalSynced?: number; error?: string };
+export async function googleClassroomSync(params: GenericPayload): Promise<FunctionEnvelope<GoogleSyncData>> {
+  const response = await rawGoogleClassroomSync(params);
+  return (response && typeof response === 'object') ? (response as FunctionEnvelope<GoogleSyncData>) : {};
+}
+
+export type SearchSchoolRecord = {
+  id?: string;
+  name?: string;
+  district?: string;
+  state?: string;
+  domain?: string;
+  type?: string;
+  status?: 'active' | 'pending' | 'beta';
+  school_id?: string;
+  school_name?: string;
+  district_name?: string;
+  school_domain?: string;
+  school_type?: string;
+};
+
+export type SearchSchoolsData = { success?: boolean; schools?: SearchSchoolRecord[]; error?: string };
+export async function searchSchools(params: GenericPayload): Promise<FunctionEnvelope<SearchSchoolsData>> {
+  const response = await rawSearchSchools(params);
+  return (response && typeof response === 'object') ? (response as FunctionEnvelope<SearchSchoolsData>) : {};
+}
+
+export type SchoolRequestData = { success?: boolean; error?: string; request?: unknown };
+export async function submitSchoolParticipationRequest(
+  params: GenericPayload
+): Promise<FunctionEnvelope<SchoolRequestData>> {
+  const response = await rawSubmitSchoolParticipationRequest(params);
+  return (response && typeof response === 'object') ? (response as FunctionEnvelope<SchoolRequestData>) : {};
+}
 
 // Backwards compatible alias used in some screens.
 export async function getAdvancedAnalytics<TParams = GenericPayload>(params: TParams): Promise<unknown> {
@@ -105,6 +150,10 @@ export async function logAuditEvent<T = GenericPayload>(
 
 const functionsMap = {
   ...base44Functions,
+  googleAuth,
+  googleClassroomSync,
+  searchSchools,
+  submitSchoolParticipationRequest,
   getAdvancedAnalytics,
   logAuditEvent,
   orchestrate,

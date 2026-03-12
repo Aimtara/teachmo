@@ -1,21 +1,11 @@
 import { API_BASE_URL } from '@/config/api';
-import { nhost } from '@/lib/nhostClient';
+import { authHeaders, requestJson } from '@/api/http/client';
+import type { HttpRequestOptions } from '@/types/api';
 
 export async function getAiHeaders(extraHeaders: Record<string, string> = {}) {
-  const token = await nhost.auth.getAccessToken();
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...extraHeaders,
-  };
+  return authHeaders(undefined, extraHeaders);
 }
 
-export async function fetchAiJson(path: string, options: RequestInit = {}) {
-  const headers = await getAiHeaders(options.headers as Record<string, string>);
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Request failed');
-  }
-  return response.json();
+export async function fetchAiJson<T = unknown>(path: string, options: HttpRequestOptions = {}) {
+  return requestJson<T>(`${API_BASE_URL}${path}`, options);
 }

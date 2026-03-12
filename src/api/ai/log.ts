@@ -1,11 +1,7 @@
-import { enqueueRequest } from '@/offline/OfflineStorageManager';
 import { API_BASE_URL } from '@/config/api';
 import { fetchAiJson, getAiHeaders } from './client';
-
-export type TenantScope = {
-  organizationId: string;
-  schoolId?: string | null;
-};
+import { enqueueRequest } from '@/offline/OfflineStorageManager';
+import type { TenantScope, QueuedMutationResponse } from '@/types/api';
 
 export type AiLogPayload = {
   prompt: string;
@@ -29,7 +25,10 @@ export type AiLogPayload = {
   latencyMs?: number | null;
 };
 
-export async function logAiInteraction(_tenant: TenantScope, payload: AiLogPayload) {
+export async function logAiInteraction(
+  _tenant: TenantScope,
+  payload: AiLogPayload
+): Promise<unknown | QueuedMutationResponse> {
   try {
     return await fetchAiJson('/ai/log', {
       method: 'POST',
@@ -42,7 +41,7 @@ export async function logAiInteraction(_tenant: TenantScope, payload: AiLogPaylo
         url: `${API_BASE_URL}/ai/log`,
         method: 'POST',
         headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       return { queued: true };
     }
