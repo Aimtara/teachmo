@@ -1,5 +1,12 @@
 # JavaScript → TypeScript Migration Plan
 
+## 0) Current kickoff status
+
+- Phase 0 is complete: baseline inventory, ownership/risk/sprint mapping, and temporary JavaScript exceptions are tracked in `docs/typescript-migration-tracker.md`.
+- Refresh baseline counts with `npm run migration:ts:inventory`.
+- Phase 1 is in progress: shared foundational types are established, initial typed boundaries are migrated, and a shared typed HTTP client now backs migrated API clients, with expansion into AI/integration clients underway, including additional compatibility boundary modules and retiring JS shims where safe.
+- Next focus: broaden typed wrappers and runtime-validation-backed contracts across remaining API and backend boundaries, building on `zod`-validated integration responses and typed function envelopes.
+
 ## 1) Migration objectives
 
 - Move the repository from mixed JavaScript/TypeScript to **TypeScript-first**, with JavaScript only allowed in explicitly exempt legacy or generated areas.

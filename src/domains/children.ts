@@ -1,6 +1,13 @@
 import { graphqlRequest } from '@/lib/graphql';
 
-export async function addChild({ profileId, firstName, lastName, birthdate }) {
+type AddChildInput = {
+  profileId: string;
+  firstName: string;
+  lastName: string;
+  birthdate?: string | null;
+};
+
+export async function addChild({ profileId, firstName, lastName, birthdate }: AddChildInput) {
   const query = `mutation AddChild($input: children_insert_input!) {
     insert_children_one(object: $input) {
       id
@@ -9,10 +16,21 @@ export async function addChild({ profileId, firstName, lastName, birthdate }) {
       birthdate
     }
   }`;
-  return graphqlRequest({ query, variables: { input: { profile_id: profileId, first_name: firstName, last_name: lastName, birthdate } } });
+
+  return graphqlRequest({
+    query,
+    variables: {
+      input: {
+        profile_id: profileId,
+        first_name: firstName,
+        last_name: lastName,
+        birthdate,
+      },
+    },
+  });
 }
 
-export async function listChildren(profileId) {
+export async function listChildren(profileId: string) {
   const query = `query Children($profileId: uuid!) {
     children(where: { profile_id: { _eq: $profileId } }) {
       id
@@ -21,6 +39,7 @@ export async function listChildren(profileId) {
       birthdate
     }
   }`;
+
   const data = await graphqlRequest({ query, variables: { profileId } });
   return data?.children || [];
 }

@@ -16,7 +16,23 @@ const ACTIVITY_FIELDS = `
   created_at
 `;
 
-function normalizeActivitiesListParams(params = {}) {
+type ActivitiesListParams = {
+  where?: Record<string, unknown>;
+  filter?: Record<string, unknown>;
+  order_by?: string | Record<string, unknown> | Array<Record<string, unknown>>;
+  orderBy?: string | Record<string, unknown> | Array<Record<string, unknown>>;
+  limit?: number;
+  offset?: number;
+} & Record<string, unknown>;
+
+type NormalizedActivitiesListParams = {
+  where?: Record<string, unknown>;
+  limit?: number;
+  offset?: number;
+  order_by: Array<Record<string, unknown>>;
+};
+
+function normalizeActivitiesListParams(params: ActivitiesListParams = {}): NormalizedActivitiesListParams {
   if (!params || typeof params !== 'object') {
     return { where: undefined, limit: undefined, offset: undefined, order_by: [{ created_at: 'desc' }] };
   }
@@ -37,11 +53,11 @@ function normalizeActivitiesListParams(params = {}) {
     where: derivedWhere,
     limit: typeof limit === 'number' ? limit : undefined,
     offset: typeof offset === 'number' ? offset : undefined,
-    order_by: buildOrderBy(order_by ?? orderBy) ?? [{ created_at: 'desc' }]
+    order_by: buildOrderBy(order_by ?? orderBy) ?? [{ created_at: 'desc' }],
   };
 }
 
-function buildOrderBy(order) {
+function buildOrderBy(order: ActivitiesListParams['order_by']): Array<Record<string, unknown>> | undefined {
   if (!order) return undefined;
   if (Array.isArray(order)) return order;
   if (typeof order === 'string') {
@@ -56,7 +72,7 @@ function buildOrderBy(order) {
   return undefined;
 }
 
-export async function listActivities(params = {}) {
+export async function listActivities(params: ActivitiesListParams = {}) {
   const { where, limit, offset, order_by } = normalizeActivitiesListParams(params);
 
   const query = `query Activities($where: activities_bool_exp, $limit: Int, $offset: Int, $order_by: [activities_order_by!]) {
@@ -69,14 +85,14 @@ export async function listActivities(params = {}) {
     where: where && Object.keys(where).length ? where : undefined,
     limit,
     offset,
-    order_by
+    order_by,
   };
 
   const data = await graphqlRequest({ query, variables });
   return data?.activities || [];
 }
 
-export async function getActivity(id) {
+export async function getActivity(id: string | null | undefined) {
   if (!id) return null;
 
   const query = `query Activity($id: uuid!) {
@@ -89,7 +105,7 @@ export async function getActivity(id) {
   return data?.activities_by_pk ?? null;
 }
 
-export async function fetchLibraryItems(activityId) {
+export async function fetchLibraryItems(activityId: string) {
   const query = `query LibraryItems($id: uuid!) {
     library_items(where: { activity_id: { _eq: $id } }) {
       id
