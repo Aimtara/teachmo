@@ -142,4 +142,50 @@ describe('OAuth2Consent – behaviour', () => {
 
     expect(screen.getByRole('button', { name: /approving/i })).toBeDisabled();
   });
+
+  describe('approval redirect handling', () => {
+    let assignHref;
+
+    beforeEach(() => {
+      assignHref = jest.fn();
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, set href(v) { assignHref(v); } },
+        writable: true,
+      });
+      useAuthenticationStatus.mockReturnValue({ isAuthenticated: true, isLoading: false });
+      mockOauth2LoginGet.mockResolvedValue({ body: sampleDetails });
+    });
+
+    async function clickApprove() {
+      renderConsent();
+      const approveBtn = await screen.findByRole('button', { name: /approve and continue/i });
+      await act(async () => {
+        await userEvent.click(approveBtn);
+      });
+    }
+
+    it('redirects to redirectUri (camelCase) from approval response', async () => {
+      mockOauth2LoginPost.mockResolvedValue({
+        body: { redirectUri: 'https://example.com/callback?code=abc' },
+      });
+      await clickApprove();
+      expect(assignHref).toHaveBeenCalledWith('https://example.com/callback?code=abc');
+    });
+
+    it('redirects to redirect_uri (snake_case) from approval response', async () => {
+      mockOauth2LoginPost.mockResolvedValue({
+        body: { redirect_uri: 'https://example.com/callback?code=xyz' },
+      });
+      await clickApprove();
+      expect(assignHref).toHaveBeenCalledWith('https://example.com/callback?code=xyz');
+    });
+
+    it('shows an error when approval response has no redirect URI', async () => {
+      mockOauth2LoginPost.mockResolvedValue({ body: {} });
+      await clickApprove();
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(/no redirect uri/i)
+      );
+    });
+  });
 });
