@@ -5,6 +5,17 @@ import { useAuthenticationStatus } from '@nhost/react';
 import { nhost } from '@/lib/nhostClient';
 import { logger } from '@/observability/logger';
 
+const ALLOWED_REDIRECT_SCHEMES = new Set(['https:', 'http:']);
+
+function isSafeRedirectUri(uri) {
+  try {
+    const { protocol } = new URL(uri);
+    return ALLOWED_REDIRECT_SCHEMES.has(protocol);
+  } catch {
+    return false;
+  }
+}
+
 function ScopeBadge({ scope }) {
   return <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">{scope}</span>;
 }
@@ -109,6 +120,11 @@ export default function OAuth2Consent() {
         throw new Error('No redirect URI was returned by Nhost Auth.');
       }
 
+      if (!isSafeRedirectUri(redirectUri)) {
+        logger.warn('OAuth2 approve: unsafe redirect URI scheme blocked', {});
+        throw new Error('The redirect URI returned by the server uses an unsafe scheme.');
+      }
+
       window.location.href = redirectUri;
     } catch (err) {
       setError(err?.message || 'Could not approve this request.');
@@ -125,14 +141,18 @@ export default function OAuth2Consent() {
     if (clientRedirectUri) {
       try {
         const url = new URL(clientRedirectUri);
-        url.searchParams.set('error', 'access_denied');
-        url.searchParams.set('error_description', 'The resource owner denied the authorization request.');
-        const state = requestDetails?.state;
-        if (state) {
-          url.searchParams.set('state', state);
+        if (!isSafeRedirectUri(clientRedirectUri)) {
+          logger.warn('OAuth2 deny: unsafe redirect URI scheme blocked, falling back to home', {});
+        } else {
+          url.searchParams.set('error', 'access_denied');
+          url.searchParams.set('error_description', 'The resource owner denied the authorization request.');
+          const state = requestDetails?.state;
+          if (state) {
+            url.searchParams.set('state', state);
+          }
+          window.location.href = url.toString();
+          return;
         }
-        window.location.href = url.toString();
-        return;
       } catch (err) {
         logger.warn('OAuth2 deny: invalid redirect URI, falling back to home', { error: err });
       }

@@ -142,4 +142,44 @@ describe('OAuth2Consent – behaviour', () => {
 
     expect(screen.getByRole('button', { name: /approving/i })).toBeDisabled();
   });
+
+  it('shows an error when the approve response redirect URI has a dangerous scheme', async () => {
+    useAuthenticationStatus.mockReturnValue({ isAuthenticated: true, isLoading: false });
+    mockOauth2LoginGet.mockResolvedValue({ body: sampleDetails });
+    mockOauth2LoginPost.mockResolvedValue({
+      body: { redirect_uri: 'javascript:alert(1)' },
+    });
+
+    renderConsent();
+    const approveBtn = await screen.findByRole('button', { name: /approve and continue/i });
+
+    await act(async () => {
+      await userEvent.click(approveBtn);
+    });
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(screen.getByRole('alert')).toHaveTextContent(/unsafe scheme/i);
+  });
+
+  it('falls back to home when deny redirect URI has a dangerous scheme', async () => {
+    const originalHref = window.location.href;
+    delete window.location;
+    window.location = { href: originalHref };
+
+    useAuthenticationStatus.mockReturnValue({ isAuthenticated: true, isLoading: false });
+    mockOauth2LoginGet.mockResolvedValue({
+      body: { ...sampleDetails, redirectUri: 'data:text/html,<script>alert(1)</script>' },
+    });
+
+    renderConsent();
+    const denyBtn = await screen.findByRole('button', { name: /deny access/i });
+
+    await act(async () => {
+      await userEvent.click(denyBtn);
+    });
+
+    expect(window.location.href).toBe('/');
+
+    window.location = { href: originalHref };
+  });
 });
