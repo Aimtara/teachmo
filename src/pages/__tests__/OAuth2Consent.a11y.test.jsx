@@ -29,7 +29,7 @@ const mockOauth2LoginPost = nhost.auth.oauth2LoginPost;
 
 function renderConsent(search = '?request_id=test-req-1') {
   return render(
-    <MemoryRouter initialEntries={[`/oauth2/consent${search}`]}>
+    <MemoryRouter initialEntries={[`/oauth2/login${search}`]}>
       <OAuth2Consent />
     </MemoryRouter>
   );
