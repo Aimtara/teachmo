@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
 import { nhost } from '@/lib/nhostClient';
+import { logger } from '@/observability/logger';
 
 function ScopeBadge({ scope }) {
   return <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">{scope}</span>;
@@ -16,6 +17,7 @@ export default function OAuth2Consent() {
   const [requestDetails, setRequestDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [loadingApprove, setLoadingApprove] = useState(false);
+  const [loadingDeny, setLoadingDeny] = useState(false);
   const [error, setError] = useState('');
 
   const [email, setEmail] = useState('');
@@ -114,6 +116,31 @@ export default function OAuth2Consent() {
     }
   };
 
+  const handleDeny = () => {
+    if (loadingDeny) return;
+
+    setLoadingDeny(true);
+
+    const clientRedirectUri = requestDetails?.redirectUri || requestDetails?.redirect_uri;
+    if (clientRedirectUri) {
+      try {
+        const url = new URL(clientRedirectUri);
+        url.searchParams.set('error', 'access_denied');
+        url.searchParams.set('error_description', 'The resource owner denied the authorization request.');
+        const state = requestDetails?.state;
+        if (state) {
+          url.searchParams.set('state', state);
+        }
+        window.location.href = url.toString();
+        return;
+      } catch (err) {
+        logger.warn('OAuth2 deny: invalid redirect URI, falling back to home', { error: err });
+      }
+    }
+
+    window.location.href = '/';
+  };
+
   const clientId = requestDetails?.clientId || requestDetails?.client_id;
   const redirectUri = requestDetails?.redirectUri || requestDetails?.redirect_uri;
   const scopes = requestDetails?.scopes || [];
@@ -208,12 +235,14 @@ export default function OAuth2Consent() {
                 >
                   {loadingApprove ? 'Approving…' : 'Approve and continue'}
                 </button>
-                <Link
-                  to="/"
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                <button
+                  type="button"
+                  onClick={handleDeny}
+                  disabled={loadingDeny || loadingApprove}
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Deny and return home
-                </Link>
+                  {loadingDeny ? 'Denying…' : 'Deny access'}
+                </button>
               </div>
             )}
           </>
