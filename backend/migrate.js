@@ -8,16 +8,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
-
 function boolEnv(name, defaultValue = false) {
-  const value = process.env[name];
-  if (value === undefined || value === null || value === '') return defaultValue;
-  return String(value).toLowerCase() === 'true';
+  const v = process.env[name];
+  if (v === undefined || v === null || v === '') return defaultValue;
+  return String(v).toLowerCase() === 'true';
 }
 
-// Render-safe default:
-// - if nhost migration files are not available in the runtime image, warn and continue.
-// Set REQUIRE_NHOST_BASE_SCHEMA=true to enforce strict startup.
+// Default behavior is render-safe:
+// - If local nhost/migrations are missing in the container, we warn + continue.
+// Set REQUIRE_NHOST_BASE_SCHEMA=true to make startup fail instead.
 const REQUIRE_NHOST_BASE_SCHEMA = boolEnv('REQUIRE_NHOST_BASE_SCHEMA', false);
 
 async function ensureMigrationsTable() {
@@ -88,35 +87,6 @@ async function isAuditLogPresent() {
 }
 
 
-async function bootstrapEssentialBaseTables() {
-  console.warn('⚠️ Falling back to minimal base schema bootstrap (public.audit_log only).');
-
-  await query(`
-    CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-    CREATE TABLE IF NOT EXISTS public.audit_log (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      created_at timestamptz NOT NULL DEFAULT now(),
-      actor_id uuid NOT NULL,
-      action text NOT NULL,
-      entity_type text NOT NULL,
-      entity_id uuid NULL,
-      metadata jsonb NOT NULL DEFAULT '{}'::jsonb
-    );
-
-    CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON public.audit_log(created_at DESC);
-    CREATE INDEX IF NOT EXISTS audit_log_actor_id_idx ON public.audit_log(actor_id);
-    CREATE INDEX IF NOT EXISTS audit_log_entity_idx ON public.audit_log(entity_type, entity_id);
-  `);
-
-  const marker = 'nhost:fallback:minimal-audit-log';
-  if (!(await alreadyApplied(marker))) {
-    await recordApplied(marker);
-  }
-
-  console.log('✅ Minimal base schema bootstrap completed');
-}
-
 function resolveNhostMigrationsDir() {
   if (process.env.NHOST_MIGRATIONS_DIR) {
     return path.resolve(process.env.NHOST_MIGRATIONS_DIR);
@@ -132,8 +102,10 @@ async function applyNhostSchemaMigrations() {
   if (upFiles.length === 0) {
     console.warn(`⚠️ No Nhost migration files found at ${nhostMigrationsDir}; skipping Nhost schema bootstrap.`);
     if (REQUIRE_NHOST_BASE_SCHEMA) {
-      console.warn(
-        '⚠️ REQUIRE_NHOST_BASE_SCHEMA=true, so the migration runner will require base schema presence after fallback checks.'
+      throw new Error(
+        `Nhost base schema is required but no local migration files were found at: ${nhostMigrationsDir}. ` +
+          'Either ship/copy nhost/migrations into the runtime image (and set NHOST_MIGRATIONS_DIR), ' +
+          'or run `nhost up --remote` against the target database.'
       );
     }
     return false;
@@ -155,10 +127,10 @@ async function applyNhostSchemaMigrations() {
 
 async function ensureNhostBaseSchema() {
   const shouldBootstrap = String(process.env.AUTO_APPLY_NHOST_SCHEMA || 'true').toLowerCase() !== 'false';
-  if (!shouldBootstrap) return;
+  if (!shouldBootstrap) return true;
 
   const hasAuditLog = await isAuditLogPresent();
-  if (hasAuditLog) return;
+  if (hasAuditLog) return true;
 
   console.log('⚠️ public.audit_log is missing; bootstrapping Nhost base schema from local migrations...');
 
@@ -169,30 +141,24 @@ async function ensureNhostBaseSchema() {
     console.warn('⚠️ Nhost schema bootstrap skipped/failed (non-fatal):', error?.message || error);
   }
 
-  let hasAuditLogAfterBootstrap = await isAuditLogPresent();
-  if (!hasAuditLogAfterBootstrap) {
-    try {
-      await bootstrapEssentialBaseTables();
-      hasAuditLogAfterBootstrap = await isAuditLogPresent();
-    } catch (error) {
-      if (REQUIRE_NHOST_BASE_SCHEMA) throw error;
-      console.warn('⚠️ Minimal base schema fallback failed (non-fatal):', error?.message || error);
-    }
-  }
-
+  const hasAuditLogAfterBootstrap = await isAuditLogPresent();
   if (!hasAuditLogAfterBootstrap) {
     if (REQUIRE_NHOST_BASE_SCHEMA) {
       throw new Error(
-        'Nhost schema bootstrap/fallback completed but public.audit_log is still missing. Ensure local nhost migrations are up to date or run `nhost up --remote`.'
+        'Nhost schema bootstrap completed but public.audit_log is still missing. Ensure local nhost migrations are up to date or run `nhost up --remote`.'
       );
     }
 
     console.warn(
-      '⚠️ public.audit_log is still missing after bootstrap + fallback attempts. ' +
+      '⚠️ public.audit_log is still missing after attempted bootstrap. ' +
         'Continuing startup because REQUIRE_NHOST_BASE_SCHEMA=false. ' +
         'Recommended fix: run `nhost link` then `nhost up --remote` to apply the base schema to the remote DB.'
     );
+
+    return false;
   }
+
+  return true;
 }
 
 
@@ -295,7 +261,14 @@ export async function runMigrations() {
     await ensureMigrationsTable();
 
     console.log('➡️ Migration phase 1/2: upstream Nhost base schema');
-    await ensureNhostBaseSchema();
+    const hasRequiredBaseSchema = await ensureNhostBaseSchema();
+
+    if (!hasRequiredBaseSchema) {
+      console.warn(
+        '⚠️ Skipping downstream backend migrations because required Nhost base schema is unavailable and strict mode is disabled.'
+      );
+      return;
+    }
 
     console.log('➡️ Migration phase 2/2: downstream backend schema updates');
     await applyBackendMigrations();
