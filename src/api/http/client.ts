@@ -26,7 +26,11 @@ export async function requestJson<T>(
 
   try {
     const res = await fetch(url, { ...options, headers });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      const detail = body ? `: ${body.slice(0, 200)}` : '';
+      throw new Error(`HTTP ${res.status}${detail}`);
+    }
 
     if (options.method === 'HEAD') return {} as T;
     if (res.status === 204) return {} as T;
@@ -55,6 +59,10 @@ export async function requestJson<T>(
 export async function requestBlob(url: string, tenant?: TenantScope, options: HttpRequestOptions = {}): Promise<Blob> {
   const headers = await authHeaders(tenant, options.headers);
   const res = await fetch(url, { ...options, headers });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    const detail = body ? `: ${body.slice(0, 200)}` : '';
+    throw new Error(`HTTP ${res.status}${detail}`);
+  }
   return res.blob();
 }
