@@ -1,21 +1,21 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-03-11T22:50:48.534Z
+Generated: 2026-03-12T19:25:35.969Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 218 |
+| .js | 204 |
 | .jsx | 512 |
-| .ts | 256 |
+| .ts | 270 |
 | .tsx | 35 |
 
 ## JS/TS inventory by top-level directory
 
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
-| src | 33 | 511 | 148 | 35 |
+| src | 19 | 511 | 162 | 35 |
 | backend | 147 | 0 | 6 | 0 |
 | nhost | 30 | 0 | 86 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
@@ -62,6 +62,17 @@ Generated: 2026-03-11T22:50:48.534Z
 - [x] Migrated shared audit diff utility from `src/utils/auditDiff.js` to `src/utils/auditDiff.ts` with explicit change-entry typing.
 - [x] Migrated navigation config from `src/config/navigation.js` to `src/config/navigation.ts` with explicit navigation item typing and role-aware helpers.
 - [x] Migrated layout barrel export from `src/components/layout/index.js` to `src/components/layout/index.ts` to reduce JS compatibility surface.
+- [x] Migrated domain barrel export from `src/domain/index.js` to `src/domain/index.ts` to reduce shared JS surface area.
+- [x] Migrated React Query client helper from `src/lib/queryClient.js` to `src/lib/queryClient.ts` to shrink shared JS utility surface area.
+- [x] Migrated active role session helper from `src/lib/activeRole.js` to `src/lib/activeRole.ts` with explicit role/null typing.
+- [x] Migrated onboarding flow session helper from `src/lib/onboardingFlow.js` to `src/lib/onboardingFlow.ts` with explicit flow and path typing.
+- [x] Migrated domain API modules (`src/domain/{assignments,learners,messaging,orgs}.js`) to TypeScript to reduce shared JS slice surface area.
+- [x] Migrated i18n bootstrap from `src/i18n.js` to `src/i18n.ts` to reduce root-level shared JS setup surface.
+- [x] Migrated Vitest setup bootstrap from `src/test/setup.js` to `src/test/setup.ts` and updated config references.
+- [x] Migrated events domain module from `src/domains/events.js` to `src/domains/events.ts` with typed list/filter params.
+- [x] Migrated children domain module from `src/domains/children.js` to `src/domains/children.ts` with typed mutation/query params.
+- [x] Migrated messages domain module from `src/domains/messages.js` to `src/domains/messages.ts` with typed pagination and moderation inputs.
+- [x] Migrated activities domain module from `src/domains/activities.js` to `src/domains/activities.ts` with typed list/order params.
 - [ ] Continue applying the shared HTTP client and runtime-validation-backed contracts across remaining API modules and backend integration boundaries.
 
 ## Phase 0 kickoff checklist

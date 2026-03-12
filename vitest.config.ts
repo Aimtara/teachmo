@@ -19,7 +19,7 @@ export default defineConfig({
     // Default to jsdom for UI tests.
     environment: 'jsdom',
     // Use a Vitest-specific setup file so legacy Jest-style tests can run under Vitest.
-    setupFiles: ['./setupVitest.js', './src/test/setup.js'],
+    setupFiles: ['./setupVitest.js', './src/test/setup.ts'],
     globals: true,
     coverage: {
       provider: 'v8',

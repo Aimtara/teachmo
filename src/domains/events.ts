@@ -1,6 +1,13 @@
 import { graphqlRequest } from '@/lib/graphql';
 
-export async function createEvent(input) {
+type EventListParams = {
+  schoolId?: string | null;
+  school_id?: string | null;
+  limit?: number;
+  offset?: number;
+};
+
+export async function createEvent(input: Record<string, unknown>) {
   const query = `mutation CreateEvent($input: events_insert_input!) {
     insert_events_one(object: $input) {
       id
@@ -12,7 +19,7 @@ export async function createEvent(input) {
   return graphqlRequest({ query, variables: { input } });
 }
 
-export async function listEvents(params = {}) {
+export async function listEvents(params: EventListParams | string | null = {}) {
   const normalizedParams = params && typeof params === 'object' && !Array.isArray(params)
     ? params
     : { schoolId: params };
