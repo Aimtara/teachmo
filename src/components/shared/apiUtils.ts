@@ -171,7 +171,8 @@ export const withGracefulDegradation = <TArgs extends unknown[], TResult>(
     try {
       return await fn(...args);
     } catch (error) {
-      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback.`, error);
+      const errorSummary = error instanceof Error ? error.message : String(error);
+      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback. Reason: ${errorSummary}`);
       return fallbackValue;
     }
   };
