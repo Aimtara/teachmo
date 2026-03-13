@@ -62,6 +62,12 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
       let attempt = 0;
 
       const executeOperation = async (): Promise<APIResponse<T>> => {
+        // If a previous call exhausted its retries, reset the attempt counter
+        // so that a new, user-triggered retry starts a fresh retry cycle.
+        if (attempt >= retries) {
+          attempt = 0;
+        }
+
         try {
           const startTime = Date.now();
           const result = await operation();
