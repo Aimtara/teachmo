@@ -46,10 +46,20 @@ export const CsvRosterService = {
 
       const parsed = rosterRowSchema.safeParse(rowData);
       if (!parsed.success) {
-        const reasons = parsed.error.issues
-          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-          .join('; ');
-        errors.push(`Row ${i + 1}: Invalid row data – ${reasons}`);
+        // Aggregate per-field validation issues to help users correct specific columns.
+        if (!parsed.error.issues.length) {
+          errors.push(`Row ${i + 1}: Validation failed for unknown reason.`);
+          continue;
+        }
+
+        const issueMessages = parsed.error.issues.map((issue) => {
+          const path = issue.path.join('.');
+          return path ? `${path}: ${issue.message}` : issue.message;
+        });
+        const details = issueMessages.join('; ');
+        const truncatedDetails =
+          details.length > 500 ? `${details.slice(0, 497)}...` : details;
+        errors.push(`Row ${i + 1}: ${truncatedDetails}`);
         continue;
       }
 

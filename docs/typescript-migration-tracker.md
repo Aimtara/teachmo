@@ -1,21 +1,21 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-03-12T19:25:35.969Z
+Generated: 2026-03-12T23:54:23.550Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 204 |
+| .js | 194 |
 | .jsx | 512 |
-| .ts | 270 |
+| .ts | 280 |
 | .tsx | 35 |
 
 ## JS/TS inventory by top-level directory
 
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
-| src | 19 | 511 | 162 | 35 |
+| src | 9 | 511 | 172 | 35 |
 | backend | 147 | 0 | 6 | 0 |
 | nhost | 30 | 0 | 86 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
@@ -73,6 +73,16 @@ Generated: 2026-03-12T19:25:35.969Z
 - [x] Migrated children domain module from `src/domains/children.js` to `src/domains/children.ts` with typed mutation/query params.
 - [x] Migrated messages domain module from `src/domains/messages.js` to `src/domains/messages.ts` with typed pagination and moderation inputs.
 - [x] Migrated activities domain module from `src/domains/activities.js` to `src/domains/activities.ts` with typed list/order params.
+- [x] Migrated submissions domain module from `src/domains/submissions.js` to `src/domains/submissions.ts` with typed mutation/query params.
+- [x] Migrated calendar domain module from `src/domains/calendar.js` to `src/domains/calendar.ts` with typed filter/date-window params.
+- [x] Migrated execution board domain module from `src/domains/executionBoard.js` to `src/domains/executionBoard.ts` with typed HTTP/query helpers.
+- [x] Migrated messaging domain module from `src/domains/messaging.js` to `src/domains/messaging.ts` with typed thread/message inputs.
+- [x] Migrated ops orchestrator domain module from `src/domains/opsOrchestrator.js` to `src/domains/opsOrchestrator.ts` with typed ops request helpers.
+- [x] Migrated command center domain module from `src/domains/commandCenter.js` to `src/domains/commandCenter.ts` with typed action/audit inputs.
+- [x] Migrated orchestrator domain module from `src/domains/orchestrator.js` to `src/domains/orchestrator.ts` with typed run/action helpers.
+- [x] Migrated auth domain module from `src/domains/auth.js` to `src/domains/auth.ts` with typed profile lookup/mutation inputs.
+- [x] Migrated audit log domain module from `src/domains/auditLog.js` to `src/domains/auditLog.ts` with typed sanitization/log input helpers.
+- [x] Completed Phase 1 foundation hardening: shared HTTP/runtime-validation boundaries are applied across targeted API/domain modules; remaining `src/**/*.js` files are intentional mocks/tests/generated adapters tracked in the JS exception register.
 - [ ] Continue applying the shared HTTP client and runtime-validation-backed contracts across remaining API modules and backend integration boundaries.
 
 ## Phase 0 kickoff checklist

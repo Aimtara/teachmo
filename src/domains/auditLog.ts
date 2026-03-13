@@ -25,31 +25,53 @@ const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 const PHONE_RE = /(?:\+?\d[\d()\s-]{6,}\d)/;
 const LONG_TOKEN_RE = /[A-Za-z0-9+/_=-]{32,}/;
 
-function byteLen(str) {
+type Flags = {
+  truncated: boolean;
+  redacted: boolean;
+};
+
+type AuditInput = {
+  action: string;
+  entityType: string;
+  entityId?: string | null;
+  metadata?: Record<string, unknown>;
+  before?: unknown;
+  after?: unknown;
+  changes?: unknown;
+  containsPii?: boolean | null;
+};
+
+type ListAuditInput = {
+  entityType?: string;
+  entityId?: string;
+  limit?: number;
+};
+
+function byteLen(str: unknown): number {
   try {
-    return new TextEncoder().encode(str).length;
+    return new TextEncoder().encode(String(str ?? '')).length;
   } catch {
     return String(str || '').length;
   }
 }
 
-function isSensitiveKey(key) {
+function isSensitiveKey(key: unknown): boolean {
   return SENSITIVE_KEY_RE.test(String(key || ''));
 }
 
-function looksSensitiveValue(value) {
+function looksSensitiveValue(value: unknown): boolean {
   const v = String(value || '').trim();
   if (!v) return false;
   return EMAIL_RE.test(v) || PHONE_RE.test(v) || LONG_TOKEN_RE.test(v);
 }
 
-function truncateString(value, max) {
+function truncateString(value: unknown, max: number): { value: string; truncated: boolean } {
   const s = String(value ?? '');
   if (s.length <= max) return { value: s, truncated: false };
   return { value: s.slice(0, max) + '…', truncated: true };
 }
 
-function sanitizeAny(value, depth, flags) {
+function sanitizeAny(value: unknown, depth: number, flags: Flags): unknown {
   if (depth > LIMITS.maxDepth) {
     flags.truncated = true;
     return '[TRUNCATED]';
@@ -82,11 +104,11 @@ function sanitizeAny(value, depth, flags) {
   }
 
   if (typeof value === 'object') {
-    const obj = value;
+    const obj = value as Record<string, unknown>;
     const keys = Object.keys(obj).slice(0, LIMITS.maxKeys);
     if (Object.keys(obj).length > LIMITS.maxKeys) flags.truncated = true;
 
-    const out = {};
+    const out: Record<string, unknown> = {};
     for (const k of keys) {
       if (isSensitiveKey(k)) {
         flags.redacted = true;
@@ -113,7 +135,7 @@ function sanitizeAny(value, depth, flags) {
   return String(value);
 }
 
-function boundJson(value, maxBytes, flags) {
+function boundJson(value: unknown, maxBytes: number, flags: Flags): unknown {
   try {
     const json = JSON.stringify(value);
     if (byteLen(json) <= maxBytes) return value;
@@ -121,18 +143,18 @@ function boundJson(value, maxBytes, flags) {
     // fall through
   }
 
-  // Last resort: drop payload.
   flags.truncated = true;
   return { __dropped: true };
 }
 
-function sanitizeAndBound(value, maxBytes) {
-  const flags = { truncated: false, redacted: false };
+function sanitizeAndBound(value: unknown, maxBytes: number): { value: unknown } & Flags {
+  const flags: Flags = { truncated: false, redacted: false };
   const sanitized = sanitizeAny(value, 0, flags);
   const bounded = boundJson(sanitized, maxBytes, flags);
   return { value: bounded, ...flags };
 }
-export async function writeAuditLog(input) {
+
+export async function writeAuditLog(input: AuditInput) {
   const mutation = `
     mutation InsertAuditLog($object: audit_log_insert_input!) {
       insert_audit_log_one(object: $object) {
@@ -150,7 +172,9 @@ export async function writeAuditLog(input) {
 
   const meta = sanitizeAndBound(rawMetadata, LIMITS.maxMetadataBytes);
   const safeMeta =
-    meta.value && typeof meta.value === 'object' && !Array.isArray(meta.value) ? meta.value : { value: meta.value };
+    meta.value && typeof meta.value === 'object' && !Array.isArray(meta.value)
+      ? (meta.value as Record<string, unknown>)
+      : { value: meta.value };
   const before = input.before
     ? sanitizeAndBound(input.before, LIMITS.maxSnapshotBytes)
     : { value: null, truncated: false, redacted: false };
@@ -158,15 +182,12 @@ export async function writeAuditLog(input) {
     ? sanitizeAndBound(input.after, LIMITS.maxSnapshotBytes)
     : { value: null, truncated: false, redacted: false };
 
-  // Surface truncation/redaction in a low-noise way.
   const metadata = {
     ...safeMeta,
     ...(meta.truncated || before.truncated || after.truncated ? { meta_truncated: true } : {}),
     ...(meta.redacted || before.redacted || after.redacted ? { meta_redacted: true } : {}),
   };
 
-  // actor_id is set server-side via Hasura insert permissions using X-Hasura-User-Id.
-  // Do not send actor_id from the client to avoid permission mismatches.
   const object = {
     action: input.action,
     entity_type: input.entityType,
@@ -181,7 +202,7 @@ export async function writeAuditLog(input) {
   return data?.insert_audit_log_one ?? null;
 }
 
-export async function listAuditLog({ entityType, entityId, limit = 80 } = {}) {
+export async function listAuditLog({ entityType, entityId, limit = 80 }: ListAuditInput = {}) {
   const query = `query AuditLog($where: audit_log_bool_exp!, $limit: Int!) {
     audit_log(where: $where, order_by: { created_at: desc }, limit: $limit) {
       id

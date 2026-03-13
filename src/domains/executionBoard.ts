@@ -2,20 +2,28 @@ import { API_BASE_URL } from '@/config/api';
 
 const INTERNAL_KEY = import.meta.env.VITE_INTERNAL_API_KEY;
 
-function headers(extra = {}) {
-  const h = {
+type QueryParams = Record<string, string | number | boolean | null | undefined>;
+
+type HttpOptions = {
+  method?: string;
+  body?: Record<string, unknown>;
+  actor?: string;
+};
+
+function headers(extra: Record<string, string> = {}) {
+  const h: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...extra
+    ...extra,
   };
   if (INTERNAL_KEY) h['x-internal-key'] = INTERNAL_KEY;
   return h;
 }
 
-async function http(path, { method = 'GET', body, actor } = {}) {
+async function http(path: string, { method = 'GET', body, actor }: HttpOptions = {}) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers: headers(actor ? { 'x-actor': actor } : {}),
-    body: body ? JSON.stringify(body) : undefined
+    body: body ? JSON.stringify(body) : undefined,
   });
 
   if (!res.ok) {
@@ -32,62 +40,60 @@ async function http(path, { method = 'GET', body, actor } = {}) {
   return res.json();
 }
 
+function toQueryString(params: QueryParams = {}): string {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.set(k, String(v));
+  });
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
+
 export function getExecutionBoard() {
   return http('/execution-board/board');
 }
 
-export function updateExecutionEpic(id, patch, actor) {
+export function updateExecutionEpic(id: string, patch: Record<string, unknown>, actor?: string) {
   return http(`/execution-board/epics/${id}`, { method: 'PATCH', body: patch, actor });
 }
 
-export function updateExecutionGate(gate, patch, actor) {
+export function updateExecutionGate(gate: string, patch: Record<string, unknown>, actor?: string) {
   return http(`/execution-board/gates/${gate}`, { method: 'PATCH', body: patch, actor });
 }
 
-export function createExecutionSlice(payload, actor) {
+export function createExecutionSlice(payload: Record<string, unknown>, actor?: string) {
   return http('/execution-board/slices', { method: 'POST', body: payload, actor });
 }
 
-export function updateExecutionSlice(id, patch, actor) {
+export function updateExecutionSlice(id: string, patch: Record<string, unknown>, actor?: string) {
   return http(`/execution-board/slices/${id}`, { method: 'PATCH', body: patch, actor });
 }
 
-export function deleteExecutionSlice(id, actor) {
+export function deleteExecutionSlice(id: string, actor?: string) {
   return http(`/execution-board/slices/${id}`, { method: 'DELETE', actor });
 }
 
-export function addExecutionDependency(dep, actor) {
+export function addExecutionDependency(dep: Record<string, unknown>, actor?: string) {
   return http('/execution-board/dependencies', { method: 'POST', body: dep, actor });
 }
 
-export function removeExecutionDependency(id, actor) {
+export function removeExecutionDependency(id: string, actor?: string) {
   return http(`/execution-board/dependencies/${id}`, { method: 'DELETE', actor });
 }
 
-export function listExecutionAudit(params = {}) {
-  const query = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') query.set(k, String(v));
-  });
-  const qs = query.toString();
-  return http(`/execution-board/audit${qs ? `?${qs}` : ''}`);
+export function listExecutionAudit(params: QueryParams = {}) {
+  return http(`/execution-board/audit${toQueryString(params)}`);
 }
 
-export function createOrchestratorAction(payload, actor) {
+export function createOrchestratorAction(payload: Record<string, unknown>, actor?: string) {
   return http('/execution-board/orchestrator-actions', { method: 'POST', body: payload, actor });
 }
 
-export function listOrchestratorActions(params = {}) {
-  const query = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') query.set(k, String(v));
-  });
-  const qs = query.toString();
-  return http(`/execution-board/orchestrator-actions${qs ? `?${qs}` : ''}`);
+export function listOrchestratorActions(params: QueryParams = {}) {
+  return http(`/execution-board/orchestrator-actions${toQueryString(params)}`);
 }
 
-export function exportExecutionBoardCsv(entity) {
-  // Use fetch so we can include the internal key header when enabled.
+export function exportExecutionBoardCsv(entity: string) {
   const url = `${API_BASE_URL}/execution-board/export?entity=${encodeURIComponent(entity)}&format=csv`;
   return fetch(url, { headers: headers() })
     .then(async (res) => {
