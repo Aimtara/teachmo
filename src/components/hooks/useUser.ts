@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import backendAdapter from '@/backend/adapter';
+import type { BackendUser } from '@/backend/types';
 
 export const useUser = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<BackendUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -20,7 +21,7 @@ export const useUser = () => {
       }
     };
 
-    fetchUser();
+    void fetchUser();
   }, []);
 
   return { user, isLoading, error };

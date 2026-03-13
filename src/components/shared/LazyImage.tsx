@@ -1,20 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const LazyImage = ({ src, alt, className, skeletonClassName }) => {
+type LazyImageProps = {
+  src: string;
+  alt: string;
+  className?: string;
+  skeletonClassName?: string;
+};
+
+const LazyImage = ({ src, alt, className = '', skeletonClassName = '' }: LazyImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
-  const imgRef = useRef();
+  const imgRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           setIsInView(true);
           observer.disconnect();
         }
       },
-      { rootMargin: '100px' }
+      { rootMargin: '100px' },
     );
 
     if (imgRef.current) {
@@ -22,17 +29,16 @@ const LazyImage = ({ src, alt, className, skeletonClassName }) => {
     }
 
     return () => {
-      if(imgRef.current) {
+      if (imgRef.current) {
         observer.unobserve(imgRef.current);
       }
+      observer.disconnect();
     };
   }, []);
 
   return (
     <div ref={imgRef} className={`relative ${className}`}>
-      {!isLoaded && (
-        <Skeleton className={`absolute inset-0 w-full h-full ${skeletonClassName}`} />
-      )}
+      {!isLoaded && <Skeleton className={`absolute inset-0 w-full h-full ${skeletonClassName}`} />}
       {isInView && (
         <img
           src={src}
@@ -47,5 +53,4 @@ const LazyImage = ({ src, alt, className, skeletonClassName }) => {
 };
 
 export default LazyImage;
-
 export { LazyImage };

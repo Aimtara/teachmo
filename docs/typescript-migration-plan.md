@@ -4,8 +4,9 @@
 
 - Phase 0 is complete: baseline inventory, ownership/risk/sprint mapping, and temporary JavaScript exceptions are tracked in `docs/typescript-migration-tracker.md`.
 - Refresh baseline counts with `npm run migration:ts:inventory`.
-- Phase 1 is in progress: shared foundational types are established, initial typed boundaries are migrated, and a shared typed HTTP client now backs migrated API clients, with expansion into AI/integration clients underway, including additional compatibility boundary modules and retiring JS shims where safe.
-- Next focus: broaden typed wrappers and runtime-validation-backed contracts across remaining API and backend boundaries, building on `zod`-validated integration responses and typed function envelopes.
+- Phase 1 is complete: foundational shared types, typed HTTP/API boundaries, and runtime-validation-backed integration contracts are in place across targeted API/domain modules.
+- Phase 2 has started: frontend vertical-slice migration is underway, beginning with hook/state utilities to reduce `src/components/hooks` JavaScript surface area.
+- Next focus: continue Phase 2 slice-by-slice conversion (`hooks/state` → shared UI primitives → feature components/routes) while preserving lint/typecheck/test parity on each slice.
 
 ## 1) Migration objectives
 

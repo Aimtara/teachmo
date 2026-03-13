@@ -1,19 +1,24 @@
-import React from 'react';
+import { ChangeEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from './InternationalizationProvider';
 import { useStore } from '@/components/hooks/useStore';
 import { isFeatureEnabled } from '@/utils/featureFlags';
 
-const localeLabels = {
+const localeLabels: Record<string, string> = {
   en: 'English',
   es: 'Español',
   zh: '中文',
 };
 
-export default function LanguageSwitcher({ className = '' }) {
+type LanguageSwitcherProps = {
+  className?: string;
+};
+
+export default function LanguageSwitcher({ className = '' }: LanguageSwitcherProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { locale, setLocale, availableLocales, t } = useTranslation();
+
   const enabled = useStore((state) => {
     const flags = state.featureFlags ?? {};
     if (Object.prototype.hasOwnProperty.call(flags, 'FEATURE_I18N')) {
@@ -24,16 +29,18 @@ export default function LanguageSwitcher({ className = '' }) {
 
   if (!enabled) return null;
 
-  const resolveLabel = (key, fallback) => {
+  const resolveLabel = (key: string, fallback: string) => {
     const value = t(key);
     return value === key ? fallback : value;
   };
 
-  const handleChange = (event) => {
+  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const nextLocale = event.target.value;
     setLocale(nextLocale);
+
     const searchParams = new URLSearchParams(location.search);
     searchParams.set('lang', nextLocale);
+
     navigate({ pathname: location.pathname, search: searchParams.toString() }, { replace: true });
   };
 
@@ -46,7 +53,7 @@ export default function LanguageSwitcher({ className = '' }) {
         onChange={handleChange}
         value={locale}
       >
-        {availableLocales.map((code) => (
+        {availableLocales.map((code: string) => (
           <option key={code} value={code}>
             {resolveLabel(`language_switcher.options.${code}`, localeLabels[code] || code)}
           </option>

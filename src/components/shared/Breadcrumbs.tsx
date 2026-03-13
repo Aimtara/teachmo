@@ -1,13 +1,29 @@
-import PropTypes from 'prop-types';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 import { ROUTE_MAP } from '@/config/navigation';
 
-const ROUTE_ENTRIES = Object.entries(ROUTE_MAP || {}).map(([name, path]) => ({
+type BreadcrumbItem = {
+  label: string;
+  href?: string;
+};
+
+type BreadcrumbRoute = {
+  name: string;
+  path: string;
+  normalizedName?: string;
+  normalizedPath?: string;
+};
+
+type BreadcrumbsProps = {
+  items?: BreadcrumbItem[];
+  segments?: string[];
+};
+
+const ROUTE_ENTRIES: BreadcrumbRoute[] = Object.entries(ROUTE_MAP || {}).map(([name, path]) => ({
   name,
   path,
   normalizedName: name?.toLowerCase(),
-  normalizedPath: path?.toLowerCase()
+  normalizedPath: path?.toLowerCase(),
 }));
 
 const formatLabel = (value = '') =>
@@ -16,30 +32,30 @@ const formatLabel = (value = '') =>
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-const resolveFromRoutes = (segment = '') => {
+const resolveFromRoutes = (segment = ''): BreadcrumbItem => {
   const normalized = segment.toLowerCase();
   const direct = ROUTE_ENTRIES.find(
     ({ normalizedName, normalizedPath }) =>
-      normalizedName === normalized || normalizedPath === normalized || normalizedPath === `/${normalized}`
+      normalizedName === normalized || normalizedPath === normalized || normalizedPath === `/${normalized}`,
   );
 
   if (direct) {
     return {
       label: formatLabel(direct.name),
-      href: direct.path
+      href: direct.path,
     };
   }
 
   return {
     label: formatLabel(segment),
-    href: `/${segment.replace(/^\//, '')}`
+    href: `/${segment.replace(/^\//, '')}`,
   };
 };
 
-const buildItems = (items, segments, pathname) => {
-  if (Array.isArray(items) && items.length > 0) return items;
-  if (Array.isArray(segments) && segments.length > 0) {
-    return segments.map((segment) => (typeof segment === 'string' ? resolveFromRoutes(segment) : segment));
+const buildItems = (items: BreadcrumbItem[] = [], segments: string[] = [], pathname: string): BreadcrumbItem[] => {
+  if (items.length > 0) return items;
+  if (segments.length > 0) {
+    return segments.map((segment) => resolveFromRoutes(segment));
   }
 
   if (pathname === '/') return [];
@@ -47,11 +63,11 @@ const buildItems = (items, segments, pathname) => {
   const parts = pathname.split('/').filter(Boolean);
   return parts.map((part, index) => ({
     label: formatLabel(part),
-    href: `/${parts.slice(0, index + 1).join('/')}`
+    href: `/${parts.slice(0, index + 1).join('/')}`,
   }));
 };
 
-export default function Breadcrumbs({ items = [], segments = [] }) {
+export default function Breadcrumbs({ items = [], segments = [] }: BreadcrumbsProps) {
   const location = useLocation();
   const crumbs = buildItems(items, segments, location.pathname);
 
@@ -83,13 +99,3 @@ export default function Breadcrumbs({ items = [], segments = [] }) {
     </nav>
   );
 }
-
-Breadcrumbs.propTypes = {
-  items: PropTypes.arrayOf(
-    PropTypes.shape({
-      label: PropTypes.string.isRequired,
-      href: PropTypes.string
-    })
-  ),
-  segments: PropTypes.arrayOf(PropTypes.string)
-};
