@@ -75,9 +75,9 @@ function isUnauthorizedError(err: unknown) {
   return /401|unauthorized|jwt/i.test(message);
 }
 
-async function fetchProfileWithRetry(userId: string) {
+async function fetchProfileWithRetry(userId: string, signal?: AbortSignal) {
   const profile = await fetchUserProfile(userId);
-  if (profile) return profile;
+  if (profile || signal?.aborted) return profile;
 
   // Retry once in case the profile row was just created by an auth trigger.
   return fetchUserProfile(userId);
