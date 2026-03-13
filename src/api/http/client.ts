@@ -49,9 +49,7 @@ export async function requestJson<T>(
         // Ignore body parsing errors; we'll still throw with status code.
       }
 
-      const message = bodySnippet
-        ? `HTTP ${res.status}: ${bodySnippet}`
-        : `HTTP ${res.status}`;
+      const message = `HTTP ${res.status}`;
 
       const error: HttpError = new Error(message);
       error.status = res.status;
@@ -102,9 +100,7 @@ export async function requestBlob(url: string, tenant?: TenantScope, options: Ht
       // Ignore body parsing errors; we'll still throw with status code.
     }
 
-    const message = bodySnippet
-      ? `HTTP ${res.status}: ${bodySnippet}`
-      : `HTTP ${res.status}`;
+    const message = `HTTP ${res.status}`;
 
     const error: HttpError = new Error(message);
     error.status = res.status;
