@@ -81,7 +81,7 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
             }
           }
 
-          return { data: result, loading: false, retry: executeOperation };
+          return { data: result, loading: false, retry: startOperation };
         } catch (error) {
           attempt += 1;
           const errorLike = error as {
