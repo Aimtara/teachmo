@@ -175,6 +175,21 @@ export const checkNetworkStatus = () => ({
   online: navigator.onLine,
 });
 
+const getSafeErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}`;
+  }
+
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
+  }
+
+  return String(error);
+};
+
 export const withGracefulDegradation = <TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
   fallbackValue: TResult | null = null,
@@ -183,7 +198,7 @@ export const withGracefulDegradation = <TArgs extends unknown[], TResult>(
     try {
       return await fn(...args);
     } catch (error) {
-      const safeError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      const safeError = getSafeErrorMessage(error);
       apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback. Error: ${safeError}`);
       return fallbackValue;
     }
