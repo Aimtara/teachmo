@@ -2,10 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, type ReactNo
 import { useToast } from '@/components/ui/use-toast';
 import { User } from '@/api/entities';
 import { createLogger } from '@/utils/logger';
+import { createPageUrl } from '@/utils';
 
 const apiProviderLogger = createLogger('ApiProvider');
-
-const createPageUrl = (page: string): string => `/${page}`;
 
 type CacheEntry = {
   data: unknown;
@@ -52,8 +51,14 @@ export function ApiProvider({ children }: ApiProviderProps) {
   const globalCache = useRef<Map<string, CacheEntry>>(new Map());
   const rateLimitTracker = useRef<Map<string, RateLimitTrackerEntry>>(new Map());
 
+  const sanitizeErrorForLogging = (error: Error) => ({
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+  });
+
   const handleCriticalError = useCallback((error: Error, context: string) => {
-    apiProviderLogger.error(`Critical API Error [${context}]:`, error);
+    apiProviderLogger.error(`Critical API Error [${context}]:`, sanitizeErrorForLogging(error));
 
     if (window.location.hostname !== 'localhost') {
       // Integration point for error reporting service
