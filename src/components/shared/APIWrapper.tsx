@@ -125,7 +125,6 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
               apiError.code === 'NETWORK_ERROR');
 
           if (shouldRetry) {
-            apiLogger.warn(`API call failed (attempt ${attempt}/${retries}), retrying in ${retryDelay}ms...`, apiError);
             apiLogger.warn(
               `API call failed (attempt ${attempt}/${retries}), retrying in ${retryDelay}ms...`,
               {
