@@ -164,6 +164,53 @@ describe('TenantProvider', () => {
     expect(fetchUserProfileMock).toHaveBeenCalledWith('u-fallback');
   });
 
+  it('retries profile lookup once when first fallback response is empty', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-retry', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    fetchUserProfileMock
+      .mockResolvedValueOnce(null as any)
+      .mockResolvedValueOnce({ organization_id: 'org_retry', school_id: 'school_retry' } as any);
+
+    render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId('org').textContent).toBe('org_retry');
+    });
+
+    expect(fetchUserProfileMock).toHaveBeenCalledTimes(2);
+    expect(fetchUserProfileMock).toHaveBeenNthCalledWith(1, 'u-retry');
+    expect(fetchUserProfileMock).toHaveBeenNthCalledWith(2, 'u-retry');
+  });
+
+  it('stops after one retry when profile fallback stays empty', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-empty', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    fetchUserProfileMock.mockResolvedValue(null as any);
+
+    render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId('org').textContent).toBe('none');
+    });
+
+    expect(fetchUserProfileMock).toHaveBeenCalledTimes(2);
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
   it('stops loading when profile fallback fails with unauthorized error', async () => {
     authState.isAuthenticated = true;
     authState.user = { id: 'u-unauthorized', metadata: {} };
