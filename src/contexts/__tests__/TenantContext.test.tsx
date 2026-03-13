@@ -74,26 +74,28 @@ describe('TenantProvider', () => {
 
   it('forces sign-out when authenticated state persists without access token', async () => {
     vi.useFakeTimers();
-    authState.isAuthenticated = true;
-    authState.user = { id: 'u-stuck-token', metadata: {} };
-    authState.accessToken = null;
+    try {
+      authState.isAuthenticated = true;
+      authState.user = { id: 'u-stuck-token', metadata: {} };
+      authState.accessToken = null;
 
-    render(
-      <TenantProvider>
-        <Consumer />
-      </TenantProvider>
-    );
+      render(
+        <TenantProvider>
+          <Consumer />
+        </TenantProvider>
+      );
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(4000);
-    });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+      });
 
-    await waitFor(() => {
-      expect(signOutMock).toHaveBeenCalledTimes(1);
-      expect(screen.getByTestId('loading').textContent).toBe('false');
-    });
-
-    vi.useRealTimers();
+      await waitFor(() => {
+        expect(signOutMock).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('clears tenant identifiers on auth transition when token is not yet available', async () => {
