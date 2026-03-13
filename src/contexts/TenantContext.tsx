@@ -132,7 +132,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               freshToken = await nhost.auth.getAccessToken();
             } catch (accessTokenError) {
               logger.error(
-                'Failed to refresh access token during token lag recovery; treating as missing token.',
+                'Failed to fetch access token during token lag recovery; treating as missing token.',
                 accessTokenError
               );
             }
