@@ -5,6 +5,8 @@ import { createLogger } from '@/utils/logger';
 
 const apiProviderLogger = createLogger('ApiProvider');
 
+const createPageUrl = (page: string): string => `/${page}`;
+
 type CacheEntry = {
   data: unknown;
   expires: number;
@@ -59,7 +61,7 @@ export function ApiProvider({ children }: ApiProviderProps) {
 
     if (error.message?.includes('Unauthorized') || error.message?.includes('401')) {
       User.logout().catch(() => {});
-      window.location.href = '/Landing';
+      window.location.href = createPageUrl('Landing');
     }
   }, []);
 
