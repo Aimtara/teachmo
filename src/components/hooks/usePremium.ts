@@ -34,7 +34,15 @@ export function usePremium() {
         setUser(currentUser);
         setIsPremium(currentUser?.subscription_tier === 'premium');
       } catch (error) {
-        logger.warn('Could not fetch user for premium check, assuming not premium.', error);
+        if (error instanceof Error) {
+          const stackSummary = error.stack ? error.stack.split('\n')[0] : undefined;
+          logger.warn('Could not fetch user for premium check, assuming not premium.', {
+            message: error.message,
+            stack: stackSummary,
+          });
+        } else {
+          logger.warn('Could not fetch user for premium check, assuming not premium.');
+        }
         setIsPremium(false);
       } finally {
         setIsLoading(false);
