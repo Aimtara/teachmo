@@ -84,11 +84,12 @@ export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: Retr
     try {
       if (!rateLimiter.canMakeRequest(rateLimitKey)) {
         const retryAfter = rateLimiter.getRetryAfter();
-        apiUtilsLogger.warn(`Client rate limit reached. Waiting ${retryAfter} seconds before retry.`);
         if (attempt < maxRetries) {
+          apiUtilsLogger.warn(`Client rate limit reached. Waiting ${retryAfter} seconds before retry.`);
           await new Promise((resolve) => window.setTimeout(resolve, retryAfter * 1000));
           continue;
         }
+        apiUtilsLogger.warn(`Client rate limit reached. No more retries will be attempted.`);
         throw new Error(`Rate limited. Try again in ${retryAfter} seconds.`);
       }
 
@@ -100,12 +101,14 @@ export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: Retr
       if (errorLike.message?.includes('429') || errorLike.response?.status === 429) {
         const retryAfterHeader = errorLike.response?.headers?.['retry-after'];
         const retryAfter = Number(retryAfterHeader ?? 60);
-        apiUtilsLogger.warn(`Rate limited. Waiting ${retryAfter} seconds before retry.`);
 
         if (attempt < maxRetries) {
+          apiUtilsLogger.warn(`Rate limited. Waiting ${retryAfter} seconds before retry.`);
           await new Promise((resolve) => window.setTimeout(resolve, retryAfter * 1000));
           continue;
         }
+
+        apiUtilsLogger.warn(`Rate limited on final attempt. No more retries will be attempted.`);
       }
 
       const status = errorLike.response?.status;
