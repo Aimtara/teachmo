@@ -149,7 +149,7 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
                 attempt >= retries ? (
                   <button
                     onClick={() => {
-                      void executeOperation();
+                      void startOperation();
                     }}
                     className="bg-white text-red-600 px-3 py-1 rounded text-sm hover:bg-gray-50"
                   >
@@ -159,11 +159,16 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
             });
           }
 
-          return { error: apiError, loading: false, retry: executeOperation };
+          return { error: apiError, loading: false, retry: startOperation };
         }
       };
 
-      return executeOperation();
+      const startOperation = async (): Promise<APIResponse<T>> => {
+        attempt = 0;
+        return executeOperation();
+      };
+
+      return startOperation();
     },
     [toast],
   );
