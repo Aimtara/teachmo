@@ -127,7 +127,16 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           tokenLagTimer = window.setTimeout(async () => {
             if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
 
-            const freshToken = await nhost.auth.getAccessToken();
+            let freshToken: string | null = null;
+            try {
+              freshToken = await nhost.auth.getAccessToken();
+            } catch (accessTokenError) {
+              logger.error(
+                'Failed to refresh access token during token lag recovery; treating as missing token.',
+                accessTokenError
+              );
+            }
+
             if (freshToken) return;
 
             tokenLagRecoveryAttemptedRef.current = true;
