@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { TenantProvider, useTenant } from '@/contexts/TenantContext';
 import { fetchUserProfile } from '@/domains/auth';
 import { GraphQLRequestError } from '@/lib/hasuraErrors';
@@ -32,6 +32,7 @@ vi.mock('@/lib/nhostClient', () => ({
   nhost: {
     auth: {
       signOut: signOutMock,
+      getAccessToken: vi.fn(() => null),
     },
   },
 }));
@@ -69,6 +70,33 @@ describe('TenantProvider', () => {
 
     expect(screen.getByTestId('loading').textContent).toBe('true');
     expect(screen.getByTestId('org').textContent).toBe('none');
+  });
+
+
+  it('forces sign-out when authenticated state persists without access token', async () => {
+    vi.useFakeTimers();
+    try {
+      authState.isAuthenticated = true;
+      authState.user = { id: 'u-stuck-token', metadata: {} };
+      authState.accessToken = null;
+
+      render(
+        <TenantProvider>
+          <Consumer />
+        </TenantProvider>
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+      });
+
+      await waitFor(() => {
+        expect(signOutMock).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('clears tenant identifiers on auth transition when token is not yet available', async () => {

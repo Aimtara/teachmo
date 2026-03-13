@@ -36,6 +36,8 @@ const TenantContext = createContext<TenantState>({
   loading: true
 });
 
+const TOKEN_LAG_SIGNOUT_DELAY_MS = 4000;
+
 function decodeToken(token?: string | null): AccessTokenClaims | null {
   if (!token) return null;
   const parts = token.split('.');
@@ -94,14 +96,17 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     loading: true
   });
   const unauthorizedRecoveryAttemptedRef = useRef(false);
+  const tokenLagRecoveryAttemptedRef = useRef(false);
 
   // Reset the unauthorized recovery guard when the auth session changes
   useEffect(() => {
     unauthorizedRecoveryAttemptedRef.current = false;
+    tokenLagRecoveryAttemptedRef.current = false;
   }, [isAuthenticated, user?.id, accessToken]);
 
   useEffect(() => {
     let mounted = true;
+    let tokenLagTimer: number | null = null;
 
     const resolveTenant = async () => {
       if (isLoading) {
@@ -117,6 +122,43 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       // Token lag guard: authenticated can flip true before accessToken is available.
       if (!accessToken || !user) {
         if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
+
+        if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
+          tokenLagTimer = window.setTimeout(async () => {
+            if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
+
+            let freshToken: string | null = null;
+            try {
+              freshToken = await nhost.auth.getAccessToken();
+            } catch (accessTokenError) {
+              logger.error(
+                'Failed to fetch access token during token lag recovery; treating as missing token.',
+                accessTokenError
+              );
+            }
+
+            if (freshToken) return;
+
+            tokenLagRecoveryAttemptedRef.current = true;
+            logger.warn('Authenticated state persisted without access token; forcing sign-out to clear stale session.');
+
+            try {
+              await nhost.auth.signOut();
+            } catch (signOutError) {
+              logger.error(
+                'Failed to force sign-out after prolonged token lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
+            }
+
+            if (mounted) {
+              setState({ organizationId: null, schoolId: null, loading: false });
+            }
+          }, TOKEN_LAG_SIGNOUT_DELAY_MS);
+        }
+
         return;
       }
 
@@ -159,7 +201,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               try {
                 await nhost.auth.signOut();
               } catch (signOutError) {
-                logger.error('Failed to force sign-out after unauthorized profile fallback.', signOutError);
+                logger.error(
+                  'Failed to force sign-out after unauthorized profile fallback.',
+                  signOutError instanceof Error
+                    ? { name: signOutError.name, message: signOutError.message }
+                    : { message: String(signOutError) }
+                );
               }
             }
           }
@@ -180,6 +227,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      if (tokenLagTimer !== null) {
+        window.clearTimeout(tokenLagTimer);
+      }
     };
   }, [isLoading, isAuthenticated, user, accessToken]);
 
