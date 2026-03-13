@@ -24,6 +24,12 @@ array_relationships:
           name: thread_participants
           schema: public
 select_permissions:
+  - role: user
+    permission:
+      columns: '*'
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
   - role: system_admin
     permission:
       columns: '*'
@@ -72,6 +78,17 @@ select_permissions:
           - user_id:
               _eq: X-Hasura-User-Id
 insert_permissions:
+  - role: user
+    permission:
+      columns:
+        - full_name
+        - app_role
+        - user_id
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-user-id
   - role: parent
     permission:
       columns:
@@ -117,6 +134,19 @@ insert_permissions:
       columns: '*'
       check: {}
 update_permissions:
+  - role: user
+    permission:
+      columns:
+        - full_name
+        - app_role
+        - organization_id
+        - school_id
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
   - role: parent
     permission:
       columns:
