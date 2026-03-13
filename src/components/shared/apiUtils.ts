@@ -68,6 +68,16 @@ class RateLimiter {
 
 const rateLimiter = new RateLimiter();
 
+class RateLimitError extends Error {
+  response: { status: number; headers: Record<string, string | number> };
+
+  constructor(retryAfter: number) {
+    super(`Rate limited. Try again in ${retryAfter} seconds.`);
+    this.name = 'RateLimitError';
+    this.response = { status: 429, headers: { 'retry-after': retryAfter } };
+  }
+}
+
 export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: RetryOptions = {}): Promise<T> => {
   const {
     maxRetries = 3,
@@ -84,13 +94,7 @@ export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: Retr
     try {
       if (!rateLimiter.canMakeRequest(rateLimitKey)) {
         const retryAfter = rateLimiter.getRetryAfter();
-        if (attempt < maxRetries) {
-          apiUtilsLogger.warn(`Client rate limit reached. Waiting ${retryAfter} seconds before retry.`);
-          await new Promise((resolve) => window.setTimeout(resolve, retryAfter * 1000));
-          continue;
-        }
-        apiUtilsLogger.warn(`Client rate limit reached. No more retries will be attempted.`);
-        throw new Error(`Rate limited. Try again in ${retryAfter} seconds.`);
+        throw new RateLimitError(retryAfter);
       }
 
       return await fetchFn();
