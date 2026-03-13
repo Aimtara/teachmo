@@ -145,7 +145,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             try {
               await nhost.auth.signOut();
             } catch (signOutError) {
-              logger.error('Failed to force sign-out after prolonged token lag.', signOutError);
+              logger.error(
+                'Failed to force sign-out after prolonged token lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
             }
 
             if (mounted) {
@@ -196,7 +201,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               try {
                 await nhost.auth.signOut();
               } catch (signOutError) {
-                logger.error('Failed to force sign-out after unauthorized profile fallback.', signOutError);
+                logger.error(
+                  'Failed to force sign-out after unauthorized profile fallback.',
+                  signOutError instanceof Error
+                    ? { name: signOutError.name, message: signOutError.message }
+                    : { message: String(signOutError) }
+                );
               }
             }
           }
