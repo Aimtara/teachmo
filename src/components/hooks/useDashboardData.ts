@@ -86,7 +86,7 @@ export function useDashboardData() {
 
       const [children, activities, tips] = await Promise.all([
         execute(() => backendAdapter.listChildren(), { key: 'children' }).catch(() => [] as ChildProfile[]),
-        execute(() => backendAdapter.listActivities({ excludeStatus: 'completed', limit: 10 }), {
+        execute(() => backendAdapter.listActivities({ limit: 10 }), {
           key: 'activities',
         }).catch(() => [] as ActivitySummary[]),
         execute(() => ParentingTip.list('-created_date', 5), { key: 'tips' }).catch(() => [] as ParentingTipItem[]),
