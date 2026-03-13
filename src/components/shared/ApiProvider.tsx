@@ -2,10 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, type ReactNo
 import { useToast } from '@/components/ui/use-toast';
 import { User } from '@/api/entities';
 import { createLogger } from '@/utils/logger';
+import { createPageUrl } from '@/utils';
 
 const apiProviderLogger = createLogger('ApiProvider');
-
-const createPageUrl = (page: string): string => `/${page}`;
 
 type CacheEntry = {
   data: unknown;
