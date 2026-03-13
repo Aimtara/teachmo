@@ -32,6 +32,7 @@ vi.mock('@/lib/nhostClient', () => ({
   nhost: {
     auth: {
       signOut: signOutMock,
+      getAccessToken: vi.fn(() => null),
     },
   },
 }));
