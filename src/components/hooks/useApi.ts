@@ -320,8 +320,10 @@ export const useApi = (options: UseApiOptions = {}) => {
 
         throw error;
       } finally {
-        setLoading(key, false);
-        delete abortControllers.current[key];
+        if (abortControllers.current[key] === controller) {
+          setLoading(key, false);
+          delete abortControllers.current[key];
+        }
       }
     },
     [cancelRequest, clearError, context, enableRetry, navigate, redirectOnAuth, setError, setLoading, showToastOnError, showToastOnSuccess, silent, toast],
