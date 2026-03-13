@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType } from 'react';
 
 type EmptyStateSize = 'compact' | 'default' | 'large';
 
