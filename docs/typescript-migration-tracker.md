@@ -1,21 +1,21 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-03-12T23:54:23.550Z
+Generated: 2026-03-13T19:42:15.753Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 194 |
-| .jsx | 512 |
-| .ts | 280 |
-| .tsx | 35 |
+| .js | 192 |
+| .jsx | 476 |
+| .ts | 295 |
+| .tsx | 60 |
 
 ## JS/TS inventory by top-level directory
 
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
-| src | 9 | 511 | 172 | 35 |
+| src | 7 | 475 | 187 | 60 |
 | backend | 147 | 0 | 6 | 0 |
 | nhost | 30 | 0 | 86 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
@@ -84,6 +84,27 @@ Generated: 2026-03-12T23:54:23.550Z
 - [x] Migrated audit log domain module from `src/domains/auditLog.js` to `src/domains/auditLog.ts` with typed sanitization/log input helpers.
 - [x] Completed Phase 1 foundation hardening: shared HTTP/runtime-validation boundaries are applied across targeted API/domain modules; remaining `src/**/*.js` files are intentional mocks/tests/generated adapters tracked in the JS exception register.
 - [ ] Continue applying the shared HTTP client and runtime-validation-backed contracts across remaining API modules and backend integration boundaries.
+
+## Phase 2 frontend vertical-slice kickoff progress
+
+- [x] Continued Phase 2 shared UI conversion work across hooks/shared utilities and provider components.
+- [x] Migrated shared premium UI components `src/components/shared/{PremiumBadge,PremiumGate}.jsx` to TypeScript (`.tsx`) with typed props and children contracts.
+- [x] Migrated shared route guard utilities `src/components/shared/{FeatureGate,RoleGuard}.jsx` to TypeScript (`.tsx`) with typed props and redirect/authorization handling.
+- [x] Migrated shared accessibility utility `src/components/shared/SkipLink.jsx` to `src/components/shared/SkipLink.tsx` with typed props and focus/blur handlers.
+- [x] Migrated shared navigation utilities `src/components/shared/{Breadcrumbs,BreadcrumbNavigation}.jsx` to TypeScript (`.tsx`) with typed breadcrumb item contracts and route helpers.
+- [x] Migrated async safety utilities `src/components/shared/{AsyncBoundary,GlobalErrorBoundary,ErrorBoundary}.jsx` to TypeScript (`.tsx`) with typed error-boundary/HOC contracts.
+- [x] Migrated shared media/loading utilities `src/components/shared/{LazyImage,LazyPageWrapper,LazyRoute}.jsx` to TypeScript (`.tsx`) with typed props and safer lazy-loading/observer handling.
+- [x] Migrated shared empty-state primitives `src/components/shared/{EmptyStates,UniversalEmptyState}.jsx` to TypeScript (`.tsx`) with typed action/item contracts and typed props across exported variants.
+- [x] Migrated legal modal primitive `src/components/shared/TermsModal.jsx` to `src/components/shared/TermsModal.tsx` with typed open-state and close-handler contracts.
+- [x] Migrated action confirmation modal `src/components/shared/ConfirmationModal.jsx` to `src/components/shared/ConfirmationModal.tsx` with typed preset/modal props and confirmation-state handlers.
+- [x] Migrated quick action launcher `src/components/shared/QuickActionsMenu.jsx` to `src/components/shared/QuickActionsMenu.tsx` with typed action definitions and button contracts.
+- [x] Migrated focus-style provider `src/components/shared/FocusStyles.jsx` to `src/components/shared/FocusStyles.tsx` with typed children contract and DOM style lifecycle cleanup.
+- [x] Migrated shared API context provider `src/components/shared/ApiProvider.jsx` to `src/components/shared/ApiProvider.tsx` with typed context value, cache/rate-limit contracts, and provider/hook signatures.
+- [x] Migrated shared tone utility `src/components/shared/TeachmoTone.jsx` to `src/components/shared/TeachmoTone.ts` with typed tone-state contracts and deterministic helper typing.
+- [x] Migrated UX rules utility `src/components/shared/UXReviewRule.jsx` to `src/components/shared/UXReviewRule.tsx` with typed rule/checkpoint contracts and violation props.
+- [x] Migrated standard loading-state helpers `src/components/shared/StandardLoadingStates.jsx` to `src/components/shared/StandardLoadingStates.tsx` with typed prop contracts for skeleton/page loaders.
+- [x] Migrated accessibility helper toolkit `src/components/shared/AccessibilityHelpers.jsx` to `src/components/shared/AccessibilityHelpers.tsx` with typed hooks/components for keyboard navigation, live regions, and form/button accessibility props.
+- [ ] Continue remaining hook-slice consumers and then proceed to shared UI primitive slices.
 
 ## Phase 0 kickoff checklist
 
