@@ -84,7 +84,13 @@ export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: Retr
     try {
       if (!rateLimiter.canMakeRequest(rateLimitKey)) {
         const retryAfter = rateLimiter.getRetryAfter();
-        throw new Error(`Rate limited. Try again in ${retryAfter} seconds.`);
+        apiUtilsLogger.warn(`Rate limited. Waiting ${retryAfter} seconds before retry.`);
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => window.setTimeout(resolve, retryAfter * 1000));
+          continue;
+        } else {
+          throw new Error(`Rate limited. Try again in ${retryAfter} seconds.`);
+        }
       }
 
       return await fetchFn();
