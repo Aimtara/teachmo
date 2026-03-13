@@ -1,6 +1,8 @@
 import { graphqlRequest } from '@/lib/graphql';
 
-export async function fetchUserProfile(userId) {
+type ProfileInput = Record<string, unknown>;
+
+export async function fetchUserProfile(userId: string) {
   const query = `query GetProfile($userId: uuid!) {
     profiles(where: { user_id: { _eq: $userId } }, limit: 1) {
       id
@@ -15,7 +17,7 @@ export async function fetchUserProfile(userId) {
   return data?.profiles?.[0] || null;
 }
 
-export async function createProfile(input) {
+export async function createProfile(input: ProfileInput) {
   const query = `mutation InsertProfile($input: profiles_insert_input!) {
     insert_profiles_one(object: $input) {
       id
@@ -39,7 +41,7 @@ export async function createProfile(input) {
  *
  * Hasura permissions should ensure callers can only set this to their own session role.
  */
-export async function reconcileProfileRole(userId, appRole) {
+export async function reconcileProfileRole(userId: string | null | undefined, appRole: string | null | undefined) {
   if (!userId || !appRole) return null;
 
   const query = `mutation ReconcileProfileRole($userId: uuid!, $appRole: String!) {
@@ -55,7 +57,7 @@ export async function reconcileProfileRole(userId, appRole) {
 
   const data = await graphqlRequest({
     query,
-    variables: { userId, appRole }
+    variables: { userId, appRole },
   });
 
   return data?.update_profiles?.returning?.[0] ?? null;

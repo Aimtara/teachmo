@@ -1,13 +1,27 @@
-import { API_BASE_URL } from "@/config/api";
-import { nhost } from "@/lib/nhostClient";
+import { z } from 'zod';
+import { API_BASE_URL } from '@/config/api';
+import { requestJson } from '@/api/http/client';
+import { nhost } from '@/lib/nhostClient';
 
-const getHeaders = () => {
-  const token = nhost.auth.getAccessToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-  };
-};
+const llmCompletionSchema = z.object({
+  content: z.string().optional(),
+  response: z.string().optional(),
+  context: z.record(z.unknown()).optional(),
+});
+
+const integrationRecordSchema = z.record(z.unknown());
+
+async function requestIntegration<T>(
+  path: string,
+  payload: Record<string, unknown>,
+  schema: z.ZodSchema<T>
+): Promise<T> {
+  const data = await requestJson<unknown>(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return schema.parse(data);
+}
 
 export type LLMRequest = {
   prompt?: string;
@@ -17,18 +31,11 @@ export type LLMRequest = {
 
 export async function InvokeLLM({ prompt = '', context = {}, model }: LLMRequest = {}): Promise<{ response: string; context: Record<string, unknown> }> {
   try {
-    const res = await fetch(`${API_BASE_URL}/ai/completion`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ prompt, context, model })
-    });
+    const data = await requestIntegration('/ai/completion', { prompt, context, model }, llmCompletionSchema);
 
-    if (!res.ok) throw new Error(`AI Service Error: ${res.statusText}`);
-
-    const data = await res.json();
-    return { 
-      response: data.content || data.response, 
-      context: data.context || context 
+    return {
+      response: data.content || data.response || '',
+      context: data.context || context,
     };
   } catch (error) {
     console.error('LLM Invocation Failed:', error);
@@ -54,12 +61,7 @@ export type EmailRequest = { to: string; subject: string; body: string };
 
 export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ sent: boolean; to: string }> {
   try {
-    const res = await fetch(`${API_BASE_URL}/integrations/email/send`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ to, subject, body })
-    });
-    if (!res.ok) throw new Error(`Email Service Error: ${res.statusText}`);
+    await requestIntegration('/integrations/email/send', { to, subject, body }, integrationRecordSchema);
     return { sent: true, to };
   } catch (error) {
     console.error('Email Send Failed:', error);
@@ -67,20 +69,10 @@ export async function SendEmail({ to, subject, body }: EmailRequest): Promise<{ 
   }
 }
 
-export async function googleAuth(params: { action: string }) {
-  const res = await fetch(`${API_BASE_URL}/integrations/google/auth`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(params)
-  });
-  return res.json();
+export async function googleAuth(params: { action: string }): Promise<Record<string, unknown>> {
+  return requestIntegration('/integrations/google/auth', params, integrationRecordSchema);
 }
 
-export async function googleClassroomSync(params: { action: string; courseId?: string }) {
-  const res = await fetch(`${API_BASE_URL}/integrations/google/sync`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(params)
-  });
-  return res.json();
+export async function googleClassroomSync(params: { action: string; courseId?: string }): Promise<Record<string, unknown>> {
+  return requestIntegration('/integrations/google/sync', params, integrationRecordSchema);
 }

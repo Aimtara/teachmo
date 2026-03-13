@@ -31,7 +31,8 @@
     "preflight:env": "node scripts/preflight-env.mjs",
     "start": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
     "release:info": "node scripts/generate-build-meta.mjs && node -e \"console.log(require(\\\"./src/generated/buildMeta.ts\\\"))\"",
-    "smoke:hasura-permissions": "node scripts/hasura-permissions-smoke.mjs"
+    "smoke:hasura-permissions": "node scripts/hasura-permissions-smoke.mjs",
+    "migration:ts:inventory": "node scripts/ts-migration-inventory.mjs --write"
   },
   "dependencies": {
     "@base44/sdk": "^0.1.2",

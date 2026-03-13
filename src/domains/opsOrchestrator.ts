@@ -3,6 +3,18 @@ import { nhost } from '@/lib/nhostClient';
 
 const E2E_SESSION_KEY = 'teachmo_e2e_session';
 
+type E2ESession = {
+  accessToken?: string;
+};
+
+type OpsFetchOptions = {
+  method?: string;
+  body?: string;
+  headers?: Record<string, string>;
+};
+
+type OpsError = Error & { status?: number };
+
 function isE2EBypassEnabled() {
   const flag = String(import.meta.env.VITE_E2E_BYPASS_AUTH || '').toLowerCase() === 'true';
   if (!flag) return false;
@@ -11,33 +23,33 @@ function isE2EBypassEnabled() {
   return isTestMode || isLocalhost;
 }
 
-function getE2ESession() {
+function getE2ESession(): E2ESession | null {
   try {
     if (!isE2EBypassEnabled()) return null;
     const raw = window.localStorage.getItem(E2E_SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== 'object') return null;
-    return parsed;
+    return parsed as E2ESession;
   } catch {
     return null;
   }
 }
 
-function getAccessToken() {
+function getAccessToken(): string {
   const e2e = getE2ESession();
   if (e2e?.accessToken) return String(e2e.accessToken);
   return nhost.auth.getAccessToken() || '';
 }
 
-const opsFetch = async (path, options = {}) => {
+const opsFetch = async (path: string, options: OpsFetchOptions = {}) => {
   const token = getAccessToken();
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      ...(options.headers || {}),
     },
   });
 
@@ -50,7 +62,7 @@ const opsFetch = async (path, options = {}) => {
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
-    const error = new Error(text || `Ops API error (${response.status})`);
+    const error: OpsError = new Error(text || `Ops API error (${response.status})`);
     error.status = response.status;
     throw error;
   }
@@ -64,10 +76,10 @@ export const listFamilies = (query = '') => {
   return opsFetch(`/ops/families?${params.toString()}`);
 };
 
-export const getFamilyHealth = (familyId) =>
+export const getFamilyHealth = (familyId: string) =>
   opsFetch(`/ops/families/${encodeURIComponent(familyId)}/health`);
 
-export const listAnomalies = (familyId, status = 'open') => {
+export const listAnomalies = (familyId: string, status = 'open') => {
   const params = new URLSearchParams();
   if (status && status !== 'all') {
     params.set('status', status);
@@ -76,37 +88,37 @@ export const listAnomalies = (familyId, status = 'open') => {
   return opsFetch(`/ops/families/${encodeURIComponent(familyId)}/anomalies${query ? `?${query}` : ''}`);
 };
 
-export const ackAnomaly = (familyId, anomalyType, note) =>
+export const ackAnomaly = (familyId: string, anomalyType: string, note: string) =>
   opsFetch(`/ops/families/${encodeURIComponent(familyId)}/anomalies/${encodeURIComponent(anomalyType)}/ack`, {
     method: 'POST',
     body: JSON.stringify({ note }),
   });
 
-export const closeAnomaly = (familyId, anomalyType, note) =>
+export const closeAnomaly = (familyId: string, anomalyType: string, note: string) =>
   opsFetch(`/ops/families/${encodeURIComponent(familyId)}/anomalies/${encodeURIComponent(anomalyType)}/close`, {
     method: 'POST',
     body: JSON.stringify({ note }),
   });
 
-export const reopenAnomaly = (familyId, anomalyType, note) =>
+export const reopenAnomaly = (familyId: string, anomalyType: string, note: string) =>
   opsFetch(`/ops/families/${encodeURIComponent(familyId)}/anomalies/${encodeURIComponent(anomalyType)}/reopen`, {
     method: 'POST',
     body: JSON.stringify({ note }),
   });
 
-export const getAlerts = (familyId) =>
+export const getAlerts = (familyId: string) =>
   opsFetch(`/ops/families/${encodeURIComponent(familyId)}/alerts`);
 
-export const getMitigations = (familyId) =>
+export const getMitigations = (familyId: string) =>
   opsFetch(`/ops/families/${encodeURIComponent(familyId)}/mitigations`);
 
-export const clearMitigation = (familyId, mitigationType, note) =>
+export const clearMitigation = (familyId: string, mitigationType: string, note: string) =>
   opsFetch(`/ops/families/${encodeURIComponent(familyId)}/mitigations/${encodeURIComponent(mitigationType)}/clear`, {
     method: 'POST',
     body: JSON.stringify({ note }),
   });
 
-export const getTimeline = (familyId, hours = 48) => {
+export const getTimeline = (familyId: string, hours = 48) => {
   const params = new URLSearchParams({ hours: String(hours) });
   return opsFetch(`/ops/families/${encodeURIComponent(familyId)}/timeline?${params.toString()}`);
 };

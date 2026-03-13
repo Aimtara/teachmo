@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import { base44Entities } from '@/api/base44';
 
-const { Child, Student, StudentParentLink, Enrollment, UserProfile } = base44Entities;
+type AnyRecord = Record<string, unknown>;
+type ListableEntity<T> = {
+  list: (sort?: string) => Promise<T[] | null | undefined>;
+};
+
+const entities = base44Entities as AnyRecord;
+const childEntity = entities.Child as ListableEntity<unknown>;
 
 export const learnersApi = {
-  child: Child,
-  student: Student,
-  studentParentLink: StudentParentLink,
-  enrollment: Enrollment,
-  userProfile: UserProfile
+  child: childEntity,
+  student: entities.Student,
+  studentParentLink: entities.StudentParentLink,
+  enrollment: entities.Enrollment,
+  userProfile: entities.UserProfile
 };
 
 export function useChildrenList(sort = '-created_date') {
-  const [children, setChildren] = useState([]);
+  const [children, setChildren] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<unknown>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -30,7 +36,7 @@ export function useChildrenList(sort = '-created_date') {
   }, [sort]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   return { children, refresh, isLoading, error };

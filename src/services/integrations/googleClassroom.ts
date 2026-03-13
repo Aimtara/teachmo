@@ -1,4 +1,5 @@
-import { googleClassroomSync } from '@/api/functions';
+import { z } from 'zod';
+import { googleClassroomSync, type GoogleSyncData } from '@/api/functions';
 import { retryRequest } from '@/utils/apiRetry';
 
 interface SyncResult {
@@ -7,10 +8,15 @@ interface SyncResult {
   errors: string[];
 }
 
-interface SyncResponse {
-  success?: boolean;
-  totalSynced?: number;
-  error?: string;
+const googleSyncDataSchema = z.object({
+  success: z.boolean().optional(),
+  totalSynced: z.number().optional(),
+  error: z.string().optional(),
+});
+
+function parseGoogleSyncData(value: unknown): GoogleSyncData {
+  const parsed = googleSyncDataSchema.safeParse(value);
+  return parsed.success ? parsed.data : {};
 }
 
 export const GoogleClassroomService = {
@@ -35,10 +41,10 @@ export const GoogleClassroomService = {
           teacherId
         })
       );
-      const courseData = courseResponse?.data as SyncResponse | undefined;
+      const courseData = parseGoogleSyncData(courseResponse?.data);
 
-      if (!courseData?.success) {
-        throw new Error(courseData?.error || 'Failed to sync Google Classroom courses.');
+      if (!courseData.success) {
+        throw new Error(courseData.error || 'Failed to sync Google Classroom courses.');
       }
 
       result.syncedCourses = courseData.totalSynced ?? 0;
@@ -49,7 +55,7 @@ export const GoogleClassroomService = {
           'all'
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Fatal Google Sync Error', error);
       throw new Error(
         'Google Classroom sync failed. Please reconnect your account.'
@@ -70,10 +76,10 @@ export const GoogleClassroomService = {
         teacherId
       })
     );
-    const data = response?.data as SyncResponse | undefined;
+    const data = parseGoogleSyncData(response?.data);
 
-    if (!data?.success) {
-      throw new Error(data?.error || 'Failed to sync assignments.');
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to sync assignments.');
     }
 
     return data.totalSynced ?? 0;

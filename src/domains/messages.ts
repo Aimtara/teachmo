@@ -1,7 +1,30 @@
 import { graphql } from '@/lib/graphql';
 import { retentionCutoffDate } from '@/security/retention';
 
-export async function listMessageThreads(params = {}) {
+type PaginationParams = {
+  limit?: number;
+  offset?: number;
+};
+
+type SendMessageInput = {
+  threadId: string;
+  senderId: string;
+  body: string;
+};
+
+type CreateThreadInput = {
+  title: string;
+  participantIds?: string[];
+  initialMessage?: string | null;
+};
+
+type ModerateMessageInput = {
+  messageId: string;
+  moderatorId: string;
+  reason?: string | null;
+};
+
+export async function listMessageThreads(params: PaginationParams = {}) {
   const query = `
     query ListThreads($limit: Int, $offset: Int) {
       message_threads(limit: $limit, offset: $offset, order_by: { updated_at: desc }) {
@@ -23,7 +46,7 @@ export async function listMessageThreads(params = {}) {
   return data?.message_threads ?? [];
 }
 
-export async function listMessages(threadId, params = {}) {
+export async function listMessages(threadId: string, params: PaginationParams = {}) {
   const cutoff = retentionCutoffDate();
 
   const query = `
@@ -57,7 +80,7 @@ export async function listMessages(threadId, params = {}) {
   return data?.messages ?? [];
 }
 
-export async function sendMessage({ threadId, senderId, body }) {
+export async function sendMessage({ threadId, senderId, body }: SendMessageInput) {
   const mutation = `
     mutation SendMessage($object: messages_insert_input!) {
       insert_messages_one(object: $object) {
@@ -85,7 +108,7 @@ export async function sendMessage({ threadId, senderId, body }) {
  * - message_threads -> participants (array rel)
  * - message_threads -> messages (array rel) if initialMessage is used
  */
-export async function createThreadWithParticipants({ title, participantIds, initialMessage }) {
+export async function createThreadWithParticipants({ title, participantIds, initialMessage }: CreateThreadInput) {
   const mutation = `
     mutation CreateThread($object: message_threads_insert_input!) {
       insert_message_threads_one(object: $object) {
@@ -108,8 +131,6 @@ export async function createThreadWithParticipants({ title, participantIds, init
             data: [
               {
                 body: initialMessage,
-                // sender_id should be set via Hasura insert permission "set" on messages
-                // or passed from client if your permissions allow it.
               },
             ],
           },
@@ -121,7 +142,7 @@ export async function createThreadWithParticipants({ title, participantIds, init
   return data?.insert_message_threads_one ?? null;
 }
 
-export async function moderateMessageHide({ messageId, moderatorId, reason }) {
+export async function moderateMessageHide({ messageId, moderatorId, reason }: ModerateMessageInput) {
   const mutation = `
     mutation HideMessage($id: uuid!, $moderatorId: uuid!, $reason: String) {
       update_messages_by_pk(
@@ -142,7 +163,7 @@ export async function moderateMessageHide({ messageId, moderatorId, reason }) {
   return data?.update_messages_by_pk ?? null;
 }
 
-export async function moderateMessageRedact({ messageId, moderatorId, reason }) {
+export async function moderateMessageRedact({ messageId, moderatorId, reason }: ModerateMessageInput) {
   const mutation = `
     mutation RedactMessage($id: uuid!, $moderatorId: uuid!, $reason: String) {
       update_messages_by_pk(
@@ -164,7 +185,7 @@ export async function moderateMessageRedact({ messageId, moderatorId, reason }) 
   return data?.update_messages_by_pk ?? null;
 }
 
-export async function moderateMessageDelete({ messageId, moderatorId, reason }) {
+export async function moderateMessageDelete({ messageId, moderatorId, reason }: ModerateMessageInput) {
   const mutation = `
     mutation DeleteMessage($id: uuid!, $moderatorId: uuid!, $reason: String) {
       update_messages_by_pk(

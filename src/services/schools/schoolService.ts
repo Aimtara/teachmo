@@ -1,4 +1,10 @@
-import { searchSchools, submitSchoolParticipationRequest } from '@/api/functions';
+import { z } from 'zod';
+import {
+  searchSchools,
+  submitSchoolParticipationRequest,
+  type SchoolRequestData,
+  type SearchSchoolsData,
+} from '@/api/functions';
 import { apiClient } from '../core/client';
 
 export interface School {
@@ -23,15 +29,58 @@ export interface SchoolSearchResult {
   school_type?: string;
 }
 
+const schoolRecordSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().optional(),
+  district: z.string().optional(),
+  state: z.string().optional(),
+  domain: z.string().optional(),
+  type: z.string().optional(),
+  status: z.enum(['active', 'pending', 'beta']).optional(),
+  school_id: z.string().optional(),
+  school_name: z.string().optional(),
+  district_name: z.string().optional(),
+  school_domain: z.string().optional(),
+  school_type: z.string().optional(),
+});
+
+const searchSchoolsDataSchema: z.ZodType<SearchSchoolsData> = z.object({
+  success: z.boolean().optional(),
+  schools: z.array(schoolRecordSchema).optional(),
+  error: z.string().optional(),
+});
+
+const schoolRequestDataSchema: z.ZodType<SchoolRequestData> = z.object({
+  success: z.boolean().optional(),
+  error: z.string().optional(),
+  request: z.unknown().optional(),
+});
+
+const schoolCapabilitiesSchema = z.object({
+  hasSIS: z.boolean().optional(),
+  hasGoogle: z.boolean().optional(),
+}).passthrough();
+
+function parseSearchSchoolsData(value: unknown): SearchSchoolsData {
+  const parsed = searchSchoolsDataSchema.safeParse(value);
+  return parsed.success ? parsed.data : {};
+}
+
+function parseSchoolRequestData(value: unknown): SchoolRequestData {
+  const parsed = schoolRequestDataSchema.safeParse(value);
+  return parsed.success ? parsed.data : {};
+}
+
 export const SchoolService = {
   async search(query: string, limit = 8): Promise<SchoolSearchResult[]> {
     if (query.length < 3) {
       return [];
     }
-    const response = await searchSchools({ query, limit });
-    const data = response?.data as { success?: boolean; schools?: SchoolSearchResult[] } | undefined;
 
-    if (!data?.success) {
+    const response = await searchSchools({ query, limit });
+    const data = parseSearchSchoolsData(response?.data);
+
+    if (!data.success) {
       return [];
     }
 
@@ -53,7 +102,7 @@ export const SchoolService = {
         school_name: school.school_name ?? name,
         district_name: school.district_name ?? district,
         school_domain: school.school_domain ?? domain,
-        school_type: school.school_type ?? type
+        school_type: school.school_type ?? type,
       };
     });
   },
@@ -70,11 +119,12 @@ export const SchoolService = {
       school_domain: schoolDetails.domain,
       contact_email: schoolDetails.contact,
       zip: schoolDetails.zip,
-      additional_notes: schoolDetails.notes
+      additional_notes: schoolDetails.notes,
     });
-    const data = response?.data as { success?: boolean; error?: string; request?: unknown } | undefined;
-    if (!data?.success) {
-      throw new Error(data?.error || 'Failed to submit school request.');
+    const data = parseSchoolRequestData(response?.data);
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to submit school request.');
     }
     return data.request;
   },
@@ -87,18 +137,15 @@ export const SchoolService = {
   ): Promise<{ hasSIS: boolean; hasGoogle: boolean }> {
     const raw = await apiClient.get(`/api/schools/${schoolId}/capabilities`);
 
-    // Normalize and validate the response to always match the return type.
-    const data = (raw && typeof raw === 'object' ? (raw as any) : {}) as {
-      hasSIS?: unknown;
-      hasGoogle?: unknown;
-    };
+    const parsed = schoolCapabilitiesSchema.safeParse(raw);
+    const data = parsed.success ? parsed.data : {};
 
-    const hasSIS = typeof data.hasSIS === 'boolean' ? data.hasSIS : Boolean(data.hasSIS);
-    const hasGoogle = typeof data.hasGoogle === 'boolean' ? data.hasGoogle : Boolean(data.hasGoogle);
+    const hasSIS = Boolean(data.hasSIS);
+    const hasGoogle = Boolean(data.hasGoogle);
 
     return {
       hasSIS,
-      hasGoogle
+      hasGoogle,
     };
-  }
+  },
 };
