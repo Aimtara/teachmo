@@ -84,6 +84,11 @@ export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: Retr
     try {
       if (!rateLimiter.canMakeRequest(rateLimitKey)) {
         const retryAfter = rateLimiter.getRetryAfter();
+        apiUtilsLogger.warn(`Client rate limit reached. Waiting ${retryAfter} seconds before retry.`);
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => window.setTimeout(resolve, retryAfter * 1000));
+          continue;
+        }
         throw new Error(`Rate limited. Try again in ${retryAfter} seconds.`);
       }
 
@@ -171,7 +176,10 @@ export const withGracefulDegradation = <TArgs extends unknown[], TResult>(
     try {
       return await fn(...args);
     } catch (error) {
-      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback.`, error);
+      const safeError = error instanceof Error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : String(error);
+      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback.`, safeError);
       return fallbackValue;
     }
   };
