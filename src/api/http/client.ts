@@ -60,8 +60,30 @@ export async function requestBlob(url: string, tenant?: TenantScope, options: Ht
   const headers = await authHeaders(tenant, options.headers);
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    const detail = body ? `: ${body.slice(0, 200)}` : '';
+    const contentType = res.headers.get('content-type') ?? '';
+    const contentLengthHeader = res.headers.get('content-length');
+    const maxErrorBodySize = 16 * 1024; // 16KB safety limit for error bodies
+
+    const isTextLike =
+      contentType.startsWith('text/') ||
+      contentType.includes('json') ||
+      contentType.includes('xml') ||
+      contentType.includes('html');
+
+    const declaredLength = contentLengthHeader ? parseInt(contentLengthHeader, 10) : NaN;
+    const isWithinSizeLimit = Number.isNaN(declaredLength) || declaredLength <= maxErrorBodySize;
+
+    let detail = '';
+    if (isTextLike && isWithinSizeLimit) {
+      const body = await res.text().catch(() => '');
+      detail = body ? `: ${body.slice(0, 200)}` : '';
+    } else if (contentType || contentLengthHeader) {
+      // Avoid reading potentially large/binary bodies; include minimal metadata instead.
+      const meta: string[] = [];
+      if (contentType) meta.push(`content-type=${contentType}`);
+      if (contentLengthHeader) meta.push(`content-length=${contentLengthHeader}`);
+      detail = meta.length ? `: [error body not read; ${meta.join(', ')}]` : '';
+    }
     throw new Error(`HTTP ${res.status}${detail}`);
   }
   return res.blob();
