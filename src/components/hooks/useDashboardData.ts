@@ -84,16 +84,24 @@ export function useDashboardData() {
       const user = (await execute(() => backendAdapter.getCurrentUser(), { key: 'user' })) as BackendUser | null;
       if (!user) return;
 
-      const [children, activities, tips] = await Promise.all([
+      const [children, activities, activitiesForStats, tips] = await Promise.all([
         execute(() => backendAdapter.listChildren(), { key: 'children' }).catch(() => [] as ChildProfile[]),
         execute(() => backendAdapter.listActivities({ excludeStatus: 'completed', limit: 10 }), {
           key: 'activities',
         }).catch(() => [] as ActivitySummary[]),
-        execute(() => ParentingTip.list('-created_date', 5), { key: 'tips' }).catch(() => [] as ParentingTipItem[]),
+        execute(() => backendAdapter.listActivities({ limit: 50 }), {
+          key: 'activitiesStats',
+        }).catch(() => [] as ActivitySummary[]),
+        execute(() => ParentingTip.list('-created_date', 5), { key: 'tips' }).catch(
+          () => [] as ParentingTipItem[],
+        ),
       ]);
 
       const safeChildren = Array.isArray(children) ? (children as ChildProfile[]) : [];
       const safeActivities = Array.isArray(activities) ? (activities as ActivitySummary[]) : [];
+      const safeActivitiesForStats = Array.isArray(activitiesForStats)
+        ? (activitiesForStats as ActivitySummary[])
+        : [];
       const safeTips = Array.isArray(tips) ? (tips as ParentingTipItem[]) : [];
 
       setDashboardData({
@@ -101,7 +109,7 @@ export function useDashboardData() {
         children: safeChildren,
         activities: safeActivities,
         tips: safeTips,
-        weeklyStats: calculateWeeklyStats(safeActivities, safeTips, user),
+        weeklyStats: calculateWeeklyStats(safeActivitiesForStats, safeTips, user),
       });
     } catch (loadError) {
       console.error('Error loading dashboard data:', loadError);
