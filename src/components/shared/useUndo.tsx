@@ -1,14 +1,19 @@
 import { toast } from 'sonner';
 import { RefreshCcw } from 'lucide-react';
 
-/**
- * Hook to trigger an action with an Undo grace period.
- */
-export function useUndo() {
-  const performWithUndo = (actionFn, undoFn, options = {}) => {
-    const { message = "Action completed", duration = 5000 } = options;
+type UndoOptions = {
+  message?: string;
+  duration?: number;
+};
 
-    // Optimistic execution
+export function useUndo() {
+  const performWithUndo = (
+    actionFn: () => void,
+    undoFn: () => void,
+    options: UndoOptions = {},
+  ) => {
+    const { message = 'Action completed', duration = 5000 } = options;
+
     actionFn();
 
     toast(message, {

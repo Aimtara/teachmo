@@ -1,16 +1,23 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Crown, Star, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { ReactNode } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Crown, Star, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
-export default function PremiumGate({ 
-  title = "Premium Feature", 
-  description = "This feature is available for premium members only.",
+type PremiumGateProps = {
+  title?: string;
+  description?: string;
+  feature?: string;
+  children?: ReactNode;
+};
+
+export default function PremiumGate({
+  title = 'Premium Feature',
+  description = 'This feature is available for premium members only.',
   feature,
-  children 
-}) {
+  children,
+}: PremiumGateProps) {
   return (
     <Card className="border-2 border-dashed border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50">
       <CardHeader className="text-center">
@@ -30,7 +37,7 @@ export default function PremiumGate({
             <p className="text-sm text-gray-700">{feature}</p>
           </div>
         )}
-        <Link to={createPageUrl("Upgrade")}>
+        <Link to={createPageUrl('Upgrade')}>
           <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
             <Crown className="w-4 h-4 mr-2" />
             Upgrade to Premium

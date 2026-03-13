@@ -1,21 +1,21 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-03-12T23:54:23.550Z
+Generated: 2026-03-13T14:34:55.592Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 194 |
-| .jsx | 512 |
-| .ts | 280 |
-| .tsx | 35 |
+| .js | 192 |
+| .jsx | 490 |
+| .ts | 294 |
+| .tsx | 47 |
 
 ## JS/TS inventory by top-level directory
 
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
-| src | 9 | 511 | 172 | 35 |
+| src | 7 | 489 | 186 | 47 |
 | backend | 147 | 0 | 6 | 0 |
 | nhost | 30 | 0 | 86 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
@@ -84,6 +84,18 @@ Generated: 2026-03-12T23:54:23.550Z
 - [x] Migrated audit log domain module from `src/domains/auditLog.js` to `src/domains/auditLog.ts` with typed sanitization/log input helpers.
 - [x] Completed Phase 1 foundation hardening: shared HTTP/runtime-validation boundaries are applied across targeted API/domain modules; remaining `src/**/*.js` files are intentional mocks/tests/generated adapters tracked in the JS exception register.
 - [ ] Continue applying the shared HTTP client and runtime-validation-backed contracts across remaining API modules and backend integration boundaries.
+
+## Phase 2 frontend vertical-slice kickoff progress
+
+- [x] Continued Phase 2 shared UI conversion work across hooks/shared utilities and provider components.
+- [x] Migrated shared premium UI components `src/components/shared/{PremiumBadge,PremiumGate}.jsx` to TypeScript (`.tsx`) with typed props and children contracts.
+- [x] Migrated shared route guard utilities `src/components/shared/{FeatureGate,RoleGuard}.jsx` to TypeScript (`.tsx`) with typed props and redirect/authorization handling.
+- [x] Migrated shared accessibility utility `src/components/shared/SkipLink.jsx` to `src/components/shared/SkipLink.tsx` with typed props and focus/blur handlers.
+- [x] Migrated shared navigation utilities `src/components/shared/{Breadcrumbs,BreadcrumbNavigation}.jsx` to TypeScript (`.tsx`) with typed breadcrumb item contracts and route helpers.
+- [x] Migrated async safety utility `src/components/shared/AsyncBoundary.jsx` to `src/components/shared/AsyncBoundary.tsx` with typed HOC fallback/error contracts and generic `safeAsync` return typing.
+- [x] Migrated shared media utility `src/components/shared/LazyImage.jsx` to `src/components/shared/LazyImage.tsx` with typed props, intersection observer ref typing, and safe cleanup.
+- [x] Migrated shared empty-state primitives `src/components/shared/EmptyStates.jsx` to `src/components/shared/EmptyStates.tsx` with typed action/item contracts and typed props across exported empty-state variants.
+- [ ] Continue remaining hook-slice consumers and then proceed to shared UI primitive slices.
 
 ## Phase 0 kickoff checklist
 

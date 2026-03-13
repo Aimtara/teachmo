@@ -1,4 +1,4 @@
-import { useAuth } from "@/components/hooks/useAuth";
+import { useAuth } from '@/components/hooks/useAuth';
 
 export function useAppContextSafe() {
   const { user, activeRole, isAuthenticated, loading } = useAuth();
