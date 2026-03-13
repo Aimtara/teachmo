@@ -24,7 +24,11 @@ export const useErrorHandler = () => {
   const { toast } = useToast();
 
   const handleError = (nextError: unknown, customMessage?: string) => {
-    logger.error('Error occurred', nextError);
+    logger.error(
+      'Error occurred',
+      getErrorMessage(nextError),
+      nextError instanceof Error ? nextError.stack : undefined,
+    );
     setError(nextError);
 
     const rawErrorMessage = getErrorMessage(nextError);
