@@ -171,15 +171,8 @@ export const withGracefulDegradation = <TArgs extends unknown[], TResult>(
     try {
       return await fn(...args);
     } catch (error) {
-      let safeMessage: string;
-      if (error instanceof Error) {
-        safeMessage = `${error.name}: ${error.message}`;
-      } else if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
-        safeMessage = (error as any).message;
-      } else {
-        safeMessage = String(error);
-      }
-      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback. Error: ${safeMessage}`);
+      const safeError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback. Error: ${safeError}`);
       return fallbackValue;
     }
   };
