@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { createLogger } from '@/utils/logger';
+import * as Sentry from '@sentry/react';
 
 const logger = createLogger('use-error-handler');
 
@@ -24,14 +25,18 @@ export const useErrorHandler = () => {
   const { toast } = useToast();
 
   const handleError = (nextError: unknown, customMessage?: string) => {
-    logger.error(
-      'Error occurred',
-      getErrorMessage(nextError),
-      nextError instanceof Error ? nextError.stack : undefined,
-    );
+    const safeMessage = getErrorMessage(nextError);
+    logger.error('Error occurred', safeMessage);
+
+    if (nextError instanceof Error) {
+      Sentry.captureException(nextError);
+    } else {
+      Sentry.captureException(new Error(safeMessage));
+    }
+
     setError(nextError);
 
-    const rawErrorMessage = getErrorMessage(nextError);
+    const rawErrorMessage = safeMessage;
     let errorMessage = customMessage || 'Something went wrong. Please try again.';
 
     if (rawErrorMessage.includes('Network') || rawErrorMessage.includes('Failed to fetch')) {
