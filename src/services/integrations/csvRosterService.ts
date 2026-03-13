@@ -46,6 +46,12 @@ export const CsvRosterService = {
 
       const parsed = rosterRowSchema.safeParse(rowData);
       if (!parsed.success) {
+        // Aggregate per-field validation issues to help users correct specific columns.
+        if (!parsed.error.issues.length) {
+          errors.push(`Row ${i + 1}: Validation failed for unknown reason.`);
+          continue;
+        }
+
         const issueMessages = parsed.error.issues.map((issue) => {
           const path = issue.path.join('.');
           return path ? `${path}: ${issue.message}` : issue.message;
@@ -53,9 +59,7 @@ export const CsvRosterService = {
         const details = issueMessages.join('; ');
         const truncatedDetails =
           details.length > 500 ? `${details.slice(0, 497)}...` : details;
-        errors.push(
-          `Row ${i + 1}: ${truncatedDetails || 'Invalid row data.'}`
-        );
+        errors.push(`Row ${i + 1}: ${truncatedDetails}`);
         continue;
       }
 
