@@ -24,7 +24,18 @@ export const preloadRoute = <TProps extends object>(
 ): LazyExoticComponent<ComponentType<TProps>> => {
   const LazyComponent = lazy(importFn);
   importFn().catch((error: unknown) => {
-    logger.error('Failed to preload route', error);
+    const safeError =
+      error instanceof Error
+        ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          }
+        : {
+            message: 'Unknown error during route preload',
+            type: typeof error,
+          };
+    logger.error('Failed to preload route', safeError);
   });
   return LazyComponent;
 };
