@@ -33,7 +33,8 @@ export function usePremium() {
         setUser(currentUser);
         setIsPremium(currentUser?.subscription_tier === 'premium');
       } catch (error) {
-        logger.error('Error fetching user', error);
+        const safeMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Error fetching user: ${safeMessage}`);
       } finally {
         setIsLoading(false);
       }
