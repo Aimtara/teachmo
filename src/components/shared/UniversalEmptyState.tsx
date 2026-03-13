@@ -298,12 +298,12 @@ export default function UniversalEmptyState({
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
             {config.primaryAction &&
               (config.primaryAction.href ? (
-                <Link to={config.primaryAction.href}>
-                  <Button className="w-full sm:w-auto">
+                <Button asChild className="w-full sm:w-auto">
+                  <Link to={config.primaryAction.href}>
                     {config.primaryAction.icon && <config.primaryAction.icon className="w-4 h-4 mr-2" />}
                     {config.primaryAction.label}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               ) : (
                 <Button onClick={handlePrimaryAction} className="w-full sm:w-auto">
                   {config.primaryAction.icon && <config.primaryAction.icon className="w-4 h-4 mr-2" />}
@@ -313,11 +313,11 @@ export default function UniversalEmptyState({
 
             {config.secondaryAction &&
               (config.secondaryAction.href ? (
-                <Link to={config.secondaryAction.href}>
-                  <Button variant="outline" className="w-full sm:w-auto">
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link to={config.secondaryAction.href}>
                     {config.secondaryAction.label}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               ) : (
                 <Button variant="outline" onClick={handleSecondaryAction} className="w-full sm:w-auto">
                   {config.secondaryAction.label}
