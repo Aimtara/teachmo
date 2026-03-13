@@ -165,16 +165,6 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
       };
 
       return executeOperation();
-          return { error: apiError, loading: false, retry: startOperation };
-        }
-      };
-
-      const startOperation = async (): Promise<APIResponse<T>> => {
-        attempt = 0;
-        return executeOperation();
-      };
-
-      return startOperation();
     },
     [toast],
   );
