@@ -42,6 +42,7 @@ type QueueRequest<T> = {
   fn: () => Promise<T>;
   resolve: (value: T | PromiseLike<T>) => void;
   reject: (reason?: unknown) => void;
+  key?: string;
 };
 
 type ExecuteOptions<T> = {
@@ -153,15 +154,15 @@ const processQueue = async () => {
   }
 };
 
-const executeWithRateLimit = async <T>(fn: () => Promise<T>): Promise<T> =>
+const executeWithRateLimit = async <T>(fn: () => Promise<T>, key?: string): Promise<T> =>
   new Promise<T>((resolve, reject) => {
-    globalRequestQueue.push({ fn, resolve, reject } as QueueRequest<unknown>);
+    globalRequestQueue.push({ fn, resolve, reject, key } as QueueRequest<unknown>);
     void processQueue();
   });
 
-const retryWithBackoff = async <T>(fn: () => Promise<T>, retries: number, delay: number): Promise<T> => {
+const retryWithBackoff = async <T>(fn: () => Promise<T>, retries: number, delay: number, key?: string): Promise<T> => {
   try {
-    return await executeWithRateLimit(fn);
+    return await executeWithRateLimit(fn, key);
   } catch (error) {
     const errorInfo = classifyError(error);
 
@@ -174,7 +175,7 @@ const retryWithBackoff = async <T>(fn: () => Promise<T>, retries: number, delay:
       logger.warn(`Request failed, retrying in ${backoffDelay}ms. Retries left: ${retries}`);
 
       await new Promise((resolve) => window.setTimeout(resolve, backoffDelay));
-      return retryWithBackoff(fn, retries - 1, backoffDelay);
+      return retryWithBackoff(fn, retries - 1, backoffDelay, key);
     }
 
     throw error;
@@ -241,6 +242,7 @@ export const useApi = (options: UseApiOptions = {}) => {
         delete abortControllers.current[key];
         setLoading(key, false);
       }
+      globalRequestQueue = globalRequestQueue.filter((req) => req.key !== key);
     },
     [setLoading],
   );
@@ -268,8 +270,8 @@ export const useApi = (options: UseApiOptions = {}) => {
         clearError(key);
 
         const result = retryable
-          ? await retryWithBackoff(() => operationFn(controller.signal), 3, 1000)
-          : await executeWithRateLimit(() => operationFn(controller.signal));
+          ? await retryWithBackoff(() => operationFn(controller.signal), 3, 1000, key)
+          : await executeWithRateLimit(() => operationFn(controller.signal), key);
 
         if (onSuccess) {
           await onSuccess(result);
@@ -320,8 +322,10 @@ export const useApi = (options: UseApiOptions = {}) => {
 
         throw error;
       } finally {
-        setLoading(key, false);
-        delete abortControllers.current[key];
+        if (abortControllers.current[key] === controller) {
+          setLoading(key, false);
+          delete abortControllers.current[key];
+        }
       }
     },
     [cancelRequest, clearError, context, enableRetry, navigate, redirectOnAuth, setError, setLoading, showToastOnError, showToastOnSuccess, silent, toast],

@@ -75,6 +75,14 @@ function isUnauthorizedError(err: unknown) {
   return /401|unauthorized|jwt/i.test(message);
 }
 
+async function fetchProfileWithRetry(userId: string, signal?: AbortSignal) {
+  const profile = await fetchUserProfile(userId);
+  if (profile || signal?.aborted) return profile;
+
+  // Retry once in case the profile row was just created by an auth trigger.
+  return fetchUserProfile(userId);
+}
+
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated } = useAuthenticationStatus();
   const user = useUserData();
@@ -118,7 +126,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       if (!tenant.organizationId || !tenant.schoolId) {
         try {
           if (!user.id) throw new Error('Missing user id for profile fallback');
-          const profile = await fetchUserProfile(user.id);
+          const profile = await fetchProfileWithRetry(user.id);
+
           if (mounted) {
             setState({
               organizationId: tenant.organizationId ?? profile?.organization_id ?? null,
@@ -128,7 +137,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           }
           return;
         } catch (err) {
-          logger.error('Failed profile fallback fetch', err);
+          const unauthorized = isUnauthorizedError(err);
+          if (unauthorized) {
+            logger.warn('Profile fallback fetch returned unauthorized response.');
+          } else {
+            logger.error('Failed profile fallback fetch', err);
+          }
           if (mounted) {
             setState({
               organizationId: tenant.organizationId,
@@ -137,7 +151,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             });
           }
 
-          if (mounted && isUnauthorizedError(err)) {
+          if (mounted && unauthorized) {
             logger.warn('Profile fallback returned unauthorized; forcing sign-out to clear stale session token.');
 
             if (!unauthorizedRecoveryAttemptedRef.current) {

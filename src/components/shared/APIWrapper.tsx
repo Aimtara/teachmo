@@ -126,6 +126,16 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
 
           if (shouldRetry) {
             apiLogger.warn(`API call failed (attempt ${attempt}/${retries}), retrying in ${retryDelay}ms...`, apiError);
+            apiLogger.warn(
+              `API call failed (attempt ${attempt}/${retries}), retrying in ${retryDelay}ms...`,
+              {
+                message: apiError.message,
+                code: apiError.code,
+                status: apiError.status,
+                attempt,
+                retries,
+              },
+            );
             await delay(retryDelay * attempt);
             return executeOperation();
           }
@@ -155,6 +165,16 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
       };
 
       return executeOperation();
+          return { error: apiError, loading: false, retry: startOperation };
+        }
+      };
+
+      const startOperation = async (): Promise<APIResponse<T>> => {
+        attempt = 0;
+        return executeOperation();
+      };
+
+      return startOperation();
     },
     [toast],
   );
