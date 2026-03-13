@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
-import { useUserRoleState } from '@/hooks/useUserRole';
+import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { nhost } from '@/lib/nhostClient';
+import { clearSavedOnboardingFlowPreference } from '@/lib/onboardingFlow';
 
 const teacherOnboardingSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
@@ -25,7 +26,7 @@ const teacherOnboardingSchema = z.object({
   schoolId: z.string().min(2, 'School ID is required'),
   subjects: z.string().min(2, 'Please tell us what you teach'),
   grades: z.string().min(1, 'List at least one grade level'),
-  teachingFocus: z.string().optional()
+  bio: z.string().optional()
 });
 
 const CREATE_TEACHER_PROFILE = `
@@ -61,6 +62,7 @@ export default function TeacherOnboardingPage() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus();
   const { role, loading: roleLoading, needsOnboarding } = useUserRoleState();
+  const defaultPath = getDefaultPathForRole(role);
 
   const defaultValues = useMemo(
     () => ({
@@ -95,7 +97,7 @@ export default function TeacherOnboardingPage() {
 
   // Users who have already completed onboarding don't need to be here.
   if (isAuthenticated && !needsOnboarding) {
-    return <Navigate to="/teacher/dashboard" replace />;
+    return <Navigate to={defaultPath} replace />;
   }
 
   const onSubmit = async (values: TeacherFormValues) => {
@@ -165,12 +167,20 @@ export default function TeacherOnboardingPage() {
       return;
     }
 
+    try {
+      await nhost.auth.refreshSession();
+    } catch (refreshError) {
+      console.warn('Unable to refresh session after teacher onboarding', refreshError);
+    }
+
+    clearSavedOnboardingFlowPreference();
+
     toast({
       title: 'Welcome to Teachmo!',
       description: 'Your classroom profile is ready. We connected you to your school and saved your teaching details.'
     });
 
-    navigate('/teacher/dashboard');
+    navigate(getDefaultPathForRole('teacher'));
   };
 
   return (

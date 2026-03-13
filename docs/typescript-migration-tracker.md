@@ -83,6 +83,7 @@ Generated: 2026-03-12T23:54:23.550Z
 - [x] Migrated auth domain module from `src/domains/auth.js` to `src/domains/auth.ts` with typed profile lookup/mutation inputs.
 - [x] Migrated audit log domain module from `src/domains/auditLog.js` to `src/domains/auditLog.ts` with typed sanitization/log input helpers.
 - [x] Completed Phase 1 foundation hardening: shared HTTP/runtime-validation boundaries are applied across targeted API/domain modules; remaining `src/**/*.js` files are intentional mocks/tests/generated adapters tracked in the JS exception register.
+- [ ] Continue applying the shared HTTP client and runtime-validation-backed contracts across remaining API modules and backend integration boundaries.
 
 ## Phase 0 kickoff checklist
 
