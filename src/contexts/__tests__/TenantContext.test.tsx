@@ -170,7 +170,7 @@ describe('TenantProvider', () => {
     const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
     authState.accessToken = `h.${payload}.s`;
     fetchUserProfileMock
-      .mockResolvedValueOnce(null as any)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ organization_id: 'org_retry', school_id: 'school_retry' } as any);
 
     render(
@@ -194,7 +194,7 @@ describe('TenantProvider', () => {
     authState.user = { id: 'u-empty', metadata: {} };
     const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
     authState.accessToken = `h.${payload}.s`;
-    fetchUserProfileMock.mockResolvedValue(null as any);
+    fetchUserProfileMock.mockResolvedValue(null);
 
     render(
       <TenantProvider>
