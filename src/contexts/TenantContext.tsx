@@ -125,7 +125,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
         if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
           tokenLagTimer = window.setTimeout(async () => {
-            if (!mounted || tokenLagRecoveryAttemptedRef.current || accessToken) return;
+            if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
+
+            const freshToken = await nhost.auth.getAccessToken();
+            if (freshToken) return;
 
             tokenLagRecoveryAttemptedRef.current = true;
             logger.warn('Authenticated state persisted without access token; forcing sign-out to clear stale session.');
