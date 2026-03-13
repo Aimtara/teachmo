@@ -1,5 +1,6 @@
-import { Button } from '@/components/ui/button';
+import { Button, getButtonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import {
   Users,
   Calendar,
@@ -298,11 +299,12 @@ export default function UniversalEmptyState({
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
             {config.primaryAction &&
               (config.primaryAction.href ? (
-                <Link to={config.primaryAction.href} className="w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto">
-                    {config.primaryAction.icon && <config.primaryAction.icon className="w-4 h-4 mr-2" />}
-                    {config.primaryAction.label}
-                  </Button>
+                <Link
+                  to={config.primaryAction.href}
+                  className={cn(getButtonVariants(), 'w-full sm:w-auto')}
+                >
+                  {config.primaryAction.icon && <config.primaryAction.icon className="w-4 h-4 mr-2" />}
+                  {config.primaryAction.label}
                 </Link>
               ) : (
                 <Button onClick={handlePrimaryAction} className="w-full sm:w-auto">
@@ -313,10 +315,11 @@ export default function UniversalEmptyState({
 
             {config.secondaryAction &&
               (config.secondaryAction.href ? (
-                <Link to={config.secondaryAction.href} className="w-full sm:w-auto">
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    {config.secondaryAction.label}
-                  </Button>
+                <Link
+                  to={config.secondaryAction.href}
+                  className={cn(getButtonVariants({ variant: 'outline' }), 'w-full sm:w-auto')}
+                >
+                  {config.secondaryAction.label}
                 </Link>
               ) : (
                 <Button variant="outline" onClick={handleSecondaryAction} className="w-full sm:w-auto">
