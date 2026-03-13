@@ -1,6 +1,6 @@
 import { graphqlRequest } from '@/lib/graphql';
 
-export async function createPartnerSubmission(input) {
+export async function createPartnerSubmission(input: Record<string, unknown>) {
   const query = `mutation CreateSubmission($input: partner_submissions_insert_input!) {
     insert_partner_submissions_one(object: $input) {
       id
@@ -14,7 +14,7 @@ export async function createPartnerSubmission(input) {
   return data?.insert_partner_submissions_one ?? null;
 }
 
-export async function listPartnerSubmissions(partnerId) {
+export async function listPartnerSubmissions(partnerId: string) {
   const query = `query PartnerSubmissions($partnerId: uuid!) {
     partner_submissions(where: { partner_id: { _eq: $partnerId } }, order_by: { created_at: desc }) {
       id

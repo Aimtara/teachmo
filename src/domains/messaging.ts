@@ -1,6 +1,17 @@
 import { graphqlRequest } from '@/lib/graphql';
 
-export async function createThread({ subject, participantIds }) {
+type CreateThreadInput = {
+  subject: string;
+  participantIds: string[];
+};
+
+type SendMessageInput = {
+  threadId: string;
+  senderId: string;
+  content: string;
+};
+
+export async function createThread({ subject, participantIds }: CreateThreadInput) {
   const query = `mutation CreateThread($thread: message_threads_insert_input!, $participants: [thread_participants_insert_input!]!) {
     insert_message_threads_one(object: $thread) {
       id
@@ -13,14 +24,14 @@ export async function createThread({ subject, participantIds }) {
 
   const variables = {
     thread: { subject },
-    participants: participantIds.map((profileId) => ({ thread_id: undefined, profile_id: profileId }))
+    participants: participantIds.map((profileId) => ({ thread_id: undefined, profile_id: profileId })),
   };
 
   const data = await graphqlRequest({ query, variables });
   return data;
 }
 
-export async function sendMessage({ threadId, senderId, content }) {
+export async function sendMessage({ threadId, senderId, content }: SendMessageInput) {
   const query = `mutation SendMessage($input: messages_insert_input!) {
     insert_messages_one(object: $input) {
       id
@@ -32,7 +43,7 @@ export async function sendMessage({ threadId, senderId, content }) {
   return graphqlRequest({ query, variables: { input: { thread_id: threadId, sender_id: senderId, content } } });
 }
 
-export async function listThreads(profileId) {
+export async function listThreads(profileId: string) {
   const query = `query Threads($profileId: uuid!) {
     thread_participants(where: { profile_id: { _eq: $profileId } }) {
       thread {
@@ -48,5 +59,5 @@ export async function listThreads(profileId) {
   }`;
 
   const data = await graphqlRequest({ query, variables: { profileId } });
-  return data?.thread_participants?.map((item) => item.thread) || [];
+  return data?.thread_participants?.map((item: { thread: unknown }) => item.thread) || [];
 }
