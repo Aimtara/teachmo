@@ -7,11 +7,11 @@ type SkipLinkProps = {
 
 export const SkipLink = ({ href = '#main-content', children = 'Skip to main content' }: SkipLinkProps) => {
   const handleFocus = (event: FocusEvent<HTMLAnchorElement>) => {
-    event.target.classList.remove('sr-only');
+    event.currentTarget.classList.remove('sr-only');
   };
 
   const handleBlur = (event: FocusEvent<HTMLAnchorElement>) => {
-    event.target.classList.add('sr-only');
+    event.currentTarget.classList.add('sr-only');
   };
 
   return (

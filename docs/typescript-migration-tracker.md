@@ -104,6 +104,9 @@ Generated: 2026-03-13T19:42:15.753Z
 - [x] Migrated UX rules utility `src/components/shared/UXReviewRule.jsx` to `src/components/shared/UXReviewRule.tsx` with typed rule/checkpoint contracts and violation props.
 - [x] Migrated standard loading-state helpers `src/components/shared/StandardLoadingStates.jsx` to `src/components/shared/StandardLoadingStates.tsx` with typed prop contracts for skeleton/page loaders.
 - [x] Migrated accessibility helper toolkit `src/components/shared/AccessibilityHelpers.jsx` to `src/components/shared/AccessibilityHelpers.tsx` with typed hooks/components for keyboard navigation, live regions, and form/button accessibility props.
+- [x] Migrated async safety utility `src/components/shared/AsyncBoundary.jsx` to `src/components/shared/AsyncBoundary.tsx` with typed HOC fallback/error contracts and generic `safeAsync` return typing.
+- [x] Migrated shared media utility `src/components/shared/LazyImage.jsx` to `src/components/shared/LazyImage.tsx` with typed props, intersection observer ref typing, and safe cleanup.
+- [x] Migrated shared empty-state primitives `src/components/shared/EmptyStates.jsx` to `src/components/shared/EmptyStates.tsx` with typed action/item contracts and typed props across exported empty-state variants.
 - [ ] Continue remaining hook-slice consumers and then proceed to shared UI primitive slices.
 
 ## Phase 0 kickoff checklist

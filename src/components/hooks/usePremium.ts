@@ -34,7 +34,32 @@ export function usePremium() {
         setUser(currentUser);
         setIsPremium(currentUser?.subscription_tier === 'premium');
       } catch (error) {
-        logger.warn('Could not fetch user for premium check, assuming not premium.', error);
+        if (error instanceof Error) {
+          const { name, message } = error;
+          const anyError = error as {
+            status?: number;
+            statusCode?: number;
+            code?: string | number;
+          };
+          const safeErrorInfo: Record<string, unknown> = { name, message };
+
+          if (typeof anyError.status !== 'undefined') {
+            safeErrorInfo.status = anyError.status;
+          }
+          if (typeof anyError.statusCode !== 'undefined') {
+            safeErrorInfo.statusCode = anyError.statusCode;
+          }
+          if (typeof anyError.code !== 'undefined') {
+            safeErrorInfo.code = anyError.code;
+          }
+
+          logger.warn(
+            'Could not fetch user for premium check, assuming not premium.',
+            safeErrorInfo,
+          );
+        } else {
+          logger.warn('Could not fetch user for premium check, assuming not premium.');
+        }
         setIsPremium(false);
       } finally {
         setIsLoading(false);
