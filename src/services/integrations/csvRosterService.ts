@@ -46,7 +46,16 @@ export const CsvRosterService = {
 
       const parsed = rosterRowSchema.safeParse(rowData);
       if (!parsed.success) {
-        errors.push(`Row ${i + 1}: Invalid row data.`);
+        const issueMessages = parsed.error.issues.map((issue) => {
+          const path = issue.path.join('.');
+          return path ? `${path}: ${issue.message}` : issue.message;
+        });
+        const details = issueMessages.join('; ');
+        const truncatedDetails =
+          details.length > 500 ? `${details.slice(0, 497)}...` : details;
+        errors.push(
+          `Row ${i + 1}: ${truncatedDetails || 'Invalid row data.'}`
+        );
         continue;
       }
 
