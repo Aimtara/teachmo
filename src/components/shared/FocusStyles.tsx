@@ -1,8 +1,11 @@
-import React from 'react';
+import { useEffect, type ReactNode } from 'react';
 
-export const FocusStylesProvider = ({ children }) => {
-  React.useEffect(() => {
-    // Add global focus styles
+type FocusStylesProviderProps = {
+  children: ReactNode;
+};
+
+export const FocusStylesProvider = ({ children }: FocusStylesProviderProps) => {
+  useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
       /* Enhanced focus styles */
@@ -54,7 +57,7 @@ export const FocusStylesProvider = ({ children }) => {
         border: 0;
       }
 
-      .focus\:not-sr-only:focus {
+      .focus\\:not-sr-only:focus {
         position: static;
         width: auto;
         height: auto;

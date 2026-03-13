@@ -62,6 +62,12 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
       let attempt = 0;
 
       const executeOperation = async (): Promise<APIResponse<T>> => {
+        // If a previous call exhausted its retries, reset the attempt counter
+        // so that a new, user-triggered retry starts a fresh retry cycle.
+        if (attempt >= retries) {
+          attempt = 0;
+        }
+
         try {
           const startTime = Date.now();
           const result = await operation();
@@ -81,7 +87,7 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
             }
           }
 
-          return { data: result, loading: false, retry: startOperation };
+          return { data: result, loading: false, retry: executeOperation };
         } catch (error) {
           attempt += 1;
           const errorLike = error as {
@@ -149,7 +155,7 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
                 attempt >= retries ? (
                   <button
                     onClick={() => {
-                      void startOperation();
+                      void executeOperation();
                     }}
                     className="bg-white text-red-600 px-3 py-1 rounded text-sm hover:bg-gray-50"
                   >
@@ -159,16 +165,11 @@ export const APIWrapperProvider = ({ children }: APIWrapperProviderProps) => {
             });
           }
 
-          return { error: apiError, loading: false, retry: startOperation };
+          return { error: apiError, loading: false, retry: executeOperation };
         }
       };
 
-      const startOperation = async (): Promise<APIResponse<T>> => {
-        attempt = 0;
-        return executeOperation();
-      };
-
-      return startOperation();
+      return executeOperation();
     },
     [toast],
   );

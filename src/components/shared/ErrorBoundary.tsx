@@ -1,29 +1,35 @@
-import React from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('error-boundary');
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+type ErrorBoundaryProps = {
+  children: ReactNode;
+};
+
+type ErrorBoundaryState = {
+  hasError: boolean;
+  error: Error | null;
+};
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI.
-    return { hasError: true, error: error };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
-    // Log the error to an error reporting service
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error('Uncaught error', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
-      // You can render any custom fallback UI
       return (
         <div className="flex items-center justify-center h-full p-8 bg-gray-50">
           <div className="text-center max-w-lg">
@@ -37,9 +43,7 @@ class ErrorBoundary extends React.Component {
                 {this.state.error.toString()}
               </pre>
             )}
-            <Button onClick={() => window.location.reload()}>
-              Refresh Page
-            </Button>
+            <Button onClick={() => window.location.reload()}>Refresh Page</Button>
           </div>
         </div>
       );
