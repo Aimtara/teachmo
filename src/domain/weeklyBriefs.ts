@@ -19,7 +19,7 @@ export const weeklyBriefsApi = {
     const hasFilters = Object.keys(filters).length > 0;
 
     if (hasFilters) {
-      return apiClient.entity.filter<WeeklyBriefRecord>('WeeklyBrief', filters);
+      return apiClient.entity.filter<WeeklyBriefRecord>('WeeklyBrief', { ...filters, sort: '-published_at' });
     }
 
     return apiClient.entity.list<WeeklyBriefRecord>('WeeklyBrief', { sort: '-published_at' });
