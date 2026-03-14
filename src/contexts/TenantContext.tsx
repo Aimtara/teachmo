@@ -114,6 +114,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let sessionLagTimer: number | null = null;
     let tokenLagTimer: number | null = null;
 
     const resolveTenant = async () => {
@@ -131,15 +132,37 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       if (!accessToken || !user) {
         if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
 
+        // Guard 1: session-lag – either the token or the user object is missing.
+        // After SESSION_LAG_SIGNOUT_DELAY_MS, force sign-out directly if hydration never recovered.
         if (isAuthenticated && !sessionLagRecoveryAttemptedRef.current) {
-          tokenLagTimer = window.setTimeout(async () => {
+          sessionLagTimer = window.setTimeout(async () => {
             if (!mounted || sessionLagRecoveryAttemptedRef.current) return;
             // If hydration recovered during the grace window, no recovery action needed.
             if (latestSessionRef.current.accessToken && latestSessionRef.current.hasUser) return;
 
             sessionLagRecoveryAttemptedRef.current = true;
-            const lagReason = !accessToken ? 'access token' : 'user profile';
+            const lagReason = !latestSessionRef.current.accessToken ? 'access token' : 'user profile';
             logger.warn(`Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`);
+
+            try {
+              await nhost.auth.signOut();
+            } catch (signOutError) {
+              logger.error(
+                'Failed to force sign-out after prolonged session lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
+            }
+
+            if (mounted) {
+              setState({ organizationId: null, schoolId: null, loading: false });
+            }
+          }, SESSION_LAG_SIGNOUT_DELAY_MS);
+        }
+
+        // Guard 2: token-lag – the access token is specifically missing.
+        // After TOKEN_LAG_SIGNOUT_DELAY_MS, attempt to refresh the token; sign out if it cannot be recovered.
         if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
           tokenLagTimer = window.setTimeout(async () => {
             if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
@@ -175,7 +198,6 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             if (mounted) {
               setState({ organizationId: null, schoolId: null, loading: false });
             }
-          }, SESSION_LAG_SIGNOUT_DELAY_MS);
           }, TOKEN_LAG_SIGNOUT_DELAY_MS);
         }
 
@@ -247,6 +269,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      if (sessionLagTimer !== null) {
+        window.clearTimeout(sessionLagTimer);
+      }
       if (tokenLagTimer !== null) {
         window.clearTimeout(tokenLagTimer);
       }
