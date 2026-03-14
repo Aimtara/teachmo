@@ -1,7 +1,18 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import AuthCallback from '@/pages/AuthCallback';
+
+function LoginPage() {
+  const [params] = useSearchParams();
+  return (
+    <div>
+      <div>Login Page</div>
+      <div data-testid="login-flow-param">{params.get('flow')}</div>
+      <div data-testid="login-error-param">{params.get('error') ?? ''}</div>
+    </div>
+  );
+}
 
 const authState = {
   isAuthenticated: false,
@@ -57,12 +68,47 @@ describe('AuthCallback', () => {
       <MemoryRouter initialEntries={['/auth/callback?flow=district']}>
         <Routes>
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/login" element={<div>Login Page</div>} />
+          <Route path="/login" element={<LoginPage />} />
         </Routes>
       </MemoryRouter>
     );
 
     expect(await screen.findByText('Login Page')).toBeInTheDocument();
+    expect(screen.getByTestId('login-flow-param')).toHaveTextContent('district');
+    expect(screen.getByTestId('login-error-param')).toHaveTextContent('');
+  });
+
+  it('preserves flow and appends error=session_expired when redirecting after an auth error', async () => {
+    authState.error = { message: 'Session expired' };
+
+    render(
+      <MemoryRouter initialEntries={['/auth/callback?flow=district']}>
+        <Routes>
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Login Page')).toBeInTheDocument();
+    expect(screen.getByTestId('login-flow-param')).toHaveTextContent('district');
+    expect(screen.getByTestId('login-error-param')).toHaveTextContent('session_expired');
+  });
+
+  it('falls back to saved onboarding preference when no flow param is present', async () => {
+    render(
+      <MemoryRouter initialEntries={['/auth/callback']}>
+        <Routes>
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Login Page')).toBeInTheDocument();
+    // getSavedOnboardingFlowPreference() is mocked to return 'parent'
+    expect(screen.getByTestId('login-flow-param')).toHaveTextContent('parent');
+    expect(screen.getByTestId('login-error-param')).toHaveTextContent('');
   });
 
   it('redirects authenticated users to their default dashboard', async () => {
