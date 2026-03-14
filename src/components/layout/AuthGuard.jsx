@@ -10,6 +10,7 @@ export function useAuthGuard() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const authUser = useUserData();
   const [hydrationTimedOut, setHydrationTimedOut] = React.useState(false);
+  const [retryNonce, setRetryNonce] = React.useState(0);
 
   useTenantFeatureFlags();
 
@@ -27,7 +28,7 @@ export function useAuthGuard() {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [isLoading, isAuthenticated, authUser]);
+  }, [isLoading, isAuthenticated, authUser, retryNonce]);
 
   const status = hydrationTimedOut
     ? 'error'
@@ -60,6 +61,7 @@ export function useAuthGuard() {
 
   const refresh = React.useCallback(() => {
     setHydrationTimedOut(false);
+    setRetryNonce((n) => n + 1);
   }, []);
 
   const error = hydrationTimedOut ? new Error('Session hydrated without user identity. Please sign in again.') : null;
