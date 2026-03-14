@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "lint": "eslint src/backend src/observability src/api/compatClient.js src/hooks/useUserRole.ts src/components/shared/ProtectedRoute.tsx src/components/shared/AdminRoleGuard.tsx src/components/hooks/useStore.ts src/components/messages/ChatWindow.jsx src/lib/utils.ts src/main.tsx src/pages/index.jsx --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint src backend --ext .js,.jsx,.ts,.tsx",
     "lint:barrel": "eslint src --ext .js,.jsx,.ts,.tsx --config eslint.barrel.config.js",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest",
