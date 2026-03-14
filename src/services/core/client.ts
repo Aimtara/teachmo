@@ -1,6 +1,9 @@
 import { compatClient } from '@/api/compatClient';
 import { functionsMap } from '@/api/legacy/functions';
 import { nhost } from '@/lib/nhostClient';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('api-client');
 
 type EntityClient = {
   list?: (...args: unknown[]) => Promise<unknown>;
@@ -107,6 +110,13 @@ export const apiClient = {
   },
   async post<T>(_endpoint: string, _body: unknown): Promise<T> {
     throw new Error('apiClient.post is not implemented. Use a domain module or requestJson instead.');
+  async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
+    logger.debug(`[GET] ${endpoint}`, params != null ? { hasParams: true } : undefined);
+    return {} as T;
+  },
+  async post<T>(endpoint: string, _body: unknown): Promise<T> {
+    logger.debug(`[POST] ${endpoint}`);
+    return {} as T;
   },
   functions: {
     async invoke<T>(name: string, payload?: Record<string, unknown>): Promise<T> {

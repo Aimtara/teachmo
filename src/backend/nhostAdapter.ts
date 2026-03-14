@@ -1,7 +1,7 @@
 import { apiClient } from '@/services/core/client';
 import { nhost } from '@/lib/nhostClient';
 import { logger } from '@/observability/logger';
-import type { BackendAdapter, BackendUser, MessageInput, FileUploadResult } from './types';
+import type { BackendAdapter, BackendUser, ChildProfile, ActivitySummary, MessageInput, FileUploadResult } from './types';
 
 const nhostClient = nhost as unknown as {
   auth?: {
@@ -85,7 +85,7 @@ const nhostAdapter: BackendAdapter = {
     try {
       const currentUser = await getNhostUser();
       const currentUserId = currentUser?.id;
-      const children = await apiClient.entity.list('Child', '-created_date');
+      const children = await apiClient.entity.list<ChildProfile>('Child', '-created_date');
       logger.info('Loaded children', {
         userId: currentUserId,
         scope: 'backend.listChildren',
@@ -106,7 +106,7 @@ const nhostAdapter: BackendAdapter = {
     if (search) filters.title = { $ilike: `%${search}%` };
 
     try {
-      const list = await apiClient.entity.filter('Activity', filters, '-created_date', limit);
+      const list = await apiClient.entity.filter<ActivitySummary>('Activity', filters, '-created_date', limit);
       const currentUser = await getNhostUser();
       logger.info('Loaded activities', {
         userId: currentUser?.id,
