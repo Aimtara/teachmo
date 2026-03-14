@@ -33,7 +33,6 @@ const PROVIDER_ALIASES = {
   'microsoft-azuread': 'azuread',
 };
 
-const ALLOWED_PROVIDER_IDS = new Set(Object.keys(PROVIDER_LABELS));
 /**
  * The set of provider IDs that are accepted by this application.
  * Any provider ID that does not appear here (after normalization/aliasing)
@@ -59,8 +58,6 @@ function normalizeProviderId(provider) {
 }
 
 /** Returns true if the normalized provider ID is in the curated allowlist. */
-function isValidProviderId(id) {
-  return ALLOWED_PROVIDER_IDS.has(id);
 function isValidProvider(providerId) {
   return SUPPORTED_PROVIDER_IDS.has(providerId);
 }
@@ -83,7 +80,6 @@ export function SocialLoginButtons({
 
   const handleLogin = async (provider) => {
     const normalizedProvider = normalizeProviderId(provider);
-    if (!normalizedProvider || !isValidProviderId(normalizedProvider)) {
     if (!normalizedProvider || !isValidProvider(normalizedProvider)) {
       onError?.(new Error('Invalid identity provider.'));
       return;
@@ -117,8 +113,6 @@ export function SocialLoginButtons({
   if (Array.isArray(providers) && providers.length > 0) {
     providerList = [...new Set(providers
       .map((id) => normalizeProviderId(id))
-      .filter(Boolean)
-      .filter(isValidProviderId))]
       .filter((id) => Boolean(id) && isValidProvider(id)))]
       .map((id) => ({
         id,

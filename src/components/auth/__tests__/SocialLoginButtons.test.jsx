@@ -76,15 +76,8 @@ describe('SocialLoginButtons', () => {
     expect(signInMock).not.toHaveBeenCalled();
     expect(onError).not.toHaveBeenCalled();
   });
-  it('filters out unsupported provider IDs from the rendered list', () => {
-    render(<SocialLoginButtons providers={['google', 'unsupported-provider', 'notarealthing']} />);
 
-    expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /continue with unsupported-provider/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /continue with notarealthing/i })).not.toBeInTheDocument();
-  });
-
-  it('filters unsupported provider IDs from the rendered list and does not call signIn', async () => {
+  it('filters unsupported provider IDs after rerender', async () => {
     const onError = vi.fn();
 
     // Render with a valid provider so we have a baseline, then switch to invalid.
