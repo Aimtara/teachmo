@@ -338,12 +338,20 @@ export default function Login() {
   );
 }
 
+const AUTH_PROVIDER_ALIASES = {
+  // Map common aliases to the canonical Nhost provider IDs
+  'azure-ad': 'azuread',
+  'microsoft-entra': 'azuread',
+};
+
 function normalizeAuthProvider(rawProvider) {
   if (typeof rawProvider !== 'string') return '';
   const trimmed = rawProvider.trim();
   if (!trimmed) return '';
   // Normalize common variations: case-insensitive and simple separator differences
-  return trimmed.toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-');
+  const normalized = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-');
+  // Apply alias mapping so this matches SocialLoginButtons behavior
+  return AUTH_PROVIDER_ALIASES[normalized] ?? normalized;
 }
 
 function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.location.origin}/auth/callback` }) {

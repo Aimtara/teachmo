@@ -150,7 +150,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             } catch (accessTokenError) {
               logger.error(
                 'Failed to fetch access token during token lag recovery; treating as missing token.',
-                accessTokenError
+                accessTokenError instanceof Error
+                  ? { name: accessTokenError.name, message: accessTokenError.message }
+                  : { message: String(accessTokenError) }
               );
             }
 
@@ -162,7 +164,6 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             try {
               await nhost.auth.signOut();
             } catch (signOutError) {
-              logger.error('Failed to force sign-out after prolonged session lag.', signOutError);
               logger.error(
                 'Failed to force sign-out after prolonged token lag.',
                 signOutError instanceof Error
