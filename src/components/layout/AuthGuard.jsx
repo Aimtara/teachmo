@@ -31,7 +31,11 @@ export function useAuthGuard() {
 
   const status = (isLoading || (isAuthenticated && !authUser && !hydrationTimedOut))
     ? 'loading'
-    : (isAuthenticated && !authUser) ? 'unauthorized' : isAuthenticated ? 'authenticated' : 'unauthorized';
+    : (hydrationTimedOut && isAuthenticated && !authUser)
+      ? 'error'
+      : isAuthenticated
+        ? 'authenticated'
+        : 'unauthorized';
 
   const user = React.useMemo(() => {
     if (!isAuthenticated || !authUser) return null;
