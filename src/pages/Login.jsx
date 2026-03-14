@@ -338,8 +338,20 @@ export default function Login() {
   );
 }
 
+function normalizeAuthProvider(rawProvider) {
+  if (typeof rawProvider !== 'string') return '';
+  const trimmed = rawProvider.trim();
+  if (!trimmed) return '';
+  // Normalize common variations: case-insensitive and simple separator differences
+  return trimmed.toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-');
+}
+
 function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.location.origin}/auth/callback` }) {
   const startedForKeyRef = useRef('');
+  const normalizedProvider = useMemo(
+    () => normalizeAuthProvider(provider),
+    [provider]
+  );
 
   useEffect(() => {
     async function go() {
@@ -347,7 +359,7 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
         clearSavedActiveRole();
         onStart?.();
         const result = await nhost.auth.signIn({
-          provider,
+          provider: normalizedProvider,
           options: {
             redirectTo,
           },
@@ -362,13 +374,13 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
       }
     }
 
-    if (!provider || typeof provider !== 'string') return;
+    if (!normalizedProvider) return;
 
-    const runKey = `${provider}:${redirectTo}`;
+    const runKey = `${normalizedProvider}:${redirectTo}`;
     if (startedForKeyRef.current === runKey) return;
     startedForKeyRef.current = runKey;
     go();
-  }, [onError, onStart, provider, redirectTo]);
+  }, [normalizedProvider, onError, onStart, redirectTo]);
 
   return null;
 }
