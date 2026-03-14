@@ -25,6 +25,44 @@ const OPTIONAL_PROVIDERS = [
   { id: 'facebook', label: PROVIDER_LABELS.facebook },
 ];
 
+
+const PROVIDER_ALIASES = {
+  'microsoft': 'azuread',
+  'microsoft-entra': 'azuread',
+  'azure-ad': 'azuread',
+  'microsoft-azuread': 'azuread',
+};
+
+/**
+ * The set of provider IDs that are accepted by this application.
+ * Any provider ID that does not appear here (after normalization/aliasing)
+ * will be rejected before an OAuth flow is started and filtered out of the
+ * rendered provider list.
+ */
+export const SUPPORTED_PROVIDER_IDS = new Set([
+  'google',
+  'azuread',
+  'okta',
+  'classlink',
+  'clever',
+  'github',
+  'facebook',
+  'saml',
+]);
+
+function normalizeProviderId(provider) {
+  if (typeof provider !== 'string') return '';
+  // Trim, lowercase, and normalize common separators (spaces/underscores) to hyphens
+  const normalized = provider.trim().toLowerCase().replace(/[\s_]+/g, '-');
+  return PROVIDER_ALIASES[normalized] || normalized;
+}
+
+/** Returns true if the normalized provider ID is in the curated allowlist. */
+function isValidProvider(providerId) {
+  return SUPPORTED_PROVIDER_IDS.has(providerId);
+}
+
+
 /**
  * SocialLoginButtons renders a list of OAuth/social login buttons.
  * Pass an explicit providers array (list of provider IDs) to override
@@ -41,15 +79,25 @@ export function SocialLoginButtons({
   const [activeProvider, setActiveProvider] = useState(null);
 
   const handleLogin = async (provider) => {
-    setActiveProvider(provider);
+    const normalizedProvider = normalizeProviderId(provider);
+    if (!normalizedProvider || !isValidProvider(normalizedProvider)) {
+      onError?.(new Error('Invalid identity provider.'));
+      return;
+    }
+
+    setActiveProvider(normalizedProvider);
     try {
-      onBeforeRedirect?.(provider);
-      await nhost.auth.signIn({
-        provider,
+      onBeforeRedirect?.(normalizedProvider);
+      const result = await nhost.auth.signIn({
+        provider: normalizedProvider,
         options: {
           redirectTo,
         }
       });
+
+      if (result?.error) {
+        throw result.error;
+      }
     } catch (error) {
       console.error('OAuth login failed', error);
       onError?.(error);
@@ -63,10 +111,13 @@ export function SocialLoginButtons({
   // when includeOptional is true.
   let providerList;
   if (Array.isArray(providers) && providers.length > 0) {
-    providerList = providers.map((id) => ({
-      id,
-      label: PROVIDER_LABELS[id] || `Continue with ${id}`,
-    }));
+    providerList = [...new Set(providers
+      .map((id) => normalizeProviderId(id))
+      .filter((id) => Boolean(id) && isValidProvider(id)))]
+      .map((id) => ({
+        id,
+        label: PROVIDER_LABELS[id] || `Continue with ${id}`,
+      }));
   } else {
     providerList = includeOptional
       ? [...BASE_PROVIDERS, ...OPTIONAL_PROVIDERS]

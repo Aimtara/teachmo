@@ -9,7 +9,7 @@ import { ROLE_DEFINITIONS } from '@/config/navigation';
 import { useLogout } from '@/hooks/useLogout';
 
 export default function Layout({ currentPageName = 'Dashboard', children }) {
-  const { user, status, refresh } = useAuthGuard();
+  const { user, status, error, refresh } = useAuthGuard();
   const role = user?.app_role || user?.role || 'parent';
 
   const shouldShowGuard = status === 'loading' || status === 'unauthorized' || status === 'error';
@@ -40,7 +40,7 @@ export default function Layout({ currentPageName = 'Dashboard', children }) {
 
           <main id="main-content" className="flex-1 p-4" tabIndex={-1}>
             {shouldShowGuard ? (
-              <AuthGuardState status={status} onRetry={refresh} />
+              <AuthGuardState status={status} error={error} onRetry={refresh} />
             ) : (
               children
             )}
