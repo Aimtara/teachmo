@@ -34,9 +34,8 @@ export default function AuthCallback() {
   if (!isLoading && !isAuthenticated) {
     const params = new URLSearchParams();
     params.set('flow', flowFromQuery ?? getSavedOnboardingFlowPreference());
-    if (error?.message) {
-      params.set('error', 'session_expired');
-    }
+    const errorCode = error?.message ? 'session_expired' : 'unauthenticated';
+    params.set('error', errorCode);
     return <Navigate to={`/login?${params.toString()}`} replace />;
   }
 
