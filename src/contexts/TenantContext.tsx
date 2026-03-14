@@ -136,7 +136,6 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         // Attempt to refresh the token first; sign out only if it cannot be recovered.
         // This guard is the sole handler when the access token is missing (with or without a user object),
         // to avoid racing with the session-lag sign-out below.
-        if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
         // Session-lag recovery: if authenticated but user/token never hydrate, force sign-out.
         if (isAuthenticated && !user && !sessionLagRecoveryAttemptedRef.current) {
           sessionLagTimer = window.setTimeout(async () => {
