@@ -1,18 +1,21 @@
-import React, { Suspense, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { DashboardSkeleton } from './ImprovedSkeletons';
 import GlobalErrorBoundary from './GlobalErrorBoundary';
+import type { ReactNode } from 'react';
 
-export function LazyLoadError({ onRetry }) {
+type LazyLoadErrorProps = {
+  onRetry: () => void;
+};
+
+export function LazyLoadError({ onRetry }: LazyLoadErrorProps) {
   return (
     <div className="p-6 text-center bg-white border border-red-200 rounded-lg shadow-sm">
       <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3">
         <AlertTriangle className="w-6 h-6 text-red-600" />
       </div>
       <p className="font-semibold text-red-800">We couldn't load this content</p>
-      <p className="text-sm text-gray-600 mt-1 mb-4">
-        Please check your connection or try reloading the page.
-      </p>
+      <p className="text-sm text-gray-600 mt-1 mb-4">Please check your connection or try reloading the page.</p>
       <button
         type="button"
         onClick={onRetry}
@@ -26,7 +29,12 @@ export function LazyLoadError({ onRetry }) {
   );
 }
 
-export default function LazyPageWrapper({ children, fallback }) {
+type LazyPageWrapperProps = {
+  children: ReactNode;
+  fallback?: ReactNode;
+};
+
+export default function LazyPageWrapper({ children, fallback }: LazyPageWrapperProps) {
   const [attempt, setAttempt] = useState(0);
 
   const handleRetry = () => {
@@ -36,9 +44,7 @@ export default function LazyPageWrapper({ children, fallback }) {
   return (
     <GlobalErrorBoundary fallback={<LazyLoadError onRetry={handleRetry} />}>
       <Suspense fallback={fallback || <DashboardSkeleton />}>
-        <div key={attempt}>
-          {children}
-        </div>
+        <div key={attempt}>{children}</div>
       </Suspense>
     </GlobalErrorBoundary>
   );

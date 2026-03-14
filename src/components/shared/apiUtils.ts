@@ -68,6 +68,16 @@ class RateLimiter {
 
 const rateLimiter = new RateLimiter();
 
+class RateLimitError extends Error {
+  response: { status: number; headers: Record<string, string | number> };
+
+  constructor(retryAfter: number) {
+    super(`Rate limited. Try again in ${retryAfter} seconds.`);
+    this.name = 'RateLimitError';
+    this.response = { status: 429, headers: { 'retry-after': retryAfter } };
+  }
+}
+
 export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: RetryOptions = {}): Promise<T> => {
   const {
     maxRetries = 3,
@@ -84,7 +94,7 @@ export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: Retr
     try {
       if (!rateLimiter.canMakeRequest(rateLimitKey)) {
         const retryAfter = rateLimiter.getRetryAfter();
-        throw new Error(`Rate limited. Try again in ${retryAfter} seconds.`);
+        throw new RateLimitError(retryAfter);
       }
 
       return await fetchFn();
@@ -95,12 +105,14 @@ export const fetchWithRetry = async <T>(fetchFn: () => Promise<T>, options: Retr
       if (errorLike.message?.includes('429') || errorLike.response?.status === 429) {
         const retryAfterHeader = errorLike.response?.headers?.['retry-after'];
         const retryAfter = Number(retryAfterHeader ?? 60);
-        apiUtilsLogger.warn(`Rate limited. Waiting ${retryAfter} seconds before retry.`);
 
         if (attempt < maxRetries) {
+          apiUtilsLogger.warn(`Rate limited. Waiting ${retryAfter} seconds before retry.`);
           await new Promise((resolve) => window.setTimeout(resolve, retryAfter * 1000));
           continue;
         }
+
+        apiUtilsLogger.warn(`Rate limited on final attempt. No more retries will be attempted.`);
       }
 
       const status = errorLike.response?.status;
@@ -163,6 +175,21 @@ export const checkNetworkStatus = () => ({
   online: navigator.onLine,
 });
 
+const getSafeErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}`;
+  }
+
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
+  }
+
+  return String(error);
+};
+
 export const withGracefulDegradation = <TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
   fallbackValue: TResult | null = null,
@@ -171,15 +198,8 @@ export const withGracefulDegradation = <TArgs extends unknown[], TResult>(
     try {
       return await fn(...args);
     } catch (error) {
-      let safeMessage: string;
-      if (error instanceof Error) {
-        safeMessage = `${error.name}: ${error.message}`;
-      } else if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
-        safeMessage = (error as any).message;
-      } else {
-        safeMessage = String(error);
-      }
-      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback. Error: ${safeMessage}`);
+      const safeError = getSafeErrorMessage(error);
+      apiUtilsLogger.warn(`Graceful degradation: Function ${fn.name} failed. Returning fallback. Error: ${safeError}`);
       return fallbackValue;
     }
   };

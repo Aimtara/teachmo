@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, type ChangeEvent, type ComponentProps, type ComponentType, type ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,9 +8,19 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Trash2, LogOut, Shield, Zap } from 'lucide-react';
+import { AlertTriangle, LogOut, Shield, Zap } from 'lucide-react';
 
-const CONFIRMATION_TYPES = {
+type ButtonVariant = ComponentProps<typeof Button>['variant'];
+type ConfirmationType = 'destructive' | 'warning' | 'logout' | 'emergency' | 'action';
+
+type ConfirmationTypeConfig = {
+  icon: ComponentType<{ className?: string }>;
+  iconColor: string;
+  confirmButtonVariant: ButtonVariant;
+  confirmText: string;
+};
+
+const CONFIRMATION_TYPES: Record<ConfirmationType, ConfirmationTypeConfig> = {
   destructive: {
     icon: AlertTriangle,
     iconColor: 'text-red-500',
@@ -43,6 +53,22 @@ const CONFIRMATION_TYPES = {
   },
 };
 
+type ConfirmationModalProps = {
+  open: boolean;
+  onOpenChange?: (open: boolean) => void;
+  title: string;
+  description?: string;
+  type?: ConfirmationType;
+  confirmText?: string;
+  cancelText?: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+  isLoading?: boolean;
+  requiresDoubleConfirm?: boolean;
+  doubleConfirmText?: string;
+  children?: ReactNode;
+};
+
 export default function ConfirmationModal({
   open,
   onOpenChange,
@@ -56,13 +82,13 @@ export default function ConfirmationModal({
   isLoading = false,
   requiresDoubleConfirm = false,
   doubleConfirmText = '',
-  children
-}) {
-  const [doubleConfirmInput, setDoubleConfirmInput] = React.useState('');
-  
-  const config = CONFIRMATION_TYPES[type] || CONFIRMATION_TYPES.warning;
+  children,
+}: ConfirmationModalProps) {
+  const [doubleConfirmInput, setDoubleConfirmInput] = useState('');
+
+  const config = CONFIRMATION_TYPES[type];
   const Icon = config.icon;
-  
+
   const handleConfirm = () => {
     if (requiresDoubleConfirm && doubleConfirmInput !== doubleConfirmText) {
       return;
@@ -86,28 +112,20 @@ export default function ConfirmationModal({
             <div className={`p-2 rounded-full bg-gray-100 ${config.iconColor}`}>
               <Icon className="w-6 h-6" />
             </div>
-            <DialogTitle className="text-lg font-semibold">
-              {title}
-            </DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>
           </div>
-          {description && (
-            <DialogDescription className="text-gray-600 text-base">
-              {description}
-            </DialogDescription>
-          )}
+          {description && <DialogDescription className="text-gray-600 text-base">{description}</DialogDescription>}
         </DialogHeader>
 
         {children}
 
         {requiresDoubleConfirm && (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Type "{doubleConfirmText}" to confirm:
-            </label>
+            <label className="text-sm font-medium text-gray-700">Type "{doubleConfirmText}" to confirm:</label>
             <input
               type="text"
               value={doubleConfirmInput}
-              onChange={(e) => setDoubleConfirmInput(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDoubleConfirmInput(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder={doubleConfirmText}
               autoComplete="off"
@@ -116,11 +134,7 @@ export default function ConfirmationModal({
         )}
 
         <DialogFooter className="flex gap-2 sm:gap-2">
-          <Button
-            variant="outline"
-            onClick={handleCancel}
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
             {cancelText}
           </Button>
           <Button
@@ -144,8 +158,17 @@ export default function ConfirmationModal({
   );
 }
 
-// Preset confirmation modals for common actions
-export const DeleteConfirmation = ({ open, onOpenChange, onConfirm, itemName, ...props }) => (
+type BasePresetProps = Omit<
+  ConfirmationModalProps,
+  'type' | 'title' | 'description' | 'confirmText' | 'onConfirm' | 'requiresDoubleConfirm' | 'doubleConfirmText'
+>;
+
+type DeleteConfirmationProps = BasePresetProps & {
+  onConfirm: () => void;
+  itemName: string;
+};
+
+export const DeleteConfirmation = ({ open, onOpenChange, onConfirm, itemName, ...props }: DeleteConfirmationProps) => (
   <ConfirmationModal
     open={open}
     onOpenChange={onOpenChange}
@@ -158,7 +181,11 @@ export const DeleteConfirmation = ({ open, onOpenChange, onConfirm, itemName, ..
   />
 );
 
-export const LogoutConfirmation = ({ open, onOpenChange, onConfirm, ...props }) => (
+type LogoutConfirmationProps = BasePresetProps & {
+  onConfirm: () => void;
+};
+
+export const LogoutConfirmation = ({ open, onOpenChange, onConfirm, ...props }: LogoutConfirmationProps) => (
   <ConfirmationModal
     open={open}
     onOpenChange={onOpenChange}
@@ -171,7 +198,18 @@ export const LogoutConfirmation = ({ open, onOpenChange, onConfirm, ...props }) 
   />
 );
 
-export const EmergencyConfirmation = ({ open, onOpenChange, onConfirm, alertType, ...props }) => (
+type EmergencyConfirmationProps = BasePresetProps & {
+  onConfirm: () => void;
+  alertType: string;
+};
+
+export const EmergencyConfirmation = ({
+  open,
+  onOpenChange,
+  onConfirm,
+  alertType,
+  ...props
+}: EmergencyConfirmationProps) => (
   <ConfirmationModal
     open={open}
     onOpenChange={onOpenChange}
@@ -180,7 +218,7 @@ export const EmergencyConfirmation = ({ open, onOpenChange, onConfirm, alertType
     description="This will immediately notify all relevant parties. Only use in genuine emergencies."
     confirmText="Send Alert"
     onConfirm={onConfirm}
-    requiresDoubleConfirm={true}
+    requiresDoubleConfirm
     doubleConfirmText="EMERGENCY"
     {...props}
   />

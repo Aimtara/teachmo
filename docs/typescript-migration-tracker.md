@@ -1,21 +1,21 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-03-13T14:34:55.592Z
+Generated: 2026-03-13T19:42:15.753Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
 | .js | 192 |
-| .jsx | 490 |
-| .ts | 294 |
-| .tsx | 47 |
+| .jsx | 476 |
+| .ts | 295 |
+| .tsx | 60 |
 
 ## JS/TS inventory by top-level directory
 
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
-| src | 7 | 489 | 186 | 47 |
+| src | 7 | 475 | 187 | 60 |
 | backend | 147 | 0 | 6 | 0 |
 | nhost | 30 | 0 | 86 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
@@ -92,6 +92,18 @@ Generated: 2026-03-13T14:34:55.592Z
 - [x] Migrated shared route guard utilities `src/components/shared/{FeatureGate,RoleGuard}.jsx` to TypeScript (`.tsx`) with typed props and redirect/authorization handling.
 - [x] Migrated shared accessibility utility `src/components/shared/SkipLink.jsx` to `src/components/shared/SkipLink.tsx` with typed props and focus/blur handlers.
 - [x] Migrated shared navigation utilities `src/components/shared/{Breadcrumbs,BreadcrumbNavigation}.jsx` to TypeScript (`.tsx`) with typed breadcrumb item contracts and route helpers.
+- [x] Migrated async safety utilities `src/components/shared/{AsyncBoundary,GlobalErrorBoundary,ErrorBoundary}.jsx` to TypeScript (`.tsx`) with typed error-boundary/HOC contracts.
+- [x] Migrated shared media/loading utilities `src/components/shared/{LazyImage,LazyPageWrapper,LazyRoute}.jsx` to TypeScript (`.tsx`) with typed props and safer lazy-loading/observer handling.
+- [x] Migrated shared empty-state primitives `src/components/shared/{EmptyStates,UniversalEmptyState}.jsx` to TypeScript (`.tsx`) with typed action/item contracts and typed props across exported variants.
+- [x] Migrated legal modal primitive `src/components/shared/TermsModal.jsx` to `src/components/shared/TermsModal.tsx` with typed open-state and close-handler contracts.
+- [x] Migrated action confirmation modal `src/components/shared/ConfirmationModal.jsx` to `src/components/shared/ConfirmationModal.tsx` with typed preset/modal props and confirmation-state handlers.
+- [x] Migrated quick action launcher `src/components/shared/QuickActionsMenu.jsx` to `src/components/shared/QuickActionsMenu.tsx` with typed action definitions and button contracts.
+- [x] Migrated focus-style provider `src/components/shared/FocusStyles.jsx` to `src/components/shared/FocusStyles.tsx` with typed children contract and DOM style lifecycle cleanup.
+- [x] Migrated shared API context provider `src/components/shared/ApiProvider.jsx` to `src/components/shared/ApiProvider.tsx` with typed context value, cache/rate-limit contracts, and provider/hook signatures.
+- [x] Migrated shared tone utility `src/components/shared/TeachmoTone.jsx` to `src/components/shared/TeachmoTone.ts` with typed tone-state contracts and deterministic helper typing.
+- [x] Migrated UX rules utility `src/components/shared/UXReviewRule.jsx` to `src/components/shared/UXReviewRule.tsx` with typed rule/checkpoint contracts and violation props.
+- [x] Migrated standard loading-state helpers `src/components/shared/StandardLoadingStates.jsx` to `src/components/shared/StandardLoadingStates.tsx` with typed prop contracts for skeleton/page loaders.
+- [x] Migrated accessibility helper toolkit `src/components/shared/AccessibilityHelpers.jsx` to `src/components/shared/AccessibilityHelpers.tsx` with typed hooks/components for keyboard navigation, live regions, and form/button accessibility props.
 - [x] Migrated async safety utility `src/components/shared/AsyncBoundary.jsx` to `src/components/shared/AsyncBoundary.tsx` with typed HOC fallback/error contracts and generic `safeAsync` return typing.
 - [x] Migrated shared media utility `src/components/shared/LazyImage.jsx` to `src/components/shared/LazyImage.tsx` with typed props, intersection observer ref typing, and safe cleanup.
 - [x] Migrated shared empty-state primitives `src/components/shared/EmptyStates.jsx` to `src/components/shared/EmptyStates.tsx` with typed action/item contracts and typed props across exported empty-state variants.
