@@ -131,6 +131,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       if (!accessToken || !user) {
         if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
 
+        // Session-lag recovery: if authenticated but user/token never hydrate, force sign-out.
         if (isAuthenticated && !sessionLagRecoveryAttemptedRef.current) {
           tokenLagTimer = window.setTimeout(async () => {
             if (!mounted || sessionLagRecoveryAttemptedRef.current) return;
@@ -138,8 +139,33 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             if (latestSessionRef.current.accessToken && latestSessionRef.current.hasUser) return;
 
             sessionLagRecoveryAttemptedRef.current = true;
-            const lagReason = !accessToken ? 'access token' : 'user profile';
-            logger.warn(`Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`);
+            const lagReason = !latestSessionRef.current.accessToken
+              ? 'access token'
+              : !latestSessionRef.current.hasUser
+              ? 'user profile'
+              : 'session data';
+            logger.warn(
+              `Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`
+            );
+
+            try {
+              await nhost.auth.signOut();
+            } catch (signOutError) {
+              logger.error(
+                'Failed to force sign-out after prolonged session lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
+            }
+
+            if (mounted) {
+              setState({ organizationId: null, schoolId: null, loading: false });
+            }
+          }, SESSION_LAG_SIGNOUT_DELAY_MS);
+        }
+
+        // Token-lag recovery: if only the access token is missing, attempt to refresh before forcing sign-out.
         if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
           tokenLagTimer = window.setTimeout(async () => {
             if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
@@ -175,7 +201,6 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             if (mounted) {
               setState({ organizationId: null, schoolId: null, loading: false });
             }
-          }, SESSION_LAG_SIGNOUT_DELAY_MS);
           }, TOKEN_LAG_SIGNOUT_DELAY_MS);
         }
 
