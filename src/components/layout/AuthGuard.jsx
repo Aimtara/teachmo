@@ -3,15 +3,40 @@ import PropTypes from 'prop-types';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { useTenantFeatureFlags } from '@/hooks/useTenantFeatureFlags';
 
+const AUTH_USER_HYDRATION_TIMEOUT_MS = 4000;
+
+
 export function useAuthGuard() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const authUser = useUserData();
+  const [hydrationTimedOut, setHydrationTimedOut] = React.useState(false);
+  const [retryNonce, setRetryNonce] = React.useState(0);
 
   useTenantFeatureFlags();
 
-  const status = (isLoading || (isAuthenticated && !authUser))
-    ? 'loading'
-    : isAuthenticated ? 'authenticated' : 'unauthorized';
+  React.useEffect(() => {
+    setHydrationTimedOut(false);
+
+    if (isLoading || !isAuthenticated || authUser) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setHydrationTimedOut(true);
+    }, AUTH_USER_HYDRATION_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isLoading, isAuthenticated, authUser, retryNonce]);
+
+  const status = hydrationTimedOut
+    ? 'error'
+    : (isLoading || (isAuthenticated && !authUser))
+      ? 'loading'
+      : isAuthenticated
+        ? 'authenticated'
+        : 'unauthorized';
 
   const user = React.useMemo(() => {
     if (!isAuthenticated || !authUser) return null;
@@ -34,9 +59,19 @@ export function useAuthGuard() {
     };
   }, [isAuthenticated, authUser]);
 
-  const refresh = React.useCallback(() => {}, []);
+  const refresh = React.useCallback(() => {
+    setHydrationTimedOut(false);
+    setRetryNonce((n) => n + 1);
+  }, []);
 
-  return { user, status, error: null, refresh };
+  const error = hydrationTimedOut
+    ? Object.assign(
+        new Error('We couldn’t finish restoring your session. Please sign in again.'),
+        { internalMessage: 'Session hydrated without user identity during auth guard hydration.' },
+      )
+    : null;
+
+  return { user, status, error, refresh };
 }
 
 export function AuthGuardState({ status, error, onRetry }) {

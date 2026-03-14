@@ -36,6 +36,7 @@ const TenantContext = createContext<TenantState>({
   loading: true
 });
 
+const SESSION_LAG_SIGNOUT_DELAY_MS = 4000;
 const TOKEN_LAG_SIGNOUT_DELAY_MS = 4000;
 
 function decodeToken(token?: string | null): AccessTokenClaims | null {
@@ -96,16 +97,24 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     loading: true
   });
   const unauthorizedRecoveryAttemptedRef = useRef(false);
+  const sessionLagRecoveryAttemptedRef = useRef(false);
+  const latestSessionRef = useRef({ accessToken: accessToken ?? null, hasUser: Boolean(user) });
   const tokenLagRecoveryAttemptedRef = useRef(false);
 
   // Reset the unauthorized recovery guard when the auth session changes
   useEffect(() => {
     unauthorizedRecoveryAttemptedRef.current = false;
+    sessionLagRecoveryAttemptedRef.current = false;
     tokenLagRecoveryAttemptedRef.current = false;
   }, [isAuthenticated, user?.id, accessToken]);
 
   useEffect(() => {
+    latestSessionRef.current = { accessToken: accessToken ?? null, hasUser: Boolean(user) };
+  }, [accessToken, user]);
+
+  useEffect(() => {
     let mounted = true;
+    let sessionLagTimer: number | null = null;
     let tokenLagTimer: number | null = null;
 
     const resolveTenant = async () => {
@@ -119,11 +128,94 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Token lag guard: authenticated can flip true before accessToken is available.
+      // Session/token hydration guard: auth can report authenticated before user/token hydration is complete.
       if (!accessToken || !user) {
         if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
 
+        // Guard 1: token-lag – access token is missing.
+        // Attempt to refresh the token first; sign out only if it cannot be recovered.
+        // This guard is the sole handler when the access token is missing (with or without a user object),
+        // to avoid racing with the session-lag sign-out below.
         if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
+          tokenLagRecoveryAttemptedRef.current = true;
+
+          tokenLagTimer = window.setTimeout(async () => {
+            if (!mounted) return;
+
+            // If the token has already been restored or the user is no longer authenticated, no recovery needed.
+            if (!isAuthenticated || latestSessionRef.current.accessToken) return;
+
+            try {
+              await nhost.auth.refreshSession();
+            } catch (refreshError) {
+              logger.error(
+                'Failed to refresh access token during token lag recovery.',
+                refreshError instanceof Error
+                  ? { name: refreshError.name, message: refreshError.message }
+                  : { message: String(refreshError) }
+              );
+            }
+
+            // Re-check after refresh attempt.
+            if (latestSessionRef.current.accessToken) return;
+
+            logger.warn(
+              'Authenticated state persisted without access token; forcing sign-out to clear stale session.'
+            );
+
+            try {
+              await nhost.auth.signOut();
+            } catch (signOutError) {
+              logger.error(
+                'Failed to force sign-out after unrecoverable token lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
+            }
+
+            if (mounted) {
+              setState({ organizationId: null, schoolId: null, loading: false });
+            }
+          }, TOKEN_LAG_RECOVERY_DELAY_MS);
+        }
+
+        // Guard 2: session-lag – if authenticated but user/token never hydrate, force sign-out.
+        if (isAuthenticated && !user && !sessionLagRecoveryAttemptedRef.current) {
+          sessionLagTimer = window.setTimeout(async () => {
+            if (!mounted || sessionLagRecoveryAttemptedRef.current) return;
+            // If hydration recovered during the grace window, no recovery action needed.
+            if (latestSessionRef.current.accessToken && latestSessionRef.current.hasUser) return;
+
+            sessionLagRecoveryAttemptedRef.current = true;
+            const lagReason = !latestSessionRef.current.accessToken
+              ? 'access token'
+              : !latestSessionRef.current.hasUser
+              ? 'user profile'
+              : 'session data';
+            logger.warn(
+              `Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`
+            );
+
+            try {
+              await nhost.auth.signOut();
+            } catch (signOutError) {
+              logger.error(
+                'Failed to force sign-out after prolonged session lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
+            }
+
+            if (mounted) {
+              setState({ organizationId: null, schoolId: null, loading: false });
+            }
+          }, SESSION_LAG_SIGNOUT_DELAY_MS);
+        }
+
+        // Token-lag recovery: if only the access token is missing, attempt to refresh before forcing sign-out.
+        if (!accessToken && user && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
           tokenLagTimer = window.setTimeout(async () => {
             if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
 
@@ -133,7 +225,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             } catch (accessTokenError) {
               logger.error(
                 'Failed to fetch access token during token lag recovery; treating as missing token.',
-                accessTokenError
+                accessTokenError instanceof Error
+                  ? { name: accessTokenError.name, message: accessTokenError.message }
+                  : { message: String(accessTokenError) }
               );
             }
 
@@ -157,6 +251,34 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               setState({ organizationId: null, schoolId: null, loading: false });
             }
           }, TOKEN_LAG_SIGNOUT_DELAY_MS);
+        }
+
+        // Guard 2: session-lag – token is present but user object never hydrated.
+        // Skipped when the access token is missing so the token-lag guard above can attempt a refresh first.
+        if (accessToken && !user && isAuthenticated && !sessionLagRecoveryAttemptedRef.current) {
+          sessionLagTimer = window.setTimeout(async () => {
+            if (!mounted || sessionLagRecoveryAttemptedRef.current) return;
+            // If hydration recovered during the grace window, no recovery action needed.
+            if (latestSessionRef.current.accessToken && latestSessionRef.current.hasUser) return;
+
+            sessionLagRecoveryAttemptedRef.current = true;
+            logger.warn('Authenticated state persisted without user profile; forcing sign-out to clear stale session.');
+
+            try {
+              await nhost.auth.signOut();
+            } catch (signOutError) {
+              logger.error(
+                'Failed to force sign-out after prolonged session lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
+            }
+
+            if (mounted) {
+              setState({ organizationId: null, schoolId: null, loading: false });
+            }
+          }, SESSION_LAG_SIGNOUT_DELAY_MS);
         }
 
         return;
@@ -227,6 +349,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      if (sessionLagTimer !== null) {
+        window.clearTimeout(sessionLagTimer);
+      }
       if (tokenLagTimer !== null) {
         window.clearTimeout(tokenLagTimer);
       }

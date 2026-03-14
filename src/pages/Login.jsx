@@ -46,6 +46,26 @@ export default function Login() {
   const enabledProviders = ssoSettings?.providers || [];
   const oauthRedirectTo = `${window.location.origin}/auth/callback?flow=${selectedFlow}`;
 
+
+  useEffect(() => {
+    const flowParam = searchParams.get('flow');
+    if (flowParam === null) return;
+
+    const normalized = normalizeOnboardingFlow(flowParam);
+    setSelectedFlow((current) => (current === normalized ? current : normalized));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const authError = searchParams.get('error');
+    if (authError === 'session_expired') {
+      setError('Your session expired. Please sign in again.');
+      setRedirecting(false);
+    } else if (authError === 'unauthenticated') {
+      setError('Please sign in to continue.');
+      setRedirecting(false);
+    }
+  }, [searchParams]);
+
   const handleFlowChange = (flow) => {
     setSelectedFlow(flow);
     saveOnboardingFlowPreference(flow);
@@ -321,33 +341,86 @@ export default function Login() {
   );
 }
 
+const AUTH_PROVIDER_ALIASES = {
+  // Map common aliases to the canonical Nhost provider IDs
+  'azure-ad': 'azuread',
+  'microsoft-entra': 'azuread',
+  // Keep aliases aligned with SocialLoginButtons
+  microsoft: 'azuread',
+};
+
+const ALLOWED_AUTH_PROVIDERS = new Set([
+  // Core social providers supported by this app
+  'google',
+  'github',
+  'facebook',
+  'apple',
+  // Enterprise / SSO providers (keep in sync with SocialLoginButtons and tenant SSO settings)
+  'azuread',
+  'okta',
+  'classlink',
+  'clever',
+  'saml',
+]);
+
+function normalizeAuthProvider(rawProvider) {
+  if (typeof rawProvider !== 'string') return '';
+  const trimmed = rawProvider.trim();
+  if (!trimmed) return '';
+  // Normalize common variations: case-insensitive and simple separator differences
+  const normalized = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-');
+  // Apply alias mapping so this matches SocialLoginButtons behavior
+  return AUTH_PROVIDER_ALIASES[normalized] ?? normalized;
+}
+
 function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.location.origin}/auth/callback` }) {
   const startedForKeyRef = useRef('');
+  const normalizedProvider = useMemo(
+    () => normalizeAuthProvider(provider),
+    [provider]
+  );
 
   useEffect(() => {
     async function go() {
       try {
         clearSavedActiveRole();
         onStart?.();
-        await nhost.auth.signIn({
-          provider,
+        const result = await nhost.auth.signIn({
+          provider: normalizedProvider,
           options: {
             redirectTo,
           },
         });
+
+        if (result?.error) {
+          throw result.error;
+        }
       } catch (err) {
-        logger.error('SSO redirect failed', err);
-        onError?.(err);
+        const safeError =
+          err instanceof Error
+            ? { name: err.name, message: err.message }
+            : { message: String(err) };
+        logger.error('SSO redirect failed', safeError);
+        onError?.(safeError);
       }
     }
 
-    if (!provider) return;
+    if (!normalizedProvider) return;
+    if (!ALLOWED_AUTH_PROVIDERS.has(normalizedProvider)) {
+      const err = new Error(`Unsupported auth provider: ${normalizedProvider}`);
+      logger.error('SSO redirect aborted due to unsupported provider', {
+        provider,
+        normalizedProvider,
+      });
+      onError?.(err);
+      return;
+    }
 
-    const runKey = `${provider}:${redirectTo}`;
+    const runKey = `${normalizedProvider}:${redirectTo}`;
     if (startedForKeyRef.current === runKey) return;
     startedForKeyRef.current = runKey;
     go();
-  }, [onError, onStart, provider, redirectTo]);
+  }, [normalizedProvider, onError, onStart, redirectTo]);
 
   return null;
 }
