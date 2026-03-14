@@ -1,4 +1,5 @@
-import { entityMap, functionMap } from '@/api/entities';
+import { compatClient } from '@/api/compatClient';
+import { functionsMap } from '@/api/legacy/functions';
 import { nhost } from '@/lib/nhostClient';
 
 type EntityClient = {
@@ -17,7 +18,7 @@ type NhostAuthClient = {
 };
 
 const getEntityClient = (name: string): EntityClient => {
-  const entityClient = entityMap?.[name as keyof typeof entityMap] as EntityClient | undefined;
+  const entityClient = (compatClient.entities as Record<string, EntityClient | undefined>)[name];
   if (!entityClient) {
     throw new Error(`Entity client "${name}" is not configured.`);
   }
@@ -101,17 +102,15 @@ export const apiClient = {
       await client.delete(...args);
     }
   },
-  async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
-    console.log(`[GET] ${endpoint}`, params);
-    return {} as T;
+  async get<T>(_endpoint: string, _params?: Record<string, unknown>): Promise<T> {
+    throw new Error('apiClient.get is not implemented. Use a domain module or requestJson instead.');
   },
-  async post<T>(endpoint: string, body: unknown): Promise<T> {
-    console.log(`[POST] ${endpoint}`, body);
-    return {} as T;
+  async post<T>(_endpoint: string, _body: unknown): Promise<T> {
+    throw new Error('apiClient.post is not implemented. Use a domain module or requestJson instead.');
   },
   functions: {
     async invoke<T>(name: string, payload?: Record<string, unknown>): Promise<T> {
-      const invoker = functionMap?.[name as keyof typeof functionMap] as
+      const invoker = functionsMap?.[name as keyof typeof functionsMap] as
         | ((input?: Record<string, unknown>) => Promise<T>)
         | undefined;
       if (!invoker) {

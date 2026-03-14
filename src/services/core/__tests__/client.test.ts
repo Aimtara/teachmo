@@ -1,15 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const { entitiesMock, functionsMock, authMock } = vi.hoisted(() => ({
-  entitiesMock: {
-    Sample: {
-      list: vi.fn(),
-      filter: vi.fn(),
-      get: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn()
-    }
+const { entityStubMock, functionsMock, authMock } = vi.hoisted(() => ({
+  entityStubMock: {
+    list: vi.fn(),
+    filter: vi.fn(),
+    get: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn()
   },
   functionsMock: {
     testFn: vi.fn()
@@ -21,9 +19,21 @@ const { entitiesMock, functionsMock, authMock } = vi.hoisted(() => ({
   }
 }));
 
-vi.mock('@/api/entities', () => ({
-  entityMap: entitiesMock,
-  functionMap: functionsMock
+vi.mock('@/api/compatClient', () => ({
+  compatClient: {
+    entities: new Proxy(
+      {},
+      {
+        get: () => entityStubMock
+      }
+    ),
+    functions: {},
+    auth: {}
+  }
+}));
+
+vi.mock('@/api/legacy/functions', () => ({
+  functionsMap: functionsMock
 }));
 
 vi.mock('@/lib/nhostClient', () => ({
@@ -36,8 +46,8 @@ import { apiClient } from '../client';
 
 describe('apiClient', () => {
   it('wraps entity list and filter', async () => {
-    entitiesMock.Sample.list.mockResolvedValue([{ id: 'one' }]);
-    entitiesMock.Sample.filter.mockResolvedValue([{ id: 'two' }]);
+    entityStubMock.list.mockResolvedValue([{ id: 'one' }]);
+    entityStubMock.filter.mockResolvedValue([{ id: 'two' }]);
 
     await expect(apiClient.entity.list('Sample')).resolves.toEqual([{ id: 'one' }]);
     await expect(apiClient.entity.filter('Sample')).resolves.toEqual([{ id: 'two' }]);
