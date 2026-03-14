@@ -1,12 +1,21 @@
 import { apiClient } from "@/services/core/client";
 
+const {
+  list,
+  filter,
+  get,
+  create,
+  update,
+  delete: deleteEntity
+} = apiClient.entity;
+
 const entity = (name) => ({
-  list: (...args) => apiClient.entity.list(name, ...args),
-  filter: (...args) => apiClient.entity.filter(name, ...args),
-  get: (...args) => apiClient.entity.get(name, ...args),
-  create: (...args) => apiClient.entity.create(name, ...args),
-  update: (...args) => apiClient.entity.update(name, ...args),
-  delete: (...args) => apiClient.entity.delete(name, ...args)
+  list: (...args) => list(name, ...args),
+  filter: (...args) => filter(name, ...args),
+  get: (...args) => get(name, ...args),
+  create: (...args) => create(name, ...args),
+  update: (...args) => update(name, ...args),
+  delete: (...args) => deleteEntity(name, ...args)
 });
 
 export const AIConversation = entity('AIConversation');
