@@ -394,8 +394,12 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
           throw result.error;
         }
       } catch (err) {
-        logger.error('SSO redirect failed', err);
-        onError?.(err);
+        const safeError =
+          err instanceof Error
+            ? { name: err.name, message: err.message }
+            : { message: String(err) };
+        logger.error('SSO redirect failed', safeError);
+        onError?.(safeError);
       }
     }
 
