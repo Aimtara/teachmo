@@ -8,9 +8,29 @@ export type GraphqlRequestOptions<TVariables = Record<string, unknown>> = {
   headers?: Record<string, string>;
 };
 
+type GraphqlRequestArgs<TVariables = Record<string, unknown>> =
+  | [GraphqlRequestOptions<TVariables>]
+  | [string, TVariables?, Record<string, string>?];
+
+function normalizeArgs<TVariables = Record<string, unknown>>(
+  args: GraphqlRequestArgs<TVariables>
+): GraphqlRequestOptions<TVariables> {
+  const [first, second, third] = args;
+  if (typeof first === 'string') {
+    return {
+      query: first,
+      variables: second,
+      headers: third,
+    };
+  }
+
+  return first;
+}
+
 export async function graphqlRequest<TData = unknown, TVariables = Record<string, unknown>>(
-  { query, variables, headers = {} }: GraphqlRequestOptions<TVariables>
+  ...args: GraphqlRequestArgs<TVariables>
 ): Promise<TData> {
+  const { query, variables, headers = {} } = normalizeArgs(args);
   const { data, error } = await nhost.graphql.request<TData>(query, variables as never, headers as never);
 
   if (error) {
@@ -32,7 +52,7 @@ export async function graphql<TData = unknown, TVariables = Record<string, unkno
   variables?: TVariables,
   headers?: Record<string, string>
 ): Promise<TData> {
-  return graphqlRequest<TData, TVariables>({ query, variables, headers });
+  return graphqlRequest<TData, TVariables>(query, variables, headers);
 }
 
 export function buildMutation(operationName: string, fields: string): string {

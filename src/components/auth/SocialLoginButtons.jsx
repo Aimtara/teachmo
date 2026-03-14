@@ -25,6 +25,20 @@ const OPTIONAL_PROVIDERS = [
   { id: 'facebook', label: PROVIDER_LABELS.facebook },
 ];
 
+
+const PROVIDER_ALIASES = {
+  'microsoft-entra': 'azuread',
+  'azure-ad': 'azuread',
+  'microsoft-azuread': 'azuread',
+};
+
+function normalizeProviderId(provider) {
+  if (typeof provider !== 'string') return '';
+  const normalized = provider.trim().toLowerCase();
+  return PROVIDER_ALIASES[normalized] || normalized;
+}
+
+
 /**
  * SocialLoginButtons renders a list of OAuth/social login buttons.
  * Pass an explicit providers array (list of provider IDs) to override
@@ -41,15 +55,25 @@ export function SocialLoginButtons({
   const [activeProvider, setActiveProvider] = useState(null);
 
   const handleLogin = async (provider) => {
-    setActiveProvider(provider);
+    const normalizedProvider = normalizeProviderId(provider);
+    if (!normalizedProvider) {
+      onError?.(new Error('Invalid identity provider.'));
+      return;
+    }
+
+    setActiveProvider(normalizedProvider);
     try {
-      onBeforeRedirect?.(provider);
-      await nhost.auth.signIn({
-        provider,
+      onBeforeRedirect?.(normalizedProvider);
+      const result = await nhost.auth.signIn({
+        provider: normalizedProvider,
         options: {
           redirectTo,
         }
       });
+
+      if (result?.error) {
+        throw result.error;
+      }
     } catch (error) {
       console.error('OAuth login failed', error);
       onError?.(error);
@@ -63,10 +87,13 @@ export function SocialLoginButtons({
   // when includeOptional is true.
   let providerList;
   if (Array.isArray(providers) && providers.length > 0) {
-    providerList = providers.map((id) => ({
-      id,
-      label: PROVIDER_LABELS[id] || `Continue with ${id}`,
-    }));
+    providerList = [...new Set(providers
+      .map((id) => normalizeProviderId(id))
+      .filter(Boolean))]
+      .map((id) => ({
+        id,
+        label: PROVIDER_LABELS[id] || `Continue with ${id}`,
+      }));
   } else {
     providerList = includeOptional
       ? [...BASE_PROVIDERS, ...OPTIONAL_PROVIDERS]
