@@ -10,12 +10,42 @@ type EntityBridge = {
 };
 
 const entity = (name: string): EntityBridge => ({
-  list: (...args: unknown[]) => apiClient.entity.list(name, ...args),
-  filter: (...args: unknown[]) => apiClient.entity.filter(name, ...args),
-  get: (...args: unknown[]) => apiClient.entity.get(name, ...args),
-  create: (...args: unknown[]) => apiClient.entity.create(name, ...args),
-  update: (...args: unknown[]) => apiClient.entity.update(name, ...args),
-  delete: (...args: unknown[]) => apiClient.entity.delete(name, ...args)
+  list: async (..._args: unknown[]) => {
+    throw new Error(
+      `Legacy entity bridge for "${name}".list() is no longer supported. ` +
+        'Call apiClient.entity.list(name, ...) directly instead of using the legacy bridge.',
+    );
+  },
+  filter: async (..._args: unknown[]) => {
+    throw new Error(
+      `Legacy entity bridge for "${name}".filter() is no longer supported. ` +
+        'Call apiClient.entity.filter(name, ...) directly instead of using the legacy bridge.',
+    );
+  },
+  get: async (..._args: unknown[]) => {
+    throw new Error(
+      `Legacy entity bridge for "${name}".get() is no longer supported. ` +
+        'Call apiClient.entity.get(name, ...) directly instead of using the legacy bridge.',
+    );
+  },
+  create: async (..._args: unknown[]) => {
+    throw new Error(
+      `Legacy entity bridge for "${name}".create() is no longer supported. ` +
+        'Call apiClient.entity.create(name, ...) directly instead of using the legacy bridge.',
+    );
+  },
+  update: async (..._args: unknown[]) => {
+    throw new Error(
+      `Legacy entity bridge for "${name}".update() is no longer supported. ` +
+        'Call apiClient.entity.update(name, ...) directly instead of using the legacy bridge.',
+    );
+  },
+  delete: async (..._args: unknown[]) => {
+    throw new Error(
+      `Legacy entity bridge for "${name}".delete() is no longer supported. ` +
+        'Call apiClient.entity.delete(name, ...) directly instead of using the legacy bridge.',
+    );
+  },
 });
 
 export const Child = entity('Child');
