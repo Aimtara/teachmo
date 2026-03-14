@@ -37,6 +37,7 @@ const TenantContext = createContext<TenantState>({
 });
 
 const SESSION_LAG_SIGNOUT_DELAY_MS = 4000;
+const TOKEN_LAG_SIGNOUT_DELAY_MS = 4000;
 
 function decodeToken(token?: string | null): AccessTokenClaims | null {
   if (!token) return null;
@@ -98,11 +99,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const unauthorizedRecoveryAttemptedRef = useRef(false);
   const sessionLagRecoveryAttemptedRef = useRef(false);
   const latestSessionRef = useRef({ accessToken: accessToken ?? null, hasUser: Boolean(user) });
+  const tokenLagRecoveryAttemptedRef = useRef(false);
 
   // Reset the unauthorized recovery guard when the auth session changes
   useEffect(() => {
     unauthorizedRecoveryAttemptedRef.current = false;
     sessionLagRecoveryAttemptedRef.current = false;
+    tokenLagRecoveryAttemptedRef.current = false;
   }, [isAuthenticated, user?.id, accessToken]);
 
   useEffect(() => {
@@ -137,17 +140,42 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             sessionLagRecoveryAttemptedRef.current = true;
             const lagReason = !accessToken ? 'access token' : 'user profile';
             logger.warn(`Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`);
+        if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
+          tokenLagTimer = window.setTimeout(async () => {
+            if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
+
+            let freshToken: string | null = null;
+            try {
+              freshToken = await nhost.auth.getAccessToken();
+            } catch (accessTokenError) {
+              logger.error(
+                'Failed to fetch access token during token lag recovery; treating as missing token.',
+                accessTokenError
+              );
+            }
+
+            if (freshToken) return;
+
+            tokenLagRecoveryAttemptedRef.current = true;
+            logger.warn('Authenticated state persisted without access token; forcing sign-out to clear stale session.');
 
             try {
               await nhost.auth.signOut();
             } catch (signOutError) {
               logger.error('Failed to force sign-out after prolonged session lag.', signOutError);
+              logger.error(
+                'Failed to force sign-out after prolonged token lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
             }
 
             if (mounted) {
               setState({ organizationId: null, schoolId: null, loading: false });
             }
           }, SESSION_LAG_SIGNOUT_DELAY_MS);
+          }, TOKEN_LAG_SIGNOUT_DELAY_MS);
         }
 
         return;
@@ -192,7 +220,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               try {
                 await nhost.auth.signOut();
               } catch (signOutError) {
-                logger.error('Failed to force sign-out after unauthorized profile fallback.', signOutError);
+                logger.error(
+                  'Failed to force sign-out after unauthorized profile fallback.',
+                  signOutError instanceof Error
+                    ? { name: signOutError.name, message: signOutError.message }
+                    : { message: String(signOutError) }
+                );
               }
             }
           }
