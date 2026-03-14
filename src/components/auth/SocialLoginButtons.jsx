@@ -32,10 +32,17 @@ const PROVIDER_ALIASES = {
   'microsoft-azuread': 'azuread',
 };
 
+const ALLOWED_PROVIDER_IDS = new Set(Object.keys(PROVIDER_LABELS));
+
 function normalizeProviderId(provider) {
   if (typeof provider !== 'string') return '';
   const normalized = provider.trim().toLowerCase();
   return PROVIDER_ALIASES[normalized] || normalized;
+}
+
+/** Returns true if the normalized provider ID is in the curated allowlist. */
+function isValidProviderId(id) {
+  return ALLOWED_PROVIDER_IDS.has(id);
 }
 
 
@@ -56,7 +63,7 @@ export function SocialLoginButtons({
 
   const handleLogin = async (provider) => {
     const normalizedProvider = normalizeProviderId(provider);
-    if (!normalizedProvider) {
+    if (!normalizedProvider || !isValidProviderId(normalizedProvider)) {
       onError?.(new Error('Invalid identity provider.'));
       return;
     }
@@ -89,7 +96,8 @@ export function SocialLoginButtons({
   if (Array.isArray(providers) && providers.length > 0) {
     providerList = [...new Set(providers
       .map((id) => normalizeProviderId(id))
-      .filter(Boolean))]
+      .filter(Boolean)
+      .filter(isValidProviderId))]
       .map((id) => ({
         id,
         label: PROVIDER_LABELS[id] || `Continue with ${id}`,
