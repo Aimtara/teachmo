@@ -46,6 +46,23 @@ export default function Login() {
   const enabledProviders = ssoSettings?.providers || [];
   const oauthRedirectTo = `${window.location.origin}/auth/callback?flow=${selectedFlow}`;
 
+
+  useEffect(() => {
+    const flowParam = searchParams.get('flow');
+    if (flowParam === null) return;
+
+    const normalized = normalizeOnboardingFlow(flowParam);
+    setSelectedFlow((current) => (current === normalized ? current : normalized));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const authError = searchParams.get('error');
+    if (authError === 'session_expired') {
+      setError('Your session expired. Please sign in again.');
+      setRedirecting(false);
+    }
+  }, [searchParams]);
+
   const handleFlowChange = (flow) => {
     setSelectedFlow(flow);
     saveOnboardingFlowPreference(flow);
@@ -329,19 +346,23 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
       try {
         clearSavedActiveRole();
         onStart?.();
-        await nhost.auth.signIn({
+        const result = await nhost.auth.signIn({
           provider,
           options: {
             redirectTo,
           },
         });
+
+        if (result?.error) {
+          throw result.error;
+        }
       } catch (err) {
         logger.error('SSO redirect failed', err);
         onError?.(err);
       }
     }
 
-    if (!provider) return;
+    if (!provider || typeof provider !== 'string') return;
 
     const runKey = `${provider}:${redirectTo}`;
     if (startedForKeyRef.current === runKey) return;

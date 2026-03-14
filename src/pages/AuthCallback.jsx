@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { Navigate } from 'react-router-dom';
 import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
-import { nhost } from '@/lib/nhostClient';
 import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
 import { logAnalyticsEvent } from '@/observability/telemetry';
 
@@ -29,6 +28,16 @@ export default function AuthCallback() {
       { eventName: 'auth_login', actorId: user.id, actorRole: role || undefined }
     ).catch(() => {});
   }, [isAuthenticated, isLoading, roleLoading, tenantScope?.organizationId, tenantScope?.schoolId, user?.id, role]);
+
+
+  if (!isLoading && !isAuthenticated) {
+    const params = new URLSearchParams();
+    params.set('flow', flowFromQuery ?? getSavedOnboardingFlowPreference());
+    if (error?.message) {
+      params.set('error', 'session_expired');
+    }
+    return <Navigate to={`/login?${params.toString()}`} replace />;
+  }
 
   if (isAuthenticated && !isLoading && !roleLoading) {
     if (needsOnboarding) {

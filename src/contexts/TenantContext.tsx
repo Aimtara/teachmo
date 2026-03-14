@@ -36,6 +36,8 @@ const TenantContext = createContext<TenantState>({
   loading: true
 });
 
+const SESSION_LAG_SIGNOUT_DELAY_MS = 4000;
+
 function decodeToken(token?: string | null): AccessTokenClaims | null {
   if (!token) return null;
   const parts = token.split('.');
@@ -94,14 +96,22 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     loading: true
   });
   const unauthorizedRecoveryAttemptedRef = useRef(false);
+  const sessionLagRecoveryAttemptedRef = useRef(false);
+  const latestSessionRef = useRef({ accessToken: accessToken ?? null, hasUser: Boolean(user) });
 
   // Reset the unauthorized recovery guard when the auth session changes
   useEffect(() => {
     unauthorizedRecoveryAttemptedRef.current = false;
+    sessionLagRecoveryAttemptedRef.current = false;
   }, [isAuthenticated, user?.id, accessToken]);
 
   useEffect(() => {
+    latestSessionRef.current = { accessToken: accessToken ?? null, hasUser: Boolean(user) };
+  }, [accessToken, user]);
+
+  useEffect(() => {
     let mounted = true;
+    let tokenLagTimer: number | null = null;
 
     const resolveTenant = async () => {
       if (isLoading) {
@@ -114,9 +124,32 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Token lag guard: authenticated can flip true before accessToken is available.
+      // Session lag guard: auth can report authenticated before user/token hydration is complete.
       if (!accessToken || !user) {
         if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
+
+        if (isAuthenticated && !sessionLagRecoveryAttemptedRef.current) {
+          tokenLagTimer = window.setTimeout(async () => {
+            if (!mounted || sessionLagRecoveryAttemptedRef.current) return;
+            // If hydration recovered during the grace window, no recovery action needed.
+            if (latestSessionRef.current.accessToken && latestSessionRef.current.hasUser) return;
+
+            sessionLagRecoveryAttemptedRef.current = true;
+            const lagReason = !accessToken ? 'access token' : 'user profile';
+            logger.warn(`Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`);
+
+            try {
+              await nhost.auth.signOut();
+            } catch (signOutError) {
+              logger.error('Failed to force sign-out after prolonged session lag.', signOutError);
+            }
+
+            if (mounted) {
+              setState({ organizationId: null, schoolId: null, loading: false });
+            }
+          }, SESSION_LAG_SIGNOUT_DELAY_MS);
+        }
+
         return;
       }
 
@@ -180,6 +213,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      if (tokenLagTimer !== null) {
+        window.clearTimeout(tokenLagTimer);
+      }
     };
   }, [isLoading, isAuthenticated, user, accessToken]);
 

@@ -3,15 +3,35 @@ import PropTypes from 'prop-types';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { useTenantFeatureFlags } from '@/hooks/useTenantFeatureFlags';
 
+const AUTH_USER_HYDRATION_TIMEOUT_MS = 4000;
+
+
 export function useAuthGuard() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const authUser = useUserData();
+  const [hydrationTimedOut, setHydrationTimedOut] = React.useState(false);
 
   useTenantFeatureFlags();
 
-  const status = (isLoading || (isAuthenticated && !authUser))
+  React.useEffect(() => {
+    setHydrationTimedOut(false);
+
+    if (isLoading || !isAuthenticated || authUser) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setHydrationTimedOut(true);
+    }, AUTH_USER_HYDRATION_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isLoading, isAuthenticated, authUser]);
+
+  const status = (isLoading || (isAuthenticated && !authUser && !hydrationTimedOut))
     ? 'loading'
-    : isAuthenticated ? 'authenticated' : 'unauthorized';
+    : (isAuthenticated && !authUser) ? 'unauthorized' : isAuthenticated ? 'authenticated' : 'unauthorized';
 
   const user = React.useMemo(() => {
     if (!isAuthenticated || !authUser) return null;
@@ -34,9 +54,13 @@ export function useAuthGuard() {
     };
   }, [isAuthenticated, authUser]);
 
-  const refresh = React.useCallback(() => {}, []);
+  const refresh = React.useCallback(() => {
+    setHydrationTimedOut(false);
+  }, []);
 
-  return { user, status, error: null, refresh };
+  const error = hydrationTimedOut ? new Error('Session hydrated without user identity. Please sign in again.') : null;
+
+  return { user, status, error, refresh };
 }
 
 export function AuthGuardState({ status, error, onRetry }) {
