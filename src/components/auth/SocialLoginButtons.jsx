@@ -57,6 +57,7 @@ function normalizeProviderId(provider) {
   return PROVIDER_ALIASES[normalized] || normalized;
 }
 
+/** Returns true if the normalized provider ID is in the curated allowlist. */
 function isValidProvider(providerId) {
   return SUPPORTED_PROVIDER_IDS.has(providerId);
 }

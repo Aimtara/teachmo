@@ -47,15 +47,37 @@ describe('SocialLoginButtons', () => {
     expect(button).not.toBeDisabled();
   });
 
-  it('filters out unsupported provider IDs from the rendered list', () => {
-    render(<SocialLoginButtons providers={['google', 'unsupported-provider', 'notarealthing']} />);
+  it('filters out unknown/unsupported provider IDs from the rendered list', () => {
+    render(
+      <SocialLoginButtons
+        providers={['google', 'unknownprovider', 'totally-fake-sso']}
+        redirectTo="http://localhost/auth/callback"
+      />
+    );
 
     expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /continue with unsupported-provider/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /continue with notarealthing/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /unknownprovider/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /totally-fake-sso/i })).not.toBeInTheDocument();
+    expect(signInMock).not.toHaveBeenCalled();
   });
 
-  it('filters unsupported provider IDs from the rendered list and does not call signIn', async () => {
+  it('renders no buttons and does not invoke signIn or onError when all provided IDs are invalid', () => {
+    const onError = vi.fn();
+    // Render with only invalid providers — invalid IDs are filtered during render, so no buttons appear
+    const { container } = render(
+      <SocialLoginButtons
+        onError={onError}
+        providers={['not-a-provider', 'bad-sso']}
+        redirectTo="http://localhost/auth/callback"
+      />
+    );
+
+    expect(container.querySelectorAll('button')).toHaveLength(0);
+    expect(signInMock).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('filters unsupported provider IDs after rerender', async () => {
     const onError = vi.fn();
 
     // Render with a valid provider so we have a baseline, then switch to invalid.
