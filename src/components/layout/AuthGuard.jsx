@@ -29,10 +29,10 @@ export function useAuthGuard() {
     };
   }, [isLoading, isAuthenticated, authUser]);
 
-  const status = (isLoading || (isAuthenticated && !authUser && !hydrationTimedOut))
-    ? 'loading'
-    : (hydrationTimedOut && isAuthenticated && !authUser)
-      ? 'error'
+  const status = hydrationTimedOut
+    ? 'error'
+    : (isLoading || (isAuthenticated && !authUser))
+      ? 'loading'
       : isAuthenticated
         ? 'authenticated'
         : 'unauthorized';
