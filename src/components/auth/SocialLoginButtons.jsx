@@ -27,6 +27,7 @@ const OPTIONAL_PROVIDERS = [
 
 
 const PROVIDER_ALIASES = {
+  'microsoft': 'azuread',
   'microsoft-entra': 'azuread',
   'azure-ad': 'azuread',
   'microsoft-azuread': 'azuread',
@@ -51,7 +52,8 @@ export const SUPPORTED_PROVIDER_IDS = new Set([
 
 function normalizeProviderId(provider) {
   if (typeof provider !== 'string') return '';
-  const normalized = provider.trim().toLowerCase();
+  // Trim, lowercase, and normalize common separators (spaces/underscores) to hyphens
+  const normalized = provider.trim().toLowerCase().replace(/[\s_]+/g, '-');
   return PROVIDER_ALIASES[normalized] || normalized;
 }
 
