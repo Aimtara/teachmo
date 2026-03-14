@@ -348,7 +348,6 @@ const AUTH_PROVIDER_ALIASES = {
   'microsoft-entra': 'azuread',
   // Keep aliases aligned with SocialLoginButtons
   microsoft: 'azuread',
-  'microsoft-azuread': 'azuread',
 };
 
 const ALLOWED_AUTH_PROVIDERS = new Set([
@@ -357,8 +356,12 @@ const ALLOWED_AUTH_PROVIDERS = new Set([
   'github',
   'facebook',
   'apple',
-  // Enterprise / SSO providers
+  // Enterprise / SSO providers (keep in sync with SocialLoginButtons and tenant SSO settings)
   'azuread',
+  'okta',
+  'classlink',
+  'clever',
+  'saml',
 ]);
 
 function normalizeAuthProvider(rawProvider) {
