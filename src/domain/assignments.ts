@@ -12,12 +12,12 @@ type EntityBridge = {
 };
 
 const entity = (name: string): EntityBridge => ({
-  list: (params?: Record<string, unknown>) => apiClient.entity.list(name, params),
-  filter: (params?: Record<string, unknown>) => apiClient.entity.filter(name, params),
-  get: (id: string) => apiClient.entity.get(name, id),
-  create: (payload: Record<string, unknown>) => apiClient.entity.create(name, payload),
-  update: (id: string, payload: Record<string, unknown>) => apiClient.entity.update(name, id, payload),
-  delete: (id: string) => apiClient.entity.delete(name, id)
+  list: (...args: unknown[]) => apiClient.entity.list(name, ...args),
+  filter: (...args: unknown[]) => apiClient.entity.filter(name, ...args),
+  get: (...args: unknown[]) => apiClient.entity.get(name, ...args),
+  create: (...args: unknown[]) => apiClient.entity.create(name, ...args),
+  update: (...args: unknown[]) => apiClient.entity.update(name, ...args),
+  delete: (...args: unknown[]) => apiClient.entity.delete(name, ...args)
 });
 
 const invoke = (name: string) => (payload?: AnyRecord) => apiClient.functions.invoke(name, payload);

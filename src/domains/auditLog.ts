@@ -164,7 +164,10 @@ export async function writeAuditLog(input: AuditInput) {
     }
   `;
 
-  const changeDetails = input.changes ?? buildChangeDetails(input.before, input.after);
+  const changeDetails = input.changes ?? buildChangeDetails(
+    input.before as Record<string, unknown> | null | undefined,
+    input.after as Record<string, unknown> | null | undefined
+  );
   const rawMetadata = {
     ...(input.metadata ?? {}),
     ...(changeDetails ? { change_details: changeDetails } : {}),
@@ -198,7 +201,7 @@ export async function writeAuditLog(input: AuditInput) {
     contains_pii: input.containsPii ?? null,
   };
 
-  const data = await graphql(mutation, { object });
+  const data = await graphql<{ insert_audit_log_one?: { id: string; created_at: string } }>(mutation, { object });
   return data?.insert_audit_log_one ?? null;
 }
 
