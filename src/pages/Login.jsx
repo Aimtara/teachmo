@@ -60,6 +60,9 @@ export default function Login() {
     if (authError === 'session_expired') {
       setError('Your session expired. Please sign in again.');
       setRedirecting(false);
+    } else if (authError === 'unauthenticated') {
+      setError('Please sign in to continue.');
+      setRedirecting(false);
     }
   }, [searchParams]);
 
