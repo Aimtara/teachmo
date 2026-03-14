@@ -344,7 +344,6 @@ export default function Login() {
 const AUTH_PROVIDER_ALIASES = {
   // Map common aliases to the canonical Nhost provider IDs
   'azure-ad': 'azuread',
-  'microsoft-azuread': 'azuread',
   'microsoft-entra': 'azuread',
   // Keep aliases aligned with SocialLoginButtons
   microsoft: 'azuread',
