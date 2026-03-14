@@ -64,7 +64,12 @@ export function useAuthGuard() {
     setRetryNonce((n) => n + 1);
   }, []);
 
-  const error = hydrationTimedOut ? new Error('Session hydrated without user identity. Please sign in again.') : null;
+  const error = hydrationTimedOut
+    ? Object.assign(
+        new Error('We couldn’t finish restoring your session. Please sign in again.'),
+        { internalMessage: 'Session hydrated without user identity during auth guard hydration.' },
+      )
+    : null;
 
   return { user, status, error, refresh };
 }
