@@ -27,15 +27,38 @@ const OPTIONAL_PROVIDERS = [
 
 
 const PROVIDER_ALIASES = {
+  'microsoft': 'azuread',
   'microsoft-entra': 'azuread',
   'azure-ad': 'azuread',
   'microsoft-azuread': 'azuread',
 };
 
+/**
+ * The set of provider IDs that are accepted by this application.
+ * Any provider ID that does not appear here (after normalization/aliasing)
+ * will be rejected before an OAuth flow is started and filtered out of the
+ * rendered provider list.
+ */
+export const SUPPORTED_PROVIDER_IDS = new Set([
+  'google',
+  'azuread',
+  'okta',
+  'classlink',
+  'clever',
+  'github',
+  'facebook',
+  'saml',
+]);
+
 function normalizeProviderId(provider) {
   if (typeof provider !== 'string') return '';
-  const normalized = provider.trim().toLowerCase();
+  // Trim, lowercase, and normalize common separators (spaces/underscores) to hyphens
+  const normalized = provider.trim().toLowerCase().replace(/[\s_]+/g, '-');
   return PROVIDER_ALIASES[normalized] || normalized;
+}
+
+function isValidProvider(providerId) {
+  return SUPPORTED_PROVIDER_IDS.has(providerId);
 }
 
 
@@ -56,7 +79,7 @@ export function SocialLoginButtons({
 
   const handleLogin = async (provider) => {
     const normalizedProvider = normalizeProviderId(provider);
-    if (!normalizedProvider) {
+    if (!normalizedProvider || !isValidProvider(normalizedProvider)) {
       onError?.(new Error('Invalid identity provider.'));
       return;
     }
@@ -89,7 +112,7 @@ export function SocialLoginButtons({
   if (Array.isArray(providers) && providers.length > 0) {
     providerList = [...new Set(providers
       .map((id) => normalizeProviderId(id))
-      .filter(Boolean))]
+      .filter((id) => Boolean(id) && isValidProvider(id)))]
       .map((id) => ({
         id,
         label: PROVIDER_LABELS[id] || `Continue with ${id}`,
