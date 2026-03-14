@@ -139,7 +139,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
         // Session-lag recovery: if authenticated but user/token never hydrate, force sign-out.
         if (isAuthenticated && !user && !sessionLagRecoveryAttemptedRef.current) {
-          tokenLagTimer = window.setTimeout(async () => {
+          sessionLagTimer = window.setTimeout(async () => {
             if (!mounted || sessionLagRecoveryAttemptedRef.current) return;
             // If hydration recovered during the grace window, no recovery action needed.
             if (latestSessionRef.current.accessToken && latestSessionRef.current.hasUser) return;
