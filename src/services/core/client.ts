@@ -1,97 +1,107 @@
-import { base44 } from '@/api/base44/client';
+import { entityMap, functionMap } from '@/api/entities';
+import { nhost } from '@/lib/nhostClient';
 
 type EntityClient = {
-  list?: (params?: Record<string, unknown>) => Promise<unknown>;
-  filter?: (params?: Record<string, unknown>) => Promise<unknown>;
-  get?: (id: string) => Promise<unknown>;
-  create?: (payload: Record<string, unknown>) => Promise<unknown>;
-  update?: (id: string, payload: Record<string, unknown>) => Promise<unknown>;
-  delete?: (id: string) => Promise<unknown>;
+  list?: (...args: unknown[]) => Promise<unknown>;
+  filter?: (...args: unknown[]) => Promise<unknown>;
+  get?: (...args: unknown[]) => Promise<unknown>;
+  create?: (...args: unknown[]) => Promise<unknown>;
+  update?: (...args: unknown[]) => Promise<unknown>;
+  delete?: (...args: unknown[]) => Promise<unknown>;
+};
+
+type NhostAuthClient = {
+  getUser?: () => Promise<unknown> | unknown;
+  signOut?: () => Promise<unknown>;
+  updateUser?: (payload: Record<string, unknown>) => Promise<unknown>;
 };
 
 const getEntityClient = (name: string): EntityClient => {
-  const entityClient = base44?.entities?.[name] as EntityClient | undefined;
+  const entityClient = entityMap?.[name as keyof typeof entityMap] as EntityClient | undefined;
   if (!entityClient) {
     throw new Error(`Entity client "${name}" is not configured.`);
   }
   return entityClient;
 };
 
+const getAuthClient = (): NhostAuthClient => (nhost as unknown as { auth?: NhostAuthClient })?.auth ?? {};
+
 export const apiClient = {
   auth: {
     async me<T>(): Promise<T | null> {
-      if (!base44?.auth?.me) {
-        throw new Error('Base44 auth client is not configured.');
+      const auth = getAuthClient();
+      if (!auth.getUser) {
+        throw new Error('Nhost auth client is not configured.');
       }
-      const result = await base44.auth.me();
+      const result = await auth.getUser();
       return (result ?? null) as T | null;
     },
     async logout(): Promise<void> {
-      if (!base44?.auth?.logout) {
-        throw new Error('Base44 auth client is not configured.');
+      const auth = getAuthClient();
+      if (!auth.signOut) {
+        throw new Error('Nhost auth client is not configured.');
       }
-      await base44.auth.logout();
+      await auth.signOut();
     },
     async updateMe<T>(payload: Record<string, unknown>): Promise<T> {
-      if (!base44?.auth?.updateMe) {
-        throw new Error('Base44 auth client is not configured.');
+      const auth = getAuthClient();
+      if (!auth.updateUser) {
+        throw new Error('Nhost auth client is not configured.');
       }
-      const result = await base44.auth.updateMe(payload);
+      const result = await auth.updateUser(payload);
       return result as T;
-    },
+    }
   },
   entity: {
-    async list<T>(name: string, params?: Record<string, unknown>): Promise<T[]> {
+    async list<T>(name: string, ...args: unknown[]): Promise<T[]> {
       const client = getEntityClient(name);
       if (!client.list) {
         throw new Error(`Entity "${name}" does not support list.`);
       }
-      const result = await client.list(params);
+      const result = await client.list(...args);
       return Array.isArray(result) ? (result as T[]) : [];
     },
-    async filter<T>(name: string, params?: Record<string, unknown>): Promise<T[]> {
+    async filter<T>(name: string, ...args: unknown[]): Promise<T[]> {
       const client = getEntityClient(name);
       if (!client.filter) {
         throw new Error(`Entity "${name}" does not support filter.`);
       }
-      const result = await client.filter(params);
+      const result = await client.filter(...args);
       return Array.isArray(result) ? (result as T[]) : [];
     },
-    async get<T>(name: string, id: string): Promise<T | null> {
+    async get<T>(name: string, ...args: unknown[]): Promise<T | null> {
       const client = getEntityClient(name);
       if (!client.get) {
         throw new Error(`Entity "${name}" does not support get.`);
       }
-      const result = await client.get(id);
+      const result = await client.get(...args);
       return (result ?? null) as T | null;
     },
-    async create<T>(name: string, payload: Record<string, unknown>): Promise<T> {
+    async create<T>(name: string, ...args: unknown[]): Promise<T> {
       const client = getEntityClient(name);
       if (!client.create) {
         throw new Error(`Entity "${name}" does not support create.`);
       }
-      const result = await client.create(payload);
+      const result = await client.create(...args);
       return result as T;
     },
-    async update<T>(name: string, id: string, payload: Record<string, unknown>): Promise<T> {
+    async update<T>(name: string, ...args: unknown[]): Promise<T> {
       const client = getEntityClient(name);
       if (!client.update) {
         throw new Error(`Entity "${name}" does not support update.`);
       }
-      const result = await client.update(id, payload);
+      const result = await client.update(...args);
       return result as T;
     },
-    async delete(name: string, id: string): Promise<void> {
+    async delete(name: string, ...args: unknown[]): Promise<void> {
       const client = getEntityClient(name);
       if (!client.delete) {
         throw new Error(`Entity "${name}" does not support delete.`);
       }
-      await client.delete(id);
-    },
+      await client.delete(...args);
+    }
   },
   async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
-    // TODO: Replace with actual fetch or Base44 function wrapper.
-    // This allows swapping the backend implementation later without touching UI code.
     console.log(`[GET] ${endpoint}`, params);
     return {} as T;
   },
@@ -101,11 +111,13 @@ export const apiClient = {
   },
   functions: {
     async invoke<T>(name: string, payload?: Record<string, unknown>): Promise<T> {
-      if (!base44?.functions?.invoke) {
-        throw new Error('Base44 functions client is not configured.');
+      const invoker = functionMap?.[name as keyof typeof functionMap] as
+        | ((input?: Record<string, unknown>) => Promise<T>)
+        | undefined;
+      if (!invoker) {
+        throw new Error(`Function "${name}" is not configured.`);
       }
-      const result = await base44.functions.invoke(name, payload || {});
-      return result as T;
-    },
-  },
+      return invoker(payload || {});
+    }
+  }
 };

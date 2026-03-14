@@ -1,4 +1,4 @@
-import { base44Entities } from '@/api/base44';
+import { apiClient } from '@/services/core/client';
 import { logEvent } from './audit';
 import type { MessageThread } from '../types';
 import type { InviteResult } from './invites';
@@ -12,8 +12,8 @@ export async function createThread(input: {
 }): Promise<{ thread: MessageThread | null | undefined; inviteResults: InviteResult[] }> {
   const uniq = Array.from(new Set([input.creatorId, ...(input.participantIds ?? [])]));
 
-  const thread = await base44Entities.MessageThread?.create?.({
-    data: { title: input.title, createdBy: input.creatorId },
+  const thread = await apiClient.entity.create<MessageThread>('MessageThread', {
+    data: { title: input.title, createdBy: input.creatorId }
   });
 
   if (!thread?.id) {
@@ -22,31 +22,27 @@ export async function createThread(input: {
       action: 'threads:create',
       entityType: 'message_thread',
       entityId: thread?.id ?? null,
-      metadata: { participantCount: uniq.length, hasInitialMessage: Boolean(input.initialMessage), status: 'thread-missing' },
+      metadata: { participantCount: uniq.length, hasInitialMessage: Boolean(input.initialMessage), status: 'thread-missing' }
     });
 
     return { thread: thread ?? null, inviteResults: [] };
   }
 
-  // Participants: adjust entity name to match Base44 schema if it exists
-  if (base44Entities.MessageThreadParticipant?.create) {
-    await Promise.all(
-      uniq.map((userId) =>
-        base44Entities.MessageThreadParticipant.create({
-          data: { threadId: thread.id, userId },
-        })
-      )
-    );
-  }
+  await Promise.all(
+    uniq.map((userId) =>
+      apiClient.entity.create('MessageThreadParticipant', {
+        data: { threadId: thread.id, userId }
+      })
+    )
+  );
 
-  // Optional first message
-  if (input.initialMessage && base44Entities.Message?.create) {
-    await base44Entities.Message.create({
+  if (input.initialMessage) {
+    await apiClient.entity.create('Message', {
       data: {
         threadId: thread.id,
         senderId: input.creatorId,
-        body: input.initialMessage,
-      },
+        body: input.initialMessage
+      }
     });
   }
 
@@ -55,7 +51,7 @@ export async function createThread(input: {
     action: 'threads:create',
     entityType: 'message_thread',
     entityId: thread?.id ?? null,
-    metadata: { participantCount: uniq.length, hasInitialMessage: Boolean(input.initialMessage) },
+    metadata: { participantCount: uniq.length, hasInitialMessage: Boolean(input.initialMessage) }
   });
 
   return { thread, inviteResults: [] };

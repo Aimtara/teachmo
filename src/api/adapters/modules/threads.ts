@@ -1,4 +1,4 @@
-import * as base44Impl from './threads.base44';
+import * as compatImpl from './threads.compat';
 import * as graphqlImpl from './threads.graphql';
 import * as InvitesAPI from './invites';
 import { logEvent } from './audit';
@@ -14,7 +14,7 @@ export async function createThread(input: {
   participantEmails?: string[];
   initialMessage?: string;
 }): Promise<{ thread: MessageThread | { id: string; title?: string } | null | undefined; inviteResults: InviteResult[] }> {
-  return USE_GRAPHQL ? graphqlImpl.createThread(input) : base44Impl.createThread(input);
+  return USE_GRAPHQL ? graphqlImpl.createThread(input) : compatImpl.createThread(input);
 }
 
 export async function createThreadByEmails(input: {

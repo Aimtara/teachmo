@@ -1,5 +1,4 @@
-import { base44EntitiesMap } from '@/api/base44';
-import { base44 } from '@/api/base44Client';
+import { apiClient } from '@/services/core/client';
 import { nhost } from '@/lib/nhostClient';
 import { logger } from '@/observability/logger';
 import type { BackendAdapter, BackendUser, MessageInput, FileUploadResult } from './types';
@@ -72,10 +71,7 @@ const getNhostUser = async (): Promise<AuthUser | null> => {
 const nhostAdapter: BackendAdapter = {
   async getCurrentUser() {
     try {
-      const user =
-        typeof base44?.auth?.me === 'function'
-          ? await base44.auth.me()
-          : await getNhostUser();
+      const user = await getNhostUser();
       const normalized = toBackendUser(user);
       logger.info('Fetched current user', { userId: normalized?.id, scope: 'backend.getCurrentUser' });
       return normalized;
@@ -89,8 +85,7 @@ const nhostAdapter: BackendAdapter = {
     try {
       const currentUser = await getNhostUser();
       const currentUserId = currentUser?.id;
-      const results = await base44EntitiesMap.Child?.list?.('-created_date');
-      const children = Array.isArray(results) ? results : [];
+      const children = await apiClient.entity.list('Child', '-created_date');
       logger.info('Loaded children', {
         userId: currentUserId,
         scope: 'backend.listChildren',
@@ -111,8 +106,7 @@ const nhostAdapter: BackendAdapter = {
     if (search) filters.title = { $ilike: `%${search}%` };
 
     try {
-      const activities = await base44EntitiesMap.Activity?.filter?.(filters, '-created_date', limit);
-      const list = Array.isArray(activities) ? activities : [];
+      const list = await apiClient.entity.filter('Activity', filters, '-created_date', limit);
       const currentUser = await getNhostUser();
       logger.info('Loaded activities', {
         userId: currentUser?.id,
@@ -128,7 +122,7 @@ const nhostAdapter: BackendAdapter = {
 
   async createMessage(input: MessageInput) {
     try {
-      const result = await base44EntitiesMap.Message?.create?.({
+      const result = await apiClient.entity.create('Message', {
         conversation_id: input.conversationId,
         sender_id: input.senderId,
         content: input.content,

@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-const globalWithBase44 = globalThis as typeof globalThis & {
-  base44?: {
+const globalWithCompat = globalThis as typeof globalThis & {
+  compatClient?: {
     getAuth: ReturnType<typeof vi.fn>;
     call: ReturnType<typeof vi.fn>;
     auth: { me: ReturnType<typeof vi.fn> };
@@ -11,14 +11,16 @@ const globalWithBase44 = globalThis as typeof globalThis & {
   };
 };
 
-if (!globalWithBase44.base44) {
-  globalWithBase44.base44 = {
+if (!globalWithCompat.compatClient) {
+  const compat = {
     getAuth: vi.fn(),
     call: vi.fn(),
     auth: {
-      me: vi.fn(),
+      me: vi.fn()
     },
     entities: {},
-    functions: {},
+    functions: {}
   };
+
+  globalWithCompat.compatClient = compat;
 }

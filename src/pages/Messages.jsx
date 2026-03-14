@@ -8,7 +8,7 @@ export default function Messages() {
           <CardTitle>Messages</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-600">
-          Messaging is now served from the unified Base44 routes and components.
+          Messaging is now served from the unified platform adapters and components.
         </CardContent>
       </Card>
     </div>

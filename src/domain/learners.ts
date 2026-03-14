@@ -1,20 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
-import { base44Entities } from '@/api/base44';
+import { apiClient } from '@/services/core/client';
 
-type AnyRecord = Record<string, unknown>;
 type ListableEntity<T> = {
   list: (sort?: string) => Promise<T[] | null | undefined>;
 };
 
-const entities = base44Entities as AnyRecord;
-const childEntity = entities.Child as ListableEntity<unknown>;
+const childEntity = {
+  list: (sort = '-created_date') => apiClient.entity.list('Child', { sort })
+} as ListableEntity<unknown>;
+
+const entity = (name: string) => ({
+  list: (params?: Record<string, unknown>) => apiClient.entity.list(name, params),
+  filter: (params?: Record<string, unknown>) => apiClient.entity.filter(name, params),
+  get: (id: string) => apiClient.entity.get(name, id),
+  create: (payload: Record<string, unknown>) => apiClient.entity.create(name, payload),
+  update: (id: string, payload: Record<string, unknown>) => apiClient.entity.update(name, id, payload),
+  delete: (id: string) => apiClient.entity.delete(name, id)
+});
 
 export const learnersApi = {
   child: childEntity,
-  student: entities.Student,
-  studentParentLink: entities.StudentParentLink,
-  enrollment: entities.Enrollment,
-  userProfile: entities.UserProfile
+  student: entity('Student'),
+  studentParentLink: entity('StudentParentLink'),
+  enrollment: entity('Enrollment'),
+  userProfile: entity('UserProfile')
 };
 
 export function useChildrenList(sort = '-created_date') {
