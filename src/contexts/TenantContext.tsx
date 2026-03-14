@@ -134,6 +134,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
         // Guard 1: session-lag – either the token or the user object is missing.
         // After SESSION_LAG_SIGNOUT_DELAY_MS, force sign-out directly if hydration never recovered.
+        // Session-lag recovery: if authenticated but user/token never hydrate, force sign-out.
         if (isAuthenticated && !sessionLagRecoveryAttemptedRef.current) {
           sessionLagTimer = window.setTimeout(async () => {
             if (!mounted || sessionLagRecoveryAttemptedRef.current) return;
@@ -143,6 +144,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             sessionLagRecoveryAttemptedRef.current = true;
             const lagReason = !latestSessionRef.current.accessToken ? 'access token' : 'user profile';
             logger.warn(`Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`);
+            const lagReason = !latestSessionRef.current.accessToken
+              ? 'access token'
+              : !latestSessionRef.current.hasUser
+              ? 'user profile'
+              : 'session data';
+            logger.warn(
+              `Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`
+            );
 
             try {
               await nhost.auth.signOut();
@@ -163,6 +172,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
         // Guard 2: token-lag – the access token is specifically missing.
         // After TOKEN_LAG_SIGNOUT_DELAY_MS, attempt to refresh the token; sign out if it cannot be recovered.
+        // Token-lag recovery: if only the access token is missing, attempt to refresh before forcing sign-out.
         if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
           tokenLagTimer = window.setTimeout(async () => {
             if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
