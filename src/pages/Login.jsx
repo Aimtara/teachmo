@@ -345,7 +345,20 @@ const AUTH_PROVIDER_ALIASES = {
   // Map common aliases to the canonical Nhost provider IDs
   'azure-ad': 'azuread',
   'microsoft-entra': 'azuread',
+  // Keep aliases aligned with SocialLoginButtons
+  microsoft: 'azuread',
+  'microsoft-azuread': 'azuread',
 };
+
+const ALLOWED_AUTH_PROVIDERS = new Set([
+  // Core social providers supported by this app
+  'google',
+  'github',
+  'facebook',
+  'apple',
+  // Enterprise / SSO providers
+  'azuread',
+]);
 
 function normalizeAuthProvider(rawProvider) {
   if (typeof rawProvider !== 'string') return '';
@@ -386,6 +399,15 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
     }
 
     if (!normalizedProvider) return;
+    if (!ALLOWED_AUTH_PROVIDERS.has(normalizedProvider)) {
+      const err = new Error(`Unsupported auth provider: ${normalizedProvider}`);
+      logger.error('SSO redirect aborted due to unsupported provider', {
+        provider,
+        normalizedProvider,
+      });
+      onError?.(err);
+      return;
+    }
 
     const runKey = `${normalizedProvider}:${redirectTo}`;
     if (startedForKeyRef.current === runKey) return;
