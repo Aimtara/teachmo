@@ -6,7 +6,7 @@ global.Deno = {
   env: {
     get: jest.fn((key) => {
       const mockEnv = {
-        VITE_BASE44_APP_ID: 'test-app-id',
+        VITE_PLATFORM_APP_ID: 'test-app-id',
         OPENAI_API_KEY: 'test-openai-key'
       };
       return mockEnv[key];
@@ -14,9 +14,9 @@ global.Deno = {
   }
 };
 
-// Mock base44 SDK
-jest.mock('@base44/sdk', () => ({
-  createClient: jest.fn(() => ({
+// Mock compatibility client
+jest.mock('@/api/compatClient', () => {
+  const mockClient = {
     auth: {
       setToken: jest.fn(),
       me: jest.fn().mockResolvedValue({ id: 'user-123', email: 'test@example.com' })
@@ -34,8 +34,13 @@ jest.mock('@base44/sdk', () => ({
         update: jest.fn()
       }
     }
-  }))
-}));
+  };
+
+  return {
+    compatClient: mockClient,
+    default: mockClient
+  };
+});
 
 describe('Backend Functions', () => {
   beforeEach(() => {
@@ -44,8 +49,7 @@ describe('Backend Functions', () => {
 
   describe('applyReferralCode', () => {
     it('successfully applies a valid referral code', async () => {
-      const { createClient } = require('@base44/sdk');
-      const mockClient = createClient();
+      const { compatClient: mockClient } = require('@/api/compatClient');
       
       // Mock valid code lookup
       mockClient.entities.ReferralCode.filter.mockResolvedValue([
@@ -93,8 +97,7 @@ describe('Backend Functions', () => {
     });
 
     it('rejects invalid referral code', async () => {
-      const { createClient } = require('@base44/sdk');
-      const mockClient = createClient();
+      const { compatClient: mockClient } = require('@/api/compatClient');
       
       // Mock empty result for invalid code
       mockClient.entities.ReferralCode.filter.mockResolvedValue([]);
@@ -113,8 +116,7 @@ describe('Backend Functions', () => {
     });
 
     it('handles expired referral code', async () => {
-      const { createClient } = require('@base44/sdk');
-      const mockClient = createClient();
+      const { compatClient: mockClient } = require('@/api/compatClient');
       
       // Mock expired code
       mockClient.entities.ReferralCode.filter.mockResolvedValue([
@@ -155,8 +157,7 @@ describe('Backend Functions', () => {
 
   describe('manageSponsorships', () => {
     it('creates a new sponsorship partner', async () => {
-      const { createClient } = require('@base44/sdk');
-      const mockClient = createClient();
+      const { compatClient: mockClient } = require('@/api/compatClient');
       
       mockClient.entities.SponsorshipPartner.create.mockResolvedValue({
         id: 'new-partner-123',
@@ -190,8 +191,7 @@ describe('Backend Functions', () => {
     });
 
     it('lists existing sponsorship partners', async () => {
-      const { createClient } = require('@base44/sdk');
-      const mockClient = createClient();
+      const { compatClient: mockClient } = require('@/api/compatClient');
       
       mockClient.entities.SponsorshipPartner.filter.mockResolvedValue([
         { id: '1', name: 'Partner 1', benefit_type: 'full_premium' },
@@ -215,8 +215,7 @@ describe('Backend Functions', () => {
 
   describe('Error Handling', () => {
     it('handles database connection errors gracefully', async () => {
-      const { createClient } = require('@base44/sdk');
-      const mockClient = createClient();
+      const { compatClient: mockClient } = require('@/api/compatClient');
       
       // Mock database error
       mockClient.entities.ReferralCode.filter.mockRejectedValue(

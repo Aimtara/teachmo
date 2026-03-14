@@ -83,7 +83,7 @@ Approved calls from UI:
 Disallowed from UI:
 
 - direct graphqlRequest(...)
-- direct base44.entities.*
+- direct platform entities map calls (direct use of `entityMap`/`platformEntitiesMap` exports or `apiClient.entity.*` calls — use a domain module instead)
 - direct REST fetch calls (except within domain modules)
 
 **Rationale**

@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
-import { base44Entities } from '@/api/base44';
+import { apiClient } from '@/services/core/client';
+import { createEntityBridge } from './entityBridge';
 
-type AnyRecord = Record<string, unknown>;
 type ListableEntity<T> = {
   list: (sort?: string) => Promise<T[] | null | undefined>;
 };
 
-const entities = base44Entities as AnyRecord;
-const childEntity = entities.Child as ListableEntity<unknown>;
+const childEntity = {
+  list: (sort = '-created_date') => apiClient.entity.list('Child', sort)
+} as ListableEntity<unknown>;
 
 export const learnersApi = {
   child: childEntity,
-  student: entities.Student,
-  studentParentLink: entities.StudentParentLink,
-  enrollment: entities.Enrollment,
-  userProfile: entities.UserProfile
+  student: createEntityBridge('Student'),
+  studentParentLink: createEntityBridge('StudentParentLink'),
+  enrollment: createEntityBridge('Enrollment'),
+  userProfile: createEntityBridge('UserProfile')
 };
 
 export function useChildrenList(sort = '-created_date') {

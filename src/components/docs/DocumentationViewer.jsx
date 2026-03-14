@@ -14,7 +14,7 @@ const ReadmeContent = () => (
       <li><strong>Frontend:</strong> React, Vite, TailwindCSS</li>
       <li><strong>UI Components:</strong> shadcn/ui</li>
       <li><strong>Icons:</strong> Lucide React</li>
-      <li><strong>Backend/Data:</strong> base44 Platform (handles database, auth, functions)</li>
+      <li><strong>Backend/Data:</strong> Nhost + typed service adapters (auth, data, functions)</li>
       <li><strong>State Management:</strong> React Hooks (useState, useContext, useReducer)</li>
       <li><strong>Testing:</strong> Jest, React Testing Library</li>
     </ul>
@@ -24,18 +24,18 @@ const ReadmeContent = () => (
     <ul>
       <li><code>/components</code>: Reusable UI components. Sub-divided by feature (e.g., <code>/components/dashboard</code>, <code>/components/activities</code>). Shared components are in <code>/components/shared</code>.</li>
       <li><code>/pages</code>: Top-level route components. Each file corresponds to a page in the application.</li>
-      <li><code>/entities</code>: JSON schema definitions for all data models. These define the shape of our data in the base44 database.</li>
+      <li><code>/api</code>: API adapters/bridges and compatibility surfaces that isolate backend integrations.</li>
       <li><code>/functions</code>: Serverless backend functions for integrating with external APIs.</li>
       <li><code>Layout.js</code>: The main application layout component that wraps all pages.</li>
       <li><code>globals.css</code>: Global styles and TailwindCSS definitions.</li>
     </ul>
 
     <h3 id="getting-started">Getting Started</h3>
-    <p>The Teachmo application is developed on the base44 platform, which streamlines setup:</p>
+    <p>The Teachmo application is developed locally with modern web tooling:</p>
     <ol>
-      <li>Log in to your base44 account.</li>
-      <li>Open the Teachmo project in the web-based IDE.</li>
-      <li>The application will automatically be running in the preview pane.</li>
+      <li>Install dependencies and start the local dev server.</li>
+      <li>Run the app with Vite in your local environment.</li>
+      <li>Use the browser preview to validate feature behavior.</li>
       <li>All changes you make to the code will be hot-reloaded in the preview instantly.</li>
     </ol>
 
@@ -60,7 +60,7 @@ const ContributingContent = () => (
     <h3 id="development-workflow">Development Workflow</h3>
     <ol>
       <li>Select an issue or feature to work on.</li>
-      <li>All development happens directly within the base44 IDE. There is no need for local setup or branching.</li>
+      <li>Use standard local Git workflow with feature branches and pull requests.</li>
       <li>As you code, ensure your changes are reflected correctly in the live preview.</li>
       <li>Follow the established code style (see the Code Style tab).</li>
       <li>Once your feature is complete and tested, use the platform's deployment features to submit your changes for review.</li>

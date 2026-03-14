@@ -1,14 +1,14 @@
 // Client-side helpers for calling backend functions.
 //
-// These wrappers proxy to the Nhost/Base44 function invokers.
+// These wrappers proxy to the platform function invokers (Nhost-backed compatibility layer).
 // IMPORTANT: Do not add placeholder stubs here—stubs make the UI look "working"
 // while silently dropping real behaviour.
-import * as base44Functions from '../base44/functions';
+import * as platformFunctions from '../platform/functions';
 import { orchestrate, orchestrateAction } from './orchestrate';
 import { writeAuditLog } from '@/domains/auditLog';
 import { logger } from '@/lib/logger';
 
-// Re-export existing functions from the Base44 module to preserve behaviour.
+// Re-export existing compatibility functions to preserve behaviour while migration completes.
 export const {
   googleClassroomSync: rawGoogleClassroomSync,
   googleAuth: rawGoogleAuth,
@@ -36,7 +36,7 @@ export const {
   getUXAnalytics,
   weeklyBriefSummarize,
   weeklyBriefGenerate,
-} = base44Functions;
+} = platformFunctions;
 
 export { orchestrate, orchestrateAction };
 
@@ -149,7 +149,7 @@ export async function logAuditEvent<T = GenericPayload>(
 }
 
 const functionsMap = {
-  ...base44Functions,
+  ...platformFunctions,
   googleAuth,
   googleClassroomSync,
   searchSchools,

@@ -12,6 +12,24 @@ export type TenantScope = {
   fullName?: string | null;
 };
 
+type TenantScopeData = {
+  profiles?: Array<{
+    id: string;
+    user_id: string;
+    full_name: string;
+    app_role: string;
+    organization_id: string;
+    school_id: string;
+  }>;
+  user_profiles_by_pk?: {
+    user_id: string;
+    full_name: string;
+    role: string;
+    district_id: string;
+    school_id: string;
+  } | null;
+};
+
 export function useTenantScope() {
   const userId = useUserId();
 
@@ -21,7 +39,7 @@ export function useTenantScope() {
     queryFn: async (): Promise<TenantScope | null> => {
       if (!userId) return null;
 
-      const data = await graphql(
+      const data = await graphql<TenantScopeData>(
         `query TenantScope($userId: uuid!) {
           profiles(where: { user_id: { _eq: $userId } }, limit: 1) {
             id
