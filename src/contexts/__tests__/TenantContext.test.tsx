@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { TenantProvider, useTenant } from '@/contexts/TenantContext';
 import { fetchUserProfile } from '@/domains/auth';
 import { GraphQLRequestError } from '@/lib/hasuraErrors';
@@ -32,6 +32,7 @@ vi.mock('@/lib/nhostClient', () => ({
   nhost: {
     auth: {
       signOut: signOutMock,
+      getAccessToken: vi.fn(() => null),
     },
   },
 }));
@@ -69,6 +70,33 @@ describe('TenantProvider', () => {
 
     expect(screen.getByTestId('loading').textContent).toBe('true');
     expect(screen.getByTestId('org').textContent).toBe('none');
+  });
+
+
+  it('forces sign-out when authenticated state persists without access token', async () => {
+    vi.useFakeTimers();
+    try {
+      authState.isAuthenticated = true;
+      authState.user = { id: 'u-stuck-token', metadata: {} };
+      authState.accessToken = null;
+
+      render(
+        <TenantProvider>
+          <Consumer />
+        </TenantProvider>
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+      });
+
+      await waitFor(() => {
+        expect(signOutMock).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('clears tenant identifiers on auth transition when token is not yet available', async () => {
@@ -162,6 +190,53 @@ describe('TenantProvider', () => {
     });
 
     expect(fetchUserProfileMock).toHaveBeenCalledWith('u-fallback');
+  });
+
+  it('retries profile lookup once when first fallback response is empty', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-retry', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    fetchUserProfileMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ organization_id: 'org_retry', school_id: 'school_retry' } as any);
+
+    render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId('org').textContent).toBe('org_retry');
+    });
+
+    expect(fetchUserProfileMock).toHaveBeenCalledTimes(2);
+    expect(fetchUserProfileMock).toHaveBeenNthCalledWith(1, 'u-retry');
+    expect(fetchUserProfileMock).toHaveBeenNthCalledWith(2, 'u-retry');
+  });
+
+  it('stops after one retry when profile fallback stays empty', async () => {
+    authState.isAuthenticated = true;
+    authState.user = { id: 'u-empty', metadata: {} };
+    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': {} }));
+    authState.accessToken = `h.${payload}.s`;
+    fetchUserProfileMock.mockResolvedValue(null);
+
+    render(
+      <TenantProvider>
+        <Consumer />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId('org').textContent).toBe('none');
+    });
+
+    expect(fetchUserProfileMock).toHaveBeenCalledTimes(2);
+    expect(signOutMock).not.toHaveBeenCalled();
   });
 
   it('stops loading when profile fallback fails with unauthorized error', async () => {

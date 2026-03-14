@@ -36,6 +36,8 @@ const TenantContext = createContext<TenantState>({
   loading: true
 });
 
+const TOKEN_LAG_SIGNOUT_DELAY_MS = 4000;
+
 function decodeToken(token?: string | null): AccessTokenClaims | null {
   if (!token) return null;
   const parts = token.split('.');
@@ -75,6 +77,14 @@ function isUnauthorizedError(err: unknown) {
   return /401|unauthorized|jwt/i.test(message);
 }
 
+async function fetchProfileWithRetry(userId: string, signal?: AbortSignal) {
+  const profile = await fetchUserProfile(userId);
+  if (profile || signal?.aborted) return profile;
+
+  // Retry once in case the profile row was just created by an auth trigger.
+  return fetchUserProfile(userId);
+}
+
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated } = useAuthenticationStatus();
   const user = useUserData();
@@ -86,14 +96,17 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     loading: true
   });
   const unauthorizedRecoveryAttemptedRef = useRef(false);
+  const tokenLagRecoveryAttemptedRef = useRef(false);
 
   // Reset the unauthorized recovery guard when the auth session changes
   useEffect(() => {
     unauthorizedRecoveryAttemptedRef.current = false;
+    tokenLagRecoveryAttemptedRef.current = false;
   }, [isAuthenticated, user?.id, accessToken]);
 
   useEffect(() => {
     let mounted = true;
+    let tokenLagTimer: number | null = null;
 
     const resolveTenant = async () => {
       if (isLoading) {
@@ -109,6 +122,43 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       // Token lag guard: authenticated can flip true before accessToken is available.
       if (!accessToken || !user) {
         if (mounted) setState({ organizationId: null, schoolId: null, loading: true });
+
+        if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
+          tokenLagTimer = window.setTimeout(async () => {
+            if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
+
+            let freshToken: string | null = null;
+            try {
+              freshToken = await nhost.auth.getAccessToken();
+            } catch (accessTokenError) {
+              logger.error(
+                'Failed to fetch access token during token lag recovery; treating as missing token.',
+                accessTokenError
+              );
+            }
+
+            if (freshToken) return;
+
+            tokenLagRecoveryAttemptedRef.current = true;
+            logger.warn('Authenticated state persisted without access token; forcing sign-out to clear stale session.');
+
+            try {
+              await nhost.auth.signOut();
+            } catch (signOutError) {
+              logger.error(
+                'Failed to force sign-out after prolonged token lag.',
+                signOutError instanceof Error
+                  ? { name: signOutError.name, message: signOutError.message }
+                  : { message: String(signOutError) }
+              );
+            }
+
+            if (mounted) {
+              setState({ organizationId: null, schoolId: null, loading: false });
+            }
+          }, TOKEN_LAG_SIGNOUT_DELAY_MS);
+        }
+
         return;
       }
 
@@ -118,7 +168,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       if (!tenant.organizationId || !tenant.schoolId) {
         try {
           if (!user.id) throw new Error('Missing user id for profile fallback');
-          const profile = await fetchUserProfile(user.id);
+          const profile = await fetchProfileWithRetry(user.id);
+
           if (mounted) {
             setState({
               organizationId: tenant.organizationId ?? profile?.organization_id ?? null,
@@ -128,7 +179,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           }
           return;
         } catch (err) {
-          logger.error('Failed profile fallback fetch', err);
+          const unauthorized = isUnauthorizedError(err);
+          if (unauthorized) {
+            logger.warn('Profile fallback fetch returned unauthorized response.');
+          } else {
+            logger.error('Failed profile fallback fetch', err);
+          }
           if (mounted) {
             setState({
               organizationId: tenant.organizationId,
@@ -137,7 +193,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             });
           }
 
-          if (mounted && isUnauthorizedError(err)) {
+          if (mounted && unauthorized) {
             logger.warn('Profile fallback returned unauthorized; forcing sign-out to clear stale session token.');
 
             if (!unauthorizedRecoveryAttemptedRef.current) {
@@ -145,7 +201,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               try {
                 await nhost.auth.signOut();
               } catch (signOutError) {
-                logger.error('Failed to force sign-out after unauthorized profile fallback.', signOutError);
+                logger.error(
+                  'Failed to force sign-out after unauthorized profile fallback.',
+                  signOutError instanceof Error
+                    ? { name: signOutError.name, message: signOutError.message }
+                    : { message: String(signOutError) }
+                );
               }
             }
           }
@@ -166,6 +227,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      if (tokenLagTimer !== null) {
+        window.clearTimeout(tokenLagTimer);
+      }
     };
   }, [isLoading, isAuthenticated, user, accessToken]);
 
