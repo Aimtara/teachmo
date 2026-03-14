@@ -47,7 +47,7 @@ describe('useAuthGuard', () => {
     expect(screen.getByTestId('status').textContent).toBe('authenticated');
   });
 
-  it('transitions to unauthorized when authenticated state persists without user hydration', async () => {
+  it('transitions to error status when authenticated state persists without user hydration', async () => {
     vi.useFakeTimers();
     authState.isAuthenticated = true;
     authState.user = null;
@@ -60,7 +60,7 @@ describe('useAuthGuard', () => {
       await vi.advanceTimersByTimeAsync(4000);
     });
 
-    expect(screen.getByTestId('status').textContent).toBe('unauthorized');
+    expect(screen.getByTestId('status').textContent).toBe('error');
     expect(screen.getByTestId('error').textContent).toContain('Please sign in again');
 
     vi.useRealTimers();
