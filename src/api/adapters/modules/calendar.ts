@@ -1,13 +1,13 @@
 import type { CalendarEvent, Paginated } from '../types';
-import * as base44Impl from './calendar.base44';
+import * as compatImpl from './calendar.compat';
 import * as graphqlImpl from './calendar.graphql';
 
-const USE_GRAPHQL = Boolean(import.meta.env.VITE_USE_GRAPHQL_CALENDAR);
+const USE_GRAPHQL = import.meta.env.VITE_USE_GRAPHQL_CALENDAR === 'true';
 
 export async function list(params: Record<string, unknown> = {}): Promise<Paginated<CalendarEvent>> {
-  return USE_GRAPHQL ? graphqlImpl.list(params) : base44Impl.list(params);
+  return USE_GRAPHQL ? graphqlImpl.list(params) : compatImpl.list(params);
 }
 
 export async function getById(id: string): Promise<CalendarEvent | null> {
-  return USE_GRAPHQL ? graphqlImpl.getById(id) : base44Impl.getById(id);
+  return USE_GRAPHQL ? graphqlImpl.getById(id) : compatImpl.getById(id);
 }

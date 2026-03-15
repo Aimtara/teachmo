@@ -1,12 +1,11 @@
-import * as base44Entities from '@/api/base44/entities';
+import { apiClient } from '@/services/core/client';
 import type { Activity, Paginated } from '../types';
 
 export async function list(params: Record<string, unknown> = {}): Promise<Paginated<Activity>> {
-  const items = await base44Entities.Activity?.findMany?.(params);
+  const items = await apiClient.entity.filter<Activity>('Activity', params);
   return { items: items ?? [], nextCursor: null };
 }
 
 export async function getById(id: string): Promise<Activity | null> {
-  if (!base44Entities.Activity?.findOne) return null;
-  return base44Entities.Activity.findOne({ where: { id } });
+  return apiClient.entity.get<Activity>('Activity', id);
 }

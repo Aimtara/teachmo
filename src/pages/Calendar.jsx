@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import CalendarView from '@/components/calendar/CalendarView';
 import EventModal from '@/components/calendar/EventModal';
@@ -7,7 +7,7 @@ import { listEvents } from '@/domains/events';
 /**
  * Teachmo Calendar page.
  *
- * Migrates the base44 calendar page into a working calendar
+ * Migrates the legacy calendar page into a working calendar
  * using the existing CalendarView component and event modal.
  * Fetches events via listEvents and maps them into the shape
  * expected by CalendarView (start_time/end_time).

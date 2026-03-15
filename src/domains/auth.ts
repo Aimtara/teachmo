@@ -2,6 +2,24 @@ import { graphqlRequest } from '@/lib/graphql';
 
 type ProfileInput = Record<string, unknown>;
 
+type Profile = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  app_role: string;
+  organization_id: string;
+  school_id: string;
+};
+
+type GetProfileData = { profiles?: Profile[] };
+type InsertProfileData = { insert_profiles_one?: Profile };
+type UpdateProfilesData = {
+  update_profiles?: {
+    affected_rows: number;
+    returning: Array<{ id: string; user_id: string; app_role: string }>;
+  };
+};
+
 export async function fetchUserProfile(userId: string) {
   const query = `query GetProfile($userId: uuid!) {
     profiles(where: { user_id: { _eq: $userId } }, limit: 1) {
@@ -13,7 +31,7 @@ export async function fetchUserProfile(userId: string) {
       school_id
     }
   }`;
-  const data = await graphqlRequest({ query, variables: { userId } });
+  const data = await graphqlRequest<GetProfileData>({ query, variables: { userId } });
   return data?.profiles?.[0] || null;
 }
 
@@ -28,7 +46,7 @@ export async function createProfile(input: ProfileInput) {
       school_id
     }
   }`;
-  const data = await graphqlRequest({ query, variables: { input } });
+  const data = await graphqlRequest<InsertProfileData>({ query, variables: { input } });
   return data?.insert_profiles_one;
 }
 
@@ -55,7 +73,7 @@ export async function reconcileProfileRole(userId: string | null | undefined, ap
     }
   }`;
 
-  const data = await graphqlRequest({
+  const data = await graphqlRequest<UpdateProfilesData>({
     query,
     variables: { userId, appRole },
   });

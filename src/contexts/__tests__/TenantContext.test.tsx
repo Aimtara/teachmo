@@ -32,6 +32,7 @@ vi.mock('@/lib/nhostClient', () => ({
   nhost: {
     auth: {
       signOut: signOutMock,
+      getAccessToken: vi.fn(() => null),
     },
   },
 }));
@@ -99,27 +100,48 @@ describe('TenantProvider', () => {
 
   it('forces sign-out when authenticated state persists without user data', async () => {
     vi.useFakeTimers();
-    authState.isAuthenticated = true;
-    authState.user = null;
-    const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': { 'x-hasura-organization-id': 'org_1' } }));
-    authState.accessToken = `h.${payload}.s`;
+    try {
+      authState.isAuthenticated = true;
+      authState.user = null;
+      const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': { 'x-hasura-organization-id': 'org_1' } }));
+      authState.accessToken = `h.${payload}.s`;
 
-    render(
-      <TenantProvider>
-        <Consumer />
-      </TenantProvider>
-    );
+      render(
+        <TenantProvider>
+          <Consumer />
+        </TenantProvider>
+      );
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(4000);
-    });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+      });
 
-    await waitFor(() => {
-      expect(signOutMock).toHaveBeenCalledTimes(1);
-      expect(screen.getByTestId('loading').textContent).toBe('false');
-    });
+      await waitFor(() => {
+        expect(signOutMock).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
 
-    vi.useRealTimers();
+      authState.isAuthenticated = true;
+      authState.user = { id: 'u-stuck-token', metadata: {} };
+      authState.accessToken = null;
+
+      render(
+        <TenantProvider>
+          <Consumer />
+          </TenantProvider>
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+      });
+
+      await waitFor(() => {
+        expect(signOutMock).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('clears tenant identifiers on auth transition when token is not yet available', async () => {

@@ -1,19 +1,14 @@
-import { base44Entities, base44Functions } from '@/api/base44';
-
-type AnyRecord = Record<string, unknown>;
-
-const entities = base44Entities as AnyRecord;
-const functions = base44Functions as AnyRecord;
+import { createEntityBridge, createInvokeBridge } from './entityBridge';
 
 export const assignmentsApi = {
-  assignment: entities.Assignment,
-  assignmentTopic: entities.AssignmentTopic,
-  course: entities.Course,
-  enrollment: entities.Enrollment,
-  student: entities.Student,
-  teacherClassAssignment: entities.TeacherClassAssignment,
-  googleClassroomSync: functions.googleClassroomSync,
-  googleAuth: functions.googleAuth,
-  getGoogleAuthUrl: functions.getGoogleAuthUrl,
-  syncSISData: functions.syncSISData
+  assignment: createEntityBridge('Assignment'),
+  assignmentTopic: createEntityBridge('AssignmentTopic'),
+  course: createEntityBridge('Course'),
+  enrollment: createEntityBridge('Enrollment'),
+  student: createEntityBridge('Student'),
+  teacherClassAssignment: createEntityBridge('TeacherClassAssignment'),
+  googleClassroomSync: createInvokeBridge('googleClassroomSync'),
+  googleAuth: createInvokeBridge('googleAuth'),
+  getGoogleAuthUrl: createInvokeBridge('getGoogleAuthUrl'),
+  syncSISData: createInvokeBridge('syncSISData')
 };

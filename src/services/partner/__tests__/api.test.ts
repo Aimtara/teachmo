@@ -1,28 +1,30 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/api/base44/client', () => ({
-  base44: {
-    entities: {
-      Partner: {
-        filter: vi.fn(),
-      },
-      PartnerOffer: {
-        filter: vi.fn(),
-      },
-    },
-  },
+const { filter } = vi.hoisted(() => ({
+  filter: vi.fn()
+}));
+
+vi.mock('../../core/client', () => ({
+  apiClient: {
+    entity: {
+      filter
+    }
+  }
 }));
 
 import { PartnerService } from '../api';
-import { base44 } from '@/api/base44/client';
 
 describe('PartnerService', () => {
   it('selects the matching partner for a user', async () => {
-    const partnerFilter = base44.entities.Partner.filter as unknown as ReturnType<typeof vi.fn>;
-    partnerFilter.mockResolvedValue([
-      { id: 'partner-1', owner_id: 'user-2' },
-      { id: 'partner-2', owner_id: 'user-1' },
-    ]);
+    filter.mockImplementation((name: string) => {
+      if (name === 'Partner') {
+        return Promise.resolve([
+          { id: 'partner-1', owner_id: 'user-2' },
+          { id: 'partner-2', owner_id: 'user-1' }
+        ]);
+      }
+      return Promise.resolve([]);
+    });
 
     const partner = await PartnerService.getPartnerForUser('user-1');
 
@@ -30,8 +32,12 @@ describe('PartnerService', () => {
   });
 
   it('loads offers for a partner', async () => {
-    const offerFilter = base44.entities.PartnerOffer.filter as unknown as ReturnType<typeof vi.fn>;
-    offerFilter.mockResolvedValue([{ id: 'offer-1', partner_id: 'partner-1' }]);
+    filter.mockImplementation((name: string) => {
+      if (name === 'PartnerOffer') {
+        return Promise.resolve([{ id: 'offer-1', partner_id: 'partner-1' }]);
+      }
+      return Promise.resolve([]);
+    });
 
     const offers = await PartnerService.getOffersByPartnerId('partner-1');
 

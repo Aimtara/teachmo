@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
 import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
 import { logAnalyticsEvent } from '@/observability/telemetry';
@@ -9,7 +9,8 @@ export default function AuthCallback() {
   const { isAuthenticated, isLoading, error } = useAuthenticationStatus();
   const user = useUserData();
   const { role, loading: roleLoading, needsOnboarding, tenantScope } = useUserRoleState();
-  const flowFromQuery = new URLSearchParams(window.location.search).get('flow');
+  const [searchParams] = useSearchParams();
+  const flowFromQuery = searchParams.get('flow');
   const loggedRef = useRef(false);
 
   // The rogue nhost.auth.refreshSession() has been completely removed!
@@ -36,6 +37,8 @@ export default function AuthCallback() {
     if (error?.message) {
       params.set('error', 'session_expired');
     }
+    const errorCode = error?.message ? 'session_expired' : 'unauthenticated';
+    params.set('error', errorCode);
     return <Navigate to={`/login?${params.toString()}`} replace />;
   }
 
