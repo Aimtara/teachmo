@@ -1,22 +1,6 @@
-import { apiClient } from '@/services/core/client';
+import { createEntityStub } from './entityTransport';
 
-type EntityBridge = {
-  list: (...args: unknown[]) => Promise<unknown>;
-  filter: (...args: unknown[]) => Promise<unknown>;
-  get: (...args: unknown[]) => Promise<unknown>;
-  create: (...args: unknown[]) => Promise<unknown>;
-  update: (...args: unknown[]) => Promise<unknown>;
-  delete: (...args: unknown[]) => Promise<unknown>;
-};
-
-const entity = (name: string): EntityBridge => ({
-  list: (...args: unknown[]) => apiClient.entity.list(name, ...args),
-  filter: (...args: unknown[]) => apiClient.entity.filter(name, ...args),
-  get: (...args: unknown[]) => apiClient.entity.get(name, ...args),
-  create: (...args: unknown[]) => apiClient.entity.create(name, ...args),
-  update: (...args: unknown[]) => apiClient.entity.update(name, ...args),
-  delete: (...args: unknown[]) => apiClient.entity.delete(name, ...args)
-});
+const entity = createEntityStub;
 
 export const Child = entity('Child');
 
@@ -214,7 +198,3 @@ export const AuditLog = entity('AuditLog');
 
 export const WeeklyBrief = entity('WeeklyBrief');
 
-
-
-// auth sdk:
-export const User = apiClient.auth;

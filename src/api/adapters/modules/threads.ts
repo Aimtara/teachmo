@@ -5,7 +5,7 @@ import { logEvent } from './audit';
 import type { InviteResult } from './invites';
 import type { MessageThread } from '../types';
 
-const USE_GRAPHQL = Boolean(import.meta.env.VITE_USE_GRAPHQL_MESSAGES);
+const USE_GRAPHQL = import.meta.env.VITE_USE_GRAPHQL_MESSAGES === 'true';
 
 export async function createThread(input: {
   title: string;

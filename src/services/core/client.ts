@@ -1,5 +1,6 @@
 import { entityMap, functionMap } from '@/api/entities';
 import { nhost } from '@/lib/nhostClient';
+import { requestJson } from '@/api/http/client';
 
 type EntityClient = {
   list?: (...args: unknown[]) => Promise<unknown>;
@@ -102,12 +103,17 @@ export const apiClient = {
     }
   },
   async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
-    console.log(`[GET] ${endpoint}`, params);
-    return {} as T;
+    let url = endpoint;
+    if (params && Object.keys(params).length > 0) {
+      const qs = new URLSearchParams(
+        Object.entries(params).map(([k, v]) => [k, String(v)])
+      ).toString();
+      url = `${endpoint}?${qs}`;
+    }
+    return requestJson<T>(url, { method: 'GET' });
   },
   async post<T>(endpoint: string, body: unknown): Promise<T> {
-    console.log(`[POST] ${endpoint}`, body);
-    return {} as T;
+    return requestJson<T>(endpoint, { method: 'POST', body: JSON.stringify(body) });
   },
   functions: {
     async invoke<T>(name: string, payload?: Record<string, unknown>): Promise<T> {
