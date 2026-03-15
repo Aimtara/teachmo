@@ -170,7 +170,10 @@ router.get('/notifications/metrics', requirePermission('view_metrics', 'notifica
     filters.push(`m.channel = $${idx++}`);
     params.push(channel);
   }
-  if (start) {
+  if (start !== undefined) {
+    if (typeof start !== 'string' || start.trim() === '') {
+      return res.status(400).json({ error: 'invalid start' });
+    }
     const parsedStart = new Date(start);
     if (Number.isNaN(parsedStart.getTime())) {
       return res.status(400).json({ error: 'invalid start' });
@@ -178,7 +181,10 @@ router.get('/notifications/metrics', requirePermission('view_metrics', 'notifica
     filters.push(`e.event_ts >= $${idx++}`);
     params.push(parsedStart.toISOString());
   }
-  if (end) {
+  if (end !== undefined) {
+    if (typeof end !== 'string' || end.trim() === '') {
+      return res.status(400).json({ error: 'invalid end' });
+    }
     const parsedEnd = new Date(end);
     if (Number.isNaN(parsedEnd.getTime())) {
       return res.status(400).json({ error: 'invalid end' });
