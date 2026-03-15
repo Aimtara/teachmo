@@ -1,5 +1,10 @@
 /* eslint-env node */
 
+// Default per-user daily message limit. The notification_preferences schema does not
+// currently include a daily_message_limit column; update this constant or extend
+// the schema if per-user limits are needed in the future.
+const DEFAULT_DAILY_LIMIT = 3;
+
 /**
  * @param {{ parentId: string, messageSeverity: 'routine'|'important'|'urgent' }} context
  * @param {{ query: (sql:string, params:any[]) => Promise<any> }} db
@@ -18,14 +23,7 @@ export async function arbitrateParentLoad(context, db) {
   );
   const recentCount = Number(recentMessagesResult?.rows?.[0]?.count || 0);
 
-  const budgetResult = await db.query(
-    `SELECT daily_message_limit
-     FROM public.notification_preferences
-     WHERE user_id = $1
-     LIMIT 1`,
-    [context.parentId]
-  );
-  const limit = Number(budgetResult?.rows?.[0]?.daily_message_limit || 3);
+  const limit = DEFAULT_DAILY_LIMIT;
 
   return recentCount >= limit ? 'route_to_digest' : 'dispatch_now';
 }

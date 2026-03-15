@@ -21,8 +21,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "preview": "vite preview",
-    "ship": "nhost pull && git config pull.rebase false && git pull origin main --no-edit && git push origin main && git push origin main:pilot -f"
-  },
+    "ship": "nhost pull && git config pull.rebase false && git pull origin main --no-edit && git push origin main && git push origin main:pilot -f",
     "prepare": "husky install",
     "e2e": "playwright test",
     "e2e:ops": "playwright test --grep @launch-gates",
