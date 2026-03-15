@@ -1,14 +1,11 @@
-import { jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 
-const query = jest.fn();
-
-await jest.unstable_mockModule('../db.js', () => ({
-  query,
+jest.mock('../db.js', () => ({
+  query: jest.fn(),
 }));
 
-await jest.unstable_mockModule('../middleware/auth.js', () => ({
+jest.mock('../middleware/auth.js', () => ({
   requireAuth: (req, _res, next) => {
     req.auth = { userId: 'admin-user', role: 'system_admin', scopes: ['users:manage'] };
     next();
@@ -16,19 +13,20 @@ await jest.unstable_mockModule('../middleware/auth.js', () => ({
   requireAdmin: (_req, _res, next) => next(),
 }));
 
-await jest.unstable_mockModule('../middleware/tenant.js', () => ({
+jest.mock('../middleware/tenant.js', () => ({
   requireTenant: (req, _res, next) => {
     req.tenant = { organizationId: 'org-1', schoolId: null };
     next();
   },
 }));
 
-await jest.unstable_mockModule('../middleware/permissions.js', () => ({
+jest.mock('../middleware/permissions.js', () => ({
   requireAnyScope: () => (_req, _res, next) => next(),
 }));
 
-const { default: complianceRouter } = await import('../routes/compliance.js');
-const { runRetentionPurge } = await import('../jobs/retentionPurge.js');
+import { query as mockQuery } from '../db.js';
+import complianceRouter from '../routes/compliance.js';
+import { runRetentionPurge } from '../jobs/retentionPurge.js';
 
 const app = express();
 app.use(express.json());
@@ -40,7 +38,7 @@ describe('Compliance endpoints', () => {
   });
 
   test('POST /api/admin/dsar-exports builds export payload with PII and audit history', async () => {
-    query
+    mockQuery
       .mockResolvedValueOnce({
         rows: [
           {
@@ -86,7 +84,7 @@ describe('Compliance endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.downloadUrl).toContain('/api/admin/dsar-exports/export-1/download');
 
-    const insertCall = query.mock.calls.find((call) =>
+    const insertCall = mockQuery.mock.calls.find((call) =>
       String(call[0]).includes('insert into public.dsar_exports')
     );
     expect(insertCall).toBeTruthy();
@@ -97,7 +95,7 @@ describe('Compliance endpoints', () => {
   });
 
   test('POST /api/admin/users/:id/hard-delete returns 404 when user is missing', async () => {
-    query.mockResolvedValueOnce({ rows: [] });
+    mockQuery.mockResolvedValueOnce({ rows: [] });
 
     const res = await request(app)
       .post('/api/admin/users/missing-user/hard-delete')
@@ -114,7 +112,7 @@ describe('Retention purge job', () => {
   });
 
   test('runRetentionPurge deletes records using tenant retention policies', async () => {
-    query
+    mockQuery
       .mockResolvedValueOnce({
         rows: [
           { district_id: 'org-1', school_id: null, settings: { retention: { audit_log_days: 10, dsar_export_days: 5 } } },
@@ -129,7 +127,7 @@ describe('Retention purge job', () => {
     const result = await runRetentionPurge();
 
     expect(result.purged).toBe(5);
-    const deleteAuditCall = query.mock.calls.find((call) =>
+    const deleteAuditCall = mockQuery.mock.calls.find((call) =>
       String(call[0]).includes('delete from public.audit_log')
     );
     expect(deleteAuditCall[1][2]).toBe(10);

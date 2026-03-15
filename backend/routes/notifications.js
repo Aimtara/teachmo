@@ -69,6 +69,19 @@ router.post('/notifications/announcements', requirePermission('create', 'notific
     return res.status(400).json({ error: 'segment is required' });
   }
 
+  // Validate send_at whenever it is present (including empty strings)
+  let sendAt = null;
+  if (typeof send_at !== 'undefined') {
+    if (typeof send_at === 'string' && send_at.trim() === '') {
+      return res.status(400).json({ error: 'invalid send_at' });
+    }
+    const parsedSendAt = new Date(send_at);
+    if (Number.isNaN(parsedSendAt.getTime())) {
+      return res.status(400).json({ error: 'invalid send_at' });
+    }
+    sendAt = parsedSendAt;
+  }
+
   const limitCheck = await checkCampaignLimits(tenantId, category);
   if (!limitCheck.allowed) {
     return res.status(429).json({
@@ -77,7 +90,6 @@ router.post('/notifications/announcements', requirePermission('create', 'notific
     });
   }
 
-  const sendAt = send_at ? new Date(send_at) : null;
   const status = sendAt && sendAt.getTime() > Date.now() ? 'scheduled' : 'pending';
   const result = await query(
     `insert into public.notification_messages
@@ -158,13 +170,27 @@ router.get('/notifications/metrics', requirePermission('view_metrics', 'notifica
     filters.push(`m.channel = $${idx++}`);
     params.push(channel);
   }
-  if (start) {
+  if (start !== undefined) {
+    if (typeof start !== 'string' || start.trim() === '') {
+      return res.status(400).json({ error: 'invalid start' });
+    }
+    const parsedStart = new Date(start);
+    if (Number.isNaN(parsedStart.getTime())) {
+      return res.status(400).json({ error: 'invalid start' });
+    }
     filters.push(`e.event_ts >= $${idx++}`);
-    params.push(new Date(start).toISOString());
+    params.push(parsedStart.toISOString());
   }
-  if (end) {
+  if (end !== undefined) {
+    if (typeof end !== 'string' || end.trim() === '') {
+      return res.status(400).json({ error: 'invalid end' });
+    }
+    const parsedEnd = new Date(end);
+    if (Number.isNaN(parsedEnd.getTime())) {
+      return res.status(400).json({ error: 'invalid end' });
+    }
     filters.push(`e.event_ts <= $${idx++}`);
-    params.push(new Date(end).toISOString());
+    params.push(parsedEnd.toISOString());
   }
 
   const result = await query(
