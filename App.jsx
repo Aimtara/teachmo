@@ -28,7 +28,7 @@ function App() {
           <GlobalErrorBoundary>
             <Pages />
           </GlobalErrorBoundary>
-          {/* Required for legacy Base44 UI components that call ultraMinimalToast() */}
+          {/* Required for legacy compatibility UI components that call ultraMinimalToast() */}
           <UltraMinimalToast />
           {/* Shadcn-style toasts for components using useToast() */}
           <Toaster />
