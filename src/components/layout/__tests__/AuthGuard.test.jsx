@@ -60,7 +60,7 @@ describe('useAuthGuard', () => {
       await vi.advanceTimersByTimeAsync(4000);
     });
 
-    expect(screen.getByTestId('status').textContent).toBe('error');
+    expect(screen.getByTestId('status').textContent).toBe('unauthorized');
     expect(screen.getByTestId('error').textContent).toContain('Please sign in again');
 
     vi.useRealTimers();

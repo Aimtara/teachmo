@@ -87,7 +87,11 @@ export function AuthGuardState({ status, error, onRetry }) {
     return (
       <div className="p-4 bg-amber-50 border border-amber-200 rounded" role="alert">
         <p className="font-semibold text-amber-800">Your session has expired</p>
-        <p className="text-amber-700">Please sign in again to continue.</p>
+        <p className="text-amber-700">
+          {error
+            ? (typeof error === 'string' ? error : error.message || 'Please sign in again to continue.')
+            : 'Please sign in again to continue.'}
+        </p>
       </div>
     );
   }

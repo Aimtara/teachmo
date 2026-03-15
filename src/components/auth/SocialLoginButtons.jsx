@@ -6,6 +6,7 @@ import { nhost } from '@/lib/nhostClient';
 const PROVIDER_LABELS = {
   google: 'Continue with Google',
   azuread: 'Continue with Microsoft',
+  entraid: 'Continue with Microsoft',
   microsoft: 'Continue with Microsoft',
   okta: 'Continue with Okta',
   classlink: 'Continue with ClassLink',

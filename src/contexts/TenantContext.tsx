@@ -262,7 +262,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             if (latestSessionRef.current.accessToken && latestSessionRef.current.hasUser) return;
 
             sessionLagRecoveryAttemptedRef.current = true;
-            logger.warn('Authenticated state persisted without user profile; forcing sign-out to clear stale session.');
+            const currentSession = latestSessionRef.current;
+            const lagReason = !currentSession.accessToken ? 'access token' : 'user profile';
+            logger.warn(`Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`);
 
             try {
               await nhost.auth.signOut();

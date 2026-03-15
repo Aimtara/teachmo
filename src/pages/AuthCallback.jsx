@@ -34,6 +34,22 @@ export default function AuthCallback() {
   if (!isLoading && !isAuthenticated) {
     const params = new URLSearchParams();
     params.set('flow', flowFromQuery ?? getSavedOnboardingFlowPreference());
+    if (error) {
+      // Prefer structured error information when available, and only use
+      // "session_expired" when the message clearly indicates an expired session.
+      const message = typeof error.message === 'string' ? error.message.toLowerCase() : '';
+      const looksLikeSessionExpired =
+        message.includes('session') && message.includes('expired');
+      const structuredCode =
+        (typeof error.code === 'string' && error.code) ||
+        (typeof error.error === 'string' && error.error) ||
+        (typeof error.name === 'string' && error.name) ||
+        null;
+      const errorCode = looksLikeSessionExpired
+        ? 'session_expired'
+        : structuredCode || 'auth_error';
+      params.set('error', errorCode);
+    }
     const errorCode = error?.message ? 'session_expired' : 'unauthenticated';
     params.set('error', errorCode);
     return <Navigate to={`/login?${params.toString()}`} replace />;
