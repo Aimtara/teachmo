@@ -69,6 +69,19 @@ router.post('/notifications/announcements', requirePermission('create', 'notific
     return res.status(400).json({ error: 'segment is required' });
   }
 
+  // Validate send_at whenever it is present (including empty strings)
+  let sendAt = null;
+  if (typeof send_at !== 'undefined') {
+    if (typeof send_at === 'string' && send_at.trim() === '') {
+      return res.status(400).json({ error: 'invalid send_at' });
+    }
+    const parsedSendAt = new Date(send_at);
+    if (Number.isNaN(parsedSendAt.getTime())) {
+      return res.status(400).json({ error: 'invalid send_at' });
+    }
+    sendAt = parsedSendAt;
+  }
+
   const limitCheck = await checkCampaignLimits(tenantId, category);
   if (!limitCheck.allowed) {
     return res.status(429).json({
@@ -77,10 +90,6 @@ router.post('/notifications/announcements', requirePermission('create', 'notific
     });
   }
 
-  const sendAt = send_at ? new Date(send_at) : null;
-  if (sendAt && Number.isNaN(sendAt.getTime())) {
-    return res.status(400).json({ error: 'invalid send_at' });
-  }
   const status = sendAt && sendAt.getTime() > Date.now() ? 'scheduled' : 'pending';
   const result = await query(
     `insert into public.notification_messages
