@@ -78,6 +78,9 @@ router.post('/notifications/announcements', requirePermission('create', 'notific
   }
 
   const sendAt = send_at ? new Date(send_at) : null;
+  if (sendAt && Number.isNaN(sendAt.getTime())) {
+    return res.status(400).json({ error: 'invalid send_at' });
+  }
   const status = sendAt && sendAt.getTime() > Date.now() ? 'scheduled' : 'pending';
   const result = await query(
     `insert into public.notification_messages
@@ -159,12 +162,20 @@ router.get('/notifications/metrics', requirePermission('view_metrics', 'notifica
     params.push(channel);
   }
   if (start) {
+    const parsedStart = new Date(start);
+    if (Number.isNaN(parsedStart.getTime())) {
+      return res.status(400).json({ error: 'invalid start' });
+    }
     filters.push(`e.event_ts >= $${idx++}`);
-    params.push(new Date(start).toISOString());
+    params.push(parsedStart.toISOString());
   }
   if (end) {
+    const parsedEnd = new Date(end);
+    if (Number.isNaN(parsedEnd.getTime())) {
+      return res.status(400).json({ error: 'invalid end' });
+    }
     filters.push(`e.event_ts <= $${idx++}`);
-    params.push(new Date(end).toISOString());
+    params.push(parsedEnd.toISOString());
   }
 
   const result = await query(

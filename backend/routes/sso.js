@@ -4,6 +4,7 @@ import passport from 'passport';
 import { Strategy as SamlStrategy } from '@node-saml/passport-saml';
 import { Strategy as OpenIDConnectStrategy } from 'passport-openidconnect';
 import rateLimit from 'express-rate-limit';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { query } from '../db.js';
 import { createLogger } from '../utils/logger.js';
 import { issueSsoJwt } from '../utils/ssoJwt.js';
@@ -26,6 +27,57 @@ const ssoRateLimiter = rateLimit({
   message: { error: 'too_many_requests' },
 });
 const strategyCache = new Map();
+const STRATEGY_CACHE_TTL_MS = 5 * 60 * 1000;
+const SSO_STATE_TTL_SEC = 10 * 60;
+const devStateSecret = randomBytes(32).toString('base64url');
+
+function getSsoStateSecret() {
+  const configured = process.env.SSO_STATE_SECRET || process.env.JWT_SECRET || process.env.NHOST_JWT_SECRET;
+  if (configured) return configured;
+
+  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+  if (isProd) {
+    throw new Error('SSO state secret is not configured');
+  }
+
+  return devStateSecret;
+}
+
+function signSsoState(context) {
+  const payload = {
+    ...context,
+    nonce: randomBytes(12).toString('base64url'),
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + SSO_STATE_TTL_SEC,
+  };
+  const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const signature = createHmac('sha256', getSsoStateSecret()).update(encoded).digest('base64url');
+  return `${encoded}.${signature}`;
+}
+
+function verifySsoState(stateToken) {
+  if (!stateToken || typeof stateToken !== 'string' || !stateToken.includes('.')) {
+    throw new Error('invalid_state_format');
+  }
+  const [encoded, providedSig] = stateToken.split('.', 2);
+  const expectedSig = createHmac('sha256', getSsoStateSecret()).update(encoded).digest('base64url');
+  const providedBuf = Buffer.from(providedSig);
+  const expectedBuf = Buffer.from(expectedSig);
+  if (providedBuf.length !== expectedBuf.length || !timingSafeEqual(providedBuf, expectedBuf)) {
+    throw new Error('invalid_state_signature');
+  }
+
+  const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+  const now = Math.floor(Date.now() / 1000);
+  if (!payload.exp || payload.exp < now) {
+    throw new Error('expired_state');
+  }
+
+  return {
+    organizationId: payload.organizationId || null,
+    schoolId: payload.schoolId || null,
+  };
+}
 
 function ensureStrategyName({ provider, organizationId }) {
   return `sso-${provider}-${organizationId}`;
@@ -84,7 +136,9 @@ async function upsertSsoUser({ email, displayName, organizationId, schoolId, rol
     `insert into public.user_profiles (user_id, role, district_id, school_id, full_name)
      values ($1, $2, $3, $4, $5)
      on conflict (user_id) do update
-     set school_id = excluded.school_id,
+     set role = excluded.role,
+         district_id = excluded.district_id,
+         school_id = excluded.school_id,
          full_name = excluded.full_name,
          updated_at = now()`,
     [userId, role, organizationId, schoolId ?? null, displayName || null]
@@ -150,7 +204,12 @@ async function finalizeSsoLogin({ req, profile, provider }) {
 
 async function ensureStrategy({ provider, organizationId, baseUrl }) {
   const cacheKey = ensureStrategyName({ provider, organizationId });
-  if (strategyCache.has(cacheKey)) return cacheKey;
+  const cached = strategyCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cacheKey;
+
+  if (cached && typeof passport.unuse === 'function') {
+    passport.unuse(cacheKey);
+  }
 
   const settings = await loadSsoSettings({ provider, organizationId });
   if (!settings) {
@@ -201,7 +260,7 @@ async function ensureStrategy({ provider, organizationId, baseUrl }) {
     passport.use(cacheKey, strategy);
   }
 
-  strategyCache.set(cacheKey, true);
+  strategyCache.set(cacheKey, { expiresAt: Date.now() + STRATEGY_CACHE_TTL_MS });
   return cacheKey;
 }
 
@@ -222,10 +281,9 @@ router.get('/:provider/start', ssoRateLimiter, async (req, res, next) => {
     req.ssoContext = {
       organizationId,
       schoolId: req.query.schoolId || null,
-      defaultRole: req.query.defaultRole || null,
     };
 
-    const statePayload = Buffer.from(JSON.stringify(req.ssoContext)).toString('base64url');
+    const statePayload = signSsoState(req.ssoContext);
 
     return passport.authenticate(strategyName, {
       session: false,
@@ -245,12 +303,12 @@ router.all('/:provider/callback', ssoRateLimiter, async (req, res, next) => {
   const baseUrl = baseUrlFromRequest(req);
 
   try {
-    const state = req.body?.RelayState || req.query?.state;
+    const state = req.body?.RelayState || req.query?.RelayState || req.body?.state || req.query?.state;
     if (state) {
       try {
-        req.ssoContext = JSON.parse(Buffer.from(String(state), 'base64url').toString('utf8'));
+        req.ssoContext = verifySsoState(String(state));
       } catch {
-        req.ssoContext = null;
+        return res.status(400).json({ error: 'invalid_sso_state' });
       }
     }
 
@@ -259,10 +317,12 @@ router.all('/:provider/callback', ssoRateLimiter, async (req, res, next) => {
         organizationId: req.query.organizationId,
         email: req.query.email,
       });
+      if (!organizationId) {
+        return res.status(400).json({ error: 'organization_required' });
+      }
       req.ssoContext = {
         organizationId,
         schoolId: req.query.schoolId || null,
-        defaultRole: req.query.defaultRole || null,
       };
     }
 
