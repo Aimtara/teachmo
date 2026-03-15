@@ -11,8 +11,8 @@ export async function arbitrateParentLoad(context, db) {
 
   const recentMessagesResult = await db.query(
     `SELECT count(*)::int AS count
-     FROM public_notification_outbox
-     WHERE parent_id = $1
+     FROM public.notification_outbox
+     WHERE user_id = $1
        AND created_at > NOW() - INTERVAL '24 hours'`,
     [context.parentId]
   );
@@ -20,8 +20,8 @@ export async function arbitrateParentLoad(context, db) {
 
   const budgetResult = await db.query(
     `SELECT daily_message_limit
-     FROM public_notification_preferences
-     WHERE parent_id = $1
+     FROM public.notification_preferences
+     WHERE user_id = $1
      LIMIT 1`,
     [context.parentId]
   );
