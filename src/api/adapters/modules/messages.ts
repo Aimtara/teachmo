@@ -2,7 +2,7 @@ import type { Message, MessageThread, Paginated } from '../types';
 import * as compatImpl from './messages.compat';
 import * as graphqlImpl from './messages.graphql';
 
-const USE_GRAPHQL = Boolean(import.meta.env.VITE_USE_GRAPHQL_MESSAGES);
+const USE_GRAPHQL = import.meta.env.VITE_USE_GRAPHQL_MESSAGES === 'true';
 
 export async function listThreads(params: Record<string, unknown> = {}): Promise<Paginated<MessageThread>> {
   return USE_GRAPHQL ? graphqlImpl.listThreads(params) : compatImpl.listThreads(params);

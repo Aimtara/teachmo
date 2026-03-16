@@ -1,13 +1,6 @@
-import { apiClient } from "@/services/core/client";
+import { createEntityStub } from './entityTransport';
 
-const entity = (name) => ({
-  list: (...args) => apiClient.entity.list(name, ...args),
-  filter: (...args) => apiClient.entity.filter(name, ...args),
-  get: (...args) => apiClient.entity.get(name, ...args),
-  create: (...args) => apiClient.entity.create(name, ...args),
-  update: (...args) => apiClient.entity.update(name, ...args),
-  delete: (...args) => apiClient.entity.delete(name, ...args)
-});
+const entity = createEntityStub;
 
 export const AIConversation = entity('AIConversation');
 export const AIUsageLog = entity('AIUsageLog');
