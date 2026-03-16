@@ -34,9 +34,8 @@ export type EntityStub = {
 export function createEntityStub(name: string): EntityStub {
   const notImplemented =
     (op: string) =>
-    (..._args: unknown[]): never => {
-      throw new EntityNotMigratedError(name, op);
-    };
+    (..._args: unknown[]): Promise<never> =>
+      Promise.reject(new EntityNotMigratedError(name, op));
 
   return {
     list: notImplemented('list'),
@@ -47,3 +46,4 @@ export function createEntityStub(name: string): EntityStub {
     delete: notImplemented('delete'),
   };
 }
+
