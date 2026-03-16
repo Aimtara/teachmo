@@ -1,4 +1,4 @@
-import { createEntityStub } from './entityTransport.js';
+import { createEntityStub } from './entityTransport';
 
 const entity = createEntityStub;
 
