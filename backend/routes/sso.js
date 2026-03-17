@@ -32,14 +32,21 @@ const SSO_STATE_TTL_SEC = 10 * 60;
 const devStateSecret = randomBytes(32).toString('base64url');
 
 function getSsoStateSecret() {
-  const configured = process.env.SSO_STATE_SECRET || process.env.JWT_SECRET || process.env.NHOST_JWT_SECRET;
+  const configured =
+    process.env.SSO_STATE_SECRET ||
+    process.env.JWT_SECRET ||
+    process.env.NHOST_JWT_SECRET ||
+    process.env.SSO_JWT_SECRET;
   if (configured) return configured;
 
   const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
   if (isProd) {
-    throw new Error('SSO state secret is not configured');
+    throw new Error(
+      'SSO state secret is required in production. Set one of SSO_STATE_SECRET, JWT_SECRET, NHOST_JWT_SECRET, or SSO_JWT_SECRET.'
+    );
   }
 
+  logger.warn('SSO state secret is not configured; using ephemeral in-memory secret for local development only');
   return devStateSecret;
 }
 
