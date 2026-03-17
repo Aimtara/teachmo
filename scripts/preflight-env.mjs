@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const REQUIRED_VARS = ['VITE_NHOST_BACKEND_URL'];
+const REQUIRED_VARS = [];
 
 const args = new Set(process.argv.slice(2));
 const checkExample = args.has('--example');
@@ -33,6 +33,14 @@ if (checkExample) {
     fail(`.env.example is missing required keys: ${missing.join(', ')}`);
   }
 
+  const hasBackendUrlKey = declaredKeys.has('VITE_NHOST_BACKEND_URL');
+  const hasSubdomainKey = declaredKeys.has('VITE_NHOST_SUBDOMAIN');
+  if (!hasBackendUrlKey && !hasSubdomainKey) {
+    fail(
+      '.env.example must declare either VITE_NHOST_BACKEND_URL or VITE_NHOST_SUBDOMAIN for Nhost configuration.'
+    );
+  }
+
   console.log('[preflight] .env.example looks good.');
   process.exit(0);
 }
@@ -40,6 +48,19 @@ if (checkExample) {
 const missing = REQUIRED_VARS.filter((key) => !process.env[key]);
 if (missing.length > 0) {
   fail(`Missing required environment variables: ${missing.join(', ')}`);
+}
+
+const hasBackendUrl =
+  typeof process.env.VITE_NHOST_BACKEND_URL === 'string' &&
+  process.env.VITE_NHOST_BACKEND_URL.trim() !== '';
+const hasSubdomain =
+  typeof process.env.VITE_NHOST_SUBDOMAIN === 'string' &&
+  process.env.VITE_NHOST_SUBDOMAIN.trim() !== '';
+
+if (!hasBackendUrl && !hasSubdomain) {
+  fail(
+    'Missing Nhost configuration. Set either VITE_NHOST_BACKEND_URL or VITE_NHOST_SUBDOMAIN (with optional VITE_NHOST_REGION).'
+  );
 }
 
 console.log('[preflight] Environment looks good.');
