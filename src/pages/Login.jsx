@@ -20,6 +20,15 @@ const AUTH_MODES = {
   SIGN_UP: 'sign_up',
 };
 
+const AUTH_ERROR_MESSAGES = {
+  session_expired: 'Your session expired. Please sign in again.',
+  unauthenticated: 'Please sign in to continue.',
+  invalid_sso_state: 'Your sign-in request expired. Please start sign-in again.',
+  invalid_provider_state: 'We could not verify your sign-in response. Please try again.',
+  organization_required: 'Please choose your school or district before continuing.',
+  auth_error: 'We could not complete sign in. Please try again.',
+};
+
 export default function Login() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -52,18 +61,16 @@ export default function Login() {
     if (flowParam === null) return;
 
     const normalized = normalizeOnboardingFlow(flowParam);
+    saveOnboardingFlowPreference(normalized);
     setSelectedFlow((current) => (current === normalized ? current : normalized));
   }, [searchParams]);
 
   useEffect(() => {
     const authError = searchParams.get('error');
-    if (authError === 'session_expired') {
-      setError('Your session expired. Please sign in again.');
-      setRedirecting(false);
-    } else if (authError === 'unauthenticated') {
-      setError('Please sign in to continue.');
-      setRedirecting(false);
-    }
+    if (!authError) return;
+
+    setError(AUTH_ERROR_MESSAGES[authError] || AUTH_ERROR_MESSAGES.auth_error);
+    setRedirecting(false);
   }, [searchParams]);
 
   const handleFlowChange = (flow) => {
@@ -117,14 +124,18 @@ export default function Login() {
     try {
       saveOnboardingFlowPreference(ONBOARDING_FLOWS.PARENT);
       clearSavedActiveRole();
+      const normalizedFullName = fullName.trim();
       const { session, error: signUpError } = await nhost.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          displayName: fullName || undefined,
+          displayName: normalizedFullName || undefined,
           metadata: {
+            app_role: 'parent',
+            role: 'parent',
             preferred_active_role: 'parent',
             onboarding_flow: ONBOARDING_FLOWS.PARENT,
+            full_name: normalizedFullName || undefined,
           },
         },
       });

@@ -16,7 +16,8 @@ type ResolveOnboardingPathInput = {
 
 export function normalizeOnboardingFlow(value: string | null | undefined): OnboardingFlow {
   if (value === ONBOARDING_FLOWS.PARENT) return ONBOARDING_FLOWS.PARENT;
-  return ONBOARDING_FLOWS.DISTRICT;
+  if (value === ONBOARDING_FLOWS.DISTRICT) return ONBOARDING_FLOWS.DISTRICT;
+  return ONBOARDING_FLOWS.PARENT;
 }
 
 export function saveOnboardingFlowPreference(flow: string | null | undefined): void {
@@ -25,7 +26,7 @@ export function saveOnboardingFlowPreference(flow: string | null | undefined): v
 }
 
 export function getSavedOnboardingFlowPreference(): OnboardingFlow {
-  if (typeof window === 'undefined') return ONBOARDING_FLOWS.DISTRICT;
+  if (typeof window === 'undefined') return ONBOARDING_FLOWS.PARENT;
   return normalizeOnboardingFlow(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY));
 }
 
