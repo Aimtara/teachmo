@@ -30,6 +30,7 @@ const strategyCache = new Map();
 const STRATEGY_CACHE_TTL_MS = 5 * 60 * 1000;
 const SSO_STATE_TTL_SEC = 10 * 60;
 const devStateSecret = randomBytes(32).toString('base64url');
+let hasLoggedMissingSsoStateSecret = false;
 
 function getSsoStateSecret() {
   const configured =
@@ -46,7 +47,13 @@ function getSsoStateSecret() {
     );
   }
 
-  logger.warn('SSO state secret is not configured; using ephemeral in-memory secret for local development only');
+  if (!hasLoggedMissingSsoStateSecret) {
+    logger.warn(
+      'SSO state secret is not configured; using ephemeral in-memory secret for local development only'
+    );
+    hasLoggedMissingSsoStateSecret = true;
+  }
+
   return devStateSecret;
 }
 
