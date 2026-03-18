@@ -105,3 +105,21 @@ export function normalizeHasuraError(error: unknown): NormalizedHasuraError {
     original: error,
   };
 }
+
+/**
+ * Returns true for well-understood, recoverable profile-lookup errors (permission/schema issues)
+ * that should trigger a fallback to the legacy profile table rather than propagating up.
+ */
+export function isRecoverableProfileLookupError(error: unknown): boolean {
+  if (error instanceof GraphQLRequestError) {
+    return ['permission', 'validation', 'unknown'].includes(error.normalized.kind);
+  }
+
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error ?? '').toLowerCase();
+  return (
+    message.includes('permission') ||
+    message.includes('field') ||
+    message.includes('relation') ||
+    message.includes('column')
+  );
+}
