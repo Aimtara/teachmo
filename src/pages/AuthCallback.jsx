@@ -2,7 +2,12 @@ import { useEffect, useRef } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
-import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
+import {
+  getSavedOnboardingFlowPreference,
+  normalizeOnboardingFlow,
+  resolveOnboardingPath,
+  saveOnboardingFlowPreference,
+} from '@/lib/onboardingFlow';
 import { logAnalyticsEvent } from '@/observability/telemetry';
 
 export default function AuthCallback() {
@@ -11,9 +16,14 @@ export default function AuthCallback() {
   const { role, loading: roleLoading, needsOnboarding, tenantScope } = useUserRoleState();
   const [searchParams] = useSearchParams();
   const flowFromQuery = searchParams.get('flow');
+  const preferredFlow = normalizeOnboardingFlow(flowFromQuery ?? getSavedOnboardingFlowPreference());
   const loggedRef = useRef(false);
 
   // The rogue nhost.auth.refreshSession() has been completely removed!
+
+  useEffect(() => {
+    saveOnboardingFlowPreference(preferredFlow);
+  }, [preferredFlow]);
 
   useEffect(() => {
     if (loggedRef.current) return;
@@ -33,7 +43,8 @@ export default function AuthCallback() {
 
   if (!isLoading && !isAuthenticated) {
     const params = new URLSearchParams();
-    params.set('flow', flowFromQuery ?? getSavedOnboardingFlowPreference());
+    params.set('flow', preferredFlow);
+    const fallbackErrorCode = error ? 'auth_error' : 'unauthenticated';
     if (error) {
       // Prefer structured error information when available, and only use
       // "session_expired" when the message clearly indicates an expired session.
@@ -47,11 +58,11 @@ export default function AuthCallback() {
         null;
       const errorCode = looksLikeSessionExpired
         ? 'session_expired'
-        : structuredCode || 'auth_error';
+        : structuredCode || fallbackErrorCode;
       params.set('error', errorCode);
+    } else {
+      params.set('error', fallbackErrorCode);
     }
-    const errorCode = error?.message ? 'session_expired' : 'unauthenticated';
-    params.set('error', errorCode);
     return <Navigate to={`/login?${params.toString()}`} replace />;
   }
 
@@ -61,7 +72,7 @@ export default function AuthCallback() {
         <Navigate
           to={resolveOnboardingPath({
             role,
-            preferredFlow: flowFromQuery ?? getSavedOnboardingFlowPreference(),
+            preferredFlow,
           })}
           replace
         />

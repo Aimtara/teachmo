@@ -17,11 +17,11 @@ describe('normalizeOnboardingFlow', () => {
     expect(normalizeOnboardingFlow('district')).toBe(ONBOARDING_FLOWS.DISTRICT);
   });
 
-  it('defaults to district for unknown values', () => {
-    expect(normalizeOnboardingFlow('unknown')).toBe(ONBOARDING_FLOWS.DISTRICT);
-    expect(normalizeOnboardingFlow(null)).toBe(ONBOARDING_FLOWS.DISTRICT);
-    expect(normalizeOnboardingFlow(undefined)).toBe(ONBOARDING_FLOWS.DISTRICT);
-    expect(normalizeOnboardingFlow('')).toBe(ONBOARDING_FLOWS.DISTRICT);
+  it('defaults to parent for unknown values', () => {
+    expect(normalizeOnboardingFlow('unknown')).toBe(ONBOARDING_FLOWS.PARENT);
+    expect(normalizeOnboardingFlow(null)).toBe(ONBOARDING_FLOWS.PARENT);
+    expect(normalizeOnboardingFlow(undefined)).toBe(ONBOARDING_FLOWS.PARENT);
+    expect(normalizeOnboardingFlow('')).toBe(ONBOARDING_FLOWS.PARENT);
   });
 });
 
@@ -35,9 +35,9 @@ describe('saveOnboardingFlowPreference', () => {
     expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.PARENT);
   });
 
-  it('normalizes and persists the district flow for unknown values', () => {
+  it('normalizes and persists the parent flow for unknown values', () => {
     saveOnboardingFlowPreference('anything-else');
-    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.DISTRICT);
+    expect(window.sessionStorage.getItem(ONBOARDING_FLOW_KEY)).toBe(ONBOARDING_FLOWS.PARENT);
   });
 
   it('persists the district flow', () => {
@@ -51,8 +51,8 @@ describe('getSavedOnboardingFlowPreference', () => {
     window.sessionStorage.clear();
   });
 
-  it('returns district when nothing has been saved (default)', () => {
-    expect(getSavedOnboardingFlowPreference()).toBe(ONBOARDING_FLOWS.DISTRICT);
+  it('returns parent when nothing has been saved (default)', () => {
+    expect(getSavedOnboardingFlowPreference()).toBe(ONBOARDING_FLOWS.PARENT);
   });
 
   it('returns the saved parent preference', () => {
@@ -94,9 +94,9 @@ describe('resolveOnboardingPath', () => {
     );
   });
 
-  it('falls back to /onboarding for unknown roles and unknown flows', () => {
-    expect(resolveOnboardingPath({ role: 'unknown', preferredFlow: undefined })).toBe('/onboarding');
-    expect(resolveOnboardingPath({ role: undefined, preferredFlow: null })).toBe('/onboarding');
+  it('falls back to /onboarding/parent for unknown roles and unknown flows', () => {
+    expect(resolveOnboardingPath({ role: 'unknown', preferredFlow: undefined })).toBe('/onboarding/parent');
+    expect(resolveOnboardingPath({ role: undefined, preferredFlow: null })).toBe('/onboarding/parent');
   });
 });
 
