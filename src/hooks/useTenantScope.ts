@@ -56,25 +56,34 @@ export function useTenantScope() {
         { userId }
       ).catch(() => null);
 
-      const legacyData = await graphql<LegacyProfileData>(
-        `query TenantScopeLegacyProfile($userId: uuid!) {
-          user_profiles_by_pk(user_id: $userId) {
-            user_id
-            full_name
-            role
-            district_id
-            school_id
-          }
-        }`,
-        { userId }
-      ).catch(() => null);
-
       const profile = profilesData?.profiles?.[0] ?? null;
-      const legacyProfile = legacyData?.user_profiles_by_pk ?? null;
 
-      // If both profile lookups fail/return empty, propagate an error to avoid silently
+      // Only fall back to the legacy profile lookup when the modern profile
+      // query fails or returns no rows, to avoid an extra network round-trip
+      // and unnecessary permission errors.
+      let legacyData: LegacyProfileData | null = null;
+      let legacyProfile: LegacyProfileData['user_profiles_by_pk'] | null = null;
+
+      if (!profile) {
+        legacyData = await graphql<LegacyProfileData>(
+          `query TenantScopeLegacyProfile($userId: uuid!) {
+            user_profiles_by_pk(user_id: $userId) {
+              user_id
+              full_name
+              role
+              district_id
+              school_id
+            }
+          }`,
+          { userId }
+        ).catch(() => null);
+
+        legacyProfile = legacyData?.user_profiles_by_pk ?? null;
+      }
+
+      // If both profile lookups fail (both queries error), propagate an error to avoid silently
       // reporting a completed load with missing tenant scope.
-      if (!profile && !legacyProfile && !profilesData && !legacyData) {
+      if (!profile && !legacyProfile && profilesData === null && legacyData === null) {
         throw new Error('tenant_scope_unavailable');
       }
       return {
