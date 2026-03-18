@@ -4,6 +4,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import { graphql } from '@/lib/graphql';
+import { GraphQLRequestError } from '@/lib/hasuraErrors';
 
 vi.mock('@nhost/react', () => ({
   useUserId: () => 'u1',
@@ -53,6 +54,19 @@ describe('useTenantScope', () => {
       districtId: 'org1',
       schoolId: 'school1',
     });
+  });
+
+
+
+  it('surfaces unrecoverable auth errors immediately', async () => {
+    graphqlMock.mockRejectedValueOnce(
+      new GraphQLRequestError({ kind: 'auth', message: 'jwt expired', code: 'invalid-jwt' })
+    );
+
+    const { result } = renderHook(() => useTenantScope(), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(graphqlMock).toHaveBeenCalledTimes(1);
   });
 
   it('errors when both modern and legacy queries fail', async () => {

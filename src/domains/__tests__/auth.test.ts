@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fetchUserProfile } from '@/domains/auth';
 import { graphqlRequest } from '@/lib/graphql';
+import { GraphQLRequestError } from '@/lib/hasuraErrors';
 
 vi.mock('@/lib/graphql', () => ({
   graphqlRequest: vi.fn(),
@@ -36,6 +37,21 @@ describe('fetchUserProfile', () => {
       school_id: 'school1',
     });
 
+    expect(graphqlRequestMock).toHaveBeenCalledTimes(1);
+  });
+
+
+
+  it('does not hide unrecoverable auth errors behind legacy fallback', async () => {
+    graphqlRequestMock.mockRejectedValueOnce(
+      new GraphQLRequestError({
+        kind: 'auth',
+        message: 'jwt expired',
+        code: 'invalid-jwt',
+      })
+    );
+
+    await expect(fetchUserProfile('u3')).rejects.toBeInstanceOf(GraphQLRequestError);
     expect(graphqlRequestMock).toHaveBeenCalledTimes(1);
   });
 

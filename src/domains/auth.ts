@@ -1,4 +1,5 @@
 import { graphqlRequest } from '@/lib/graphql';
+import { isRecoverableProfileLookupError } from '@/lib/hasuraErrors';
 
 type ProfileInput = Record<string, unknown>;
 
@@ -19,48 +20,6 @@ type UpdateProfilesData = {
     returning: Array<{ id: string; user_id: string; app_role: string }>;
   };
 };
-
-function isExpectedProfileQueryError(error: unknown): boolean {
-  // Only swallow well-understood, permission/schema-related errors when falling back
-  // to the legacy `user_profiles` table. All other errors should propagate.
-  const messages: string[] = [];
-
-  if (error && typeof error === 'object') {
-    const anyError = error as any;
-
-    if (typeof anyError.message === 'string') {
-      messages.push(anyError.message);
-    }
-
-    // Handle common GraphQL error shapes: error.response.errors[].message
-    const graphQLErrors = anyError.response?.errors;
-    if (Array.isArray(graphQLErrors)) {
-      for (const e of graphQLErrors) {
-        if (e && typeof e.message === 'string') {
-          messages.push(e.message);
-        }
-      }
-    }
-  }
-
-  if (messages.length === 0) {
-    return false;
-  }
-
-  const lowered = messages.join(' | ').toLowerCase();
-
-  // Expected cases:
-  // - Hasura/PG permission errors
-  // - `profiles` relation not yet present in a deployment
-  return (
-    lowered.includes('permission denied') ||
-    lowered.includes('missing required permission') ||
-    lowered.includes('not authorised') ||
-    lowered.includes('not authorized') ||
-    lowered.includes('relation "profiles" does not exist') ||
-    lowered.includes("relation 'profiles' does not exist")
-  );
-}
 
 export async function fetchUserProfile(userId: string) {
   const profileQuery = `query GetProfile($userId: uuid!) {
@@ -89,8 +48,9 @@ export async function fetchUserProfile(userId: string) {
     const profile = data?.profiles?.[0] || null;
     if (profile) return profile;
   } catch (error) {
-    // Fall through to legacy profile lookup only for expected permission/schema cases.
-    if (!isExpectedProfileQueryError(error)) {
+    // Fall through to legacy profile lookup for deployments still relying on user_profiles
+    // or when permissions/schema for profiles are not available to the current role.
+    if (!isRecoverableProfileLookupError(error)) {
       // Re-throw unexpected errors so upstream callers (e.g., TenantContext) can log them.
       throw error;
     }
