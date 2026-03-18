@@ -24,14 +24,16 @@ vi.mock('@/domains/auth', () => ({
 const fetchUserProfileMock = vi.mocked(fetchUserProfile);
 
 
-const { signOutMock } = vi.hoisted(() => ({
+const { signOutMock, refreshSessionMock } = vi.hoisted(() => ({
   signOutMock: vi.fn(),
+  refreshSessionMock: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock('@/lib/nhostClient', () => ({
   nhost: {
     auth: {
       signOut: signOutMock,
+      refreshSession: refreshSessionMock,
       getAccessToken: vi.fn(() => null),
     },
   },
@@ -55,6 +57,8 @@ describe('TenantProvider', () => {
     authState.accessToken = null;
     fetchUserProfileMock.mockReset();
     signOutMock.mockReset();
+    refreshSessionMock.mockReset();
+    refreshSessionMock.mockResolvedValue({});
   });
 
   it('keeps loading true when authenticated but token is not ready (token lag)', () => {
@@ -106,7 +110,7 @@ describe('TenantProvider', () => {
       const payload = btoa(JSON.stringify({ 'https://hasura.io/jwt/claims': { 'x-hasura-organization-id': 'org_1' } }));
       authState.accessToken = `h.${payload}.s`;
 
-      render(
+      const { unmount } = render(
         <TenantProvider>
           <Consumer />
         </TenantProvider>
@@ -121,6 +125,9 @@ describe('TenantProvider', () => {
         expect(screen.getByTestId('loading').textContent).toBe('false');
       });
 
+      unmount();
+      signOutMock.mockClear();
+
       authState.isAuthenticated = true;
       authState.user = { id: 'u-stuck-token', metadata: {} };
       authState.accessToken = null;
@@ -128,7 +135,7 @@ describe('TenantProvider', () => {
       render(
         <TenantProvider>
           <Consumer />
-          </TenantProvider>
+        </TenantProvider>
       );
 
       await act(async () => {

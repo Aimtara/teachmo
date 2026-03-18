@@ -12,7 +12,7 @@ export type TenantScope = {
   fullName?: string | null;
 };
 
-type TenantScopeData = {
+type ProfilesData = {
   profiles?: Array<{
     id: string;
     user_id: string;
@@ -21,6 +21,9 @@ type TenantScopeData = {
     organization_id: string;
     school_id: string;
   }>;
+};
+
+type LegacyProfileData = {
   user_profiles_by_pk?: {
     user_id: string;
     full_name: string;
@@ -39,8 +42,8 @@ export function useTenantScope() {
     queryFn: async (): Promise<TenantScope | null> => {
       if (!userId) return null;
 
-      const data = await graphql<TenantScopeData>(
-        `query TenantScope($userId: uuid!) {
+      const profilesData = await graphql<ProfilesData>(
+        `query TenantScopeProfiles($userId: uuid!) {
           profiles(where: { user_id: { _eq: $userId } }, limit: 1) {
             id
             user_id
@@ -49,6 +52,12 @@ export function useTenantScope() {
             organization_id
             school_id
           }
+        }`,
+        { userId }
+      ).catch(() => null);
+
+      const legacyData = await graphql<LegacyProfileData>(
+        `query TenantScopeLegacyProfile($userId: uuid!) {
           user_profiles_by_pk(user_id: $userId) {
             user_id
             full_name
@@ -58,10 +67,16 @@ export function useTenantScope() {
           }
         }`,
         { userId }
-      );
+      ).catch(() => null);
 
-      const profile = data?.profiles?.[0] ?? null;
-      const legacyProfile = data?.user_profiles_by_pk ?? null;
+      const profile = profilesData?.profiles?.[0] ?? null;
+      const legacyProfile = legacyData?.user_profiles_by_pk ?? null;
+
+      // If both profile lookups fail/return empty, propagate an error to avoid silently
+      // reporting a completed load with missing tenant scope.
+      if (!profile && !legacyProfile && !profilesData && !legacyData) {
+        throw new Error('tenant_scope_unavailable');
+      }
       return {
         userId,
         profileId: profile?.id ?? null,

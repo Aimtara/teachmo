@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import AuthCallback from '@/pages/AuthCallback';
 
@@ -31,14 +31,26 @@ vi.mock('@/hooks/useUserRole', () => ({
   useUserRoleState: () => roleState,
 }));
 
+const { saveOnboardingFlowPreferenceMock } = vi.hoisted(() => ({
+  saveOnboardingFlowPreferenceMock: vi.fn(),
+}));
+
 vi.mock('@/lib/onboardingFlow', () => ({
   getSavedOnboardingFlowPreference: () => 'parent',
+  normalizeOnboardingFlow: (value) => (value === 'district' ? 'district' : 'parent'),
   resolveOnboardingPath: () => '/onboarding/parent',
+  saveOnboardingFlowPreference: saveOnboardingFlowPreferenceMock,
 }));
 
 vi.mock('@/observability/telemetry', () => ({
   logAnalyticsEvent: vi.fn().mockResolvedValue(undefined),
 }));
+
+
+function LoginSpy() {
+  const location = useLocation();
+  return <div data-testid="login-location">{location.search}</div>;
+}
 
 describe('AuthCallback', () => {
   beforeEach(() => {
@@ -50,6 +62,7 @@ describe('AuthCallback', () => {
     roleState.loading = false;
     roleState.needsOnboarding = false;
     roleState.tenantScope = null;
+    saveOnboardingFlowPreferenceMock.mockClear();
   });
 
   it('redirects unauthenticated users back to login instead of hanging on loading screen', async () => {
@@ -63,6 +76,36 @@ describe('AuthCallback', () => {
     );
 
     expect(await screen.findByText('Login Page')).toBeInTheDocument();
+  });
+
+
+  it('preserves structured auth error codes in the login redirect', async () => {
+    authState.error = { code: 'invalid_provider_state', message: 'Provider state mismatch' };
+
+    render(
+      <MemoryRouter initialEntries={['/auth/callback?flow=parent']}>
+        <Routes>
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/login" element={<LoginSpy />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByTestId('login-location')).toHaveTextContent('error=invalid_provider_state');
+  });
+
+
+  it('normalizes unknown callback flow values before redirecting to login', async () => {
+    render(
+      <MemoryRouter initialEntries={['/auth/callback?flow=unexpected']}>
+        <Routes>
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/login" element={<LoginSpy />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByTestId('login-location')).toHaveTextContent('flow=parent');
   });
 
   it('redirects authenticated users to their default dashboard', async () => {
