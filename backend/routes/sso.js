@@ -30,6 +30,7 @@ const strategyCache = new Map();
 const STRATEGY_CACHE_TTL_MS = 5 * 60 * 1000;
 const SSO_STATE_TTL_SEC = 10 * 60;
 const devStateSecret = randomBytes(32).toString('base64url');
+let hasLoggedMissingSsoStateSecret = false;
 
 function getSsoStateSecret() {
   const configured =
@@ -44,6 +45,13 @@ function getSsoStateSecret() {
     throw new Error(
       'SSO state secret is required in production. Set one of SSO_STATE_SECRET, JWT_SECRET, NHOST_JWT_SECRET, or SSO_JWT_SECRET.'
     );
+  }
+
+  if (!hasLoggedMissingSsoStateSecret) {
+    logger.warn(
+      'SSO state secret is not configured; using ephemeral in-memory secret for local development only'
+    );
+    hasLoggedMissingSsoStateSecret = true;
   }
 
   logger.warn('SSO state secret is not configured; using ephemeral in-memory secret for local development only');

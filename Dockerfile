@@ -11,10 +11,14 @@ COPY package.json package-lock.json ./
 RUN rm -f package-lock.json && npm install
 
 COPY . .
-# Validate required env for a production build (VITE_NHOST_BACKEND_URL).
-# In CI or local Docker builds, set it via --build-arg or environment.
+# Validate required env for a production build (Nhost configuration).
+# In CI or local Docker builds, set these via --build-arg or environment.
 ARG VITE_NHOST_BACKEND_URL
+ARG VITE_NHOST_SUBDOMAIN
+ARG VITE_NHOST_REGION
 ENV VITE_NHOST_BACKEND_URL=${VITE_NHOST_BACKEND_URL}
+ENV VITE_NHOST_SUBDOMAIN=${VITE_NHOST_SUBDOMAIN}
+ENV VITE_NHOST_REGION=${VITE_NHOST_REGION}
 RUN node scripts/preflight-env.mjs
 RUN npm run prebuild
 RUN npm run build
