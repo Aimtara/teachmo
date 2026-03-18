@@ -20,8 +20,50 @@ type UpdateProfilesData = {
   };
 };
 
+function isExpectedProfileQueryError(error: unknown): boolean {
+  // Only swallow well-understood, permission/schema-related errors when falling back
+  // to the legacy `user_profiles` table. All other errors should propagate.
+  const messages: string[] = [];
+
+  if (error && typeof error === 'object') {
+    const anyError = error as any;
+
+    if (typeof anyError.message === 'string') {
+      messages.push(anyError.message);
+    }
+
+    // Handle common GraphQL error shapes: error.response.errors[].message
+    const graphQLErrors = anyError.response?.errors;
+    if (Array.isArray(graphQLErrors)) {
+      for (const e of graphQLErrors) {
+        if (e && typeof e.message === 'string') {
+          messages.push(e.message);
+        }
+      }
+    }
+  }
+
+  if (messages.length === 0) {
+    return false;
+  }
+
+  const lowered = messages.join(' | ').toLowerCase();
+
+  // Expected cases:
+  // - Hasura/PG permission errors
+  // - `profiles` relation not yet present in a deployment
+  return (
+    lowered.includes('permission denied') ||
+    lowered.includes('missing required permission') ||
+    lowered.includes('not authorised') ||
+    lowered.includes('not authorized') ||
+    lowered.includes('relation "profiles" does not exist') ||
+    lowered.includes("relation 'profiles' does not exist")
+  );
+}
+
 export async function fetchUserProfile(userId: string) {
-  const query = `query GetProfile($userId: uuid!) {
+  const profileQuery = `query GetProfile($userId: uuid!) {
     profiles(where: { user_id: { _eq: $userId } }, limit: 1) {
       id
       user_id
@@ -31,8 +73,48 @@ export async function fetchUserProfile(userId: string) {
       school_id
     }
   }`;
-  const data = await graphqlRequest<GetProfileData>({ query, variables: { userId } });
-  return data?.profiles?.[0] || null;
+
+  const legacyQuery = `query GetLegacyProfile($userId: uuid!) {
+    user_profiles_by_pk(user_id: $userId) {
+      user_id
+      full_name
+      role
+      district_id
+      school_id
+    }
+  }`;
+
+  try {
+    const data = await graphqlRequest<GetProfileData>({ query: profileQuery, variables: { userId } });
+    const profile = data?.profiles?.[0] || null;
+    if (profile) return profile;
+  } catch (error) {
+    // Fall through to legacy profile lookup only for expected permission/schema cases.
+    if (!isExpectedProfileQueryError(error)) {
+      // Re-throw unexpected errors so upstream callers (e.g., TenantContext) can log them.
+      throw error;
+    }
+  }
+
+  const legacyData = await graphqlRequest<{ user_profiles_by_pk?: {
+    user_id: string;
+    full_name: string;
+    role: string;
+    district_id: string;
+    school_id: string;
+  } | null }>({ query: legacyQuery, variables: { userId } });
+
+  const legacy = legacyData?.user_profiles_by_pk ?? null;
+  if (!legacy) return null;
+
+  return {
+    id: legacy.user_id,
+    user_id: legacy.user_id,
+    full_name: legacy.full_name,
+    app_role: legacy.role,
+    organization_id: legacy.district_id,
+    school_id: legacy.school_id,
+  };
 }
 
 export async function createProfile(input: ProfileInput) {

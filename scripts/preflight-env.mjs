@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const REQUIRED_VARS = [];
+const REQUIRED_VARS = ['VITE_NHOST_BACKEND_URL'];
 
 const args = new Set(process.argv.slice(2));
 const checkExample = args.has('--example');

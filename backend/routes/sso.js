@@ -54,6 +54,7 @@ function getSsoStateSecret() {
     hasLoggedMissingSsoStateSecret = true;
   }
 
+  logger.warn('SSO state secret is not configured; using ephemeral in-memory secret for local development only');
   return devStateSecret;
 }
 

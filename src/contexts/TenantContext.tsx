@@ -134,8 +134,6 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
         // Guard 1: token-lag – access token is missing.
         // Attempt to refresh the token first; sign out only if it cannot be recovered.
-        // This guard is the sole handler when the access token is missing (with or without a user object),
-        // to avoid racing with the session-lag sign-out below.
         if (!accessToken && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
           tokenLagRecoveryAttemptedRef.current = true;
 
@@ -168,79 +166,6 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             } catch (signOutError) {
               logger.error(
                 'Failed to force sign-out after unrecoverable token lag.',
-                signOutError instanceof Error
-                  ? { name: signOutError.name, message: signOutError.message }
-                  : { message: String(signOutError) }
-              );
-            }
-
-            if (mounted) {
-              setState({ organizationId: null, schoolId: null, loading: false });
-            }
-          }, TOKEN_LAG_RECOVERY_DELAY_MS);
-        }
-
-        // Guard 2: session-lag – if authenticated but user/token never hydrate, force sign-out.
-        if (isAuthenticated && !user && !sessionLagRecoveryAttemptedRef.current) {
-          sessionLagTimer = window.setTimeout(async () => {
-            if (!mounted || sessionLagRecoveryAttemptedRef.current) return;
-            // If hydration recovered during the grace window, no recovery action needed.
-            if (latestSessionRef.current.accessToken && latestSessionRef.current.hasUser) return;
-
-            sessionLagRecoveryAttemptedRef.current = true;
-            const lagReason = !latestSessionRef.current.accessToken
-              ? 'access token'
-              : !latestSessionRef.current.hasUser
-              ? 'user profile'
-              : 'session data';
-            logger.warn(
-              `Authenticated state persisted without ${lagReason}; forcing sign-out to clear stale session.`
-            );
-
-            try {
-              await nhost.auth.signOut();
-            } catch (signOutError) {
-              logger.error(
-                'Failed to force sign-out after prolonged session lag.',
-                signOutError instanceof Error
-                  ? { name: signOutError.name, message: signOutError.message }
-                  : { message: String(signOutError) }
-              );
-            }
-
-            if (mounted) {
-              setState({ organizationId: null, schoolId: null, loading: false });
-            }
-          }, SESSION_LAG_SIGNOUT_DELAY_MS);
-        }
-
-        // Token-lag recovery: if only the access token is missing, attempt to refresh before forcing sign-out.
-        if (!accessToken && user && isAuthenticated && !tokenLagRecoveryAttemptedRef.current) {
-          tokenLagTimer = window.setTimeout(async () => {
-            if (!mounted || tokenLagRecoveryAttemptedRef.current) return;
-
-            let freshToken: string | null = null;
-            try {
-              freshToken = await nhost.auth.getAccessToken();
-            } catch (accessTokenError) {
-              logger.error(
-                'Failed to fetch access token during token lag recovery; treating as missing token.',
-                accessTokenError instanceof Error
-                  ? { name: accessTokenError.name, message: accessTokenError.message }
-                  : { message: String(accessTokenError) }
-              );
-            }
-
-            if (freshToken) return;
-
-            tokenLagRecoveryAttemptedRef.current = true;
-            logger.warn('Authenticated state persisted without access token; forcing sign-out to clear stale session.');
-
-            try {
-              await nhost.auth.signOut();
-            } catch (signOutError) {
-              logger.error(
-                'Failed to force sign-out after prolonged token lag.',
                 signOutError instanceof Error
                   ? { name: signOutError.name, message: signOutError.message }
                   : { message: String(signOutError) }
