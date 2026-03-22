@@ -22,6 +22,52 @@ function buildTenantWhere({ organizationId, schoolId }) {
   return { where: 'organization_id = $1', params: [organizationId] };
 }
 
+
+function parseDays(value, fallback = 30) {
+  const n = Math.floor(Number(value));
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(n, 365);
+}
+
+function buildRecentWindowClause(days, params) {
+  params.push(days);
+  return `created_at >= now() - (($${params.length}::text || ' days')::interval)`;
+}
+
+async function getGovernanceSummary({ organizationId, schoolId, days }) {
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  const windowClause = buildRecentWindowClause(days, params);
+
+  const summary = await query(
+    `select
+       count(*) as total_requests,
+       count(*) filter (where metadata->'governance' is not null) as governed_requests,
+       count(*) filter (
+         where metadata->'governance' is not null
+           and coalesce(metadata->'governance'->>'policyOutcome','allowed') = 'allowed'
+       ) as allowed_requests,
+       count(*) filter (where metadata->'governance'->>'policyOutcome' = 'blocked') as blocked_requests,
+       count(*) filter (where metadata->'governance'->>'policyOutcome' = 'rerouted') as rerouted_requests,
+       count(*) filter (where metadata->'governance'->>'policyOutcome' = 'queued') as queued_requests,
+       count(*) filter (where metadata->'governance'->>'policyOutcome' = 'escalated') as escalated_requests,
+       count(*) filter (where metadata->'verifier' is not null or metadata->>'verifier' is not null) as verifier_checked,
+       count(*) filter (
+         where (metadata->'verifier'->>'ok' = 'false')
+            or (metadata->'verifier' is null and metadata->'governance' is not null and metadata::text ilike '%"issues":[%')
+       ) as verifier_flagged
+     from ai_interactions
+     where ${where} and ${windowClause}`,
+    params
+  );
+
+  const row = summary.rows?.[0] ?? {};
+
+  return {
+    totals: row,
+    verifier: row,
+  };
+}
+
 router.get('/prompts', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const { where, params } = buildTenantWhere({ organizationId, schoolId });
@@ -355,6 +401,116 @@ router.get('/usage-summary', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), asy
       cost_usd: Number(total.rows?.[0]?.cost_usd || 0),
     },
     byModel: r.rows || [],
+  });
+});
+
+
+router.get('/governance-summary', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = parseDays(req.query.days, 30);
+  const summary = await getGovernanceSummary({ organizationId, schoolId, days });
+
+  res.json({
+    windowDays: days,
+    totals: {
+      totalRequests: Number(summary.totals.total_requests || 0),
+      governedRequests: Number(summary.totals.governed_requests || 0),
+      allowedRequests: Number(summary.totals.allowed_requests || 0),
+      blockedRequests: Number(summary.totals.blocked_requests || 0),
+      reroutedRequests: Number(summary.totals.rerouted_requests || 0),
+      queuedRequests: Number(summary.totals.queued_requests || 0),
+      escalatedRequests: Number(summary.totals.escalated_requests || 0),
+    },
+    verifier: {
+      checked: Number(summary.verifier.verifier_checked || 0),
+      flagged: Number(summary.verifier.verifier_flagged || 0),
+    },
+  });
+});
+
+router.get('/governance-blocked-reasons', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = parseDays(req.query.days, 30);
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  const windowClause = buildRecentWindowClause(days, params);
+
+  const r = await query(
+    `select
+       coalesce(metadata->'governance'->>'denialReason', 'unspecified') as reason,
+       count(*) as count
+     from ai_interactions
+     where ${where}
+       and ${windowClause}
+       and metadata->'governance'->>'policyOutcome' = 'blocked'
+     group by 1
+     order by count(*) desc, reason asc`,
+    params
+  );
+
+  res.json({
+    windowDays: days,
+    reasons: (r.rows || []).map((row) => ({
+      reason: row.reason,
+      count: Number(row.count || 0),
+    })),
+  });
+});
+
+router.get('/governance-skill-usage', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = parseDays(req.query.days, 30);
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  const windowClause = buildRecentWindowClause(days, params);
+
+  const r = await query(
+    `select
+       coalesce(metadata->'governance'->>'requiredSkill', metadata->>'executedSkill', 'none') as skill,
+       count(*) as count
+     from ai_interactions
+     where ${where}
+       and ${windowClause}
+       and (
+         metadata->'governance'->>'requiredSkill' is not null
+         or metadata->>'executedSkill' is not null
+       )
+     group by 1
+     order by count(*) desc, skill asc`,
+    params
+  );
+
+  res.json({
+    windowDays: days,
+    skills: (r.rows || []).map((row) => ({
+      skill: row.skill,
+      count: Number(row.count || 0),
+    })),
+  });
+});
+
+router.get('/governance-outcomes', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = parseDays(req.query.days, 30);
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  const windowClause = buildRecentWindowClause(days, params);
+
+  const r = await query(
+    `select
+       coalesce(metadata->'governance'->>'policyOutcome', 'allowed') as outcome,
+       count(*) as count
+     from ai_interactions
+     where ${where}
+       and ${windowClause}
+     group by 1
+     order by count(*) desc, outcome asc`,
+    params
+  );
+
+  res.json({
+    windowDays: days,
+    outcomes: (r.rows || []).map((row) => ({
+      outcome: row.outcome,
+      count: Number(row.count || 0),
+    })),
   });
 });
 
