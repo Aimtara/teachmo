@@ -43,6 +43,7 @@ import commandCenterRouter from './routes/commandCenter.js';
 import ssoRouter from './routes/sso.js';
 import auditExportRouter from './routes/auditExport.js';
 import publicPartnersRouter from './routes/publicPartners.js';
+import { isExplicitlyAllowedReplitOrigin } from './utils/corsOrigins.js';
 
 // Load environment variables
 dotenv.config();
@@ -65,6 +66,7 @@ const devFallbackOrigins = [
   'http://localhost:3000'
 ];
 
+
 const corsOptions = {
   origin(origin, cb) {
     // Allow same-origin / server-to-server (no origin header).
@@ -73,6 +75,7 @@ const corsOptions = {
     const env = (process.env.NODE_ENV || 'development').toLowerCase();
     const list = allowedOrigins.length ? allowedOrigins : (env === 'production' ? [] : devFallbackOrigins);
 
+    if (isExplicitlyAllowedReplitOrigin(origin)) return cb(null, true);
     if (list.includes(origin)) return cb(null, true);
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   }
