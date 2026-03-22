@@ -192,9 +192,18 @@ export default function AdminAIGovernance() {
   const usageTotals = usageSummaryQuery.data?.totals;
 
   const governanceSummary = governanceSummaryQuery.data;
-  const governanceOutcomes = governanceOutcomesQuery.data?.outcomes ?? [];
-  const blockedReasons = blockedReasonsQuery.data?.reasons ?? [];
-  const skillUsage = skillUsageQuery.data?.skills ?? [];
+  const governanceOutcomes =
+    !governanceOutcomesQuery.isLoading && !governanceOutcomesQuery.isError
+      ? governanceOutcomesQuery.data?.outcomes ?? []
+      : undefined;
+  const blockedReasons =
+    !blockedReasonsQuery.isLoading && !blockedReasonsQuery.isError
+      ? blockedReasonsQuery.data?.reasons ?? []
+      : undefined;
+  const skillUsage =
+    !skillUsageQuery.isLoading && !skillUsageQuery.isError
+      ? skillUsageQuery.data?.skills ?? []
+      : undefined;
 
   return (
     <ProtectedRoute allowedRoles={['system_admin', 'district_admin', 'school_admin', 'admin']}>
