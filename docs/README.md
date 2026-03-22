@@ -4,6 +4,10 @@
 - Monorepo using Vite + React + Deno deploy functions
 - WebSocket for real-time; react-flow for visual builder
 
+
+## AI Governance SSOT
+- AI Governance & Delivery Principles (`ai-governance-principles.md`)
+
 ## Product Roadmaps
 - Phase 1: Procurement-Ready MVP (`phase1-procurement-ready-mvp.md`)
 - District Insights Plan (`district-insights-plan.md`)

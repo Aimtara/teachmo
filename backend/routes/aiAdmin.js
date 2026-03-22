@@ -5,6 +5,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { recordAuditLog } from '../utils/audit.js';
+import { evaluatePolicy } from '../ai/policyEngine.js';
 
 const router = Router();
 
@@ -516,6 +517,118 @@ router.get('/governance-outcomes', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'
       count: Number(row.count || 0),
     })),
   });
+});
+
+router.get('/governance-audit-export', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = Math.min(Number(req.query.days) || 30, 365);
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  params.push(days);
+
+  const interactions = await query(
+    `select
+       id,
+       created_at,
+       actor_id,
+       actor_role,
+       model,
+       cost_usd,
+       metadata,
+       reviewer_status
+     from ai_interactions
+     where ${where}
+       and created_at >= now() - (($${params.length}::text || ' days')::interval)
+     order by created_at desc`,
+    params
+  );
+
+  const budget = await query(
+    `select monthly_limit_usd, spent_usd, reset_at, fallback_policy
+     from ai_tenant_budgets
+     where organization_id = $1 and school_id is not distinct from $2`,
+    [organizationId, schoolId || null]
+  );
+
+  const modelPolicy = await query(
+    `select default_model, fallback_model, allowed_models, feature_flags
+     from ai_model_policies
+     where organization_id = $1 and school_id is not distinct from $2`,
+    [organizationId, schoolId || null]
+  );
+
+  if (req.query.format === 'csv') {
+    const rows = interactions.rows || [];
+    const safeCsvCell = (value) => {
+      const text = String(value ?? '');
+      const formulaPrefixed = /^[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${formulaPrefixed.replace(/"/g, '""')}"`;
+    };
+    const header = [
+      'id', 'created_at', 'actor_id', 'actor_role', 'model', 'cost_usd',
+      'policy_outcome', 'denial_reason', 'required_skill', 'reviewer_status',
+    ];
+    const csv = [
+      header.join(','),
+      ...rows.map((r) => [
+        r.id,
+        r.created_at,
+        r.actor_id ?? '',
+        r.actor_role ?? '',
+        r.model ?? '',
+        r.cost_usd ?? '',
+        r.metadata?.governance?.policyOutcome ?? '',
+        r.metadata?.governance?.denialReason ?? '',
+        r.metadata?.governance?.requiredSkill ?? '',
+        r.reviewer_status ?? '',
+      ].map((v) => safeCsvCell(v)).join(',')),
+    ].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="ai-governance-audit-${days}d.csv"`);
+    return res.send(csv);
+  }
+
+  return res.json({
+    generatedAt: new Date().toISOString(),
+    windowDays: days,
+    tenant: { organizationId, schoolId: schoolId || null },
+    budget: budget.rows?.[0] ?? null,
+    modelPolicy: modelPolicy.rows?.[0] ?? null,
+    interactions: interactions.rows || [],
+  });
+});
+
+router.post('/simulate-policy', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  try {
+    const { organizationId, schoolId } = req.tenant;
+    const {
+      role,
+      intent,
+      hasChildData,
+      consentScope,
+      guardianVerified,
+      safetyEscalate,
+      actorSchoolId,
+      tenantSchoolId,
+    } = req.body || {};
+
+    const decision = await evaluatePolicy({
+      requestId: 'simulation',
+      role: role || 'UNKNOWN',
+      intent: intent || null,
+      hasChildData: Boolean(hasChildData),
+      consentScope: Array.isArray(consentScope) ? consentScope : [],
+      guardianVerified: Boolean(guardianVerified),
+      safetyEscalate: Boolean(safetyEscalate),
+      authContext: { schoolId: actorSchoolId || schoolId || null, organizationId },
+      tenantContext: { schoolId: tenantSchoolId || schoolId || null, organizationId },
+    });
+    return res.json({ decision });
+  } catch (error) {
+    return res.status(400).json({
+      error: 'policy_simulation_failed',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
 });
 
 router.get('/review-queue', requireFeatureFlag('ENTERPRISE_AI_REVIEW'), async (req, res) => {
