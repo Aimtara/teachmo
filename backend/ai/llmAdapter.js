@@ -21,12 +21,14 @@ export async function callModel({
     throw new Error('Prompt failed redaction or became empty');
   }
 
+  const governanceExtra = requestId !== undefined ? { requestId } : {};
+
   return invokeLLM({
     prompt: sanitizedPrompt,
     model,
     context: {
       ...context,
-      governance: buildGovernanceMetadata(governanceDecision, { requestId }),
+      governance: buildGovernanceMetadata(governanceDecision, governanceExtra),
     },
     user,
   });
