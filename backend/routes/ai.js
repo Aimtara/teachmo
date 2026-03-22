@@ -152,8 +152,10 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
   const { prompt, model, context, featureFlags } = req.body || {};
   const { organizationId, schoolId } = req.tenant;
   const govDecision = req.governanceDecision || null;
-  if (!prompt) {
-    return res.status(400).json({ error: 'missing prompt' });
+  const promptIsString = typeof prompt === 'string';
+  const trimmedPrompt = promptIsString ? prompt.trim() : '';
+  if (!trimmedPrompt) {
+    return res.status(400).json({ error: 'missing or empty prompt' });
   }
 
   try {
