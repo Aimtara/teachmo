@@ -51,11 +51,11 @@ function classifyIntent(req) {
 
   const text = String(body.prompt || body.text || '').toLowerCase();
 
-  if (/\b(event|activity|activities|discover|explore|library)\b/.test(text)) {
-    return 'EXPLORE_DEEP_LINK';
-  }
   if (/\b(submit.*(event|resource|offer)|(event|resource|offer).*submit)\b/.test(text)) {
     return 'submit_event';
+  }
+  if (/\b(event|activity|activities|discover|explore|library)\b/.test(text)) {
+    return 'EXPLORE_DEEP_LINK';
   }
   if (/\b(school.*(participation|request|join|enrol))\b/.test(text)) {
     return 'school_request';
