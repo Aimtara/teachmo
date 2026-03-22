@@ -503,6 +503,7 @@ router.get('/governance-outcomes', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'
      from ai_interactions
      where ${where}
        and ${windowClause}
+       and metadata->'governance' is not null
      group by 1
      order by count(*) desc, outcome asc`,
     params
