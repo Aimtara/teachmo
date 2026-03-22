@@ -31,7 +31,7 @@ function parseDays(value, fallback = 30) {
 
 function buildRecentWindowClause(days, params) {
   params.push(days);
-  return `created_at >= now() - (($${params.length}::text || ' days')::interval)`;
+  return `created_at >= now() - $${params.length} * interval '1 day'`;
 }
 
 async function getGovernanceSummary({ organizationId, schoolId, days }) {
