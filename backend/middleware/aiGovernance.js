@@ -27,7 +27,14 @@ async function isGovernanceEnabled(req) {
       context: req.auth || {},
       override: overrides[GOVERNANCE_FLAG],
     });
-  } catch {
+  } catch (error) {
+    // Shadow mode: never break requests, but log a sanitized warning so failures are observable.
+    console.warn('AI governance feature flag evaluation failed; falling back to disabled.', {
+      flagKey: GOVERNANCE_FLAG,
+      organizationId: req.auth?.organizationId || req.tenant?.organizationId,
+      schoolId: req.auth?.schoolId || req.tenant?.schoolId,
+      errorMessage: error && typeof error.message === 'string' ? error.message : String(error),
+    });
     return false;
   }
 }
