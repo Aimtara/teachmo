@@ -17,7 +17,10 @@ import { verifyJWT, extractToken } from './security/jwt.js';
 // Load environment variables
 dotenv.config();
 
-const PORT = process.env.PORT || 4000;
+const env = (process.env.NODE_ENV || 'development').toLowerCase();
+const PORT =
+  (env === 'production' ? process.env.PORT : (process.env.DEV_BACKEND_PORT || process.env.PORT)) ||
+  4000;
 const logger = createLogger('server');
 
 // 1. Verify Environment Integrity (Launch Readiness Patch)
