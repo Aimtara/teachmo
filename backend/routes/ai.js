@@ -7,6 +7,7 @@ import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { auditEvent } from '../security/audit.js';
 import { invokeLLM } from '../functions/invoke-llm.js';
+import { preRequestHook } from '../middleware/aiGovernance.js';
 
 const router = Router();
 
@@ -135,13 +136,15 @@ function enforceBudget({ budget, policy, selectedModel }) {
   return { blocked: true, model: selectedModel, reason: 'budget_blocked' };
 }
 
-router.post('/completion', requirePermission('generate', 'ai'), async (req, res) => {
+router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, async (req, res) => {
   const { prompt, model, context, featureFlags } = req.body || {};
   const { organizationId, schoolId } = req.tenant;
 
   if (!prompt) {
     return res.status(400).json({ error: 'missing prompt' });
   }
+
+  const govDecision = req.governanceDecision || null;
 
   try {
     const policy = await loadModelPolicy(organizationId, schoolId);
@@ -171,6 +174,21 @@ router.post('/completion', requirePermission('generate', 'ai'), async (req, res)
     const tokenTotal = Number(usage.total_tokens || tokenPrompt + tokenResponse);
     const costUsd = estimateCost({ tokenTotal, model: budgetResult.model });
 
+    const governanceMetadata = govDecision
+      ? {
+          source: 'completion',
+          governance: {
+            enabled: Boolean(req.governanceEnabled),
+            requestId: govDecision.requestId,
+            tier: govDecision.tier,
+            policyOutcome: govDecision.policyOutcome,
+            matchedPolicies: govDecision.matchedPolicies,
+            denialReason: govDecision.denialReason,
+            requiredSkill: govDecision.requiredSkill,
+          },
+        }
+      : { source: 'completion' };
+
     const log = await query(
       `insert into ai_interactions
         (organization_id, school_id, actor_id, actor_role, child_id, prompt, response, token_prompt, token_response, token_total,
@@ -191,7 +209,7 @@ router.post('/completion', requirePermission('generate', 'ai'), async (req, res)
         null,
         JSON.stringify([]),
         budgetResult.model,
-        JSON.stringify({ source: 'completion' }),
+        JSON.stringify(governanceMetadata),
         response?.latencyMs ?? null,
         JSON.stringify({ context: context ?? null }),
         JSON.stringify({ content: response?.content ?? null }),
@@ -212,7 +230,14 @@ router.post('/completion', requirePermission('generate', 'ai'), async (req, res)
       await updateBudgetSpend({ organizationId, schoolId, costUsd });
     }
 
-    return res.json({ content: response?.content ?? null, model: budgetResult.model, usage });
+    return res.json({
+      content: response?.content ?? null,
+      model: budgetResult.model,
+      usage,
+      governance: govDecision
+        ? { requestId: govDecision.requestId, shadowMode: true }
+        : undefined,
+    });
   } catch (error) {
     console.error('AI Completion Error:', error);
     return res.status(500).json({ error: 'AI processing failed' });
