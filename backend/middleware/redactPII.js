@@ -15,16 +15,29 @@
 
 const SENSITIVE_KEY_RE =
   /(password|passcode|secret|token|jwt|authorization|cookie|session|api[_-]?key|bearer|refresh|access[_-]?token|id[_-]?token|ssn|social|dob|^email$|^email_.*|.*_email$|^address$|^address_.*|.*_address$|^phone$|^phone_.*|.*_phone$)/i;
-const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
-const PHONE_RE = /(?:\+?\d[\d()\s-]{6,}\d)/;
+const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+const PHONE_RE = /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/;
+const SSN_RE = /\b\d{3}-\d{2}-\d{4}\b/;
+const EMAIL_RE_GLOBAL = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+const PHONE_RE_GLOBAL = /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g;
+const SSN_RE_GLOBAL = /\b\d{3}-\d{2}-\d{4}\b/g;
 const LONG_TOKEN_RE = /[A-Za-z0-9+/_=-]{32,}/;
+
+export function redactPII(input) {
+  if (input == null) return input;
+
+  return String(input)
+    .replace(EMAIL_RE_GLOBAL, '[redacted-email]')
+    .replace(PHONE_RE_GLOBAL, '[redacted-phone]')
+    .replace(SSN_RE_GLOBAL, '[redacted-ssn]');
+}
 
 function redactValue(value, depth = 0, maxDepth = 4) {
   if (depth > maxDepth) return '[TRUNCATED]';
   if (value === null || value === undefined) return value;
 
   if (typeof value === 'string') {
-    if (EMAIL_RE.test(value) || PHONE_RE.test(value) || LONG_TOKEN_RE.test(value)) {
+    if (EMAIL_RE.test(value) || PHONE_RE.test(value) || SSN_RE.test(value) || LONG_TOKEN_RE.test(value)) {
       return '[REDACTED]';
     }
     return value;
@@ -55,7 +68,7 @@ function redactValue(value, depth = 0, maxDepth = 4) {
  *
  * @returns {import('express').RequestHandler}
  */
-export default function redactPII() {
+export default function redactPIIMiddleware() {
   return function redactionMiddleware(req, res, next) {
     // Sanitize the request body if present. Only modify the body
     // if it is a plain object; other types (buffers, streams) are

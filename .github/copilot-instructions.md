@@ -194,8 +194,14 @@ Teachmo is a full-stack education platform built with React, Vite, Nhost (Hasura
 
 - AI logic in `backend/ai/` and `nhost/functions/`
 - Follow **AI transparency guidelines** in `docs/ai-transparency.md` and `docs/AI_TRANSPARENCY.md`
+- Treat `docs/ai-governance-principles.md` as SSOT for governed AI architecture
 - Review AI governance policies in `src/pages/AdminAIGovernance.jsx`
 - Ensure **fairness controls** for AI-generated content
+- Apply governance before generation (policy check before external model calls)
+- Enforce zero-trust outbound sanitization for prompts, telemetry, and vendor payloads
+- Use tenant-scoped feature flags for progressive delivery of governed AI features
+- For high-stakes AI, separate maker/checker behavior and log verifier outcomes
+- Prefer policy-as-code + tests + ADR updates over prompt-only safety rules
 
 ## Observability & Monitoring
 
@@ -322,3 +328,17 @@ function MyForm() {
 8. **Test offline behavior** for PWA features
 9. **Verify mobile responsiveness**
 10. **Review security implications** of your changes
+
+
+## Governed AI Definition of Done
+
+A new governed AI feature is not complete unless:
+
+- Policy evaluation exists and runs before model invocation.
+- Outbound payloads are sanitized/redacted.
+- Rollout is feature-flagged with tenant scope.
+- Governance and verifier telemetry is emitted.
+- High-stakes flows define verifier behavior (shadow/enforced).
+- Admin visibility exists where appropriate.
+- Tests cover policy/redaction/verification/rollout behavior.
+- Docs/ADR are updated when architecture changes.

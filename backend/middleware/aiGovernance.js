@@ -1,13 +1,5 @@
 /* eslint-env node */
 
-export async function preRequestHook(req, _res, next) {
-  if (typeof req.governanceEnabled === 'undefined') {
-    req.governanceEnabled = false;
-  }
-  if (typeof req.governanceDecision === 'undefined') {
-    req.governanceDecision = null;
-  }
-  return next();
 import crypto from 'crypto';
 import { query } from '../db.js';
 import { evaluateFlag, mergeOverridesByKey } from '../utils/featureFlags.js';
@@ -101,6 +93,9 @@ export async function preRequestHook(req, res, next) {
     const enabled = await isGovernanceEnabled(req);
     if (!enabled) {
       req.governanceEnabled = false;
+      req.governanceDecision = null;
+      req.governanceContext = null;
+      req.governanceAuditRecorded = false;
       return next();
     }
 

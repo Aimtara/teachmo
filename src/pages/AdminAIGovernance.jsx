@@ -15,6 +15,7 @@ import AIGovernanceOutcomeList from '@/components/admin/ai/AIGovernanceOutcomeLi
 import AIGovernanceBlockedReasons from '@/components/admin/ai/AIGovernanceBlockedReasons';
 import AIGovernanceSkillUsage from '@/components/admin/ai/AIGovernanceSkillUsage';
 import AIGovernanceFilters from '@/components/admin/ai/AIGovernanceFilters';
+import AIPolicySimulationPanel from '@/components/admin/ai/AIPolicySimulationPanel';
 
 async function fetchJson(url, opts = {}) {
   const response = await fetch(url, opts);
@@ -281,6 +282,27 @@ export default function AdminAIGovernance() {
           <AIGovernanceBlockedReasons reasons={blockedReasons} />
           <AIGovernanceSkillUsage skills={skillUsage} />
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Compliance Export</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="text-muted-foreground">
+              Export AI governance activity, policy outcomes, and verifier signals for audits.
+            </div>
+            <div className="flex gap-2">
+              <Button asChild>
+                <a href={`${API_BASE_URL}/admin/ai/governance-audit-export?days=${windowDays}`} target="_blank" rel="noreferrer">Export JSON</a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href={`${API_BASE_URL}/admin/ai/governance-audit-export?days=${windowDays}&format=csv`} target="_blank" rel="noreferrer">Export CSV</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <AIPolicySimulationPanel headers={headersQuery.data} apiBaseUrl={API_BASE_URL} />
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card>

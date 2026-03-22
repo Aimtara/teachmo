@@ -6,14 +6,16 @@ import { requireAuth } from '../middleware/auth.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { auditEvent } from '../security/audit.js';
-import { invokeLLM } from '../functions/invoke-llm.js';
+import { callModel } from '../ai/llmAdapter.js';
 import { query as dbQuery } from '../db.js';
 import { preRequestHook } from '../middleware/aiGovernance.js';
 import { preToolGovernance } from '../middleware/preToolGovernance.js';
 import { applyPostResponseGovernance } from '../middleware/postResponseGovernance.js';
 import { getGovernedSkill, listGovernedSkills } from '../ai/skillRegistry.js';
 import { executeGovernedAction, normalizeToolAction, buildToolAuditMetadata } from '../ai/actionAgent.js';
-import { preRequestHook } from '../middleware/aiGovernance.js';
+import { requireGovernance } from '../middleware/requireGovernance.js';
+import { buildGovernanceMetadata } from '../ai/governanceMetadata.js';
+import { isBlocked } from '../ai/enforcementRules.js';
 
 const router = Router();
 
@@ -146,16 +148,13 @@ function isGovernanceTerminalOutcome(outcome) {
   return outcome === 'blocked' || outcome === 'rerouted' || outcome === 'queued' || outcome === 'escalated';
 }
 
-router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, async (req, res) => {
+router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, requireGovernance, async (req, res) => {
   const { prompt, model, context, featureFlags } = req.body || {};
   const { organizationId, schoolId } = req.tenant;
   const govDecision = req.governanceDecision || null;
-
   if (!prompt) {
     return res.status(400).json({ error: 'missing prompt' });
   }
-
-  const govDecision = req.governanceDecision || null;
 
   try {
     const policy = await loadModelPolicy(organizationId, schoolId);
@@ -173,28 +172,26 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
       return res.status(429).json({ error: 'AI budget exceeded for this month.' });
     }
 
+    if (isBlocked(govDecision)) {
+      return res.status(403).json({
+        error: govDecision.denialReason || 'governance_blocked',
+        governance: buildGovernanceMetadata(govDecision),
+      });
+    }
+
     const rawResponse = shouldShortCircuit
       ? null
-      : await invokeLLM({
+      : await callModel({
           prompt,
           model: budgetResult.model,
+          governanceDecision: govDecision,
+          requestId: govDecision?.requestId,
           context,
           user: req.auth?.userId,
         });
 
     let effectiveContent = rawResponse?.content ?? null;
     let governanceAction = 'allow';
-
-    if (govDecision?.policyOutcome === 'blocked') {
-      return res.status(403).json({
-        error: govDecision.denialReason || 'governance_blocked',
-        governance: {
-          requestId: govDecision.requestId,
-          policyOutcome: govDecision.policyOutcome,
-          denialReason: govDecision.denialReason,
-        },
-      });
-    }
 
     if (govDecision?.policyOutcome === 'rerouted' || govDecision?.policyOutcome === 'queued' || govDecision?.policyOutcome === 'escalated') {
       governanceAction = govDecision.policyOutcome;
@@ -224,18 +221,9 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
           governanceAction,
           verifier: null,
           source: 'completion',
-          governance: {
+          governance: buildGovernanceMetadata(govDecision, {
             enabled: Boolean(req.governanceEnabled),
-            requestId: govDecision.requestId,
-            policyOutcome: govDecision.policyOutcome,
-            requiredSkill: govDecision.requiredSkill,
-            denialReason: govDecision.denialReason,
-            tier: govDecision.tier,
-            policyOutcome: govDecision.policyOutcome,
-            matchedPolicies: govDecision.matchedPolicies,
-            denialReason: govDecision.denialReason,
-            requiredSkill: govDecision.requiredSkill,
-          },
+          }),
         }
       : { source: 'completion' };
 
@@ -271,7 +259,6 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
         budgetResult.model,
         JSON.stringify(governanceMetadata),
         rawResponse?.latencyMs ?? null,
-        response?.latencyMs ?? null,
         JSON.stringify({ context: context ?? null }),
         JSON.stringify({ content: effectiveContent }),
         null,
@@ -303,11 +290,6 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
             requiredSkill: govDecision.requiredSkill,
             verifier: post.verifier,
           }
-      content: response?.content ?? null,
-      model: budgetResult.model,
-      usage,
-      governance: govDecision
-        ? { requestId: govDecision.requestId, shadowMode: true }
         : undefined,
     });
   } catch (error) {
@@ -316,7 +298,7 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
   }
 });
 
-router.post('/tool', requirePermission('generate', 'ai'), preRequestHook, preToolGovernance, async (req, res) => {
+router.post('/tool', requirePermission('generate', 'ai'), preRequestHook, requireGovernance, preToolGovernance, async (req, res) => {
   const { organizationId, schoolId } = req.tenant;
   const toolInput = normalizeToolAction(req.body || {});
   const govDecision = req.governanceDecision || null;
