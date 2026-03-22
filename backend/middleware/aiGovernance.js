@@ -107,13 +107,32 @@ export async function preRequestHook(req, res, next) {
     const auth = req.auth || {};
     const tenant = req.tenant || {};
 
+    const parseGuardianVerified = (value) => {
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'y') {
+          return true;
+        }
+        if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'n' || normalized === '') {
+          return false;
+        }
+      }
+      if (typeof value === 'number') {
+        return value === 1;
+      }
+      return false;
+    };
+
     const ctx = {
       requestId,
       role: auth.role || 'UNKNOWN',
       intent: classifyIntent(req),
       hasChildData: detectChildData(req),
       consentScope: extractConsentScope(req),
-      guardianVerified: Boolean(auth.guardianVerified),
+      guardianVerified: parseGuardianVerified(auth.guardianVerified),
       safetyEscalate: Boolean(req.body?.safetyEscalate),
       action: req.body?.action || null,
       authContext: auth,
