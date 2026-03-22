@@ -76,6 +76,20 @@ function extractConsentScope(req) {
 
 export async function preRequestHook(req, res, next) {
   try {
+    // Cheap early-return: if the request clearly can't be evaluated (e.g., missing prompt/messages),
+    // skip governance entirely to avoid unnecessary DB work and noisy audit events.
+    const body = req.body;
+    const isPlainObject = body && typeof body === 'object' && !Array.isArray(body);
+    const hasPrompt = isPlainObject && typeof body.prompt === 'string' && body.prompt.trim().length > 0;
+    const hasMessages = isPlainObject && Array.isArray(body.messages) && body.messages.length > 0;
+
+    if (!body || (isPlainObject && !hasPrompt && !hasMessages)) {
+      req.governanceEnabled = false;
+      req.governanceDecision = null;
+      req.governanceContext = null;
+      req.governanceAuditRecorded = false;
+      return next();
+    }
     const enabled = await isGovernanceEnabled(req);
     if (!enabled) {
       req.governanceEnabled = false;
