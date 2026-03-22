@@ -113,8 +113,12 @@ export async function preRequestHook(req, res, next) {
           schoolId: auth.schoolId || tenant.schoolId || null,
         });
         req.governanceAuditRecorded = true;
-      } catch {
+      } catch (error) {
         req.governanceAuditRecorded = false;
+        console.warn('[aiGovernance] Failed to record governance decision', {
+          requestId: ctx.requestId,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     } else {
       req.governanceAuditRecorded = true;
