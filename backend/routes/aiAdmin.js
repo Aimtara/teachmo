@@ -53,7 +53,10 @@ async function getGovernanceSummary({ organizationId, schoolId, days }) {
        count(*) filter (where metadata->'verifier' is not null or metadata->>'verifier' is not null) as verifier_checked,
        count(*) filter (
          where (metadata->'verifier'->>'ok' = 'false')
-            or (metadata->'verifier' is null and metadata->'governance' is not null and metadata::text ilike '%"issues":[%')
+            or (
+              jsonb_typeof(metadata->'verifier'->'issues') = 'array'
+              and jsonb_array_length(metadata->'verifier'->'issues') > 0
+            )
        ) as verifier_flagged
      from ai_interactions
      where ${where} and ${windowClause}`,
