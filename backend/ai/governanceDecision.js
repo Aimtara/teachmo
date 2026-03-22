@@ -32,11 +32,22 @@ export function createGovernanceDecision({
     throw new Error(`Invalid tier: ${tier}`);
   }
 
+  const frozenMatchedPolicies = Array.isArray(matchedPolicies)
+    ? Object.freeze(
+        matchedPolicies.map((policy) => {
+          if (policy && typeof policy === 'object') {
+            return Object.freeze({ ...policy });
+          }
+          return policy;
+        }),
+      )
+    : Object.freeze([]);
+
   return Object.freeze({
     requestId: requestId ?? null,
     tier,
     policyOutcome,
-    matchedPolicies: Array.isArray(matchedPolicies) ? [...matchedPolicies] : [],
+    matchedPolicies: frozenMatchedPolicies,
     denialReason: denialReason ?? null,
     requiredSkill: requiredSkill ?? null,
     requiresAuditEvent: Boolean(requiresAuditEvent),
