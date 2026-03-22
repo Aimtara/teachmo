@@ -7,6 +7,12 @@ import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { auditEvent } from '../security/audit.js';
 import { invokeLLM } from '../functions/invoke-llm.js';
+import { query as dbQuery } from '../db.js';
+import { preRequestHook } from '../middleware/aiGovernance.js';
+import { preToolGovernance } from '../middleware/preToolGovernance.js';
+import { applyPostResponseGovernance } from '../middleware/postResponseGovernance.js';
+import { getGovernedSkill, listGovernedSkills } from '../ai/skillRegistry.js';
+import { executeGovernedAction, normalizeToolAction, buildToolAuditMetadata } from '../ai/actionAgent.js';
 
 const router = Router();
 
@@ -135,9 +141,14 @@ function enforceBudget({ budget, policy, selectedModel }) {
   return { blocked: true, model: selectedModel, reason: 'budget_blocked' };
 }
 
-router.post('/completion', requirePermission('generate', 'ai'), async (req, res) => {
+function isGovernanceTerminalOutcome(outcome) {
+  return outcome === 'blocked' || outcome === 'rerouted' || outcome === 'queued' || outcome === 'escalated';
+}
+
+router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, async (req, res) => {
   const { prompt, model, context, featureFlags } = req.body || {};
   const { organizationId, schoolId } = req.tenant;
+  const govDecision = req.governanceDecision || null;
 
   if (!prompt) {
     return res.status(400).json({ error: 'missing prompt' });
@@ -148,6 +159,7 @@ router.post('/completion', requirePermission('generate', 'ai'), async (req, res)
     const budget = await loadBudget(organizationId, schoolId);
     const resolved = resolveModel({ policy, preferredModel: model, featureFlags });
     const budgetResult = enforceBudget({ budget, policy, selectedModel: resolved.model });
+    const shouldShortCircuit = isGovernanceTerminalOutcome(govDecision?.policyOutcome);
 
     if (budgetResult.blocked) {
       await auditEvent(req, {
@@ -158,18 +170,76 @@ router.post('/completion', requirePermission('generate', 'ai'), async (req, res)
       return res.status(429).json({ error: 'AI budget exceeded for this month.' });
     }
 
-    const response = await invokeLLM({
-      prompt,
-      model: budgetResult.model,
-      context,
-      user: req.auth?.userId,
-    });
+    const rawResponse = shouldShortCircuit
+      ? null
+      : await invokeLLM({
+          prompt,
+          model: budgetResult.model,
+          context,
+          user: req.auth?.userId,
+        });
 
-    const usage = response?.usage || {};
+    let effectiveContent = rawResponse?.content ?? null;
+    let governanceAction = 'allow';
+
+    if (govDecision?.policyOutcome === 'blocked') {
+      return res.status(403).json({
+        error: govDecision.denialReason || 'governance_blocked',
+        governance: {
+          requestId: govDecision.requestId,
+          policyOutcome: govDecision.policyOutcome,
+          denialReason: govDecision.denialReason,
+        },
+      });
+    }
+
+    if (govDecision?.policyOutcome === 'rerouted' || govDecision?.policyOutcome === 'queued' || govDecision?.policyOutcome === 'escalated') {
+      governanceAction = govDecision.policyOutcome;
+      effectiveContent = JSON.stringify({
+        governed: true,
+        requestId: govDecision.requestId,
+        policyOutcome: govDecision.policyOutcome,
+        requiredSkill: govDecision.requiredSkill,
+        denialReason: govDecision.denialReason,
+        message:
+          govDecision.policyOutcome === 'queued'
+            ? 'Your request has been routed for governed handling.'
+            : govDecision.policyOutcome === 'escalated'
+              ? 'Your request requires escalation for additional review.'
+              : 'Your request has been rerouted to a governed skill flow.',
+      });
+    }
+
+    const usage = rawResponse?.usage || {};
     const tokenPrompt = Number(usage.prompt_tokens || 0);
     const tokenResponse = Number(usage.completion_tokens || 0);
     const tokenTotal = Number(usage.total_tokens || tokenPrompt + tokenResponse);
     const costUsd = estimateCost({ tokenTotal, model: budgetResult.model });
+
+    const governanceMetadata = govDecision
+      ? {
+          governanceAction,
+          verifier: null,
+          source: 'completion',
+          governance: {
+            enabled: Boolean(req.governanceEnabled),
+            requestId: govDecision.requestId,
+            policyOutcome: govDecision.policyOutcome,
+            requiredSkill: govDecision.requiredSkill,
+            denialReason: govDecision.denialReason,
+          },
+        }
+      : { source: 'completion' };
+
+    const post = await applyPostResponseGovernance({
+      req,
+      content: effectiveContent,
+    });
+
+    if (govDecision && governanceMetadata.governance) {
+      governanceMetadata.verifier = post.verifier;
+    }
+    effectiveContent = post.content;
 
     const log = await query(
       `insert into ai_interactions
@@ -184,17 +254,17 @@ router.post('/completion', requirePermission('generate', 'ai'), async (req, res)
         req.auth?.role || null,
         null,
         prompt,
-        response?.content ?? null,
+        effectiveContent,
         tokenPrompt || null,
         tokenResponse || null,
         tokenTotal || null,
         null,
         JSON.stringify([]),
         budgetResult.model,
-        JSON.stringify({ source: 'completion' }),
-        response?.latencyMs ?? null,
+        JSON.stringify(governanceMetadata),
+        rawResponse?.latencyMs ?? null,
         JSON.stringify({ context: context ?? null }),
-        JSON.stringify({ content: response?.content ?? null }),
+        JSON.stringify({ content: effectiveContent }),
         null,
         null,
         req.auth?.userId || null,
@@ -212,11 +282,115 @@ router.post('/completion', requirePermission('generate', 'ai'), async (req, res)
       await updateBudgetSpend({ organizationId, schoolId, costUsd });
     }
 
-    return res.json({ content: response?.content ?? null, model: budgetResult.model, usage });
+    return res.json({
+      content: effectiveContent,
+      model: budgetResult.model,
+      usage,
+      governance: govDecision
+        ? {
+            requestId: govDecision.requestId,
+            shadowMode: false,
+            policyOutcome: govDecision.policyOutcome,
+            requiredSkill: govDecision.requiredSkill,
+            verifier: post.verifier,
+          }
+        : undefined,
+    });
   } catch (error) {
     console.error('AI Completion Error:', error);
     return res.status(500).json({ error: 'AI processing failed' });
   }
+});
+
+router.post('/tool', requirePermission('generate', 'ai'), preRequestHook, preToolGovernance, async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const toolInput = normalizeToolAction(req.body || {});
+  const govDecision = req.governanceDecision || null;
+
+  if (!req.toolGovernanceEnabled) {
+    return res.status(403).json({ error: 'tool governance disabled' });
+  }
+
+  if (!govDecision?.requiredSkill) {
+    return res.status(400).json({ error: 'no governed skill required for this request' });
+  }
+
+  const skill = getGovernedSkill(govDecision.requiredSkill);
+  if (!skill) {
+    return res.status(404).json({ error: 'governed skill not found' });
+  }
+  if (toolInput.action && Array.isArray(skill.allowedActions) && !skill.allowedActions.includes(toolInput.action)) {
+    return res.status(403).json({ error: 'action not permitted for required governed skill' });
+  }
+
+  try {
+    const actionResult = await executeGovernedAction({
+      skill,
+      input: toolInput,
+      actor: req.auth || {},
+      tenant: req.tenant || {},
+      requestId: govDecision.requestId,
+    });
+
+    const post = await applyPostResponseGovernance({
+      req,
+      content: JSON.stringify(actionResult.result ?? {}),
+    });
+
+    const metadata = buildToolAuditMetadata({
+      decision: govDecision,
+      skill,
+      actor: req.auth || {},
+      tenant: req.tenant || {},
+      requestId: govDecision.requestId,
+      toolInput,
+      toolResult: actionResult,
+    });
+
+    await dbQuery(
+      `insert into ai_interactions
+        (organization_id, school_id, actor_id, actor_role, child_id, prompt, response, token_prompt, token_response, token_total,
+         safety_risk_score, safety_flags, model, metadata, latency_ms, inputs, outputs, prompt_id, prompt_version_id, user_id, cost_usd)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14::jsonb,$15,$16::jsonb,$17::jsonb,$18,$19,$20,$21)`,
+      [
+        organizationId,
+        schoolId || null,
+        req.auth?.userId || null,
+        req.auth?.role || null,
+        toolInput.childId || null,
+        JSON.stringify(toolInput),
+        post.content,
+        null,
+        null,
+        null,
+        null,
+        JSON.stringify([]),
+        'governed_tool',
+        JSON.stringify({ ...metadata, verifier: post.verifier, source: 'tool' }),
+        actionResult.latencyMs ?? null,
+        JSON.stringify(toolInput),
+        JSON.stringify(actionResult.result ?? {}),
+        null,
+        null,
+        req.auth?.userId || null,
+        null,
+      ]
+    );
+
+    return res.json({
+      ok: true,
+      tool: skill.id,
+      governance: govDecision,
+      result: actionResult.result,
+      verifier: post.verifier,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'governed tool execution failed' });
+  }
+});
+
+router.get('/skills', requirePermission('generate', 'ai'), async (_req, res) => {
+  return res.json({ skills: listGovernedSkills() });
 });
 
 router.post('/resolve-model', async (req, res) => {
