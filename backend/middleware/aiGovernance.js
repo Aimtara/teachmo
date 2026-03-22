@@ -74,8 +74,20 @@ function detectChildData(req) {
 
 function extractConsentScope(req) {
   const auth = req.auth || {};
+
+  // Prefer explicit consentScope if provided on the auth context
   if (Array.isArray(auth.consentScope)) return auth.consentScope;
-  if (typeof auth.consentScope === 'string') return auth.consentScope.split(',').filter(Boolean);
+  if (typeof auth.consentScope === 'string') {
+    return auth.consentScope.split(',').filter(Boolean);
+  }
+
+  // Fallback: derive consent scope from general auth scopes
+  if (Array.isArray(auth.scopes)) {
+    return auth.scopes;
+  }
+  if (typeof auth.scopes === 'string') {
+    return auth.scopes.split(',').filter(Boolean);
+  }
   return [];
 }
 
