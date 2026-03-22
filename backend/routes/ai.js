@@ -13,6 +13,7 @@ import { preToolGovernance } from '../middleware/preToolGovernance.js';
 import { applyPostResponseGovernance } from '../middleware/postResponseGovernance.js';
 import { getGovernedSkill, listGovernedSkills } from '../ai/skillRegistry.js';
 import { executeGovernedAction, normalizeToolAction, buildToolAuditMetadata } from '../ai/actionAgent.js';
+import { preRequestHook } from '../middleware/aiGovernance.js';
 
 const router = Router();
 
@@ -154,6 +155,8 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
     return res.status(400).json({ error: 'missing prompt' });
   }
 
+  const govDecision = req.governanceDecision || null;
+
   try {
     const policy = await loadModelPolicy(organizationId, schoolId);
     const budget = await loadBudget(organizationId, schoolId);
@@ -227,6 +230,11 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
             policyOutcome: govDecision.policyOutcome,
             requiredSkill: govDecision.requiredSkill,
             denialReason: govDecision.denialReason,
+            tier: govDecision.tier,
+            policyOutcome: govDecision.policyOutcome,
+            matchedPolicies: govDecision.matchedPolicies,
+            denialReason: govDecision.denialReason,
+            requiredSkill: govDecision.requiredSkill,
           },
         }
       : { source: 'completion' };
@@ -263,6 +271,7 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
         budgetResult.model,
         JSON.stringify(governanceMetadata),
         rawResponse?.latencyMs ?? null,
+        response?.latencyMs ?? null,
         JSON.stringify({ context: context ?? null }),
         JSON.stringify({ content: effectiveContent }),
         null,
@@ -294,6 +303,11 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
             requiredSkill: govDecision.requiredSkill,
             verifier: post.verifier,
           }
+      content: response?.content ?? null,
+      model: budgetResult.model,
+      usage,
+      governance: govDecision
+        ? { requestId: govDecision.requestId, shadowMode: true }
         : undefined,
     });
   } catch (error) {
