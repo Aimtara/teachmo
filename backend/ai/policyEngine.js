@@ -106,7 +106,7 @@ export async function evaluatePolicy(ctx) {
     policyOutcome = POLICY_OUTCOMES.REROUTED;
     requiredSkill = 'explore_routing';
     tier = TIERS.TIER_1;
-  } else if (PARTNER_SUBMISSION_INTENTS.has(intent) || role === 'PARTNER') {
+  } else if (PARTNER_SUBMISSION_INTENTS.has(intent) || String(role).toLowerCase() === 'partner') {
     matchedPolicies.push('POL-PARTNER-001');
     policyOutcome = POLICY_OUTCOMES.QUEUED;
     requiredSkill = 'partner_submission';
