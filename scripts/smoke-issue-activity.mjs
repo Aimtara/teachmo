@@ -4,6 +4,7 @@ import { createGitHubClient } from './issue-pack-core.mjs';
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN || process.env.PROJECT_AUTOMATION_TOKEN;
 const issueNumber = Number(process.env.ISSUE_NUMBER);
+const dryRun = String(process.env.DRY_RUN || 'false').toLowerCase() === 'true';
 
 if (!repository) {
   throw new Error('Missing GITHUB_REPOSITORY (expected owner/repo)');
@@ -43,6 +44,11 @@ async function setLabels(labels) {
 }
 
 async function ensureLabel(label) {
+  if (dryRun) {
+    console.log(`[dry-run] add label: ${label}`);
+    return;
+  }
+
   const issue = await getIssue();
   const labels = normalizeLabels(issue.labels);
 
@@ -57,6 +63,11 @@ async function ensureLabel(label) {
 }
 
 async function ensureState(state) {
+  if (dryRun) {
+    console.log(`[dry-run] set issue #${issueNumber} state to ${state}`);
+    return;
+  }
+
   const issue = await getIssue();
 
   if (issue.state === state) {
@@ -69,7 +80,7 @@ async function ensureState(state) {
 }
 
 async function main() {
-  console.log(`Running issue activity smoke test for #${issueNumber} in ${repository}`);
+  console.log(`Running issue activity smoke test for #${issueNumber} in ${repository}${dryRun ? ' (dry-run)' : ''}`);
   await ensureLabel('in-progress');
   await ensureLabel('blocked');
   await ensureState('closed');
