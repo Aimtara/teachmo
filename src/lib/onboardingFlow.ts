@@ -34,7 +34,7 @@ export function resolveOnboardingPath({ role, preferredFlow }: ResolveOnboarding
   if (role === 'teacher') return '/onboarding/teacher';
   if (role === 'parent') return '/onboarding/parent';
   if (normalizeOnboardingFlow(preferredFlow) === ONBOARDING_FLOWS.PARENT) return '/onboarding/parent';
-  return '/onboarding';
+  return '/onboarding/teacher';
 }
 
 export function clearSavedOnboardingFlowPreference(): void {

@@ -13,13 +13,12 @@ import { logAnalyticsEvent } from '@/observability/telemetry';
 export default function AuthCallback() {
   const { isAuthenticated, isLoading, error } = useAuthenticationStatus();
   const user = useUserData();
-  const { role, loading: roleLoading, needsOnboarding, tenantScope } = useUserRoleState();
+  const { role, roleSource, loading: roleLoading, needsOnboarding, tenantScope } = useUserRoleState();
   const [searchParams] = useSearchParams();
   const flowFromQuery = searchParams.get('flow');
   const preferredFlow = normalizeOnboardingFlow(flowFromQuery ?? getSavedOnboardingFlowPreference());
   const loggedRef = useRef(false);
 
-  // The rogue nhost.auth.refreshSession() has been completely removed!
 
   useEffect(() => {
     saveOnboardingFlowPreference(preferredFlow);
@@ -39,7 +38,6 @@ export default function AuthCallback() {
       { eventName: 'auth_login', actorId: user.id, actorRole: role || undefined }
     ).catch(() => {});
   }, [isAuthenticated, isLoading, roleLoading, tenantScope?.organizationId, tenantScope?.schoolId, user?.id, role]);
-
 
   if (!isLoading && !isAuthenticated) {
     const params = new URLSearchParams();
@@ -71,7 +69,7 @@ export default function AuthCallback() {
       return (
         <Navigate
           to={resolveOnboardingPath({
-            role,
+            role: roleSource === 'unknown' ? null : role,
             preferredFlow,
           })}
           replace

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,33 +15,43 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { nhost } from '@/lib/nhostClient';
 import { clearSavedOnboardingFlowPreference } from '@/lib/onboardingFlow';
+import { normalizeHasuraError } from '@/lib/hasuraErrors';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const teacherOnboardingSchema = z.object({
-  firstName: z.string().min(2, 'First name is required'),
-  lastName: z.string().min(2, 'Last name is required'),
+  firstName: z.string().trim().min(2, 'First name is required'),
+  lastName: z.string().trim().min(2, 'Last name is required'),
   phone: z
     .string()
     .min(7, 'Enter a valid phone number')
     .regex(/^[0-9+\-() ]+$/, 'Phone number can only include digits and basic symbols'),
-  schoolId: z.string().min(2, 'School ID is required'),
+  schoolId: z
+    .string()
+    .trim()
+    .refine((val) => UUID_REGEX.test(val), {
+      message: 'School ID must be a valid UUID (e.g. 123e4567-e89b-12d3-a456-426614174000)'
+    }),
   subjects: z.string().min(2, 'Please tell us what you teach'),
   grades: z.string().min(1, 'List at least one grade level'),
   bio: z.string().optional()
 });
 
-const CREATE_TEACHER_PROFILE = `
-  mutation CreateTeacherProfile($input: user_profiles_insert_input!) {
-    insert_user_profiles_one(object: $input) {
-      user_id
+const UPDATE_TEACHER_PROFILE = `
+  mutation UpdateTeacherProfile($userId: uuid!, $input: profiles_set_input!) {
+    update_profiles(where: { user_id: { _eq: $userId } }, _set: $input) {
+      affected_rows
+      returning {
+        id
+      }
     }
   }
 `;
 
-const ASSIGN_TEACHER_ROLE = `
-  mutation AssignTeacherRole($userId: uuid!) {
-    insert_user_roles_one(object: { user_id: $userId, role: "teacher" }) {
+const CREATE_TEACHER_PROFILE = `
+  mutation CreateTeacherProfile($input: profiles_insert_input!) {
+    insert_profiles_one(object: $input) {
       id
-      role
     }
   }
 `;
@@ -80,11 +90,25 @@ export default function TeacherOnboardingPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting }
+    reset,
+    formState: { errors, isSubmitting, isDirty }
   } = useForm<TeacherFormValues>({
     resolver: zodResolver(teacherOnboardingSchema),
     defaultValues
   });
+
+  const hydratedDisplayNameRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const nextDisplayName = user.displayName ?? '';
+    if (hydratedDisplayNameRef.current === nextDisplayName) return;
+    if (isDirty) return;
+
+    reset(defaultValues);
+    hydratedDisplayNameRef.current = nextDisplayName;
+  }, [defaultValues, isDirty, reset, user?.displayName, user?.id]);
 
   if (authLoading || roleLoading) {
     return <div role="status" aria-live="polite" className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
@@ -110,24 +134,21 @@ export default function TeacherOnboardingPage() {
       return;
     }
 
-    const profileInput = {
-      user_id: user.id,
-      first_name: values.firstName,
-      last_name: values.lastName,
-      phone: values.phone,
-      school_id: values.schoolId,
-      subjects: values.subjects,
-      grades: values.grades,
-      bio: values.bio,
-      role: 'teacher'
+    const normalizedSchoolId = values.schoolId.trim();
+
+    const profileSetInput = {
+      full_name: `${values.firstName} ${values.lastName}`.trim(),
+      app_role: 'teacher',
+      school_id: normalizedSchoolId
     };
 
-    const { error: profileError, data: profileData } = await nhost.graphql.request(CREATE_TEACHER_PROFILE, {
-      input: profileInput
+    const { error: updateError, data: updateData } = await nhost.graphql.request(UPDATE_TEACHER_PROFILE, {
+      userId: user.id,
+      input: profileSetInput
     });
 
-    if (profileError || !profileData?.insert_user_profiles_one?.user_id) {
-      console.error('Failed to create teacher profile', profileError);
+    if (updateError) {
+      console.error('Failed to update teacher profile', updateError);
       toast({
         variant: 'destructive',
         title: 'Could not save your profile',
@@ -136,11 +157,54 @@ export default function TeacherOnboardingPage() {
       return;
     }
 
-    const teacherProfileId = profileData.insert_user_profiles_one.user_id;
+    let teacherProfileId = updateData?.update_profiles?.returning?.[0]?.id ?? null;
+
+    if (!teacherProfileId) {
+      const { error: insertError, data: insertData } = await nhost.graphql.request(CREATE_TEACHER_PROFILE, {
+        input: {
+          user_id: user.id,
+          ...profileSetInput,
+        }
+      });
+
+      teacherProfileId = insertData?.insert_profiles_one?.id ?? null;
+
+      if (insertError || !teacherProfileId) {
+        const normalizedInsertError = normalizeHasuraError(insertError);
+
+        if (normalizedInsertError.kind === 'constraint') {
+          const { error: retryUpdateError, data: retryUpdateData } = await nhost.graphql.request(UPDATE_TEACHER_PROFILE, {
+            userId: user.id,
+            input: profileSetInput
+          });
+
+          teacherProfileId = retryUpdateData?.update_profiles?.returning?.[0]?.id ?? null;
+          if (!retryUpdateError && teacherProfileId) {
+            // another request inserted the profile between our update and insert attempts
+          } else {
+            console.error('Failed to reconcile teacher profile after insert conflict', retryUpdateError || insertError);
+            toast({
+              variant: 'destructive',
+              title: 'Could not save your profile',
+              description: 'Please verify the details and try again.'
+            });
+            return;
+          }
+        } else {
+          console.error('Failed to create teacher profile', insertError);
+          toast({
+            variant: 'destructive',
+            title: 'Could not save your profile',
+            description: 'Please verify the details and try again.'
+          });
+          return;
+        }
+      }
+    }
 
     const { error: linkError } = await nhost.graphql.request(CONNECT_TEACHER_SCHOOL, {
       teacherId: teacherProfileId,
-      schoolId: values.schoolId
+      schoolId: normalizedSchoolId
     });
 
     if (linkError) {
@@ -151,26 +215,6 @@ export default function TeacherOnboardingPage() {
         description: 'Your profile is saved but we could not connect to your school. Please try again.'
       });
       return;
-    }
-
-    const { error: roleError } = await nhost.graphql.request(ASSIGN_TEACHER_ROLE, {
-      userId: user.id
-    });
-
-    if (roleError) {
-      console.error('Failed to assign teacher role', roleError);
-      toast({
-        variant: 'destructive',
-        title: 'Role assignment failed',
-        description: 'Your profile is saved but we could not finalize your access. Contact support if this continues.'
-      });
-      return;
-    }
-
-    try {
-      await nhost.auth.refreshSession();
-    } catch (refreshError) {
-      console.warn('Unable to refresh session after teacher onboarding', refreshError);
     }
 
     clearSavedOnboardingFlowPreference();
