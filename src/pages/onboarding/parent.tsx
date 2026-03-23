@@ -142,7 +142,11 @@ export default function ParentOnboardingPage() {
       full_name: `${values.firstName} ${values.lastName}`.trim(),
       app_role: 'parent',
       organization_id: null,
-      school_id: normalizedSchoolId || null
+      school_id: normalizedSchoolId || null,
+      phone: values.phone?.trim() || null,
+      city: values.city?.trim() || null,
+      children_count: values.childrenCount ?? null,
+      notes: values.notes?.trim() || null
     };
 
     const { error: updateError, data: updateData } = await nhost.graphql.request(UPDATE_PARENT_PROFILE, {
