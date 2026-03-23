@@ -139,7 +139,6 @@ export default function TeacherOnboardingPage() {
     const profileSetInput = {
       full_name: `${values.firstName} ${values.lastName}`.trim(),
       app_role: 'teacher',
-      organization_id: null,
       school_id: normalizedSchoolId
     };
 
