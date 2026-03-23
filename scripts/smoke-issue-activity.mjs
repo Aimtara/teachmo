@@ -2,7 +2,7 @@ import process from 'node:process';
 import { createGitHubClient } from './issue-pack-core.mjs';
 
 const repository = process.env.GITHUB_REPOSITORY;
-const token = process.env.GITHUB_TOKEN || process.env.PROJECT_AUTOMATION_TOKEN;
+const token = process.env.PROJECT_AUTOMATION_TOKEN || process.env.GITHUB_TOKEN;
 const issueNumber = Number(process.env.ISSUE_NUMBER);
 
 if (!repository) {
