@@ -2,8 +2,9 @@ import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
 const repository = process.env.GITHUB_REPOSITORY;
-const token = process.env.PROJECT_AUTOMATION_TOKEN || process.env.GITHUB_TOKEN;
-const dryRun = String(process.env.DRY_RUN || 'true').toLowerCase();
+const token = process.env.GITHUB_TOKEN || process.env.PROJECT_AUTOMATION_TOKEN;
+const dryRun = String(process.env.DRY_RUN || 'true').toLowerCase() === 'true';
+const dryRunStr = dryRun ? 'true' : 'false';
 
 if (!repository) {
   throw new Error('Missing GITHUB_REPOSITORY (expected owner/repo)');
@@ -16,18 +17,19 @@ if (!token) {
 const env = {
   ...process.env,
   GITHUB_TOKEN: token,
-  DRY_RUN: dryRun,
+  DRY_RUN: dryRunStr,
 };
 
 const steps = [
   ['issues:validate', ['node', 'scripts/validate-issue-pack.mjs']],
+  ['issues:project-validate', ['node', 'scripts/validate-project-config.mjs']],
   ['issues:bootstrap', ['node', 'scripts/bootstrap-issue-pack.mjs']],
   ['issues:project-sync', ['node', 'scripts/project-sync-issue-pack.mjs']],
   ['issues:rollup', ['node', 'scripts/rollup-program-status.mjs']],
 ];
 
 for (const [name, command] of steps) {
-  console.log(`\n==> Running ${name} (DRY_RUN=${dryRun})`);
+  console.log(`\n==> Running ${name} (DRY_RUN=${dryRunStr})`);
   const [cmd, ...args] = command;
   const result = spawnSync(cmd, args, { env, stdio: 'inherit' });
 

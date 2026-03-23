@@ -27,7 +27,7 @@ export PROJECT_AUTOMATION_TOKEN="<token>"
 export GITHUB_TOKEN="$PROJECT_AUTOMATION_TOKEN"
 ```
 
-Run the go-live sequence in one command (defaults to `DRY_RUN=true`):
+Run the go-live sequence in one command (defaults to `DRY_RUN=true` and now validates project field shape first):
 
 ```bash
 npm run issues:go-live
@@ -37,6 +37,7 @@ Or run each command directly:
 
 ```bash
 npm run issues:validate
+npm run issues:project-validate
 npm run issues:bootstrap
 npm run issues:project-sync
 npm run issues:rollup
