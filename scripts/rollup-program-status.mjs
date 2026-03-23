@@ -84,6 +84,50 @@ function formatRollup({ parent, children }) {
   return lines.join('\n');
 }
 
+const ROLLUP_MARKER = '<!-- issue-pack-rollup -->';
+const MAX_COMMENT_PAGES = 10;
+
+async function upsertRollupComment(issueNumber, body) {
+  const bodyWithMarker = `${ROLLUP_MARKER}\n${body}`;
+
+  let page = 1;
+  let mostRecent = null;
+
+  while (page <= MAX_COMMENT_PAGES) {
+    const comments = await gh(
+      `/repos/${owner}/${repoName}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
+    );
+
+    for (const comment of comments) {
+      if ((comment.body || '').includes(ROLLUP_MARKER)) {
+        if (!mostRecent || comment.id > mostRecent.id) {
+          mostRecent = comment;
+        }
+      }
+    }
+
+    if (comments.length < 100) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  if (mostRecent) {
+    await gh(`/repos/${owner}/${repoName}/issues/comments/${mostRecent.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body: bodyWithMarker }),
+    });
+    console.log(`Updated rollup comment ${mostRecent.id} on parent issue #${issueNumber}`);
+    return;
+  }
+  await gh(`/repos/${owner}/${repoName}/issues/${issueNumber}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ body: bodyWithMarker }),
+  });
+  console.log(`Posted rollup comment to parent issue #${issueNumber}`);
+}
+
 async function main() {
   const issues = await listIssues();
   const parentIssue = findIssueByKey(issues, issuePack.parent.key);
@@ -105,12 +149,7 @@ async function main() {
     throw new Error('Cannot write rollup comment: parent issue not found');
   }
 
-  await gh(`/repos/${owner}/${repoName}/issues/${parentIssue.number}/comments`, {
-    method: 'POST',
-    body: JSON.stringify({ body: rollupBody }),
-  });
-
-  console.log(`Posted rollup comment to parent issue #${parentIssue.number}`);
+  await upsertRollupComment(parentIssue.number, rollupBody);
 }
 
 main().catch((error) => {

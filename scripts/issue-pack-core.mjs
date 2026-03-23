@@ -76,18 +76,28 @@ function findIssueByKey(issues, key) {
   return issues.find((issue) => (issue.body || '').includes(marker));
 }
 
+const LINKS_START = '<!-- issue-pack-links:start -->';
+const LINKS_END = '<!-- issue-pack-links:end -->';
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function buildParentBodyWithLinks(parentBody, childIssues) {
-  const linksSection = [
+  const linksBlock = [
+    LINKS_START,
     '## Linked child issues',
     '',
     ...childIssues.map((child) => `- [ ] #${child.number} — ${child.title}`),
+    LINKS_END,
   ].join('\n');
 
-  if (parentBody.includes('## Linked child issues')) {
-    return parentBody.replace(/## Linked child issues[\s\S]*$/m, linksSection);
+  const markerPattern = new RegExp(`${escapeRegex(LINKS_START)}[\\s\\S]*?${escapeRegex(LINKS_END)}`);
+  if (markerPattern.test(parentBody)) {
+    return parentBody.replace(markerPattern, linksBlock);
   }
 
-  return `${parentBody}\n\n${linksSection}`;
+  return `${parentBody}\n\n${linksBlock}`;
 }
 
 function normalizeAssignees(assignees = [], assigneeMap = {}) {
@@ -110,11 +120,29 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
 
   async function listIssues() {
     const all = [];
-    for (let page = 1; page <= 10; page += 1) {
-      const items = await gh(`/repos/${owner}/${repoName}/issues?state=all&per_page=100&page=${page}`);
+    const perPage = 100;
+    const maxPagesEnv = process.env.ISSUE_PACK_MAX_PAGES;
+    const parsedMaxPages = maxPagesEnv ? Number.parseInt(maxPagesEnv, 10) : Number.NaN;
+    const effectiveMaxPages = Number.isFinite(parsedMaxPages) && parsedMaxPages > 0 ? parsedMaxPages : 10;
+    let page = 1;
+
+    while (page <= effectiveMaxPages) {
+      const items = await gh(
+        `/repos/${owner}/${repoName}/issues?state=all&per_page=${perPage}&page=${page}`,
+      );
       const issuesOnly = items.filter((i) => !i.pull_request);
       all.push(...issuesOnly);
-      if (items.length < 100) break;
+      if (items.length < perPage) {
+        break;
+      }
+      page += 1;
+    }
+
+    if (page > effectiveMaxPages && all.length && process.env.ISSUE_PACK_MAX_PAGES == null) {
+      console.warn(
+        `[issue-pack] Reached default page limit (${effectiveMaxPages}) when listing issues;` +
+          ' set ISSUE_PACK_MAX_PAGES to a higher value if you need to scan more issues.',
+      );
     }
     return all;
   }
@@ -281,7 +309,8 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
   for (const label of allLabels) await ensureLabel(label);
 
   const parentMilestone = await ensureMilestone(issuePack.parent.milestone);
-  let parentIssue = findIssueByKey(issues, issuePack.parent.key);
+  const existingParent = findIssueByKey(issues, issuePack.parent.key);
+  let parentIssue = existingParent;
 
   if (!parentIssue && createMissing) {
     parentIssue = await createIssue({
@@ -336,7 +365,8 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
     });
   }
 
-  if (parentIssue && !dryRun) {
+  const parentWasCreated = !existingParent;
+  if (parentIssue && !dryRun && (parentWasCreated || updateExisting)) {
     const nextParentBody = buildParentBodyWithLinks(issuePack.parent.body, createdOrFoundChildren);
     await updateIssue(parentIssue.number, {
       title: issuePack.parent.title,
