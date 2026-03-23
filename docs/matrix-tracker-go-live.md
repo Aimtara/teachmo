@@ -27,7 +27,7 @@ export PROJECT_AUTOMATION_TOKEN="<token>"
 export GITHUB_TOKEN="$PROJECT_AUTOMATION_TOKEN"
 ```
 
-Run the go-live sequence in one command (defaults to `DRY_RUN=true`):
+Run the go-live sequence in one command (defaults to `DRY_RUN=true`, which skips all GitHub writes — no issues are created, no project fields are set, and the parent issue body is not updated):
 
 ```bash
 npm run issues:go-live
