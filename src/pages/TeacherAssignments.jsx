@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Calendar } from 'lucide-react';
+import { ArrowLeft, BookOpen, Calendar } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/components/hooks/useAuth';
@@ -57,6 +57,12 @@ export default function TeacherAssignments() {
         <div className="min-h-screen bg-warm-cream p-6">
           <div className="max-w-7xl mx-auto space-y-8">
             <header>
+              <Link to={createPageUrl('TeacherAssignments')}>
+                <Button variant="ghost" size="sm" className="mb-4 pl-0">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to all classes
+                </Button>
+              </Link>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 {selectedClass.course.name} Assignments
               </h1>
@@ -90,7 +96,7 @@ export default function TeacherAssignments() {
               <CardContent className="p-8 text-center space-y-4">
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto" />
                 <h3 className="text-lg font-semibold text-gray-900">No classes found</h3>
-                <p className="text-gray-600">You don't have any classes yet. Connect Google Classroom or create a class to begin.</p>
+                <p className="text-gray-600">You do not have any classes yet. Connect Google Classroom or create a class to begin.</p>
                 <div className="flex justify-center gap-4">
                   <Link to={createPageUrl('TeacherClasses')}>
                     <Button variant="outline">Go to Classes</Button>
@@ -113,7 +119,7 @@ export default function TeacherAssignments() {
                       <Link to={createPageUrl(`TeacherAssignments?course_id=${cls.course.id}`)}>
                         <Button size="sm" variant="outline">View Assignments</Button>
                       </Link>
-                      <Link to={createPageUrl(`TeacherClasses?course_id=${cls.course.id}`)}>
+                      <Link to={createPageUrl('TeacherClasses')}>
                         <Button size="sm" variant="outline">View Class</Button>
                       </Link>
                     </div>

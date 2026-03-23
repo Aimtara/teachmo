@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/components/shared/InternationalizationProvider';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,28 +10,55 @@ import { useAuth } from '@/components/hooks/useAuth';
 import { OrgService } from '@/services/org/api';
 import UniversalEmptyState from '@/components/shared/UniversalEmptyState';
 import LiveSupportWidget from '@/components/widgets/LiveSupportWidget';
+import { GoogleClassroomService } from '@/services/integrations/googleClassroom';
 
 export default function TeacherClasses() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [classes, setClasses] = useState([]);
+  const [error, setError] = useState('');
+  const [syncStatus, setSyncStatus] = useState('');
   const { t } = useTranslation();
 
+  const fetchClasses = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    setError('');
+    try {
+      const classData = await OrgService.getClassrooms(user.id);
+      setClasses(classData);
+    } catch (fetchError) {
+      console.error('Failed to fetch teacher classes:', fetchError);
+      setError('Unable to load your classes right now.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
-    const fetchClasses = async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const classData = await OrgService.getClassrooms(user.id);
-        setClasses(classData);
-      } catch (error) {
-        console.error('Failed to fetch teacher classes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchClasses();
-  }, [user]);
+  }, [fetchClasses]);
+
+  const handleSyncClasses = async () => {
+    if (!user?.id) {
+      setError('Unable to sync classes: missing teacher profile.');
+      return;
+    }
+    setSyncStatus('');
+    setError('');
+    setSyncing(true);
+    try {
+      const result = await GoogleClassroomService.syncCourses(user.id);
+      setSyncStatus(`Synced ${result.syncedCourses || 0} classes from Google Classroom.`);
+      await fetchClasses();
+    } catch (syncError) {
+      console.error('Failed to sync classes:', syncError);
+      setError('Could not sync classes right now. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <ProtectedRoute allowedRoles={['teacher', 'school_admin', 'district_admin', 'system_admin', 'admin']} requireAuth={true}>
@@ -42,13 +69,23 @@ export default function TeacherClasses() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('teacher_classes.title')}</h1>
               <p className="text-gray-600">{t('teacher_classes.description')}</p>
             </div>
-            <Link to="/settings?tab=integrations">
-              <Button variant="outline" className="gap-2">
-                <RefreshCw className="w-4 h-4" />
-                Sync Classes
-              </Button>
-            </Link>
+            <Button variant="outline" className="gap-2" onClick={handleSyncClasses} disabled={syncing}>
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing…' : 'Sync Classes'}
+            </Button>
           </header>
+
+          {syncStatus && <p className="text-sm text-green-700">{syncStatus}</p>}
+          {error && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <p className="text-sm text-red-700" role="alert">{error}</p>
+                <Button size="sm" variant="outline" onClick={fetchClasses}>
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {loading && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -58,7 +95,7 @@ export default function TeacherClasses() {
 
           {!loading && (!classes || classes.length === 0) && (
             <UniversalEmptyState
-              context="no-calendar-events"
+              context="no-classes"
               userType="teacher"
               className="bg-white border-dashed border-2"
             />

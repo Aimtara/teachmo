@@ -32,6 +32,11 @@ for (const [name, command] of steps) {
   const [cmd, ...args] = command;
   const result = spawnSync(cmd, args, { env, stdio: 'inherit' });
 
+  if (result.error) {
+    console.error(`Failed to start step "${name}" using command: ${[cmd, ...args].join(' ')}`);
+    console.error(result.error);
+    process.exit(1);
+  }
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
