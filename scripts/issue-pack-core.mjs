@@ -367,7 +367,7 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
   const parentWasCreated = !existingParent;
   if (parentIssue && !dryRun && (parentWasCreated || updateExisting)) {
     const nextParentBody = buildParentBodyWithLinks(
-      parentIssue.body || issuePack.parent.body,
+      parentIssue.body ?? issuePack.parent.body,
       createdOrFoundChildren,
     );
     await updateIssue(parentIssue.number, {
