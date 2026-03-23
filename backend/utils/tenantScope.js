@@ -24,7 +24,7 @@ export function getTenantScope(req) {
       req.query.schoolId
   );
   const userId = asUuidOrNull(req.auth?.userId || req.get('x-user-id') || req.query.user_id || req.query.userId);
-  const adminUserId = asUuidOrNull(req.get('x-admin-user-id') || req.get('x-user-id') || req.auth?.userId);
+  const adminUserId = asUuidOrNull(req.auth?.userId);
 
   return { districtId, schoolId, userId, adminUserId };
 }
