@@ -5,7 +5,7 @@ import {
   POLICY_OUTCOMES,
   TIERS,
 } from './governanceDecision.js';
-import { auditEventBare } from '../security/audit.js';
+import { auditEvent } from '../security/audit.js';
 
 const EXPLORE_INTENTS = new Set([
   'explore_deep_link',
@@ -134,13 +134,15 @@ export async function evaluatePolicy(ctx) {
     matchedPolicies,
     denialReason,
     requiredSkill,
-    requiresAuditEvent: policyOutcome !== POLICY_OUTCOMES.ALLOWED,
+    requiresAuditEvent:
+      policyOutcome === POLICY_OUTCOMES.BLOCKED ||
+      policyOutcome === POLICY_OUTCOMES.ESCALATED,
     latencyMs: Date.now() - start,
   });
 }
 
-export async function recordGovernanceDecision({ decision, actorId, organizationId, schoolId }) {
-  await auditEventBare({
+export async function recordGovernanceDecision(req, { decision, actorId, organizationId, schoolId }) {
+  await auditEvent(req, {
     eventType: 'ai.governance_decision',
     severity: decision.policyOutcome === POLICY_OUTCOMES.BLOCKED ? 'warn' : 'info',
     userId: actorId ?? null,
