@@ -1,5 +1,4 @@
-import fs from 'fs';
-import process from 'process';
+import fs from 'node:fs';
 import { parse } from 'yaml';
 
 function boolEnv(name, fallback) {
