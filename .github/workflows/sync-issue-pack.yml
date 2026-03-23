@@ -1,0 +1,50 @@
+name: Sync Issue Pack
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only (true/false)"
+        required: false
+        default: "false"
+      project_owner:
+        description: "Optional project owner login (org/user)"
+        required: false
+        default: ""
+      project_number:
+        description: "Optional GitHub Project v2 number"
+        required: false
+        default: ""
+  schedule:
+    - cron: '30 12 * * 1-5'
+
+permissions:
+  contents: read
+  issues: write
+  projects: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync issue pack
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          UPDATE_EXISTING: "true"
+          CREATE_MISSING: "true"
+          PROJECT_OWNER: ${{ github.event.inputs.project_owner }}
+          PROJECT_NUMBER: ${{ github.event.inputs.project_number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/sync-issue-pack.mjs
