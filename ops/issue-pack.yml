@@ -1,10 +1,17 @@
 meta:
   # Optional GitHub Project v2 integration. Set owner + project number to auto-add issues.
   project:
-    owner: ""
-    number: null
+    owner: "Aimtara"
+    number: 1
+    fields:
+      status: "Status"
+      priority: "Priority"
+      workstream: "Workstream"
   # Optional mapping from human names to GitHub usernames.
   assignee_map: {}
+  global_labels:
+    - in-progress
+    - blocked
 
 parent:
   key: parent-tracker
@@ -25,7 +32,7 @@ parent:
     - [-] Partial / scaffold exists, but not fully proven
 
     ## Automation Rollup
-    _This section is updated by the issue-pack bootstrap/sync workflow._
+    _This section is updated by the Automation Rollup workflow (`rollup-program-status.yml`) and script (`rollup-program-status.mjs`)._
 
     ## Linked child issues
     _This section is updated automatically._
@@ -40,6 +47,10 @@ children:
       - operations
       - P0
     assignees: []
+    project_fields:
+      status: "Todo"
+      priority: "P0"
+      workstream: "SSOT"
     body: |
       <!-- issue-pack-key: ssot-reconciliation -->
       ## Parent issue
@@ -69,6 +80,10 @@ children:
       - observability
       - P0
     assignees: []
+    project_fields:
+      status: "Todo"
+      priority: "P0"
+      workstream: "Gate 0"
     body: |
       <!-- issue-pack-key: gate-0 -->
       ## Parent issue
@@ -125,6 +140,10 @@ children:
       - security
       - P0
     assignees: []
+    project_fields:
+      status: "Todo"
+      priority: "P0"
+      workstream: "Gate 1"
     body: |
       <!-- issue-pack-key: gate-1 -->
       ## Parent issue
@@ -168,6 +187,10 @@ children:
       - platform
       - P0
     assignees: []
+    project_fields:
+      status: "Todo"
+      priority: "P0"
+      workstream: "AI Runtime"
     body: |
       <!-- issue-pack-key: ai-runtime-audit -->
       ## Parent issue
@@ -235,6 +258,10 @@ children:
       - pilot
       - P1
     assignees: []
+    project_fields:
+      status: "Todo"
+      priority: "P1"
+      workstream: "Gate 2"
     body: |
       <!-- issue-pack-key: gate-2 -->
       ## Parent issue
@@ -274,6 +301,10 @@ children:
       - pilot
       - P1
     assignees: []
+    project_fields:
+      status: "Todo"
+      priority: "P1"
+      workstream: "Gate 3"
     body: |
       <!-- issue-pack-key: gate-3 -->
       ## Parent issue
@@ -307,6 +338,10 @@ children:
       - operations
       - P1
     assignees: []
+    project_fields:
+      status: "Todo"
+      priority: "P1"
+      workstream: "Gate 4"
     body: |
       <!-- issue-pack-key: gate-4 -->
       ## Parent issue
@@ -339,6 +374,10 @@ children:
       - security
       - P2
     assignees: []
+    project_fields:
+      status: "Todo"
+      priority: "P2"
+      workstream: "Enterprise"
     body: |
       <!-- issue-pack-key: enterprise-hardening -->
       ## Parent issue

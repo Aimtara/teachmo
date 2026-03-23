@@ -36,7 +36,11 @@
     "migration:ts:inventory": "node scripts/ts-migration-inventory.mjs --write",
     "issues:bootstrap": "node scripts/bootstrap-issue-pack.mjs",
     "issues:sync": "node scripts/sync-issue-pack.mjs",
-    "issues:rollup": "node scripts/rollup-program-status.mjs"
+    "issues:rollup": "node scripts/rollup-program-status.mjs",
+    "issues:project-sync": "node scripts/project-sync-issue-pack.mjs",
+    "issues:project-status": "node scripts/project-status-automation.mjs",
+    "issues:validate": "node scripts/validate-issue-pack.mjs",
+    "issues:test": "node --test scripts/issue-pack-core.test.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^16.6.0",
