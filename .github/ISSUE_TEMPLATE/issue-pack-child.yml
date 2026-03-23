@@ -1,5 +1,5 @@
 name: Issue Pack Child Epic
-about: Create a child gate/epic issue compatible with issue-pack automation.
+description: Create a child gate/epic issue compatible with issue-pack automation.
 title: "[Issue Pack] Child Epic"
 labels:
   - epic
