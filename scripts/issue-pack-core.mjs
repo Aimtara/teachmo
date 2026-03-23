@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { parse } from 'yaml';
 
-function boolEnv(name, fallback) {
+export function boolEnv(name, fallback) {
   const raw = process.env[name];
   if (raw == null || raw === '') return fallback;
   return String(raw).toLowerCase() === 'true';
@@ -71,9 +71,29 @@ export function createGitHubClient({ token }) {
   return { gh, graphql };
 }
 
-function findIssueByKey(issues, key) {
+export function findIssueByKey(issues, key) {
   const marker = markerFor(key);
   return issues.find((issue) => (issue.body || '').includes(marker));
+}
+
+/**
+ * Fetch every non-PR issue from the repo, paginating until exhausted.
+ * No hard page cap — iterates until GitHub returns fewer than 100 items.
+ */
+export async function listAllIssues({ gh, owner, repoName }) {
+  const all = [];
+  let page = 1;
+  while (true) {
+    const items = await gh(
+      `/repos/${owner}/${repoName}/issues?state=all&per_page=100&page=${page}`,
+    );
+    all.push(...items.filter((i) => !i.pull_request));
+    if (items.length < 100) {
+      break;
+    }
+    page += 1;
+  }
+  return all;
 }
 
 const LINKS_START = '<!-- issue-pack-links:start -->';
@@ -83,7 +103,7 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildParentBodyWithLinks(parentBody, childIssues) {
+export function buildParentBodyWithLinks(parentBody, childIssues) {
   const linksBlock = [
     LINKS_START,
     '## Linked child issues',
@@ -100,7 +120,7 @@ function buildParentBodyWithLinks(parentBody, childIssues) {
   return `${parentBody}\n\n${linksBlock}`;
 }
 
-function normalizeAssignees(assignees = [], assigneeMap = {}) {
+export function normalizeAssignees(assignees = [], assigneeMap = {}) {
   return assignees.map((name) => assigneeMap[name] || name).filter(Boolean);
 }
 
@@ -119,32 +139,7 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
   const { gh, graphql } = createGitHubClient({ token });
 
   async function listIssues() {
-    const all = [];
-    const perPage = 100;
-    const maxPagesEnv = process.env.ISSUE_PACK_MAX_PAGES;
-    const parsedMaxPages = maxPagesEnv ? Number.parseInt(maxPagesEnv, 10) : Number.NaN;
-    const effectiveMaxPages = Number.isFinite(parsedMaxPages) && parsedMaxPages > 0 ? parsedMaxPages : 10;
-    let page = 1;
-
-    while (page <= effectiveMaxPages) {
-      const items = await gh(
-        `/repos/${owner}/${repoName}/issues?state=all&per_page=${perPage}&page=${page}`,
-      );
-      const issuesOnly = items.filter((i) => !i.pull_request);
-      all.push(...issuesOnly);
-      if (items.length < perPage) {
-        break;
-      }
-      page += 1;
-    }
-
-    if (page > effectiveMaxPages && all.length && process.env.ISSUE_PACK_MAX_PAGES == null) {
-      console.warn(
-        `[issue-pack] Reached default page limit (${effectiveMaxPages}) when listing issues;` +
-          ' set ISSUE_PACK_MAX_PAGES to a higher value if you need to scan more issues.',
-      );
-    }
-    return all;
+    return listAllIssues({ gh, owner, repoName });
   }
 
   async function listComments(issueNumber) {
@@ -384,4 +379,3 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
   console.log(`Children processed: ${createdOrFoundChildren.length}`);
 }
 
-export { boolEnv };

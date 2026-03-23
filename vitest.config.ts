@@ -37,8 +37,8 @@ export default defineConfig({
     environmentMatchGlobs: [
       ['backend/**/*.{test,spec}.{js,jsx,ts,tsx}', 'node'],
       ['nhost/functions/**/*.{test,spec}.{js,jsx,ts,tsx}', 'node'],
-      ['scripts/**/*.{test,spec}.{js,jsx,ts,tsx}', 'node'],
+      ['scripts/**/*.{test,spec}.?(c|m)[jt]s?(x)', 'node'],
     ],
-    exclude: ['node_modules', 'dist', 'backend/**', 'scripts/**'],
+    exclude: ['node_modules', 'dist', 'backend/**', 'scripts/loadtest/**'],
   },
 });

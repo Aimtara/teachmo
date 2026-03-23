@@ -1,5 +1,4 @@
-import process from 'process';
-import { createGitHubClient, loadIssuePack, markerFor } from './issue-pack-core.mjs';
+import { createGitHubClient, loadIssuePack, findIssueByKey, listAllIssues } from './issue-pack-core.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -13,26 +12,6 @@ const [owner, repoName] = repo.split('/');
 const issuePack = loadIssuePack();
 const { gh } = createGitHubClient({ token });
 
-async function listIssues() {
-  const all = [];
-  let page = 1;
-  // Paginate until GitHub returns fewer than 100 items, indicating the last page.
-  // This avoids the previous hard cap of 10 pages (1000 issues).
-  while (true) {
-    const items = await gh(`/repos/${owner}/${repoName}/issues?state=all&per_page=100&page=${page}`);
-    all.push(...items.filter((i) => !i.pull_request));
-    if (items.length < 100) {
-      break;
-    }
-    page += 1;
-  }
-  return all;
-}
-
-function findIssueByKey(issues, key) {
-  const marker = markerFor(key);
-  return issues.find((issue) => (issue.body || '').includes(marker));
-}
 
 function priorityFor(issue) {
   const labels = (issue.labels || []).map((l) => (typeof l === 'string' ? l : l.name));
@@ -129,7 +108,7 @@ async function upsertRollupComment(issueNumber, body) {
 }
 
 async function main() {
-  const issues = await listIssues();
+  const issues = await listAllIssues({ gh, owner, repoName });
   const parentIssue = findIssueByKey(issues, issuePack.parent.key);
 
   const children = issuePack.children.map((child) => ({
