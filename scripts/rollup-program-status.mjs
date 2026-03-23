@@ -15,10 +15,16 @@ const { gh } = createGitHubClient({ token });
 
 async function listIssues() {
   const all = [];
-  for (let page = 1; page <= 10; page += 1) {
+  let page = 1;
+  // Paginate until GitHub returns fewer than 100 items, indicating the last page.
+  // This avoids the previous hard cap of 10 pages (1000 issues).
+  while (true) {
     const items = await gh(`/repos/${owner}/${repoName}/issues?state=all&per_page=100&page=${page}`);
     all.push(...items.filter((i) => !i.pull_request));
-    if (items.length < 100) break;
+    if (items.length < 100) {
+      break;
+    }
+    page += 1;
   }
   return all;
 }
