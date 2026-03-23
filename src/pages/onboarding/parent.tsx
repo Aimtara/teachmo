@@ -141,7 +141,6 @@ export default function ParentOnboardingPage() {
     const profileSetInput = {
       full_name: `${values.firstName} ${values.lastName}`.trim(),
       app_role: 'parent',
-      organization_id: null,
       school_id: normalizedSchoolId || null,
       phone: values.phone?.trim() || null,
       city: values.city?.trim() || null,
