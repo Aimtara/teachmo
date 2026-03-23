@@ -5,9 +5,10 @@ import {
   POLICY_OUTCOMES,
   TIERS,
 } from './governanceDecision.js';
-import { auditEventBare } from '../security/audit.js';
+import { auditEvent } from '../security/audit.js';
 
 const EXPLORE_INTENTS = new Set([
+  'explore_deep_link',
   'EXPLORE_DEEP_LINK',
   'find_activities',
   'creative_activities',
@@ -19,7 +20,7 @@ const EXPLORE_INTENTS = new Set([
   'library',
 ]);
 
-const DISCOVERY_ROUTES = new Set(['EXPLORE_DEEP_LINK']);
+const DISCOVERY_ROUTES = new Set(['explore_deep_link']);
 
 const PARTNER_SUBMISSION_INTENTS = new Set([
   'submit_event',
@@ -28,9 +29,9 @@ const PARTNER_SUBMISSION_INTENTS = new Set([
 ]);
 
 const COACHING_ROUTES = new Set([
-  'HOMEWORK_HELP',
-  'WEEKLY_BRIEF_GENERATE',
-  'OFFICE_HOURS_BOOK',
+  'homework_help',
+  'weekly_brief_generate',
+  'office_hours_book',
 ]);
 
 const SCHOOL_SCOPED_ROLES = new Set(['teacher', 'school_admin']);
@@ -50,13 +51,16 @@ export async function evaluatePolicy(ctx) {
     tenantContext = {},
   } = ctx;
 
+  const normalizedRole = String(role || '').trim().toLowerCase();
+  const normalizedIntent = String(intent || '').trim().toLowerCase();
+
   const matchedPolicies = [];
   let policyOutcome = POLICY_OUTCOMES.ALLOWED;
   let denialReason = null;
   let requiredSkill = null;
   let tier = TIERS.TIER_1;
 
-  if (SCHOOL_SCOPED_ROLES.has(role)) {
+  if (SCHOOL_SCOPED_ROLES.has(normalizedRole)) {
     const actorSchoolId = authContext?.schoolId ?? null;
     const tenantSchoolId = tenantContext?.schoolId ?? null;
     if (actorSchoolId && tenantSchoolId && actorSchoolId !== tenantSchoolId) {
@@ -101,22 +105,22 @@ export async function evaluatePolicy(ctx) {
     });
   }
 
-  if (DISCOVERY_ROUTES.has(intent) || EXPLORE_INTENTS.has(intent)) {
+  if (DISCOVERY_ROUTES.has(normalizedIntent) || EXPLORE_INTENTS.has(normalizedIntent)) {
     matchedPolicies.push('POL-EXPLORE-001');
     policyOutcome = POLICY_OUTCOMES.REROUTED;
     requiredSkill = 'explore_routing';
     tier = TIERS.TIER_1;
-  } else if (PARTNER_SUBMISSION_INTENTS.has(intent) || String(role).toLowerCase() === 'partner') {
+  } else if (PARTNER_SUBMISSION_INTENTS.has(normalizedIntent) || normalizedRole === 'partner') {
     matchedPolicies.push('POL-PARTNER-001');
     policyOutcome = POLICY_OUTCOMES.QUEUED;
     requiredSkill = 'partner_submission';
     tier = TIERS.TIER_2;
-  } else if (SCHOOL_REQUEST_INTENTS.has(intent)) {
+  } else if (SCHOOL_REQUEST_INTENTS.has(normalizedIntent)) {
     matchedPolicies.push('POL-SCHOOL-001');
     policyOutcome = POLICY_OUTCOMES.QUEUED;
     requiredSkill = 'school_request';
     tier = TIERS.TIER_2;
-  } else if (COACHING_ROUTES.has(intent) || intent === 'COACH') {
+  } else if (COACHING_ROUTES.has(normalizedIntent) || normalizedIntent === 'coach') {
     matchedPolicies.push('POL-COACH-001');
     policyOutcome = POLICY_OUTCOMES.REROUTED;
     requiredSkill = 'parent_coach';
@@ -130,13 +134,15 @@ export async function evaluatePolicy(ctx) {
     matchedPolicies,
     denialReason,
     requiredSkill,
-    requiresAuditEvent: policyOutcome !== POLICY_OUTCOMES.ALLOWED,
+    requiresAuditEvent:
+      policyOutcome === POLICY_OUTCOMES.BLOCKED ||
+      policyOutcome === POLICY_OUTCOMES.ESCALATED,
     latencyMs: Date.now() - start,
   });
 }
 
-export async function recordGovernanceDecision({ decision, actorId, organizationId, schoolId }) {
-  await auditEventBare({
+export async function recordGovernanceDecision(req, { decision, actorId, organizationId, schoolId }) {
+  await auditEvent(req, {
     eventType: 'ai.governance_decision',
     severity: decision.policyOutcome === POLICY_OUTCOMES.BLOCKED ? 'warn' : 'info',
     userId: actorId ?? null,

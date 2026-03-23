@@ -1,5 +1,6 @@
 /* eslint-env jest */
 
+import { jest } from '@jest/globals';
 import { requireGovernance } from '../middleware/requireGovernance.js';
 
 function createRes() {

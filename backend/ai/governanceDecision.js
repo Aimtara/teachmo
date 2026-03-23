@@ -28,9 +28,11 @@ export function createGovernanceDecision({
     throw new Error(`Invalid policyOutcome: ${policyOutcome}`);
   }
 
-  if (![1, 2, 3].includes(tier)) {
+  if (!Object.values(TIERS).includes(tier)) {
     throw new Error(`Invalid tier: ${tier}`);
   }
+
+  const normalizedLatencyMs = Number(latencyMs);
 
   const frozenMatchedPolicies = Array.isArray(matchedPolicies)
     ? Object.freeze(
@@ -51,7 +53,9 @@ export function createGovernanceDecision({
     denialReason: denialReason ?? null,
     requiredSkill: requiredSkill ?? null,
     requiresAuditEvent: Boolean(requiresAuditEvent),
-    latencyMs: Number(latencyMs) || 0,
+    latencyMs: Number.isFinite(normalizedLatencyMs) && normalizedLatencyMs >= 0
+      ? normalizedLatencyMs
+      : 0,
   });
 }
 

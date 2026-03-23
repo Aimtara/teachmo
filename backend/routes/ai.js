@@ -6,9 +6,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { auditEvent } from '../security/audit.js';
-import { callModel } from '../ai/llmAdapter.js';
-import { query as dbQuery } from '../db.js';
 import { preRequestHook } from '../middleware/aiGovernance.js';
+import { callModel } from '../ai/llmAdapter.js';
 import { preToolGovernance } from '../middleware/preToolGovernance.js';
 import { applyPostResponseGovernance } from '../middleware/postResponseGovernance.js';
 import { getGovernedSkill, listGovernedSkills } from '../ai/skillRegistry.js';
@@ -220,12 +219,16 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
 
     const governanceMetadata = govDecision
       ? {
-          governanceAction,
-          verifier: null,
           source: 'completion',
-          governance: buildGovernanceMetadata(govDecision, {
+          governance: {
             enabled: Boolean(req.governanceEnabled),
-          }),
+            requestId: govDecision.requestId,
+            tier: govDecision.tier,
+            policyOutcome: govDecision.policyOutcome,
+            matchedPolicies: govDecision.matchedPolicies,
+            denialReason: govDecision.denialReason,
+            requiredSkill: govDecision.requiredSkill,
+          },
         }
       : { source: 'completion' };
 
@@ -345,7 +348,7 @@ router.post('/tool', requirePermission('generate', 'ai'), preRequestHook, requir
       toolResult: actionResult,
     });
 
-    await dbQuery(
+    await query(
       `insert into ai_interactions
         (organization_id, school_id, actor_id, actor_role, child_id, prompt, response, token_prompt, token_response, token_total,
          safety_risk_score, safety_flags, model, metadata, latency_ms, inputs, outputs, prompt_id, prompt_version_id, user_id, cost_usd)
