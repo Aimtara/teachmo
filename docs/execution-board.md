@@ -97,7 +97,7 @@
 
 ### Gate 0 checklist
 - [x] Global error handling + logging exists with request IDs (E01).
-- [x] Cold start + core screen perf budgets met (E02).
+- [ ] Cold start + core screen perf budgets met (E02). *(brotli bundle regression — size budget check failing, tracked separately)*
 - [x] Accessibility baseline pass for core screens (E03).
 - [x] Analytics event schema exists and is enforced (E04).
 - [x] System health dashboard shows error rate + queue backlog (E19).
@@ -131,7 +131,7 @@
 | Gate | Checklist item | Classification | Evidence snapshot |
 | --- | --- | --- | --- |
 | Gate 0 | E01 Global error handling + request IDs | shipped and verified | Request context middleware now injects request IDs, structured completion logs, and global error handling with request ID echo. |
-| Gate 0 | E02 Perf baseline + cold start guardrails | shipped and verified | Perf guardrails are codified through bundle budget (`check:size`) plus repeatable load test harness (`loadtest:systemHealth`) used in release checks. |
+| Gate 0 | E02 Perf baseline + cold start guardrails | in progress | Perf guardrails codified through bundle budget (`check:size`); brotli bundle currently exceeds 500 kB limit — regression tracked separately before gate can close. |
 | Gate 0 | E03 Accessibility baseline core screens | shipped and verified | Automated accessibility + keyboard tests exist in Jest/Playwright suites (`test:a11y`, `e2e:a11y`, keyboard e2e). |
 | Gate 0 | E04 Analytics event schema enforced | shipped and verified | Telemetry pipeline now enforces required analytics dimensions (`organizationId`, `role`, `surface`) before emitting track-event calls. |
 | Gate 0 | E19 System health dashboard error rate + queue backlog | shipped and verified | Admin System Health now shows notification queue backlog and 24h API error-rate metrics from backend health endpoint. |

@@ -84,9 +84,20 @@ function sanitizeTelemetryClientMetadata(input?: Record<string, unknown>): Recor
   return undefined;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 function hasRequiredAnalyticsShape(metadata?: Record<string, unknown>): boolean {
   if (!metadata) return false;
-  return Boolean(metadata.organizationId && metadata.surface && metadata.role);
+  return (
+    isNonEmptyString(metadata.organizationId) &&
+    UUID_RE.test(metadata.organizationId) &&
+    isNonEmptyString(metadata.surface) &&
+    isNonEmptyString(metadata.role)
+  );
 }
 
 /**
@@ -98,13 +109,6 @@ export async function trackEvent(input: TelemetryEventInput): Promise<void> {
       ...input,
       metadata: sanitizeTelemetryClientMetadata(input.metadata),
     };
-
-    if (!hasRequiredAnalyticsShape(safeInput.metadata)) {
-      logger.warn('track-event skipped: missing required analytics fields', {
-        eventName: input.eventName,
-      });
-      return;
-    }
 
     const { error } = await nhost.functions.call('track-event', safeInput);
     if (error) logger.warn('track-event failed', error);
@@ -125,6 +129,13 @@ export async function logAnalyticsEvent(
     role: context.role ?? 'unknown',
     surface: context.surface ?? 'web',
   };
+
+  if (!hasRequiredAnalyticsShape(metadata)) {
+    logger.warn('logAnalyticsEvent skipped: missing required analytics fields', {
+      eventName: input.eventName,
+    });
+    return;
+  }
 
   await trackEvent({ ...input, metadata });
 }
