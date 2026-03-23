@@ -152,18 +152,9 @@ export function extractConsentScope(req) {
 
 export async function preRequestHook(req, res, next) {
   try {
-    const enabled = await isGovernanceEnabled(req);
-    if (!enabled) {
-      req.governanceEnabled = false;
-      return next();
-    }
-
-    // Prefer the request ID already set by attachRequestContext to avoid
-    // re-reading and echoing back an unvalidated client-supplied header.
-    const requestId = req.requestId || crypto.randomUUID();
-
-    // Cheap early-return: skip governance when the body has no evaluable content
-    // to avoid unnecessary DB work and noisy audit events.
+    // Cheap early-return: skip governance (and any DB work) when the body has
+    // no evaluable content to avoid unnecessary feature-flag queries and noisy
+    // audit events for empty or non-AI payloads.
     const body = req.body;
     const isPlainObject = body && typeof body === 'object' && !Array.isArray(body);
     const hasPrompt = isPlainObject && typeof body.prompt === 'string' && body.prompt.trim().length > 0;
@@ -176,6 +167,16 @@ export async function preRequestHook(req, res, next) {
       req.governanceAuditRecorded = false;
       return next();
     }
+
+    const enabled = await isGovernanceEnabled(req);
+    if (!enabled) {
+      req.governanceEnabled = false;
+      return next();
+    }
+
+    // Prefer the request ID already set by attachRequestContext to avoid
+    // re-reading and echoing back an unvalidated client-supplied header.
+    const requestId = req.requestId || crypto.randomUUID();
 
     const auth = req.auth || {};
     const tenant = req.tenant || {};
