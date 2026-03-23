@@ -53,8 +53,5 @@ export function isBlocked(decision) {
 }
 
 export function requiresSkill(decision) {
-  return (
-    decision?.policyOutcome === POLICY_OUTCOMES.REROUTED ||
-    decision?.policyOutcome === POLICY_OUTCOMES.QUEUED
-  );
+  return Boolean(decision?.requiredSkill);
 }
