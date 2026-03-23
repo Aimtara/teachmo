@@ -37,18 +37,53 @@ async function isGovernanceEnabled(req) {
     const { rows } = await query(
       `select key, enabled, school_id, rollout_percentage, canary_percentage, allowlist, denylist
        from public.feature_flags
-       where key = $1 and organization_id = $2 and (school_id is null or school_id = $3)`,
-      [GOVERNANCE_FLAG, organizationId, schoolId ?? null]
-    );
+    // Reuse memoized decision when available to avoid duplicate work per request.
+    if (typeof req._governanceFlagEnabled !== 'undefined') {
+      return req._governanceFlagEnabled;
+    }
 
-    const overrides = mergeOverridesByKey(rows, schoolId);
-    const override = normalizeFlagOverride(overrides[GOVERNANCE_FLAG]);
-    return evaluateFlag({
+    const organizationId = req.auth?.organizationId || req.tenant?.organizationId;
+    const schoolId = req.auth?.schoolId || req.tenant?.schoolId;
+
+    if (!organizationId) {
+      req._governanceFlagEnabled = false;
+      return false;
+    }
+
+    let override = null;
+
+    // If upstream middleware has already computed feature flag overrides for this request,
+    // prefer those instead of doing another feature_flags DB round-trip.
+    if (req.featureFlagOverrides && typeof req.featureFlagOverrides === 'object') {
+      const cachedOverride = req.featureFlagOverrides[GOVERNANCE_FLAG];
+      if (cachedOverride) {
+        override = normalizeFlagOverride(cachedOverride);
+      }
+    }
+
+    // Fall back to querying the database only when we don't have a cached override.
+    if (!override) {
+      const { rows } = await query(
+        `select key, enabled, school_id, rollout_percentage, canary_percentage, allowlist, denylist
+         from public.feature_flags
+         where key = $1 and organization_id = $2 and (school_id is null or school_id = $3)`,
+        [GOVERNANCE_FLAG, organizationId, schoolId ?? null]
+      );
+
+      const overrides = mergeOverridesByKey(rows, schoolId);
+      override = normalizeFlagOverride(overrides[GOVERNANCE_FLAG]);
+    }
+
+    const enabled = evaluateFlag({
       key: GOVERNANCE_FLAG,
       context: req.auth || {},
       override,
     });
+
+    req._governanceFlagEnabled = enabled;
+    return enabled;
   } catch {
+    req._governanceFlagEnabled = false;
     return evaluateFlag({
       key: GOVERNANCE_FLAG,
       context: req.auth || {},
