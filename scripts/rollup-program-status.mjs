@@ -3,6 +3,7 @@ import { createGitHubClient, listAllIssues, loadIssuePack, markerFor } from './i
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
+const dryRun = String(process.env.DRY_RUN || 'false').toLowerCase() === 'true';
 const writeComment = String(process.env.WRITE_COMMENT || 'false').toLowerCase() === 'true';
 
 if (!repo || !token) {
@@ -119,16 +120,27 @@ async function main() {
   const rollup = renderRollupTable(rows);
   const nextBody = replaceRollupSection(parentIssue.body || '', rollup);
 
-  await updateIssueBody(parentIssue.number, nextBody);
+  if (dryRun) {
+    console.log(`[dry-run] would update parent issue #${parentIssue.number} body`);
+    if (writeComment) {
+      console.log(`[dry-run] would upsert rollup comment on issue #${parentIssue.number}`);
+    }
+  } else {
+    await updateIssueBody(parentIssue.number, nextBody);
 
-  if (writeComment) {
-    await upsertRollupComment(
-      parentIssue.number,
-      `${rollup}\n\n_This rollup was generated automatically._`,
-    );
+    if (writeComment) {
+      await upsertRollupComment(
+        parentIssue.number,
+        `${rollup}\n\n_This rollup was generated automatically._`,
+      );
+    }
   }
 
-  console.log(`Program rollup updated on parent issue #${parentIssue.number}.`);
+  console.log(
+    dryRun
+      ? 'Program rollup dry-run complete (no writes).'
+      : `Program rollup updated on parent issue #${parentIssue.number}.`,
+  );
 }
 
 main().catch((error) => {
