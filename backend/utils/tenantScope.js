@@ -9,23 +9,55 @@ export function asUuidOrNull(value) {
 }
 
 export function getTenantScope(req) {
-  const districtId = asUuidOrNull(
-    req.tenant?.organizationId ||
-      req.get('x-district-id') ||
-      req.get('x-tenant-district-id') ||
-      req.query.district_id ||
-      req.query.districtId
-  );
-  const schoolId = asUuidOrNull(
-    req.tenant?.schoolId ||
-      req.get('x-school-id') ||
-      req.get('x-tenant-school-id') ||
-      req.query.school_id ||
-      req.query.schoolId
-  );
-  const userId = asUuidOrNull(req.auth?.userId || req.get('x-user-id') || req.query.user_id || req.query.userId);
-  const adminUserId = asUuidOrNull(req.auth?.userId);
+  const allowTenantHeaderFallback =
+    process.env.ALLOW_TENANT_HEADER_FALLBACK === 'true' &&
+    process.env.NODE_ENV !== 'production';
 
+  // Prefer authenticated claims for tenant scoping
+  const authDistrictId = asUuidOrNull(req.auth?.districtId || req.auth?.organizationId);
+  const tenantDistrictId = asUuidOrNull(req.tenant?.organizationId);
+  let districtId = authDistrictId || tenantDistrictId;
+
+  // Only allow header/query overrides when explicitly enabled in non-production
+  if (!districtId && allowTenantHeaderFallback) {
+    districtId = asUuidOrNull(
+      req.get('x-district-id') ||
+        req.get('x-tenant-district-id') ||
+        req.query.district_id ||
+        req.query.districtId
+    );
+  }
+
+  const authSchoolId = asUuidOrNull(req.auth?.schoolId);
+  const tenantSchoolId = asUuidOrNull(req.tenant?.schoolId);
+  let schoolId = authSchoolId || tenantSchoolId;
+
+  if (!schoolId && allowTenantHeaderFallback) {
+    schoolId = asUuidOrNull(
+      req.get('x-school-id') ||
+        req.get('x-tenant-school-id') ||
+        req.query.school_id ||
+        req.query.schoolId
+    );
+  }
+
+  let userId = asUuidOrNull(req.auth?.userId);
+  if (!userId && allowTenantHeaderFallback) {
+    userId = asUuidOrNull(
+      req.get('x-user-id') ||
+        req.query.user_id ||
+        req.query.userId
+    );
+  }
+
+  // Admin user ID should not be overridden by headers in production.
+  let adminUserId = asUuidOrNull(req.auth?.userId);
+  if (!adminUserId && allowTenantHeaderFallback) {
+    adminUserId = asUuidOrNull(
+      req.get('x-admin-user-id') ||
+        req.get('x-user-id')
+    );
+  }
   return { districtId, schoolId, userId, adminUserId };
 }
 
