@@ -1,0 +1,40 @@
+name: Rollup Program Status
+
+on:
+  workflow_dispatch:
+    inputs:
+      write_comment:
+        description: "Post rollup as a parent issue comment (true/false)"
+        required: false
+        default: "false"
+  schedule:
+    - cron: "0 13 * * 1-5"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  rollup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate issue pack config
+        run: node scripts/validate-issue-pack.mjs
+
+      - name: Build program rollup
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WRITE_COMMENT: ${{ github.event.inputs.write_comment || 'false' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/rollup-program-status.mjs

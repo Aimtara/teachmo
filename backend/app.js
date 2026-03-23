@@ -43,6 +43,8 @@ import commandCenterRouter from './routes/commandCenter.js';
 import ssoRouter from './routes/sso.js';
 import auditExportRouter from './routes/auditExport.js';
 import publicPartnersRouter from './routes/publicPartners.js';
+import { isExplicitlyAllowedReplitOrigin } from './utils/corsOrigins.js';
+import { attachRequestContext, globalErrorHandler } from './middleware/requestContext.js';
 
 // Load environment variables
 dotenv.config();
@@ -65,6 +67,7 @@ const devFallbackOrigins = [
   'http://localhost:3000'
 ];
 
+
 const corsOptions = {
   origin(origin, cb) {
     // Allow same-origin / server-to-server (no origin header).
@@ -73,6 +76,7 @@ const corsOptions = {
     const env = (process.env.NODE_ENV || 'development').toLowerCase();
     const list = allowedOrigins.length ? allowedOrigins : (env === 'production' ? [] : devFallbackOrigins);
 
+    if (isExplicitlyAllowedReplitOrigin(origin)) return cb(null, true);
     if (list.includes(origin)) return cb(null, true);
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   }
@@ -83,6 +87,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(passport.initialize());
 app.use(attachAuthContext);
+app.use(attachRequestContext);
 app.use(metricsMiddleware);
 app.use(captureApiMetrics);
 
@@ -133,5 +138,7 @@ app.get('/api/metrics', (req, res) => {
 app.get('/api', (req, res) => {
   res.send({ message: 'Welcome to the Teachmo API' });
 });
+
+app.use(globalErrorHandler);
 
 export default app;

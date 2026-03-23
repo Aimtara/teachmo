@@ -5,6 +5,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { recordAuditLog } from '../utils/audit.js';
+import { evaluatePolicy } from '../ai/policyEngine.js';
 
 const router = Router();
 
@@ -20,6 +21,55 @@ function buildTenantWhere({ organizationId, schoolId }) {
     };
   }
   return { where: 'organization_id = $1', params: [organizationId] };
+}
+
+
+function parseDays(value, fallback = 30) {
+  const n = Math.floor(Number(value));
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(n, 365);
+}
+
+function buildRecentWindowClause(days, params) {
+  params.push(days);
+  return `created_at >= now() - $${params.length} * interval '1 day'`;
+}
+
+async function getGovernanceSummary({ organizationId, schoolId, days }) {
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  const windowClause = buildRecentWindowClause(days, params);
+
+  const summary = await query(
+    `select
+       count(*) as total_requests,
+       count(*) filter (where metadata->'governance' is not null) as governed_requests,
+       count(*) filter (
+         where metadata->'governance' is not null
+           and coalesce(metadata->'governance'->>'policyOutcome','allowed') = 'allowed'
+       ) as allowed_requests,
+       count(*) filter (where metadata->'governance'->>'policyOutcome' = 'blocked') as blocked_requests,
+       count(*) filter (where metadata->'governance'->>'policyOutcome' = 'rerouted') as rerouted_requests,
+       count(*) filter (where metadata->'governance'->>'policyOutcome' = 'queued') as queued_requests,
+       count(*) filter (where metadata->'governance'->>'policyOutcome' = 'escalated') as escalated_requests,
+       count(*) filter (where metadata->'verifier' is not null or metadata->>'verifier' is not null) as verifier_checked,
+       count(*) filter (
+         where (metadata->'verifier'->>'ok' = 'false')
+            or (
+              jsonb_typeof(metadata->'verifier'->'issues') = 'array'
+              and jsonb_array_length(metadata->'verifier'->'issues') > 0
+            )
+       ) as verifier_flagged
+     from ai_interactions
+     where ${where} and ${windowClause}`,
+    params
+  );
+
+  const row = summary.rows?.[0] ?? {};
+
+  return {
+    totals: row,
+    verifier: row,
+  };
 }
 
 router.get('/prompts', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
@@ -356,6 +406,229 @@ router.get('/usage-summary', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), asy
     },
     byModel: r.rows || [],
   });
+});
+
+
+router.get('/governance-summary', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = parseDays(req.query.days, 30);
+  const summary = await getGovernanceSummary({ organizationId, schoolId, days });
+
+  res.json({
+    windowDays: days,
+    totals: {
+      totalRequests: Number(summary.totals.total_requests || 0),
+      governedRequests: Number(summary.totals.governed_requests || 0),
+      allowedRequests: Number(summary.totals.allowed_requests || 0),
+      blockedRequests: Number(summary.totals.blocked_requests || 0),
+      reroutedRequests: Number(summary.totals.rerouted_requests || 0),
+      queuedRequests: Number(summary.totals.queued_requests || 0),
+      escalatedRequests: Number(summary.totals.escalated_requests || 0),
+    },
+    verifier: {
+      checked: Number(summary.verifier.verifier_checked || 0),
+      flagged: Number(summary.verifier.verifier_flagged || 0),
+    },
+  });
+});
+
+router.get('/governance-blocked-reasons', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = parseDays(req.query.days, 30);
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  const windowClause = buildRecentWindowClause(days, params);
+
+  const r = await query(
+    `select
+       coalesce(metadata->'governance'->>'denialReason', 'unspecified') as reason,
+       count(*) as count
+     from ai_interactions
+     where ${where}
+       and ${windowClause}
+       and metadata->'governance'->>'policyOutcome' = 'blocked'
+     group by 1
+     order by count(*) desc, reason asc`,
+    params
+  );
+
+  res.json({
+    windowDays: days,
+    reasons: (r.rows || []).map((row) => ({
+      reason: row.reason,
+      count: Number(row.count || 0),
+    })),
+  });
+});
+
+router.get('/governance-skill-usage', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = parseDays(req.query.days, 30);
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  const windowClause = buildRecentWindowClause(days, params);
+
+  const r = await query(
+    `select
+       coalesce(metadata->'governance'->>'requiredSkill', metadata->>'executedSkill', 'none') as skill,
+       count(*) as count
+     from ai_interactions
+     where ${where}
+       and ${windowClause}
+       and (
+         metadata->'governance'->>'requiredSkill' is not null
+         or metadata->>'executedSkill' is not null
+       )
+     group by 1
+     order by count(*) desc, skill asc`,
+    params
+  );
+
+  res.json({
+    windowDays: days,
+    skills: (r.rows || []).map((row) => ({
+      skill: row.skill,
+      count: Number(row.count || 0),
+    })),
+  });
+});
+
+router.get('/governance-outcomes', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = parseDays(req.query.days, 30);
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  const windowClause = buildRecentWindowClause(days, params);
+
+  const r = await query(
+    `select
+       coalesce(metadata->'governance'->>'policyOutcome', 'allowed') as outcome,
+       count(*) as count
+     from ai_interactions
+     where ${where}
+       and ${windowClause}
+       and metadata->'governance' is not null
+     group by 1
+     order by count(*) desc, outcome asc`,
+    params
+  );
+
+  res.json({
+    windowDays: days,
+    outcomes: (r.rows || []).map((row) => ({
+      outcome: row.outcome,
+      count: Number(row.count || 0),
+    })),
+  });
+});
+
+router.get('/governance-audit-export', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  const { organizationId, schoolId } = req.tenant;
+  const days = Math.min(Number(req.query.days) || 30, 365);
+  const { where, params } = buildTenantWhere({ organizationId, schoolId });
+  params.push(days);
+
+  const interactions = await query(
+    `select
+       id,
+       created_at,
+       actor_id,
+       actor_role,
+       model,
+       cost_usd,
+       metadata,
+       reviewer_status
+     from ai_interactions
+     where ${where}
+       and created_at >= now() - (($${params.length}::text || ' days')::interval)
+     order by created_at desc`,
+    params
+  );
+
+  const budget = await query(
+    `select monthly_limit_usd, spent_usd, reset_at, fallback_policy
+     from ai_tenant_budgets
+     where organization_id = $1 and school_id is not distinct from $2`,
+    [organizationId, schoolId || null]
+  );
+
+  const modelPolicy = await query(
+    `select default_model, fallback_model, allowed_models, feature_flags
+     from ai_model_policies
+     where organization_id = $1 and school_id is not distinct from $2`,
+    [organizationId, schoolId || null]
+  );
+
+  if (req.query.format === 'csv') {
+    const rows = interactions.rows || [];
+    const safeCsvCell = (value) => {
+      const text = String(value ?? '');
+      const formulaPrefixed = /^[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${formulaPrefixed.replace(/"/g, '""')}"`;
+    };
+    const header = [
+      'id', 'created_at', 'actor_id', 'actor_role', 'model', 'cost_usd',
+      'policy_outcome', 'denial_reason', 'required_skill', 'reviewer_status',
+    ];
+    const csv = [
+      header.join(','),
+      ...rows.map((r) => [
+        r.id,
+        r.created_at,
+        r.actor_id ?? '',
+        r.actor_role ?? '',
+        r.model ?? '',
+        r.cost_usd ?? '',
+        r.metadata?.governance?.policyOutcome ?? '',
+        r.metadata?.governance?.denialReason ?? '',
+        r.metadata?.governance?.requiredSkill ?? '',
+        r.reviewer_status ?? '',
+      ].map((v) => safeCsvCell(v)).join(',')),
+    ].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="ai-governance-audit-${days}d.csv"`);
+    return res.send(csv);
+  }
+
+  return res.json({
+    generatedAt: new Date().toISOString(),
+    windowDays: days,
+    tenant: { organizationId, schoolId: schoolId || null },
+    budget: budget.rows?.[0] ?? null,
+    modelPolicy: modelPolicy.rows?.[0] ?? null,
+    interactions: interactions.rows || [],
+  });
+});
+
+router.post('/simulate-policy', requireFeatureFlag('ENTERPRISE_AI_GOVERNANCE'), async (req, res) => {
+  try {
+    const { organizationId, schoolId } = req.tenant;
+    const {
+      role,
+      intent,
+      hasChildData,
+      consentScope,
+      guardianVerified,
+      safetyEscalate,
+      actorSchoolId,
+      tenantSchoolId,
+    } = req.body || {};
+
+    const decision = await evaluatePolicy({
+      requestId: 'simulation',
+      role: role || 'UNKNOWN',
+      intent: intent || null,
+      hasChildData: Boolean(hasChildData),
+      consentScope: Array.isArray(consentScope) ? consentScope : [],
+      guardianVerified: Boolean(guardianVerified),
+      safetyEscalate: Boolean(safetyEscalate),
+      authContext: { schoolId: actorSchoolId || schoolId || null, organizationId },
+      tenantContext: { schoolId: tenantSchoolId || schoolId || null, organizationId },
+    });
+    return res.json({ decision });
+  } catch (error) {
+    return res.status(400).json({
+      error: 'policy_simulation_failed',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
 });
 
 router.get('/review-queue', requireFeatureFlag('ENTERPRISE_AI_REVIEW'), async (req, res) => {

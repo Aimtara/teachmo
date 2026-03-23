@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { graphql } from '@/lib/graphql';
@@ -10,6 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
+import AIGovernanceOverviewCards from '@/components/admin/ai/AIGovernanceOverviewCards';
+import AIGovernanceOutcomeList from '@/components/admin/ai/AIGovernanceOutcomeList';
+import AIGovernanceBlockedReasons from '@/components/admin/ai/AIGovernanceBlockedReasons';
+import AIGovernanceSkillUsage from '@/components/admin/ai/AIGovernanceSkillUsage';
+import AIGovernanceFilters from '@/components/admin/ai/AIGovernanceFilters';
+import AIPolicySimulationPanel from '@/components/admin/ai/AIPolicySimulationPanel';
 
 async function fetchJson(url, opts = {}) {
   const response = await fetch(url, opts);
@@ -20,9 +26,16 @@ async function fetchJson(url, opts = {}) {
   return response.json();
 }
 
+function formatMoney(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return '0.00';
+  return n.toFixed(2);
+}
+
 export default function AdminAIGovernance() {
   const { data: scope } = useTenantScope();
   const organizationId = scope?.organizationId ?? null;
+  const schoolId = scope?.schoolId ?? null;
 
   const headersQuery = useQuery({
     queryKey: ['ai-governance-token'],
@@ -84,6 +97,32 @@ export default function AdminAIGovernance() {
     queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/model-policy`, { headers: headersQuery.data }),
   });
 
+  const [windowDays, setWindowDays] = useState(30);
+
+  const governanceSummaryQuery = useQuery({
+    queryKey: ['ai-governance-summary', organizationId, schoolId, windowDays],
+    enabled: Boolean(headersQuery.data && organizationId),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/governance-summary?days=${windowDays}`, { headers: headersQuery.data }),
+  });
+
+  const governanceOutcomesQuery = useQuery({
+    queryKey: ['ai-governance-outcomes', organizationId, schoolId, windowDays],
+    enabled: Boolean(headersQuery.data && organizationId),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/governance-outcomes?days=${windowDays}`, { headers: headersQuery.data }),
+  });
+
+  const blockedReasonsQuery = useQuery({
+    queryKey: ['ai-governance-blocked-reasons', organizationId, schoolId, windowDays],
+    enabled: Boolean(headersQuery.data && organizationId),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/governance-blocked-reasons?days=${windowDays}`, { headers: headersQuery.data }),
+  });
+
+  const skillUsageQuery = useQuery({
+    queryKey: ['ai-governance-skill-usage', organizationId, schoolId, windowDays],
+    enabled: Boolean(headersQuery.data && organizationId),
+    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/governance-skill-usage?days=${windowDays}`, { headers: headersQuery.data }),
+  });
+
   const [budgetForm, setBudgetForm] = useState({ monthlyLimitUsd: '', fallbackPolicy: 'block' });
   const [modelForm, setModelForm] = useState({
     defaultModel: 'gpt-4o-mini',
@@ -92,7 +131,7 @@ export default function AdminAIGovernance() {
     featureFlags: '',
   });
 
-  useMemo(() => {
+  useEffect(() => {
     if (budgetQuery.data?.budget) {
       setBudgetForm({
         monthlyLimitUsd: budgetQuery.data.budget.monthly_limit_usd ?? '',
@@ -101,7 +140,7 @@ export default function AdminAIGovernance() {
     }
   }, [budgetQuery.data]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (modelPolicyQuery.data?.policy) {
       const policy = modelPolicyQuery.data.policy;
       setModelForm({
@@ -153,6 +192,20 @@ export default function AdminAIGovernance() {
   const promptCount = promptLibraryQuery.data?.prompts?.length ?? 0;
   const usageTotals = usageSummaryQuery.data?.totals;
 
+  const governanceSummary = governanceSummaryQuery.data;
+  const governanceOutcomes =
+    !governanceOutcomesQuery.isLoading && !governanceOutcomesQuery.isError
+      ? governanceOutcomesQuery.data?.outcomes ?? []
+      : undefined;
+  const blockedReasons =
+    !blockedReasonsQuery.isLoading && !blockedReasonsQuery.isError
+      ? blockedReasonsQuery.data?.reasons ?? []
+      : undefined;
+  const skillUsage =
+    !skillUsageQuery.isLoading && !skillUsageQuery.isError
+      ? skillUsageQuery.data?.skills ?? []
+      : undefined;
+
   return (
     <ProtectedRoute allowedRoles={['system_admin', 'district_admin', 'school_admin', 'admin']}>
       <div className="p-6 space-y-6">
@@ -162,6 +215,15 @@ export default function AdminAIGovernance() {
             Track AI model usage, review queue activity, and published transparency briefs for your tenant.
           </p>
         </header>
+
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <AIGovernanceFilters value={windowDays} onChange={setWindowDays} />
+          <div className="text-xs text-muted-foreground">
+            Governance dashboard window: last {windowDays} days
+          </div>
+        </div>
+
+        <AIGovernanceOverviewCards summary={governanceSummary} />
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
@@ -189,7 +251,7 @@ export default function AdminAIGovernance() {
               </div>
               <div className="flex justify-between">
                 <span>Estimated spend</span>
-                <span className="font-semibold">${usageTotals?.cost_usd?.toFixed?.(2) ?? '0.00'}</span>
+                <span className="font-semibold">${formatMoney(usageTotals?.cost_usd)}</span>
               </div>
               <Link className="text-blue-600 hover:underline" to="/admin/analytics">
                 Explore analytics →
@@ -214,6 +276,33 @@ export default function AdminAIGovernance() {
             </CardContent>
           </Card>
         </div>
+
+        <div className="grid gap-4 xl:grid-cols-3">
+          <AIGovernanceOutcomeList outcomes={governanceOutcomes} />
+          <AIGovernanceBlockedReasons reasons={blockedReasons} />
+          <AIGovernanceSkillUsage skills={skillUsage} />
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Compliance Export</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="text-muted-foreground">
+              Export AI governance activity, policy outcomes, and verifier signals for audits.
+            </div>
+            <div className="flex gap-2">
+              <Button asChild>
+                <a href={`${API_BASE_URL}/admin/ai/governance-audit-export?days=${windowDays}`} target="_blank" rel="noreferrer">Export JSON</a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href={`${API_BASE_URL}/admin/ai/governance-audit-export?days=${windowDays}&format=csv`} target="_blank" rel="noreferrer">Export CSV</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <AIPolicySimulationPanel headers={headersQuery.data} apiBaseUrl={API_BASE_URL} />
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
@@ -249,7 +338,7 @@ export default function AdminAIGovernance() {
                 {budgetMutation.isPending ? 'Saving…' : 'Save budget settings'}
               </Button>
               <div className="text-xs text-muted-foreground">
-                Current spend: ${budgetQuery.data?.budget?.spent_usd ?? 0} · Reset at{' '}
+                Current spend: ${formatMoney(budgetQuery.data?.budget?.spent_usd)} · Reset at{' '}
                 {budgetQuery.data?.budget?.reset_at
                   ? new Date(budgetQuery.data.budget.reset_at).toLocaleDateString()
                   : '—'}

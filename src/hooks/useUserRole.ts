@@ -83,9 +83,9 @@ export function useUserRoleState(): UserRoleState {
   }, [jwtRole, tenant.data?.role]);
 
   const loading = authLoading || (isAuthenticated && tenant.isLoading);
-  const canEvaluateOnboarding = isAuthenticated && !loading && tenant.isSuccess;
+  const canEvaluateOnboarding = isAuthenticated && !loading && (tenant.isSuccess || tenant.isError);
   const needsOnboarding = Boolean(
-    canEvaluateOnboarding && (!tenant.data?.profileId || !tenant.data?.fullName)
+    canEvaluateOnboarding && (tenant.isError || !tenant.data?.profileId || !tenant.data?.fullName)
   );
 
   // Best-effort: reconcile DB role to JWT role so the UI has a stable signal.

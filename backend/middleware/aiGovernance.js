@@ -49,6 +49,19 @@ async function isGovernanceEnabled(req) {
       override,
     });
   } catch {
+    return evaluateFlag({
+      key: GOVERNANCE_FLAG,
+      context: req.auth || {},
+      override: overrides[GOVERNANCE_FLAG],
+    });
+  } catch (error) {
+    // Shadow mode: never break requests, but log a sanitized warning so failures are observable.
+    console.warn('AI governance feature flag evaluation failed; falling back to disabled.', {
+      flagKey: GOVERNANCE_FLAG,
+      organizationId: req.auth?.organizationId || req.tenant?.organizationId,
+      schoolId: req.auth?.schoolId || req.tenant?.schoolId,
+      errorMessage: error && typeof error.message === 'string' ? error.message : String(error),
+    });
     return false;
   }
 }
@@ -94,6 +107,8 @@ function extractConsentScope(req) {
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
   }
+  if (Array.isArray(auth.consentScope)) return auth.consentScope;
+  if (typeof auth.consentScope === 'string') return auth.consentScope.split(',').filter(Boolean);
   return [];
 }
 
@@ -110,6 +125,30 @@ export async function preRequestHook(req, res, next) {
     if (!incomingRequestId) {
       res.setHeader('x-request-id', requestId);
     }
+    // Cheap early-return: if the request clearly can't be evaluated (e.g., missing prompt/messages),
+    // skip governance entirely to avoid unnecessary DB work and noisy audit events.
+    const body = req.body;
+    const isPlainObject = body && typeof body === 'object' && !Array.isArray(body);
+    const hasPrompt = isPlainObject && typeof body.prompt === 'string' && body.prompt.trim().length > 0;
+    const hasMessages = isPlainObject && Array.isArray(body.messages) && body.messages.length > 0;
+
+    if (!body || (isPlainObject && !hasPrompt && !hasMessages)) {
+      req.governanceEnabled = false;
+      req.governanceDecision = null;
+      req.governanceContext = null;
+      req.governanceAuditRecorded = false;
+      return next();
+    }
+    const enabled = await isGovernanceEnabled(req);
+    if (!enabled) {
+      req.governanceEnabled = false;
+      req.governanceDecision = null;
+      req.governanceContext = null;
+      req.governanceAuditRecorded = false;
+      return next();
+    }
+
+    const requestId = req.get('x-request-id') || crypto.randomUUID();
     const auth = req.auth || {};
     const tenant = req.tenant || {};
 
@@ -144,11 +183,27 @@ export async function preRequestHook(req, res, next) {
       });
     } else {
       // No audit event was required, so there was nothing to persist.
+      try {
+        await recordGovernanceDecision({
+          decision,
+          actorId: auth.userId ?? null,
+          organizationId: auth.organizationId || tenant.organizationId || null,
+          schoolId: auth.schoolId || tenant.schoolId || null,
+        });
+        req.governanceAuditRecorded = true;
+      } catch (error) {
+        req.governanceAuditRecorded = false;
+        console.warn('[aiGovernance] Failed to record governance decision', {
+          requestId: ctx.requestId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
       req.governanceAuditRecorded = true;
     }
 
     return next();
-  } catch {
+  } catch (error) {
     req.governanceEnabled = false;
     req.governanceDecision = null;
     req.governanceContext = null;

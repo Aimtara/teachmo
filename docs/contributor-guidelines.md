@@ -21,3 +21,14 @@
 - Unit tests for new business logic (LLM prompts, date logic, data transforms).
 - E2E coverage for role‑based routing and admin flows.
 - Add test IDs for complex flows instead of brittle selectors.
+
+
+## AI governance guardrails
+
+- Treat `docs/ai-governance-principles.md` as SSOT for governed AI behavior.
+- Run policy evaluation before any external model call.
+- Sanitize outbound model payloads and keep logs privacy-safe.
+- Gate governed AI rollout by tenant-scoped feature flags.
+- For high-stakes AI, separate generation from verification and support shadow mode first.
+- Ensure telemetry includes request id, policy outcome, matched policies, denial reason, required skill, tenant scope, and verifier status.
+- Update docs/ADR when materially changing policy logic or governance architecture.

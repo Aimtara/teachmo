@@ -33,48 +33,17 @@ export async function fetchUserProfile(userId: string) {
     }
   }`;
 
-  const legacyQuery = `query GetLegacyProfile($userId: uuid!) {
-    user_profiles_by_pk(user_id: $userId) {
-      user_id
-      full_name
-      role
-      district_id
-      school_id
-    }
-  }`;
-
   try {
     const data = await graphqlRequest<GetProfileData>({ query: profileQuery, variables: { userId } });
     const profile = data?.profiles?.[0] || null;
     if (profile) return profile;
+    return null;
   } catch (error) {
-    // Fall through to legacy profile lookup for deployments still relying on user_profiles
-    // or when permissions/schema for profiles are not available to the current role.
     if (!isRecoverableProfileLookupError(error)) {
-      // Re-throw unexpected errors so upstream callers (e.g., TenantContext) can log them.
       throw error;
     }
+    return null;
   }
-
-  const legacyData = await graphqlRequest<{ user_profiles_by_pk?: {
-    user_id: string;
-    full_name: string;
-    role: string;
-    district_id: string;
-    school_id: string;
-  } | null }>({ query: legacyQuery, variables: { userId } });
-
-  const legacy = legacyData?.user_profiles_by_pk ?? null;
-  if (!legacy) return null;
-
-  return {
-    id: legacy.user_id,
-    user_id: legacy.user_id,
-    full_name: legacy.full_name,
-    app_role: legacy.role,
-    organization_id: legacy.district_id,
-    school_id: legacy.school_id,
-  };
 }
 
 export async function createProfile(input: ProfileInput) {

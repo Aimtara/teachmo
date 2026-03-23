@@ -33,6 +33,20 @@ export function createGovernanceDecision({
   }
 
   const normalizedLatencyMs = Number(latencyMs);
+  if (![1, 2, 3].includes(tier)) {
+    throw new Error(`Invalid tier: ${tier}`);
+  }
+
+  const frozenMatchedPolicies = Array.isArray(matchedPolicies)
+    ? Object.freeze(
+        matchedPolicies.map((policy) => {
+          if (policy && typeof policy === 'object') {
+            return Object.freeze({ ...policy });
+          }
+          return policy;
+        }),
+      )
+    : Object.freeze([]);
 
   return Object.freeze({
     requestId: requestId ?? null,

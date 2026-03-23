@@ -94,6 +94,13 @@ describe('resolveOnboardingPath', () => {
     );
   });
 
+
+  it('routes unknown roles with district flow to /onboarding/teacher', () => {
+    expect(resolveOnboardingPath({ role: 'unknown', preferredFlow: ONBOARDING_FLOWS.DISTRICT })).toBe(
+      '/onboarding/teacher'
+    );
+  });
+
   it('falls back to /onboarding/parent for unknown roles and unknown flows', () => {
     expect(resolveOnboardingPath({ role: 'unknown', preferredFlow: undefined })).toBe('/onboarding/parent');
     expect(resolveOnboardingPath({ role: undefined, preferredFlow: null })).toBe('/onboarding/parent');

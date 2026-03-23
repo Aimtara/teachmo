@@ -9,6 +9,7 @@ import { auditEventBare } from '../security/audit.js';
 
 const EXPLORE_INTENTS = new Set([
   'explore_deep_link',
+  'EXPLORE_DEEP_LINK',
   'find_activities',
   'creative_activities',
   'outdoor_activities',
