@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Issue Pack Source of Truth
-    url: https://github.com/OWNER/REPO/blob/main/ops/issue-pack.yml
-    about: Update OWNER/REPO in this link for your fork, then edit ops/issue-pack.yml and run bootstrap/sync automation.
+    url: https://github.com/teachmo/teachmo/blob/main/ops/issue-pack.yml
+    about: View and maintain the Issue Pack source of truth for this repository.
