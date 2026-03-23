@@ -160,8 +160,6 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
     return res.status(400).json({ error: 'missing or empty prompt' });
   }
 
-  const govDecision = req.governanceDecision || null;
-
   try {
     const policy = await loadModelPolicy(organizationId, schoolId);
     const budget = await loadBudget(organizationId, schoolId);
