@@ -22,7 +22,7 @@ parent:
     ## Status legend
     - [ ] Not verified / not complete
     - [x] Verified complete
-    - [-] Partial / scaffold exists, but not fully proven
+    - Partial: scaffold exists, but not fully proven
 
     ## Automation Rollup
     _This section is updated by the issue-pack bootstrap/sync workflow._
