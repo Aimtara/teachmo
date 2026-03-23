@@ -1,5 +1,5 @@
 name: Issue Pack Parent Tracker
-about: Create or update the program parent tracker issue from issue-pack conventions.
+description: Create or update the program parent tracker issue from issue-pack conventions.
 title: "Teachmo Completion Matrix Tracking Issue"
 labels:
   - program-board
