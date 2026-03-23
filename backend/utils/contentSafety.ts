@@ -1,5 +1,3 @@
-// JS compatibility shim – see contentSafety.ts for the typed source.
-
 /**
  * Automated Safety & PII Scanner for User Generated Content
  */
@@ -12,9 +10,14 @@ const PATTERNS = {
   pressure: /\b(buy now|hurry|limited time offer)\b/i
 };
 
-export function scanContent(content) {
+type ScanResult = {
+  isSafe: boolean;
+  flags: string[];
+};
+
+export function scanContent(content: unknown): ScanResult {
   const textToCheck = typeof content === 'string' ? content : JSON.stringify(content);
-  const flags = [];
+  const flags: string[] = [];
 
   if (PATTERNS.ssn.test(textToCheck)) flags.push('PII: SSN detected');
   if (PATTERNS.email.test(textToCheck)) flags.push('PII: Email address detected in public field');

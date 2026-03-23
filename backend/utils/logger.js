@@ -1,4 +1,4 @@
-/* eslint-env node */
+// JS compatibility shim – see logger.ts for the typed source.
 const LOG_LEVELS = ['error', 'warn', 'info', 'debug'];
 
 const normalizeLevel = (level) => {

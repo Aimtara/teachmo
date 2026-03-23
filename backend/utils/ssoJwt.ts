@@ -1,8 +1,24 @@
-// JS compatibility shim – see ssoJwt.ts for the typed source.
 import { SignJWT } from 'jose';
 
-function buildHasuraClaims({ userId, role, organizationId, schoolId }) {
-  const claims = {
+type HasuraClaims = {
+  'x-hasura-user-id': string;
+  'x-hasura-default-role': string;
+  'x-hasura-allowed-roles': string[];
+  'x-hasura-organization-id': string;
+  'x-hasura-school-id'?: string;
+};
+
+type IssueSsoJwtInput = {
+  userId: string;
+  role: string;
+  organizationId: string;
+  schoolId?: string;
+  provider?: string;
+  email?: string;
+};
+
+function buildHasuraClaims({ userId, role, organizationId, schoolId }: IssueSsoJwtInput): HasuraClaims {
+  const claims: HasuraClaims = {
     'x-hasura-user-id': userId,
     'x-hasura-default-role': role,
     'x-hasura-allowed-roles': [role],
@@ -16,7 +32,7 @@ function buildHasuraClaims({ userId, role, organizationId, schoolId }) {
   return claims;
 }
 
-function resolveSecret() {
+function resolveSecret(): Uint8Array {
   const secret = process.env.SSO_JWT_SECRET || process.env.AUTH_MOCK_SECRET || '';
   if (!secret) {
     throw new Error('SSO_JWT_SECRET is required to issue SSO tokens');
@@ -31,7 +47,7 @@ export async function issueSsoJwt({
   schoolId,
   provider,
   email
-}) {
+}: IssueSsoJwtInput): Promise<string> {
   if (!userId || !role || !organizationId) {
     throw new Error('missing required claims for SSO token');
   }

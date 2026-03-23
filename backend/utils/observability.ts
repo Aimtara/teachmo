@@ -1,26 +1,52 @@
-// JS compatibility shim – see observability.ts for the typed source.
 import { query } from '../db.js';
 import { enqueueMessage } from '../jobs/notificationQueue.js';
 
-export function clampNumber(value, fallback = 0) {
+type DateRange = { start: Date; end: Date };
+
+type SummaryParams = {
+  organizationId: string;
+  schoolId?: string | null;
+  start: Date;
+  end: Date;
+};
+
+type AlertRule = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  organization_id: string;
+  school_id?: string | null;
+  channel?: string | null;
+  metric_key: string;
+  comparison?: string | null;
+  threshold?: number | null;
+  anomaly?: boolean;
+  anomaly_factor?: number | null;
+  cooldown_minutes?: number | null;
+  window_minutes?: number | null;
+  segment?: Record<string, unknown> | null;
+};
+
+export function clampNumber(value: unknown, fallback = 0): number {
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
 }
 
-export function parseRange({ start, end, defaultDays = 7 } = {}) {
-  const now = Date.now();
-  const defaultEnd = new Date(now);
-  const defaultStart = new Date(now - defaultDays * 24 * 60 * 60 * 1000);
-
-  const parsedEnd = end ? new Date(String(end)) : defaultEnd;
-  const endDate = Number.isFinite(parsedEnd.getTime()) ? parsedEnd : defaultEnd;
-
-  const parsedStart = start ? new Date(String(start)) : defaultStart;
-  const startDate = Number.isFinite(parsedStart.getTime()) ? parsedStart : defaultStart;
+export function parseRange({
+  start,
+  end,
+  defaultDays = 7
+}: {
+  start?: string | Date;
+  end?: string | Date;
+  defaultDays?: number;
+} = {}): DateRange {
+  const endDate = end ? new Date(String(end)) : new Date();
+  const startDate = start ? new Date(String(start)) : new Date(Date.now() - defaultDays * 24 * 60 * 60 * 1000);
   return { start: startDate, end: endDate };
 }
 
-export async function loadApiSummary({ organizationId, schoolId, start, end }) {
+export async function loadApiSummary({ organizationId, schoolId, start, end }: SummaryParams) {
   const params = [organizationId, schoolId || null, start.toISOString(), end.toISOString()];
   const summary = await query(
     `select count(*) as total,
@@ -49,7 +75,7 @@ export async function loadApiSummary({ organizationId, schoolId, start, end }) {
     params
   );
 
-  const summaryRow = summary.rows?.[0] || {};
+  const summaryRow = (summary.rows?.[0] || {}) as Record<string, unknown>;
   return {
     summary: {
       total: clampNumber(summaryRow.total),
@@ -57,7 +83,7 @@ export async function loadApiSummary({ organizationId, schoolId, start, end }) {
       p95_latency: clampNumber(summaryRow.p95_latency),
       errors: clampNumber(summaryRow.errors)
     },
-    trend: (trend.rows || []).map((row) => ({
+    trend: (trend.rows || []).map((row: Record<string, unknown>) => ({
       day: row.day,
       total: clampNumber(row.total),
       avg_latency: clampNumber(row.avg_latency),
@@ -67,7 +93,7 @@ export async function loadApiSummary({ organizationId, schoolId, start, end }) {
   };
 }
 
-export async function loadAiSummary({ organizationId, schoolId, start, end }) {
+export async function loadAiSummary({ organizationId, schoolId, start, end }: SummaryParams) {
   const params = [organizationId, schoolId || null, start.toISOString(), end.toISOString()];
   const result = await query(
     `select count(*) as ai_calls,
@@ -80,7 +106,7 @@ export async function loadAiSummary({ organizationId, schoolId, start, end }) {
        and created_at >= $3 and created_at <= $4`,
     params
   );
-  const row = result.rows?.[0] || {};
+  const row = (result.rows?.[0] || {}) as Record<string, unknown>;
   return {
     ai_calls: clampNumber(row.ai_calls),
     tokens: clampNumber(row.tokens),
@@ -89,7 +115,7 @@ export async function loadAiSummary({ organizationId, schoolId, start, end }) {
   };
 }
 
-export async function loadNotificationSummary({ organizationId, schoolId, start, end }) {
+export async function loadNotificationSummary({ organizationId, schoolId, start, end }: SummaryParams) {
   const params = [organizationId, schoolId || null, start.toISOString(), end.toISOString()];
   const result = await query(
     `select
@@ -105,7 +131,7 @@ export async function loadNotificationSummary({ organizationId, schoolId, start,
        and e.event_ts >= $3 and e.event_ts <= $4`,
     params
   );
-  const row = result.rows?.[0] || {};
+  const row = (result.rows?.[0] || {}) as Record<string, unknown>;
   return {
     delivered: clampNumber(row.delivered),
     bounced: clampNumber(row.bounced),
@@ -115,14 +141,14 @@ export async function loadNotificationSummary({ organizationId, schoolId, start,
   };
 }
 
-export async function loadObservabilitySummary({ organizationId, schoolId, start, end }) {
+export async function loadObservabilitySummary({ organizationId, schoolId, start, end }: SummaryParams) {
   const [api, ai, notifications] = await Promise.all([
     loadApiSummary({ organizationId, schoolId, start, end }),
     loadAiSummary({ organizationId, schoolId, start, end }),
     loadNotificationSummary({ organizationId, schoolId, start, end })
   ]);
 
-  const errorTrend = api.trend.map((row) => ({
+  const errorTrend = api.trend.map((row: { day: unknown; total: number; errors: number }) => ({
     day: row.day,
     error_rate: row.total ? row.errors / row.total : 0,
     total: row.total,
@@ -132,7 +158,13 @@ export async function loadObservabilitySummary({ organizationId, schoolId, start
   return { api, ai, notifications, errorTrend };
 }
 
-export async function evaluateAlertRules({ organizationId, schoolId } = {}) {
+export async function evaluateAlertRules({
+  organizationId,
+  schoolId
+}: {
+  organizationId?: string;
+  schoolId?: string | null;
+} = {}) {
   const rulesResult = await query(
     `select *
      from alert_rules
@@ -143,15 +175,15 @@ export async function evaluateAlertRules({ organizationId, schoolId } = {}) {
   );
 
   const now = new Date();
-  const triggered = [];
+  const triggered: Record<string, unknown>[] = [];
 
-  for (const rule of rulesResult.rows || []) {
+  for (const rule of (rulesResult.rows || []) as AlertRule[]) {
     const windowMinutes = Number(rule.window_minutes || 60);
     const windowStart = new Date(now.getTime() - windowMinutes * 60 * 1000);
     const metricValue = await resolveMetricValue({ rule, windowStart, now });
     if (metricValue === null || metricValue === undefined) continue;
 
-    let baselineValue = null;
+    let baselineValue: number | null = null;
     let shouldTrigger = false;
 
     if (rule.anomaly) {
@@ -197,7 +229,7 @@ export async function evaluateAlertRules({ organizationId, schoolId } = {}) {
         })
       ]
     );
-    const eventRow = event.rows?.[0];
+    const eventRow = event.rows?.[0] as Record<string, unknown> | undefined;
     if (eventRow) {
       await notifyAlert({ rule, metricValue, baselineValue, event: eventRow });
       triggered.push(eventRow);
@@ -207,7 +239,15 @@ export async function evaluateAlertRules({ organizationId, schoolId } = {}) {
   return triggered;
 }
 
-async function resolveMetricValue({ rule, windowStart, now }) {
+async function resolveMetricValue({
+  rule,
+  windowStart,
+  now
+}: {
+  rule: AlertRule;
+  windowStart: Date;
+  now: Date;
+}): Promise<number | null> {
   const params = [rule.organization_id, rule.school_id || null, windowStart.toISOString(), now.toISOString()];
   if (rule.metric_key === 'api_error_rate') {
     const result = await query(
@@ -256,7 +296,7 @@ async function resolveMetricValue({ rule, windowStart, now }) {
          and school_id is not distinct from $2`,
       [rule.organization_id, rule.school_id || null]
     );
-    const row = result.rows?.[0];
+    const row = result.rows?.[0] as Record<string, unknown> | undefined;
     const limit = clampNumber(row?.monthly_limit_usd, 0);
     const spent = clampNumber(row?.spent_usd, 0);
     if (!limit) return null;
@@ -282,7 +322,7 @@ async function resolveMetricValue({ rule, windowStart, now }) {
   return null;
 }
 
-async function resolveBaselineValue({ rule, windowStart }) {
+async function resolveBaselineValue({ rule, windowStart }: { rule: AlertRule; windowStart: Date }): Promise<number | null> {
   const baselineEnd = new Date(windowStart.getTime());
   const baselineStart = new Date(baselineEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
   return resolveMetricValue({
@@ -292,7 +332,15 @@ async function resolveBaselineValue({ rule, windowStart }) {
   });
 }
 
-function compareMetric({ value, comparison, threshold }) {
+function compareMetric({
+  value,
+  comparison,
+  threshold
+}: {
+  value: number;
+  comparison?: string | null;
+  threshold?: number | null;
+}): boolean {
   const numericThreshold = Number(threshold);
   if (!Number.isFinite(numericThreshold)) return false;
   if (comparison === 'gt') return value > numericThreshold;
@@ -302,7 +350,17 @@ function compareMetric({ value, comparison, threshold }) {
   return false;
 }
 
-async function notifyAlert({ rule, metricValue, baselineValue, event }) {
+async function notifyAlert({
+  rule,
+  metricValue,
+  baselineValue,
+  event
+}: {
+  rule: AlertRule;
+  metricValue: number;
+  baselineValue: number | null;
+  event: Record<string, unknown>;
+}): Promise<void> {
   const segment = rule.segment && Object.keys(rule.segment).length
     ? rule.segment
     : { roles: ['system_admin', 'school_admin', 'district_admin'] };
@@ -334,13 +392,13 @@ async function notifyAlert({ rule, metricValue, baselineValue, event }) {
     ]
   );
 
-  const messageId = message.rows?.[0]?.id;
+  const messageId = message.rows?.[0]?.id as string | undefined;
   if (messageId) {
     await enqueueMessage({ messageId });
   }
 }
 
-export function getNextRunAt({ frequency, now = new Date() }) {
+export function getNextRunAt({ frequency, now = new Date() }: { frequency: string; now?: Date }): string {
   const next = new Date(now.getTime());
   if (frequency === 'monthly') {
     next.setMonth(next.getMonth() + 1);
@@ -350,7 +408,7 @@ export function getNextRunAt({ frequency, now = new Date() }) {
   return next.toISOString();
 }
 
-export function reportRangeForFrequency({ frequency, now = new Date() }) {
+export function reportRangeForFrequency({ frequency, now = new Date() }: { frequency: string; now?: Date }): DateRange {
   const end = new Date(now.getTime());
   const start = new Date(now.getTime());
   if (frequency === 'monthly') {
@@ -366,6 +424,11 @@ export async function buildReportPayload({
   schoolId,
   reportType,
   frequency
+}: {
+  organizationId: string;
+  schoolId?: string | null;
+  reportType: string;
+  frequency: string;
 }) {
   const { start, end } = reportRangeForFrequency({ frequency });
   if (reportType === 'metrics_summary') {

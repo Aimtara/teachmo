@@ -1,10 +1,22 @@
-// JS compatibility shim – see learningPaths.ts for the typed source.
 // API routes for learning paths
 import { Router } from 'express';
 
 const router = Router();
 
-const learningPaths = [
+type LearningPathStage = {
+  id: number;
+  title: string;
+  type: 'activity' | 'quiz';
+};
+
+type LearningPath = {
+  id: number;
+  name: string;
+  skill: string;
+  stages: LearningPathStage[];
+};
+
+const learningPaths: LearningPath[] = [
   {
     id: 1,
     name: 'Intro to Fractions',

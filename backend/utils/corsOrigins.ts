@@ -1,9 +1,7 @@
-// JS compatibility shim – see corsOrigins.ts for the typed source.
-
 export function isExplicitlyAllowedReplitOrigin(
-  origin,
-  allowReplitOrigins = String(process.env.ALLOW_REPLIT_ORIGINS || '').toLowerCase() === 'true'
-) {
+  origin: string | undefined,
+  allowReplitOrigins: boolean = String(process.env.ALLOW_REPLIT_ORIGINS || '').toLowerCase() === 'true'
+): boolean {
   if (!allowReplitOrigins || !origin) return false;
 
   return (

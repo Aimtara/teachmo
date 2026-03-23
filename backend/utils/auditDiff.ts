@@ -1,16 +1,25 @@
-// JS compatibility shim – see auditDiff.ts for the typed source.
 import _ from 'lodash';
+
+type DiffSnapshot = Record<string, unknown>;
+
+type DiffResult = {
+  before: DiffSnapshot | null;
+  after: DiffSnapshot | null;
+} | null;
 
 /**
  * Compares two objects and returns the difference.
  * Used for generating 'before' and 'after' snapshots for audit logs.
  */
-export function calculateDiff(original, updated) {
+export function calculateDiff(
+  original: DiffSnapshot | null | undefined,
+  updated: DiffSnapshot | null | undefined
+): DiffResult {
   if (!original) return { before: null, after: updated ?? null };
   if (!updated) return { before: original, after: null };
 
-  const before = {};
-  const after = {};
+  const before: DiffSnapshot = {};
+  const after: DiffSnapshot = {};
 
   Object.keys(updated).forEach((key) => {
     if (!_.isEqual(original[key], updated[key])) {
@@ -32,11 +41,11 @@ export function calculateDiff(original, updated) {
 }
 
 export function redactPii(
-  obj,
-  piiFields = ['password', 'token', 'secret', 'ssn', 'dob']
-) {
+  obj: DiffSnapshot | null | undefined,
+  piiFields: string[] = ['password', 'token', 'secret', 'ssn', 'dob']
+): DiffSnapshot | null | undefined {
   if (!obj) return obj;
-  const clean = { ...obj };
+  const clean: DiffSnapshot = { ...obj };
   piiFields.forEach((field) => {
     if (clean[field]) clean[field] = '[REDACTED]';
   });

@@ -1,11 +1,28 @@
-// JS compatibility shim – see audit.ts for the typed source.
 import { query } from '../db.js';
 
 const SENSITIVE_ENTITY_TYPES = new Set(['user', 'role', 'permission', 'pii']);
 
-function buildChangeDetails(before, after) {
+type ChangeRecord = Record<string, { before: unknown; after: unknown }>;
+
+type Snapshot = Record<string, unknown> | null;
+
+type AuditPayload = {
+  actorId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  metadata?: Record<string, unknown>;
+  before?: Snapshot;
+  after?: Snapshot;
+  changes?: ChangeRecord | null;
+  containsPii?: boolean;
+  organizationId: string;
+  schoolId?: string | null;
+};
+
+function buildChangeDetails(before: Snapshot, after: Snapshot): ChangeRecord | null {
   if (!before || !after || typeof before !== 'object' || typeof after !== 'object') return null;
-  const changes = {};
+  const changes: ChangeRecord = {};
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
   for (const key of keys) {
     const beforeValue = before[key];
@@ -29,7 +46,7 @@ export async function recordAuditLog({
   containsPii,
   organizationId,
   schoolId
-}) {
+}: AuditPayload): Promise<void> {
   const shouldFlagPii = typeof containsPii === 'boolean' ? containsPii : SENSITIVE_ENTITY_TYPES.has(entityType);
   const payload = metadata ? { ...metadata } : {};
   const beforeSnapshot = before ?? null;

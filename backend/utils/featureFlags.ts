@@ -1,14 +1,43 @@
-// JS compatibility shim – see featureFlags.ts for the typed source.
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-function resolveRegistryPath() {
+type FeatureFlagRegistryEntry = {
+  key: string;
+  description?: string;
+  defaultEnabled?: boolean;
+};
+
+type FeatureFlagRegistry = {
+  flags: FeatureFlagRegistryEntry[];
+};
+
+type FlagOverride = {
+  key?: string;
+  school_id?: string | null;
+  description?: string | null;
+  enabled?: boolean | null;
+  rolloutPercentage?: number | null;
+  canaryPercentage?: number | null;
+  rollout_percentage?: number | null;
+  canary_percentage?: number | null;
+  allowlist?: string[] | string | null;
+  denylist?: string[] | string | null;
+};
+
+type FeatureContext = {
+  schoolId?: string | null;
+  districtId?: string | null;
+  organizationId?: string | null;
+  userId?: string | null;
+};
+
+function resolveRegistryPath(): string {
   const candidates = [
     process.env.FEATURE_FLAGS_PATH,
     path.resolve(process.cwd(), 'config/feature_flags.json'),
     path.resolve(process.cwd(), '../config/feature_flags.json')
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 
   const match = candidates.find((candidate) => fs.existsSync(candidate));
 
@@ -21,27 +50,27 @@ function resolveRegistryPath() {
 
 const registryPath = resolveRegistryPath();
 
-function loadRegistry() {
+function loadRegistry(): FeatureFlagRegistry {
   const raw = fs.readFileSync(registryPath, 'utf8');
-  const parsed = JSON.parse(raw);
+  const parsed = JSON.parse(raw) as Partial<FeatureFlagRegistry>;
   return parsed?.flags ? { flags: parsed.flags } : { flags: [] };
 }
 
 const registry = loadRegistry();
 const registryMap = new Map(registry.flags.map((flag) => [flag.key, flag]));
 
-export function getRegistry() {
+export function getRegistry(): FeatureFlagRegistry {
   return registry;
 }
 
-export function getRegistryDefaults() {
-  return registry.flags.reduce((acc, flag) => {
+export function getRegistryDefaults(): Record<string, boolean> {
+  return registry.flags.reduce<Record<string, boolean>>((acc, flag) => {
     acc[flag.key] = Boolean(flag.defaultEnabled);
     return acc;
   }, {});
 }
 
-function normalizeList(value) {
+function normalizeList(value: unknown): string[] {
   if (!value) return [];
   if (Array.isArray(value)) return value.map(String);
   if (typeof value === 'string') {
@@ -53,20 +82,28 @@ function normalizeList(value) {
   return [];
 }
 
-function computeBucket(identifier, key) {
+function computeBucket(identifier: string | null | undefined, key: string): number {
   if (!identifier) return 100;
   const hash = crypto.createHash('sha256').update(`${key}:${identifier}`).digest('hex');
   const bucket = parseInt(hash.slice(0, 8), 16) % 100;
   return bucket;
 }
 
-function resolveTargets(context) {
+function resolveTargets(context: FeatureContext | undefined): { tenantId: string | null; targets: string[] } {
   const tenantId = context?.schoolId || context?.districtId || context?.organizationId || null;
   const targets = new Set([tenantId, context?.userId].filter(Boolean));
-  return { tenantId, targets: Array.from(targets) };
+  return { tenantId, targets: Array.from(targets) as string[] };
 }
 
-export function evaluateFlag({ key, context, override }) {
+export function evaluateFlag({
+  key,
+  context,
+  override
+}: {
+  key: string;
+  context?: FeatureContext;
+  override?: FlagOverride;
+}): boolean {
   const registryEntry = registryMap.get(key);
   const defaultEnabled = registryEntry ? Boolean(registryEntry.defaultEnabled) : false;
   const enabled = override?.enabled ?? defaultEnabled;
@@ -86,7 +123,13 @@ export function evaluateFlag({ key, context, override }) {
   return Boolean(enabled);
 }
 
-export function resolveFlags({ context, overrides }) {
+export function resolveFlags({
+  context,
+  overrides
+}: {
+  context?: FeatureContext;
+  overrides?: Record<string, FlagOverride>;
+}): Record<string, boolean> {
   const defaults = getRegistryDefaults();
   const output = { ...defaults };
   const keys = new Set([...Object.keys(defaults), ...Object.keys(overrides ?? {})]);
@@ -98,8 +141,8 @@ export function resolveFlags({ context, overrides }) {
   return output;
 }
 
-export function mergeOverridesByKey(rows, schoolId) {
-  const overrides = {};
+export function mergeOverridesByKey(rows: FlagOverride[] | undefined, schoolId: string | null | undefined) {
+  const overrides: Record<string, FlagOverride> = {};
   if (!rows) return overrides;
 
   rows.forEach((row) => {
@@ -115,7 +158,15 @@ export function mergeOverridesByKey(rows, schoolId) {
   return overrides;
 }
 
-export function serializeAdminFlag({ key, override, scope }) {
+export function serializeAdminFlag({
+  key,
+  override,
+  scope
+}: {
+  key: string;
+  override?: FlagOverride;
+  scope: string;
+}) {
   const registryEntry = registryMap.get(key);
   return {
     key,
@@ -131,8 +182,8 @@ export function serializeAdminFlag({ key, override, scope }) {
   };
 }
 
-export function normalizeAdminPayload(payload = {}) {
-  const toNumberOrNull = (value) => {
+export function normalizeAdminPayload(payload: Record<string, unknown> = {}) {
+  const toNumberOrNull = (value: unknown) => {
     if (value === null || value === undefined || value === '') return null;
     const num = Number(value);
     return Number.isNaN(num) ? null : num;

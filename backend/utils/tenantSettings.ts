@@ -1,7 +1,18 @@
-// JS compatibility shim – see tenantSettings.ts for the typed source.
 import { query } from '../db.js';
 
-export const DEFAULT_RETENTION = {
+type RetentionPolicy = {
+  auditLogDays: number;
+  dsarExportDays: number;
+  analyticsDays: number;
+  notificationDays: number;
+  aiInteractionDays: number;
+};
+
+type TenantSettings = {
+  retention?: Record<string, unknown>;
+};
+
+const DEFAULT_RETENTION: RetentionPolicy = {
   auditLogDays: 365,
   dsarExportDays: 30,
   analyticsDays: 180,
@@ -9,7 +20,7 @@ export const DEFAULT_RETENTION = {
   aiInteractionDays: 180
 };
 
-export function normalizeRetention(settings = {}) {
+export function normalizeRetention(settings: TenantSettings = {}): RetentionPolicy {
   const retention = settings?.retention ?? {};
   const auditLogDays = Number(retention.audit_log_days ?? retention.auditLogDays ?? DEFAULT_RETENTION.auditLogDays);
   const dsarExportDays = Number(
@@ -43,7 +54,10 @@ export function normalizeRetention(settings = {}) {
 export async function fetchTenantSettings({
   organizationId,
   schoolId
-}) {
+}: {
+  organizationId: string;
+  schoolId?: string | null;
+}): Promise<TenantSettings> {
   const result = await query(
     `select settings
      from public.tenant_settings
@@ -53,13 +67,18 @@ export async function fetchTenantSettings({
      limit 1`,
     [organizationId, schoolId ?? null]
   );
-  return result.rows?.[0]?.settings ?? {};
+  return (result.rows?.[0]?.settings as TenantSettings | undefined) ?? {};
 }
 
 export async function getRetentionPolicy({
   organizationId,
   schoolId
-}) {
+}: {
+  organizationId: string;
+  schoolId?: string | null;
+}): Promise<RetentionPolicy> {
   const settings = await fetchTenantSettings({ organizationId, schoolId });
   return normalizeRetention(settings);
 }
+
+export { DEFAULT_RETENTION };

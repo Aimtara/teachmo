@@ -1,7 +1,13 @@
-// JS compatibility shim – see campaignLimits.ts for the typed source.
 import { query } from '../db.js';
 
-const LIMITS = {
+type CampaignCategory = 'fundraising' | 'general' | 'emergency' | string;
+
+type CampaignLimit = {
+  maxPerWeek: number;
+  error: string;
+};
+
+const LIMITS: Record<string, CampaignLimit> = {
   fundraising: {
     maxPerWeek: 2,
     error: 'Equity Guardrail: Fundraising campaigns limited to 2 per week.'
@@ -12,7 +18,20 @@ const LIMITS = {
   }
 };
 
-export async function checkCampaignLimits(tenantId, category) {
+type CampaignLimitAllowedResult = {
+  allowed: true;
+};
+
+type CampaignLimitBlockedResult = {
+  allowed: false;
+  reason: string;
+  currentCount: number;
+};
+
+export async function checkCampaignLimits(
+  tenantId: string,
+  category: CampaignCategory
+): Promise<CampaignLimitAllowedResult | CampaignLimitBlockedResult> {
   if (category === 'emergency') return { allowed: true };
 
   const limit = LIMITS[category] || LIMITS.general;

@@ -1,10 +1,15 @@
-// JS compatibility shim – see faqs.ts for the typed source.
 // API routes for frequently asked questions
 import { Router } from 'express';
 
 const router = Router();
 
-const faqs = [
+type Faq = {
+  id: number;
+  question: string;
+  answer: string;
+};
+
+const faqs: Faq[] = [
   {
     id: 1,
     question: 'How do I reset my password?',

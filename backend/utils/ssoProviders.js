@@ -1,4 +1,4 @@
-/* eslint-env node */
+// JS compatibility shim – see ssoProviders.ts for the typed source.
 import { query } from '../db.js';
 
 function normalizeProvider(provider) {
@@ -48,14 +48,14 @@ export async function loadSsoSettings({ provider, organizationId }) {
     clientId: row.client_id,
     clientSecret: row.client_secret,
     issuer: row.issuer,
-    metadata: row.metadata || {},
+    metadata: row.metadata || {}
   };
 }
 
 export function buildSamlConfig({ settings, baseUrl }) {
   const metadata = settings.metadata || {};
-  const entryPoint = metadata.entryPoint || metadata.entrypoint;
-  const cert = metadata.cert || metadata.certificate || metadata.idpCert;
+  const entryPoint = metadata.entryPoint ?? metadata.entrypoint;
+  const cert = metadata.cert ?? metadata.certificate ?? metadata.idpCert;
   if (!entryPoint || !cert) {
     throw new Error('Missing SAML entryPoint or cert in metadata');
   }
@@ -71,15 +71,15 @@ export function buildSamlConfig({ settings, baseUrl }) {
     wantAuthnResponseSigned: metadata.wantAuthnResponseSigned ?? false,
     audience: metadata.audience || undefined,
     decryptionPvk: metadata.decryptionPvk || undefined,
-    passReqToCallback: true,
+    passReqToCallback: true
   };
 }
 
 export function buildOidcConfig({ settings, baseUrl }) {
   const metadata = settings.metadata || {};
-  const authorizationURL = metadata.authorizationURL || metadata.authorizationUrl;
-  const tokenURL = metadata.tokenURL || metadata.tokenUrl;
-  const userInfoURL = metadata.userInfoURL || metadata.userInfoUrl;
+  const authorizationURL = metadata.authorizationURL ?? metadata.authorizationUrl;
+  const tokenURL = metadata.tokenURL ?? metadata.tokenUrl;
+  const userInfoURL = metadata.userInfoURL ?? metadata.userInfoUrl;
   const callbackURL = metadata.callbackUrl || `${baseUrl}/api/sso/${settings.provider}/callback`;
 
   if (!authorizationURL || !tokenURL || !userInfoURL) {
@@ -95,6 +95,6 @@ export function buildOidcConfig({ settings, baseUrl }) {
     clientSecret: settings.clientSecret,
     callbackURL,
     scope: metadata.scope || metadata.scopes || 'openid email profile',
-    passReqToCallback: true,
+    passReqToCallback: true
   };
 }
