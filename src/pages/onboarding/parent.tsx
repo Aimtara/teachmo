@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,12 +14,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { nhost } from '@/lib/nhostClient';
 import { clearSavedOnboardingFlowPreference } from '@/lib/onboardingFlow';
+import { normalizeHasuraError } from '@/lib/hasuraErrors';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const parentOnboardingSchema = z.object({
-  firstName: z.string().min(2, 'First name is required'),
-  lastName: z.string().min(2, 'Last name is required'),
+  firstName: z.string().trim().min(2, 'First name is required'),
+  lastName: z.string().trim().min(2, 'Last name is required'),
   phone: z
     .string()
     .min(7, 'Enter a valid phone number')
@@ -38,10 +39,21 @@ const parentOnboardingSchema = z.object({
   notes: z.string().optional()
 });
 
+const UPDATE_PARENT_PROFILE = `
+  mutation UpdateParentProfile($userId: uuid!, $input: profiles_set_input!) {
+    update_profiles(where: { user_id: { _eq: $userId } }, _set: $input) {
+      affected_rows
+      returning {
+        id
+      }
+    }
+  }
+`;
+
 const CREATE_PARENT_PROFILE = `
-  mutation CreateParentProfile($input: user_profiles_insert_input!) {
-    insert_user_profiles_one(object: $input) {
-      user_id
+  mutation CreateParentProfile($input: profiles_insert_input!) {
+    insert_profiles_one(object: $input) {
+      id
     }
   }
 `;
@@ -50,15 +62,6 @@ const LINK_PARENT_SCHOOL = `
   mutation LinkParentSchool($parentId: uuid!, $schoolId: uuid!) {
     insert_parent_school_links_one(object: { parent_id: $parentId, school_id: $schoolId }) {
       id
-    }
-  }
-`;
-
-const ASSIGN_PARENT_ROLE = `
-  mutation AssignParentRole($userId: uuid!) {
-    insert_user_roles_one(object: { user_id: $userId, role: "parent" }) {
-      id
-      role
     }
   }
 `;
@@ -89,11 +92,25 @@ export default function ParentOnboardingPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting }
+    reset,
+    formState: { errors, isSubmitting, isDirty }
   } = useForm<ParentFormValues>({
     resolver: zodResolver(parentOnboardingSchema),
     defaultValues
   });
+
+  const hydratedDisplayNameRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const nextDisplayName = user.displayName ?? '';
+    if (hydratedDisplayNameRef.current === nextDisplayName) return;
+    if (isDirty) return;
+
+    reset(defaultValues);
+    hydratedDisplayNameRef.current = nextDisplayName;
+  }, [defaultValues, isDirty, reset, user?.displayName, user?.id]);
 
   if (authLoading || roleLoading) {
     return <div role="status" aria-live="polite" className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
@@ -121,24 +138,20 @@ export default function ParentOnboardingPage() {
 
     const normalizedSchoolId = values.schoolId?.trim();
 
-    const profileInput = {
-      user_id: user.id,
-      first_name: values.firstName,
-      last_name: values.lastName,
-      phone: values.phone,
-      city: values.city,
-      role: 'parent',
-      notes: values.notes,
-      children_count: values.childrenCount,
+    const profileSetInput = {
+      full_name: `${values.firstName} ${values.lastName}`.trim(),
+      app_role: 'parent',
+      organization_id: null,
       school_id: normalizedSchoolId || null
     };
 
-    const { error: profileError, data: profileData } = await nhost.graphql.request(CREATE_PARENT_PROFILE, {
-      input: profileInput
+    const { error: updateError, data: updateData } = await nhost.graphql.request(UPDATE_PARENT_PROFILE, {
+      userId: user.id,
+      input: profileSetInput
     });
 
-    if (profileError || !profileData?.insert_user_profiles_one?.user_id) {
-      console.error('Failed to create parent profile', profileError);
+    if (updateError) {
+      console.error('Failed to update parent profile', updateError);
       toast({
         variant: 'destructive',
         title: 'Could not save your profile',
@@ -147,7 +160,50 @@ export default function ParentOnboardingPage() {
       return;
     }
 
-    const profileId = profileData.insert_user_profiles_one.user_id;
+    let profileId = updateData?.update_profiles?.returning?.[0]?.id ?? null;
+
+    if (!profileId) {
+      const { error: insertError, data: insertData } = await nhost.graphql.request(CREATE_PARENT_PROFILE, {
+        input: {
+          user_id: user.id,
+          ...profileSetInput,
+        }
+      });
+
+      profileId = insertData?.insert_profiles_one?.id ?? null;
+
+      if (insertError || !profileId) {
+        const normalizedInsertError = normalizeHasuraError(insertError);
+
+        if (normalizedInsertError.kind === 'constraint') {
+          const { error: retryUpdateError, data: retryUpdateData } = await nhost.graphql.request(UPDATE_PARENT_PROFILE, {
+            userId: user.id,
+            input: profileSetInput
+          });
+
+          profileId = retryUpdateData?.update_profiles?.returning?.[0]?.id ?? null;
+          if (!retryUpdateError && profileId) {
+            // another request inserted the profile between our update and insert attempts
+          } else {
+            console.error('Failed to reconcile parent profile after insert conflict', retryUpdateError || insertError);
+            toast({
+              variant: 'destructive',
+              title: 'Could not save your profile',
+              description: 'Please check your details and try again.'
+            });
+            return;
+          }
+        } else {
+          console.error('Failed to create parent profile', insertError);
+          toast({
+            variant: 'destructive',
+            title: 'Could not save your profile',
+            description: 'Please check your details and try again.'
+          });
+          return;
+        }
+      }
+    }
 
     if (normalizedSchoolId) {
       const { error: linkError } = await nhost.graphql.request(LINK_PARENT_SCHOOL, {
@@ -164,26 +220,6 @@ export default function ParentOnboardingPage() {
         });
         return;
       }
-    }
-
-    const { error: roleError } = await nhost.graphql.request(ASSIGN_PARENT_ROLE, {
-      userId: user.id
-    });
-
-    if (roleError) {
-      console.error('Failed to assign parent role', roleError);
-      toast({
-        variant: 'destructive',
-        title: 'Role assignment failed',
-        description: 'Your profile is saved but we could not finalize your access. Contact support if this continues.'
-      });
-      return;
-    }
-
-    try {
-      await nhost.auth.refreshSession();
-    } catch (refreshError) {
-      console.warn('Unable to refresh session after parent onboarding', refreshError);
     }
 
     clearSavedOnboardingFlowPreference();

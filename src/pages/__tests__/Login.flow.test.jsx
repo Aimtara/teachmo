@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -10,9 +9,10 @@ vi.mock('@nhost/react', () => ({
 }));
 
 const ssoState = { data: { requireSso: false, providers: [] } };
-const { signInMock, signUpMock } = vi.hoisted(() => ({
+const { signInMock, signUpMock, resetPasswordMock } = vi.hoisted(() => ({
   signInMock: vi.fn().mockResolvedValue({ error: null }),
   signUpMock: vi.fn().mockResolvedValue({ session: null, error: null }),
+  resetPasswordMock: vi.fn().mockResolvedValue({ error: null }),
 }));
 
 vi.mock('@/hooks/useTenantSSOSettings', () => ({
@@ -24,6 +24,7 @@ vi.mock('@/lib/nhostClient', () => ({
     auth: {
       signIn: signInMock,
       signUp: signUpMock,
+      resetPassword: resetPasswordMock,
     },
   },
 }));
@@ -39,6 +40,8 @@ describe('Login flow query-state handling', () => {
     signInMock.mockClear();
     signUpMock.mockClear();
     signUpMock.mockResolvedValue({ session: null, error: null });
+    resetPasswordMock.mockClear();
+    resetPasswordMock.mockResolvedValue({ error: null });
   });
 
   it('shows a session-expired message when callback returns with error=session_expired', async () => {
@@ -105,6 +108,35 @@ describe('Login flow query-state handling', () => {
       },
     });
     expect(await screen.findByText(/account created\. check your email/i)).toBeInTheDocument();
+  });
+
+
+  it('triggers forgot-password reset for parent sign-in mode', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/login?flow=parent']}>
+        <Login />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByPlaceholderText(/email address/i), 'parent@example.com');
+    await user.click(screen.getByRole('button', { name: /forgot password\?/i }));
+
+    expect(resetPasswordMock).toHaveBeenCalledWith({ email: 'parent@example.com' });
+    expect(await screen.findByText(/password reset instructions were sent/i)).toBeInTheDocument();
+  });
+
+  it('clears callback error when switching between sign-in and sign-up modes', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/login?flow=parent&error=auth_error']}>
+        <Login />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('We could not complete sign in. Please try again.');
+    await user.click(screen.getByRole('button', { name: /create a new account/i }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('respects flow from query string for district SSO messaging', async () => {
