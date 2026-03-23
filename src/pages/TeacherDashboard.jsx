@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthenticationStatus, useUserId } from '@nhost/react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { graphqlRequest } from '@/lib/graphql';
 import { User } from '@/api/entities';
 import GoogleClassroomConnect from '@/components/integration/GoogleClassroomConnect';
 import { Badge } from '@/components/ui/badge';
+import { createPageUrl } from '@/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeacherDashboard() {
   const { isAuthenticated } = useAuthenticationStatus();
@@ -64,6 +66,7 @@ export default function TeacherDashboard() {
   const classrooms = data?.classrooms ?? [];
   const events = data?.events ?? [];
   const assignments = data?.assignments ?? [];
+  const greetingName = currentUser?.first_name || currentUser?.name || 'Teacher';
 
   // Callback to refresh dashboard data immediately after a sync occurs
   const handleConnectionUpdate = () => {
@@ -76,7 +79,7 @@ export default function TeacherDashboard() {
   return (
     <div className="p-6 space-y-6">
       <header>
-        <h1 className="text-3xl font-semibold text-gray-900">Teacher dashboard</h1>
+        <h1 className="text-3xl font-semibold text-gray-900">Welcome back, {greetingName}</h1>
         <p className="text-gray-600">Manage classrooms, sync assignments, and stay ahead of upcoming events.</p>
       </header>
 
@@ -88,7 +91,17 @@ export default function TeacherDashboard() {
         />
       </section>
 
-      {isLoading && <p className="text-gray-600">Loading dashboard data…</p>}
+      {isLoading && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ))}
+        </div>
+      )}
       {error && (
         <p className="text-red-600" role="alert">
           Unable to load teacher data. {error.message}
@@ -103,7 +116,12 @@ export default function TeacherDashboard() {
             <ul className="space-y-2 text-sm">
               {classrooms.map((classroom) => (
                 <li key={classroom.id} className="rounded-lg bg-slate-50 p-3 flex items-center justify-between">
-                  <p className="font-medium text-gray-900">{classroom.name}</p>
+                  <Link
+                    to={createPageUrl('TeacherAssignments', { course_id: classroom.id })}
+                    className="font-medium text-gray-900 hover:text-blue-700 hover:underline"
+                  >
+                    {classroom.name}
+                  </Link>
                 </li>
               ))}
               {classrooms.length === 0 && (
@@ -132,7 +150,7 @@ export default function TeacherDashboard() {
               ))}
               {assignments.length === 0 && (
                 <li className="text-sm text-gray-500">
-                  No active assignments. Click "Sync Assignments" above to update.
+                  No active assignments. Click Sync Assignments above to update.
                 </li>
               )}
             </ul>
