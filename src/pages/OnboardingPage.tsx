@@ -89,8 +89,6 @@ const parentSteps: OnboardingStep[] = [
       title: 'Creating Parent Profile...',
       run: async () => {
         await persistProfile('parent');
-        // FIX: Force Nhost to fetch a fresh token so the new claims are instantly recognized!
-        await nhost.auth.refreshSession();
       },
     },
     {
@@ -109,8 +107,6 @@ const parentSteps: OnboardingStep[] = [
       title: 'Setting up District Profile...',
       run: async () => {
         await persistProfile('teacher');
-        // FIX: Force Nhost to fetch a fresh token so the new claims are instantly recognized!
-        await nhost.auth.refreshSession();
       },
     },
     {
@@ -126,7 +122,7 @@ const parentSteps: OnboardingStep[] = [
   if (selectedPath === 'parent') {
     return (
       <div className="mx-auto max-w-md p-6">
-        <OnboardingManager steps={parentSteps} onComplete={() => console.log('Parent Onboarding Complete!')} />
+        <OnboardingManager steps={parentSteps} onComplete={() => undefined} />
       </div>
     );
   }
@@ -134,7 +130,7 @@ const parentSteps: OnboardingStep[] = [
   if (selectedPath === 'district') {
     return (
       <div className="mx-auto max-w-md p-6">
-        <OnboardingManager steps={districtSteps} onComplete={() => console.log('District Onboarding Complete!')} />
+        <OnboardingManager steps={districtSteps} onComplete={() => undefined} />
       </div>
     );
   }
@@ -150,15 +146,15 @@ const parentSteps: OnboardingStep[] = [
             onClick={() => setSelectedPath('parent')}
             className="flex flex-col items-start rounded-lg border-2 border-gray-200 p-4 transition-all hover:border-sky-500 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
           >
-            <span className="text-lg font-semibold text-gray-900">I'm a Parent</span>
-            <span className="text-sm text-gray-500">I want to manage my family's education and find resources.</span>
+            <span className="text-lg font-semibold text-gray-900">I’m a Parent</span>
+            <span className="text-sm text-gray-500">I want to manage my family’s education and find resources.</span>
           </button>
 
           <button
             onClick={() => setSelectedPath('district')}
             className="flex flex-col items-start rounded-lg border-2 border-gray-200 p-4 transition-all hover:border-emerald-500 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
           >
-            <span className="text-lg font-semibold text-gray-900">I'm with a School / District</span>
+            <span className="text-lg font-semibold text-gray-900">I’m with a School / District</span>
             <span className="text-sm text-gray-500">I am a teacher, administrator, or staff member.</span>
           </button>
         </div>

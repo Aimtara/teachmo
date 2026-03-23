@@ -73,6 +73,12 @@ export default function Login() {
     setRedirecting(false);
   }, [searchParams]);
 
+  const toggleAuthMode = useCallback(() => {
+    setAuthMode((current) => (current === AUTH_MODES.SIGN_IN ? AUTH_MODES.SIGN_UP : AUTH_MODES.SIGN_IN));
+    setError(null);
+    setNotice('');
+  }, []);
+
   const handleFlowChange = (flow) => {
     setSelectedFlow(flow);
     saveOnboardingFlowPreference(flow);
@@ -162,6 +168,34 @@ export default function Login() {
     setRedirecting(false);
     setError(err?.message || 'Login failed');
   }, []);
+
+  const handleForgotPassword = useCallback(async () => {
+    if (isSubmitting) return;
+
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      setError('Enter your email first so we can send reset instructions.');
+      return;
+    }
+
+    setError(null);
+    setNotice('');
+    setIsSubmitting(true);
+
+    try {
+      const result = await nhost.auth.resetPassword({ email: normalizedEmail });
+      if (result?.error) {
+        throw result.error;
+      }
+
+      setNotice(`Password reset instructions were sent to ${normalizedEmail}.`);
+    } catch (err) {
+      logger.error('Forgot password failed', err);
+      setError(err?.message || 'Could not send password reset email.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [email, isSubmitting]);
 
   const handleSsoStart = useCallback(() => {
     setRedirecting(true);
@@ -327,12 +361,25 @@ export default function Login() {
             </p>
           )}
 
+          {selectedFlow === ONBOARDING_FLOWS.PARENT && authMode === AUTH_MODES.SIGN_IN && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={isSubmitting}
+                className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? 'Sending reset link…' : 'Forgot password?'}
+              </button>
+            </div>
+          )}
+
           {selectedFlow === ONBOARDING_FLOWS.PARENT ? (
             <p className="text-center text-sm text-gray-600">
               {authMode === AUTH_MODES.SIGN_IN ? 'Need a parent account? ' : 'Already have an account? '}
               <button
                 type="button"
-                onClick={() => setAuthMode(authMode === AUTH_MODES.SIGN_IN ? AUTH_MODES.SIGN_UP : AUTH_MODES.SIGN_IN)}
+                onClick={toggleAuthMode}
                 className="font-semibold text-emerald-700 hover:text-emerald-800"
               >
                 {authMode === AUTH_MODES.SIGN_IN ? 'Create a new account' : 'Sign in instead'}
@@ -431,7 +478,7 @@ function AutoSSORedirect({ provider, onStart, onError, redirectTo = `${window.lo
     if (startedForKeyRef.current === runKey) return;
     startedForKeyRef.current = runKey;
     go();
-  }, [normalizedProvider, onError, onStart, redirectTo]);
+  }, [normalizedProvider, onError, onStart, provider, redirectTo]);
 
   return null;
 }

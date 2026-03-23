@@ -54,8 +54,16 @@ export default function AdminSystemHealth() {
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
               )}
             </CardHeader>
-            <CardContent className="text-sm text-gray-600">
-              Status: <span className="font-medium text-gray-900">{service.status}</span>
+            <CardContent className="text-sm text-gray-600 space-y-1">
+              <div>
+                Status: <span className="font-medium text-gray-900">{service.status}</span>
+              </div>
+              {typeof service.errorRate24h === 'number' ? (
+                <div>
+                  API error rate (24h):{' '}
+                  <span className="font-medium text-gray-900">{(service.errorRate24h * 100).toFixed(2)}%</span>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ))}

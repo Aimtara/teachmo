@@ -28,34 +28,16 @@ describe('useTenantScope', () => {
     graphqlMock.mockReset();
   });
 
-  it('uses legacy profile data when modern profiles query fails', async () => {
-    graphqlMock
-      .mockRejectedValueOnce(new Error('permission denied for relation profiles'))
-      .mockResolvedValueOnce({
-        user_profiles_by_pk: {
-          user_id: 'u1',
-          full_name: 'Legacy Parent',
-          role: 'parent',
-          district_id: 'org1',
-          school_id: 'school1',
-        },
-      });
+  it('returns null when recoverable profile lookup errors occur', async () => {
+    graphqlMock.mockRejectedValueOnce(new Error('permission denied for relation profiles'));
 
     const { result } = renderHook(() => useTenantScope(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data).toEqual({
-      userId: 'u1',
-      profileId: null,
-      fullName: 'Legacy Parent',
-      role: 'parent',
-      organizationId: null,
-      districtId: 'org1',
-      schoolId: 'school1',
-    });
+    expect(result.current.data).toBeNull();
+    expect(graphqlMock).toHaveBeenCalledTimes(1);
   });
-
 
 
   it('surfaces unrecoverable auth errors immediately', async () => {
@@ -69,13 +51,12 @@ describe('useTenantScope', () => {
     expect(graphqlMock).toHaveBeenCalledTimes(1);
   });
 
-  it('errors when both modern and legacy queries fail', async () => {
-    graphqlMock
-      .mockRejectedValueOnce(new Error('profiles unavailable'))
-      .mockRejectedValueOnce(new Error('legacy profile unavailable'));
+  it('returns null when modern profiles query has no rows', async () => {
+    graphqlMock.mockResolvedValueOnce({ profiles: [] });
 
     const { result } = renderHook(() => useTenantScope(), { wrapper });
 
-    await waitFor(() => expect(result.current.isError).toBe(true));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
   });
 });
