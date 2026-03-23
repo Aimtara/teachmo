@@ -44,6 +44,7 @@ import ssoRouter from './routes/sso.js';
 import auditExportRouter from './routes/auditExport.js';
 import publicPartnersRouter from './routes/publicPartners.js';
 import { isExplicitlyAllowedReplitOrigin } from './utils/corsOrigins.js';
+import { attachRequestContext, globalErrorHandler } from './middleware/requestContext.js';
 
 // Load environment variables
 dotenv.config();
@@ -86,6 +87,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(passport.initialize());
 app.use(attachAuthContext);
+app.use(attachRequestContext);
 app.use(metricsMiddleware);
 app.use(captureApiMetrics);
 
@@ -136,5 +138,7 @@ app.get('/api/metrics', (req, res) => {
 app.get('/api', (req, res) => {
   res.send({ message: 'Welcome to the Teachmo API' });
 });
+
+app.use(globalErrorHandler);
 
 export default app;
