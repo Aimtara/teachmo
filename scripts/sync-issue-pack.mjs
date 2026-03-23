@@ -8,6 +8,7 @@ if (process.env.DRY_RUN == null) {
 }
 if (process.env.CREATE_MISSING == null) {
   process.env.CREATE_MISSING = 'false';
+  process.env.CREATE_MISSING = 'true';
 }
 
 runIssuePack({ mode: 'sync' }).catch((error) => {

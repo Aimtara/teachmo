@@ -7,6 +7,7 @@ on:
         description: "Preview only (true/false)"
         required: false
         default: "true"
+        default: "false"
       project_owner:
         description: "Optional project owner login (org/user)"
         required: false
@@ -20,11 +21,13 @@ on:
       - "ops/issue-pack.yml"
       - "scripts/sync-issue-pack.mjs"
       - "scripts/issue-pack-core.mjs"
+  schedule:
+    - cron: '30 12 * * 1-5'
 
 permissions:
   contents: read
   issues: write
-  repository-projects: write
+  projects: write
 
 jobs:
   sync:
@@ -47,6 +50,9 @@ jobs:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
           UPDATE_EXISTING: "true"
           CREATE_MISSING: "false"
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          UPDATE_EXISTING: "true"
+          CREATE_MISSING: "true"
           PROJECT_OWNER: ${{ github.event.inputs.project_owner }}
           PROJECT_NUMBER: ${{ github.event.inputs.project_number }}
           GITHUB_REPOSITORY: ${{ github.repository }}
