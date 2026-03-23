@@ -1,0 +1,361 @@
+meta:
+  # Optional GitHub Project v2 integration. Set owner + project number to auto-add issues.
+  project:
+    owner: ""
+    number: null
+  # Optional mapping from human names to GitHub usernames.
+  assignee_map: {}
+
+parent:
+  key: parent-tracker
+  title: "Teachmo Completion Matrix Tracking Issue"
+  labels:
+    - program-board
+    - planning
+  body: |
+    <!-- issue-pack-key: parent-tracker -->
+    # Teachmo Completion Matrix Tracking Issue
+
+    ## Goal
+    Use this issue as the working closure board for Teachmo’s SSOT epics and governed AI requirements.
+
+    ## Status legend
+    - [ ] Not verified / not complete
+    - [x] Verified complete
+    - [-] Partial / scaffold exists, but not fully proven
+
+    ## Automation Rollup
+    _This section is updated by the issue-pack bootstrap/sync workflow._
+
+    ## Linked child issues
+    _This section is updated automatically._
+
+children:
+  - key: ssot-reconciliation
+    title: "SSOT reconciliation: align roadmap, gates, and code reality"
+    labels:
+      - epic
+      - ssot
+      - planning
+      - operations
+      - P0
+    assignees: []
+    body: |
+      <!-- issue-pack-key: ssot-reconciliation -->
+      ## Parent issue
+      Link to: `Teachmo Completion Matrix Tracking Issue`
+
+      ## Priority
+      `P0`
+
+      ## Summary
+      The codebase now contains many route/page/control-plane surfaces that the execution board still treats as planned or incomplete. Reconcile the SSOT to reflect reality.
+
+      ## Acceptance criteria
+      - [ ] Every epic is marked as shipped / partial / not started
+      - [ ] Each epic links to concrete code evidence
+      - [ ] Each epic links to missing tests/proof
+      - [ ] Gate 0–4 checklist states reflect reality
+      - [ ] Parent tracking issue updated
+      - [ ] Execution board updated to remove phantom completeness / phantom backlog
+
+  - key: gate-0
+    title: "Gate 0 closure: foundation quality, observability, accessibility, and analytics"
+    labels:
+      - epic
+      - gate-0
+      - foundation
+      - quality
+      - observability
+      - P0
+    assignees: []
+    body: |
+      <!-- issue-pack-key: gate-0 -->
+      ## Parent issue
+      Link to: `Teachmo Completion Matrix Tracking Issue`
+
+      ## Priority
+      `P0`
+
+      ## Summary
+      Close Gate 0 by proving the platform is stable enough to build on.
+
+      ## Covers
+      - E01 Global error handling + structured logging
+      - E02 Performance baseline + cold start guardrails
+      - E03 Accessibility baseline
+      - E04 Analytics event schema v0
+      - E19 System health dashboard
+
+      ## Acceptance criteria
+
+      ### E01 — Global error handling + structured logging
+      - [ ] Centralized backend error handler verified
+      - [ ] Structured logs include request ID, tenant, role, and surface
+      - [ ] Core flows have unhandled-exception coverage
+
+      ### E02 — Performance baseline + cold start guardrails
+      - [ ] Core screen performance budgets defined
+      - [ ] CI perf regression checks wired
+      - [ ] Cold-start thresholds measured and documented
+
+      ### E03 — Accessibility baseline
+      - [ ] WCAG AA checks pass for onboarding
+      - [ ] WCAG AA checks pass for dashboard
+      - [ ] WCAG AA checks pass for messaging
+      - [ ] Keyboard-only flows verified
+
+      ### E04 — Analytics event schema v0
+      - [ ] Canonical analytics event schema published
+      - [ ] Schema enforced in code
+      - [ ] Onboarding, messaging, and digest coverage verified
+
+      ### E19 — System health dashboard
+      - [ ] Health dashboard shows queue backlog
+      - [ ] Health dashboard shows error rate
+      - [ ] Alerts/health checks validated
+
+  - key: gate-1
+    title: "Gate 1 closure: RBAC, tenant isolation, and audit completeness"
+    labels:
+      - epic
+      - gate-1
+      - identity
+      - compliance
+      - security
+      - P0
+    assignees: []
+    body: |
+      <!-- issue-pack-key: gate-1 -->
+      ## Parent issue
+      Link to: `Teachmo Completion Matrix Tracking Issue`
+
+      ## Priority
+      `P0`
+
+      ## Summary
+      Close Gate 1 by proving identity, role enforcement, tenant boundaries, and auditability are production-safe.
+
+      ## Covers
+      - E05 Core roles + RBAC enforcement
+      - E06 Tenant scoping hardening
+      - E07 Audit log for sensitive actions
+
+      ## Acceptance criteria
+
+      ### E05 — Core roles + RBAC enforcement
+      - [ ] API-side authorization tests added
+      - [ ] Unauthorized attempts blocked and logged
+      - [ ] UI role restrictions verified end-to-end
+
+      ### E06 — Tenant scoping hardening
+      - [ ] Cross-tenant API isolation tests added
+      - [ ] Cross-tenant DB/query isolation verified
+      - [ ] AI/admin flows validated for tenant isolation
+
+      ### E07 — Audit log for sensitive actions
+      - [ ] Sensitive actions coverage matrix completed
+      - [ ] Before/after state captured where required
+      - [ ] Search/filter/export flow works end-to-end
+
+  - key: ai-runtime-audit
+    title: "Governed AI runtime enforcement audit"
+    labels:
+      - epic
+      - ai
+      - governance
+      - compliance
+      - platform
+      - P0
+    assignees: []
+    body: |
+      <!-- issue-pack-key: ai-runtime-audit -->
+      ## Parent issue
+      Link to: `Teachmo Completion Matrix Tracking Issue`
+
+      ## Priority
+      `P0`
+
+      ## Summary
+      Verify the runtime matches the AI SSOT: policy-before-generation, redaction, telemetry, verifier behavior, progressive rollout, and admin visibility.
+
+      ## Covers
+      - AI-01 Governance before generation
+      - AI-02 Zero-trust outbound sanitization
+      - AI-03 Structured governance telemetry
+      - AI-04 Maker/checker for high-stakes AI
+      - AI-05 Tenant-scoped progressive rollout
+      - AI-06 Admin visibility for governed AI
+
+      ## Acceptance criteria
+
+      ### AI-01 — Governance before generation
+      - [ ] All model invocation paths audited
+      - [ ] Every external model call is gated by policy evaluation
+      - [ ] No bypass path remains
+
+      ### AI-02 — Zero-trust outbound sanitization
+      - [ ] Redaction boundary verified on every outbound AI adapter
+      - [ ] Regression tests added
+      - [ ] No raw sensitive payload crosses model boundary
+
+      ### AI-03 — Structured governance telemetry
+      - [ ] `requestId` emitted everywhere required
+      - [ ] `policyOutcome` emitted everywhere required
+      - [ ] `matchedPolicies` emitted everywhere required
+      - [ ] `denialReason` emitted everywhere required
+      - [ ] `requiredSkill` emitted everywhere required
+      - [ ] `tenantScope` emitted everywhere required
+      - [ ] `verifier` emitted everywhere required
+
+      ### AI-04 — Maker/checker for high-stakes AI
+      - [ ] High-stakes flows inventory completed
+      - [ ] Shadow mode enabled where needed
+      - [ ] Verifier metrics reviewed
+      - [ ] False-positive loop established
+
+      ### AI-05 — Tenant-scoped progressive rollout
+      - [ ] Rollout ladder documented
+      - [ ] One pilot tenant tested
+      - [ ] Staged enablement proven
+      - [ ] Rollback plan attached
+
+      ### AI-06 — Admin visibility for governed AI
+      - [ ] Live runtime data visible in dashboards
+      - [ ] Reviewer workflows validated
+      - [ ] Admin UX audit completed
+
+  - key: gate-2
+    title: "Gate 2 closure: directory flows, approvals, roster import, identity mapping"
+    labels:
+      - epic
+      - gate-2
+      - directory
+      - integrations
+      - pilot
+      - P1
+    assignees: []
+    body: |
+      <!-- issue-pack-key: gate-2 -->
+      ## Parent issue
+      Link to: `Teachmo Completion Matrix Tracking Issue`
+
+      ## Priority
+      `P1`
+
+      ## Summary
+      Close Gate 2 by validating end-to-end directory and roster workflows.
+
+      ## Covers
+      - E10 School directory request flow
+      - E11 Directory approvals + partner submissions
+      - E12 Roster import (CSV/OneRoster-lite)
+      - E13 Deterministic identity mapping rules
+
+      ## Acceptance criteria
+      - [ ] Find → request → approve/deny works end-to-end
+      - [ ] Parent/admin notifications validated
+      - [ ] Denial reasons captured
+      - [ ] SLA metrics recorded
+      - [ ] Preview/commit flow works
+      - [ ] Validation summary available
+      - [ ] Error report available
+      - [ ] Mapping rules documented
+      - [ ] Conflict handling surfaced in admin UI
+      - [ ] Fixture tests prevent ghost students
+
+  - key: gate-3
+    title: "Gate 3 closure: messaging reliability, digests, office hours, assignments sync"
+    labels:
+      - epic
+      - gate-3
+      - messaging
+      - assignments
+      - pilot
+      - P1
+    assignees: []
+    body: |
+      <!-- issue-pack-key: gate-3 -->
+      ## Parent issue
+      Link to: `Teachmo Completion Matrix Tracking Issue`
+
+      ## Priority
+      `P1`
+
+      ## Summary
+      Close Gate 3 by proving the parent/teacher core loops work reliably.
+
+      ## Acceptance criteria
+      - [ ] Delivery SLO documented
+      - [ ] Retry/backoff verified
+      - [ ] Dead-letter visibility available
+      - [ ] Digest scheduling monitored
+      - [ ] Open/click tracking works
+      - [ ] Success-rate target met in staging
+      - [ ] Booking flow verified or implemented
+      - [ ] One real source connected
+      - [ ] Last sync / sync health visible
+      - [ ] Analytics emitted for sync usage
+
+  - key: gate-4
+    title: "Gate 4 closure: admin control room, analytics validation, runbooks, and escalations"
+    labels:
+      - epic
+      - gate-4
+      - admin
+      - analytics
+      - operations
+      - P1
+    assignees: []
+    body: |
+      <!-- issue-pack-key: gate-4 -->
+      ## Parent issue
+      Link to: `Teachmo Completion Matrix Tracking Issue`
+
+      ## Priority
+      `P1`
+
+      ## Summary
+      Close Gate 4 by making the admin/control-plane surfaces operationally complete.
+
+      ## Acceptance criteria
+      - [ ] “Sync now” works for target integrations
+      - [ ] Error summaries are visible and actionable
+      - [ ] Recovery/troubleshooting flow validated
+      - [ ] Adoption metrics validated
+      - [ ] Delivery metrics validated
+      - [ ] Sync health metrics validated
+      - [ ] Runbooks linked in admin surfaces
+      - [ ] Escalation routing validated
+      - [ ] Decision log exists with owner + rationale + date
+
+  - key: enterprise-hardening
+    title: "Enterprise hardening: SSO, SCIM, compliance evidence, retention, DSAR"
+    labels:
+      - epic
+      - enterprise
+      - identity
+      - compliance
+      - security
+      - P2
+    assignees: []
+    body: |
+      <!-- issue-pack-key: enterprise-hardening -->
+      ## Parent issue
+      Link to: `Teachmo Completion Matrix Tracking Issue`
+
+      ## Priority
+      `P2`
+
+      ## Summary
+      Finish the enterprise-scale identity and compliance work required for district and institutional readiness.
+
+      ## Acceptance criteria
+      - [ ] One SSO provider validated end-to-end
+      - [ ] Pilot tenant rollout completed
+      - [ ] SCIM create/deactivate/role update flows verified
+      - [ ] Provisioning audit trail confirmed
+      - [ ] Retention flow validated
+      - [ ] DSAR flow validated
+      - [ ] Compliance checklist completed
+      - [ ] Enterprise evidence pack assembled

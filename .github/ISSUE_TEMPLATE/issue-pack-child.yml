@@ -1,0 +1,46 @@
+name: Issue Pack Child Epic
+about: Create a child gate/epic issue compatible with issue-pack automation.
+title: "[Issue Pack] Child Epic"
+labels:
+  - epic
+body:
+  - type: input
+    id: issue_pack_key
+    attributes:
+      label: Issue pack key
+      description: "Use a stable key (example: gate-0, gate-1, ai-runtime-audit)."
+      placeholder: gate-0
+    validations:
+      required: true
+  - type: input
+    id: parent_reference
+    attributes:
+      label: Parent issue title
+      value: Teachmo Completion Matrix Tracking Issue
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0
+        - P1
+        - P2
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Short one-paragraph summary.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: Checklist items that must be completed.
+      value: "- [ ] Add acceptance criteria"
+    validations:
+      required: true
