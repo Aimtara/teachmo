@@ -1,5 +1,4 @@
-import fs from 'fs';
-import process from 'process';
+import fs from 'node:fs';
 import { parse } from 'yaml';
 
 function boolEnv(name, fallback) {
@@ -149,7 +148,15 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
   }
 
   async function listComments(issueNumber) {
-    return gh(`/repos/${owner}/${repoName}/issues/${issueNumber}/comments?per_page=100`);
+    const all = [];
+    for (let page = 1; page <= 10; page += 1) {
+      const items = await gh(
+        `/repos/${owner}/${repoName}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
+      );
+      all.push(...items);
+      if (items.length < 100) break;
+    }
+    return all;
   }
 
   async function ensureLabel(name) {
