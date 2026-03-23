@@ -1,14 +1,14 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-03-23T02:48:57.405Z
+Generated: 2026-03-23T13:17:15.639Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 192 |
+| .js | 189 |
 | .jsx | 481 |
-| .ts | 326 |
+| .ts | 328 |
 | .tsx | 68 |
 
 ## JS/TS inventory by top-level directory
@@ -16,7 +16,7 @@ Generated: 2026-03-23T02:48:57.405Z
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
 | src | 0 | 480 | 201 | 68 |
-| backend | 154 | 0 | 22 | 0 |
+| backend | 151 | 0 | 24 | 0 |
 | nhost | 30 | 0 | 87 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
 | public | 1 | 0 | 0 | 0 |
@@ -122,6 +122,7 @@ Generated: 2026-03-23T02:48:57.405Z
 - [x] Migrated backend utility modules `backend/utils/{contentSafety,tenantSettings,policyEngine}.js` to TypeScript with typed safety scanning, retention policy, and policy-cache contracts.
 - [x] Migrated backend utility module `backend/utils/observability.js` to TypeScript with typed summary/rule-evaluation/report payload contracts.
 - [x] Migrated backend helper shims `backend/orchestrator/contract.js`, `backend/ai/enforcementRules.js`, and `backend/orchestrator/agents/insightParser.js` to TypeScript.
+- [x] Migrated lightweight backend routes `backend/routes/{faqs,learningPaths,programs}.js` to TypeScript as part of route-layer cleanup.
 - [ ] Continue backend route/middleware conversion using typed request context contracts and shared utility typing.
 
 ## Phase 4 tests/tooling convergence progress
