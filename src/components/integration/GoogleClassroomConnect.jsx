@@ -1,9 +1,20 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import PropTypes from 'prop-types';
 import { User } from "@/api/entities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CheckCircle, AlertCircle, ExternalLink, RefreshCw, Users, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { googleAuth } from "@/api/functions";
@@ -19,6 +30,7 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
   const [syncStatus, setSyncStatus] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
   // Store interval and listener references for cleanup
   const checkClosedRef = useRef(null);
@@ -152,22 +164,22 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
   };
 
   const handleDisconnect = async () => {
-    if (window.confirm('Are you sure you want to disconnect Google Classroom? This will stop syncing your classes and assignments.')) {
-      try {
-        await User.updateMyUserData({
-          google_classroom_connected: false,
-          google_classroom_token: null,
-          google_classroom_refresh_token: null
-        });
+    try {
+      await User.updateMyUserData({
+        google_classroom_connected: false,
+        google_classroom_token: null,
+        google_classroom_refresh_token: null
+      });
 
-        setConnectionStatus('disconnected');
-        setLastSyncTime(null);
-        setSyncStatus({ type: 'success', message: 'Disconnected from Google Classroom' });
-        if (onConnectionUpdate) onConnectionUpdate();
-      } catch (error) {
-        logger.error('Disconnect error:', error);
-        setSyncStatus({ type: 'error', message: 'Failed to disconnect from Google Classroom' });
-      }
+      setConnectionStatus('disconnected');
+      setLastSyncTime(null);
+      setSyncStatus({ type: 'success', message: 'Disconnected from Google Classroom' });
+      if (onConnectionUpdate) onConnectionUpdate();
+    } catch (error) {
+      logger.error('Disconnect error:', error);
+      setSyncStatus({ type: 'error', message: 'Failed to disconnect from Google Classroom' });
+    } finally {
+      setShowDisconnectConfirm(false);
     }
   };
 
@@ -284,7 +296,7 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
                   )}
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={handleDisconnect}>
+              <Button variant="outline" size="sm" onClick={() => setShowDisconnectConfirm(true)}>
                 Disconnect
               </Button>
             </div>
@@ -345,6 +357,30 @@ export default function GoogleClassroomConnect({ user, onConnectionUpdate }) {
           </div>
         )}
       </CardContent>
+
+      <AlertDialog open={showDisconnectConfirm} onOpenChange={setShowDisconnectConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect Google Classroom?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will stop syncing classes and assignments from Google Classroom.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisconnect}>Disconnect</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
+
+GoogleClassroomConnect.propTypes = {
+  user: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    google_classroom_connected: PropTypes.bool,
+    last_integration_sync: PropTypes.string,
+  }),
+  onConnectionUpdate: PropTypes.func,
+};
