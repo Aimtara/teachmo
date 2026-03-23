@@ -71,6 +71,20 @@ export function createGitHubClient({ token }) {
   return { gh, graphql };
 }
 
+export async function listAllIssues({ gh, owner, repoName, maxPages = 10 }) {
+  const all = [];
+  let page = 1;
+
+  while (page <= maxPages) {
+    const items = await gh(`/repos/${owner}/${repoName}/issues?state=all&per_page=100&page=${page}`);
+    all.push(...items.filter((i) => !i.pull_request));
+    if (items.length < 100) break;
+    page += 1;
+  }
+
+  return all;
+}
+
 function findIssueByKey(issues, key) {
   const marker = markerFor(key);
   return issues.find((issue) => (issue.body || '').includes(marker));
@@ -119,26 +133,12 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
   const { gh, graphql } = createGitHubClient({ token });
 
   async function listIssues() {
-    const all = [];
-    const perPage = 100;
     const maxPagesEnv = process.env.ISSUE_PACK_MAX_PAGES;
     const parsedMaxPages = maxPagesEnv ? Number.parseInt(maxPagesEnv, 10) : Number.NaN;
     const effectiveMaxPages = Number.isFinite(parsedMaxPages) && parsedMaxPages > 0 ? parsedMaxPages : 10;
-    let page = 1;
+    const all = await listAllIssues({ gh, owner, repoName, maxPages: effectiveMaxPages });
 
-    while (page <= effectiveMaxPages) {
-      const items = await gh(
-        `/repos/${owner}/${repoName}/issues?state=all&per_page=${perPage}&page=${page}`,
-      );
-      const issuesOnly = items.filter((i) => !i.pull_request);
-      all.push(...issuesOnly);
-      if (items.length < perPage) {
-        break;
-      }
-      page += 1;
-    }
-
-    if (page > effectiveMaxPages && all.length && process.env.ISSUE_PACK_MAX_PAGES == null) {
+    if (all.length >= effectiveMaxPages * 100 && process.env.ISSUE_PACK_MAX_PAGES == null) {
       console.warn(
         `[issue-pack] Reached default page limit (${effectiveMaxPages}) when listing issues;` +
           ' set ISSUE_PACK_MAX_PAGES to a higher value if you need to scan more issues.',
@@ -303,6 +303,7 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
   const projectId = await resolveProjectId(projectOwner, projectNumber);
 
   const allLabels = new Set([
+    ...(issuePack?.meta?.global_labels || []),
     ...(issuePack.parent.labels || []),
     ...issuePack.children.flatMap((child) => child.labels || []),
   ]);

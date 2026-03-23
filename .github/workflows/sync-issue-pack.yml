@@ -6,7 +6,6 @@ on:
       dry_run:
         description: "Preview only (true/false)"
         required: false
-        default: "true"
         default: "false"
       project_owner:
         description: "Optional project owner login (org/user)"
@@ -22,7 +21,7 @@ on:
       - "scripts/sync-issue-pack.mjs"
       - "scripts/issue-pack-core.mjs"
   schedule:
-    - cron: '30 12 * * 1-5'
+    - cron: "30 12 * * 1-5"
 
 permissions:
   contents: read
@@ -44,16 +43,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate issue pack config
+        run: node scripts/validate-issue-pack.mjs
+
       - name: Sync issue pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
           UPDATE_EXISTING: "true"
           CREATE_MISSING: "false"
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
-          UPDATE_EXISTING: "true"
-          CREATE_MISSING: "true"
-          PROJECT_OWNER: ${{ github.event.inputs.project_owner }}
-          PROJECT_NUMBER: ${{ github.event.inputs.project_number }}
+          PROJECT_OWNER: ${{ github.event.inputs.project_owner || '' }}
+          PROJECT_NUMBER: ${{ github.event.inputs.project_number || '' }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/sync-issue-pack.mjs

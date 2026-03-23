@@ -8,10 +8,7 @@ on:
         required: false
         default: "false"
   schedule:
-    - cron: "0 14 * * 1"
-        default: "true"
-  schedule:
-    - cron: '0 13 * * 1-5'
+    - cron: "0 13 * * 1-5"
 
 permissions:
   contents: read
@@ -32,13 +29,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Roll up program status
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WRITE_COMMENT: ${{ github.event.inputs.write_comment || 'false' }}
+      - name: Validate issue pack config
+        run: node scripts/validate-issue-pack.mjs
+
       - name: Build program rollup
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WRITE_COMMENT: ${{ github.event.inputs.write_comment || 'true' }}
+          WRITE_COMMENT: ${{ github.event.inputs.write_comment || 'false' }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/rollup-program-status.mjs
