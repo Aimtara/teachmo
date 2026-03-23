@@ -6,7 +6,12 @@ import {
   TIERS,
   createGovernanceDecision,
 } from '../ai/governanceDecision.js';
-import { normalizeFlagOverride } from '../middleware/aiGovernance.js';
+import {
+  normalizeFlagOverride,
+  classifyIntent,
+  detectChildData,
+  extractConsentScope,
+} from '../middleware/aiGovernance.js';
 
 describe('governanceDecision', () => {
   test('creates a valid immutable decision', () => {
@@ -192,5 +197,72 @@ describe('aiGovernance middleware helpers', () => {
 
     expect(normalized.rolloutPercentage).toBe(100);
     expect(normalized.canaryPercentage).toBe(0);
+  });
+});
+
+describe('classifyIntent', () => {
+  test('returns an allowlisted client-supplied intent verbatim', () => {
+    expect(classifyIntent({ body: { intent: 'EXPLORE_DEEP_LINK' } })).toBe('EXPLORE_DEEP_LINK');
+    expect(classifyIntent({ body: { route: 'submit_event' } })).toBe('submit_event');
+    expect(classifyIntent({ body: { action: 'HOMEWORK_HELP' } })).toBe('HOMEWORK_HELP');
+  });
+
+  test('ignores client-supplied intent that is not in the allowlist', () => {
+    // Should fall through to server-side prompt classification (no keyword match → null).
+    expect(classifyIntent({ body: { intent: 'arbitrary_bypass', prompt: '' } })).toBeNull();
+  });
+
+  test('classifies by prompt text when no allowed client intent is provided', () => {
+    expect(classifyIntent({ body: { prompt: 'find some activities near me' } })).toBe('EXPLORE_DEEP_LINK');
+    expect(classifyIntent({ body: { prompt: 'please submit this resource' } })).toBe('submit_event');
+    expect(classifyIntent({ body: { prompt: 'school participation request' } })).toBe('school_request');
+    expect(classifyIntent({ body: { prompt: 'help with homework tonight' } })).toBe('HOMEWORK_HELP');
+  });
+
+  test('returns null when neither client intent nor prompt text matches', () => {
+    expect(classifyIntent({ body: { prompt: 'just a normal chat message' } })).toBeNull();
+    expect(classifyIntent({ body: {} })).toBeNull();
+    expect(classifyIntent({})).toBeNull();
+  });
+});
+
+describe('detectChildData', () => {
+  test('returns true when childId is present in body', () => {
+    expect(detectChildData({ body: { childId: 'child-1' } })).toBe(true);
+  });
+
+  test('returns true when child_id is present in body', () => {
+    expect(detectChildData({ body: { child_id: 'child-1' } })).toBe(true);
+  });
+
+  test('returns true when context.childId is present', () => {
+    expect(detectChildData({ body: { context: { childId: 'child-1' } } })).toBe(true);
+  });
+
+  test('returns false when no child data signals are present', () => {
+    expect(detectChildData({ body: {} })).toBe(false);
+    expect(detectChildData({})).toBe(false);
+  });
+});
+
+describe('extractConsentScope', () => {
+  test('normalizes an array consentScope from auth', () => {
+    const req = { auth: { consentScope: ['Child_Data', ' PROFILE '] } };
+    expect(extractConsentScope(req)).toEqual(['child_data', 'profile']);
+  });
+
+  test('splits a comma-separated string consentScope from auth', () => {
+    const req = { auth: { consentScope: 'child_data, profile' } };
+    expect(extractConsentScope(req)).toEqual(['child_data', 'profile']);
+  });
+
+  test('returns an empty array when consentScope is absent', () => {
+    expect(extractConsentScope({ auth: {} })).toEqual([]);
+    expect(extractConsentScope({})).toEqual([]);
+  });
+
+  test('filters out blank entries', () => {
+    const req = { auth: { consentScope: 'child_data,,profile,' } };
+    expect(extractConsentScope(req)).toEqual(['child_data', 'profile']);
   });
 });
