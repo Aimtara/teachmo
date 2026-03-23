@@ -33,18 +33,8 @@ export default function ProtectedRoute({
 }: Props) {
   const location = useLocation();
 
-  // 🚀 GOD MODE DEV SWITCH
-  // If we are running locally (npm run dev), act as a Superadmin and immediately 
-  // grant access to the requested page, skipping all Nhost and RBAC checks.
-  if (import.meta.env.DEV) {
-    return <>{children}</>;
-  }
-
-  // ====================================================================
-  // PRODUCTION SECURITY LOGIC (Only runs when deployed)
-  // ====================================================================
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
-  const { role, loading: roleLoading, needsOnboarding } = useUserRoleState();
+  const { role, roleSource, loading: roleLoading, needsOnboarding } = useUserRoleState();
 
   const roleWhitelist = React.useMemo(() => {
     if (allowedRoles?.length) return allowedRoles;
@@ -61,6 +51,13 @@ export default function ProtectedRoute({
     () => requireAuth ?? requiresAuth ?? true,
     [requireAuth, requiresAuth]
   );
+
+
+  // 🚀 GOD MODE DEV SWITCH
+  // Keep hook order stable by evaluating this after hooks are declared.
+  if (import.meta.env.DEV) {
+    return <>{children}</>;
+  }
 
   if (isLoading || roleLoading) {
     return loadingFallback || <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
@@ -82,7 +79,7 @@ export default function ProtectedRoute({
     return (
       <Navigate
         to={resolveOnboardingPath({
-          role,
+          role: roleSource === 'unknown' ? null : role,
           preferredFlow: getSavedOnboardingFlowPreference(),
         })}
         replace

@@ -224,9 +224,24 @@ router.get('/system/health', async (req, res) => {
     [organizationId, schoolId || null]
   );
 
+  const apiWindow = await query(
+    `select
+       count(*) as total,
+       sum(case when status_code >= 400 then 1 else 0 end) as errors
+     from public.api_request_metrics
+     where organization_id = $1
+       and (school_id is null or school_id = $2)
+       and created_at >= now() - interval '24 hours'`,
+    [organizationId, schoolId || null]
+  );
+
+  const totalRequests = Number(apiWindow.rows?.[0]?.total || 0);
+  const totalErrors = Number(apiWindow.rows?.[0]?.errors || 0);
+  const errorRate = totalRequests > 0 ? totalErrors / totalRequests : 0;
+
   res.json({
     services: [
-      { name: 'API', status: 'ok' },
+      { name: 'API', status: 'ok', errorRate24h: errorRate, errors24h: totalErrors, totalRequests24h: totalRequests },
       { name: 'Database', status: dbStatus }
     ],
     dependencies: [
