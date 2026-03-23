@@ -92,7 +92,21 @@ async function isGovernanceEnabled(req) {
   } catch (error) {
     // Shadow mode: never break requests, but log a sanitized warning so failures are observable.
     console.warn('AI governance feature flag evaluation failed; falling back to disabled.', {
-      flagKey: GOVERNANCE_FLAG,
+const ALLOWED_CLIENT_INTENTS = new Set([
+  'EXPLORE_DEEP_LINK',
+  'submit_event',
+  'school_request',
+  'HOMEWORK_HELP',
+]);
+
+function classifyIntent(req) {
+  const body = req.body || {};
+  const rawIntent = body.intent || body.route || body.action || null;
+  const explicitIntent = typeof rawIntent === 'string' ? rawIntent : null;
+
+  if (explicitIntent && ALLOWED_CLIENT_INTENTS.has(explicitIntent)) {
+    return explicitIntent;
+  }
       organizationId: req.auth?.organizationId || req.tenant?.organizationId,
       schoolId: req.auth?.schoolId || req.tenant?.schoolId,
       errorMessage: error && typeof error.message === 'string' ? error.message : String(error),
