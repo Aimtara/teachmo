@@ -15,10 +15,12 @@ const { gh } = createGitHubClient({ token });
 
 async function listIssues() {
   const all = [];
-  for (let page = 1; page <= 10; page += 1) {
+  let page = 1;
+  while (true) {
     const items = await gh(`/repos/${owner}/${repoName}/issues?state=all&per_page=100&page=${page}`);
     all.push(...items.filter((i) => !i.pull_request));
     if (items.length < 100) break;
+    page += 1;
   }
   return all;
 }
@@ -78,6 +80,36 @@ function formatRollup({ parent, children }) {
   return lines.join('\n');
 }
 
+const ROLLUP_MARKER = '<!-- issue-pack-rollup -->';
+
+async function upsertRollupComment(issueNumber, body) {
+  const bodyWithMarker = `${ROLLUP_MARKER}\n${body}`;
+
+  let page = 1;
+  while (true) {
+    const comments = await gh(
+      `/repos/${owner}/${repoName}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
+    );
+    const existing = comments.find((c) => (c.body || '').includes(ROLLUP_MARKER));
+    if (existing) {
+      await gh(`/repos/${owner}/${repoName}/issues/comments/${existing.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ body: bodyWithMarker }),
+      });
+      console.log(`Updated rollup comment ${existing.id} on parent issue #${issueNumber}`);
+      return;
+    }
+    if (comments.length < 100) break;
+    page += 1;
+  }
+
+  await gh(`/repos/${owner}/${repoName}/issues/${issueNumber}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ body: bodyWithMarker }),
+  });
+  console.log(`Posted rollup comment to parent issue #${issueNumber}`);
+}
+
 async function main() {
   const issues = await listIssues();
   const parentIssue = findIssueByKey(issues, issuePack.parent.key);
@@ -99,12 +131,7 @@ async function main() {
     throw new Error('Cannot write rollup comment: parent issue not found');
   }
 
-  await gh(`/repos/${owner}/${repoName}/issues/${parentIssue.number}/comments`, {
-    method: 'POST',
-    body: JSON.stringify({ body: rollupBody }),
-  });
-
-  console.log(`Posted rollup comment to parent issue #${parentIssue.number}`);
+  await upsertRollupComment(parentIssue.number, rollupBody);
 }
 
 main().catch((error) => {
