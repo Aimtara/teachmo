@@ -1,19 +1,24 @@
 import process from 'process';
+import { fileURLToPath } from 'node:url';
 import { createGitHubClient, loadIssuePack } from './issue-pack-core.mjs';
+import { REQUIRED_STATUS_OPTIONS, REQUIRED_PRIORITY_OPTIONS } from './project-config.mjs';
 
-const token = process.env.GITHUB_TOKEN || process.env.PROJECT_AUTOMATION_TOKEN;
-
-if (!token) {
-  throw new Error('Missing PROJECT_AUTOMATION_TOKEN (or GITHUB_TOKEN)');
+export function fieldByName(project, name) {
+  return project.fields.nodes.find((field) => field.name === name);
 }
 
-const issuePack = loadIssuePack();
-const { graphql } = createGitHubClient({ token });
+export function assertOptions(field, requiredOptions) {
+  const actual = new Set((field?.options || []).map((option) => option.name));
+  const missing = requiredOptions.filter((option) => !actual.has(option));
 
-function getProjectConfig() {
-  const owner = process.env.PROJECT_OWNER || issuePack?.meta?.project?.owner;
-  const numberRaw = process.env.PROJECT_NUMBER || issuePack?.meta?.project?.number;
-  const number = numberRaw == null || numberRaw === '' ? null : Number(numberRaw);
+  if (missing.length > 0) {
+    throw new Error(`Field "${field.name}" is missing options: ${missing.join(', ')}`);
+  }
+}
+
+export async function validateProjectConfig({ graphql, projectOwner, projectNumber, projectFields = {} }) {
+  const owner = projectOwner;
+  const number = projectNumber == null || projectNumber === '' ? null : Number(projectNumber);
 
   if (!owner || !number) {
     throw new Error(
@@ -21,11 +26,6 @@ function getProjectConfig() {
     );
   }
 
-  return { owner, number };
-}
-
-async function getProject() {
-  const { owner, number } = getProjectConfig();
   const query = `
     query GetProject($owner: String!, $number: Int!) {
       organization(login: $owner) {
@@ -82,29 +82,9 @@ async function getProject() {
     throw new Error(`Project not found: ${owner} #${number}`);
   }
 
-  return project;
-}
-
-function fieldByName(project, name) {
-  return project.fields.nodes.find((field) => field.name === name);
-}
-
-function assertOptions(field, requiredOptions) {
-  const actual = new Set((field?.options || []).map((option) => option.name));
-  const missing = requiredOptions.filter((option) => !actual.has(option));
-
-  if (missing.length > 0) {
-    throw new Error(`Field "${field.name}" is missing options: ${missing.join(', ')}`);
-  }
-}
-
-async function main() {
-  const projectFields = issuePack?.meta?.project?.fields || {};
   const statusName = projectFields.status || 'Status';
   const priorityName = projectFields.priority || 'Priority';
   const workstreamName = projectFields.workstream || 'Workstream';
-
-  const project = await getProject();
 
   const statusField = fieldByName(project, statusName);
   const priorityField = fieldByName(project, priorityName);
@@ -122,13 +102,34 @@ async function main() {
     throw new Error(`Project field "${priorityName}" must be a single-select field`);
   }
 
-  assertOptions(statusField, ['Todo', 'In Progress', 'Blocked', 'Done']);
-  assertOptions(priorityField, ['P0', 'P1', 'P2']);
+  assertOptions(statusField, REQUIRED_STATUS_OPTIONS);
+  assertOptions(priorityField, REQUIRED_PRIORITY_OPTIONS);
+
+  return project;
+}
+
+async function main() {
+  const token = process.env.GITHUB_TOKEN || process.env.PROJECT_AUTOMATION_TOKEN;
+
+  if (!token) {
+    throw new Error('Missing PROJECT_AUTOMATION_TOKEN (or GITHUB_TOKEN)');
+  }
+
+  const issuePack = loadIssuePack();
+  const { graphql } = createGitHubClient({ token });
+
+  const projectOwner = process.env.PROJECT_OWNER || issuePack?.meta?.project?.owner;
+  const projectNumber = process.env.PROJECT_NUMBER || issuePack?.meta?.project?.number;
+  const projectFields = issuePack?.meta?.project?.fields || {};
+
+  const project = await validateProjectConfig({ graphql, projectOwner, projectNumber, projectFields });
 
   console.log(`Project configuration validated for "${project.title}".`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

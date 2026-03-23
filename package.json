@@ -40,7 +40,7 @@
     "issues:project-sync": "node scripts/project-sync-issue-pack.mjs",
     "issues:project-status": "node scripts/project-status-automation.mjs",
     "issues:validate": "node scripts/validate-issue-pack.mjs",
-    "issues:test": "node --test scripts/issue-pack-core.test.mjs",
+    "issues:test": "node --test scripts/issue-pack-core.test.mjs scripts/validate-project-config.test.mjs",
     "issues:go-live": "node scripts/go-live-issue-automation.mjs",
     "issues:smoke-activity": "node scripts/smoke-issue-activity.mjs",
     "issues:project-validate": "node scripts/validate-project-config.mjs"

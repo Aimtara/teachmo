@@ -1,5 +1,6 @@
 import process from 'process';
 import { createGitHubClient, listAllIssues, loadIssuePack, markerFor } from './issue-pack-core.mjs';
+import { REQUIRED_STATUS_OPTIONS, REQUIRED_PRIORITY_OPTIONS } from './project-config.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -160,16 +161,14 @@ function assertProjectFields({ statusField, priorityField, workstreamField, stat
     throw new Error(`Project field "${priorityFieldName}" must be a single-select field`);
   }
 
-  const requiredStatusOptions = ['Todo', 'In Progress', 'Blocked', 'Done'];
   const statusOptions = new Set((statusField.options || []).map((option) => option.name));
-  const missingStatus = requiredStatusOptions.filter((option) => !statusOptions.has(option));
+  const missingStatus = REQUIRED_STATUS_OPTIONS.filter((option) => !statusOptions.has(option));
   if (missingStatus.length > 0) {
     throw new Error(`Project field "${statusFieldName}" is missing options: ${missingStatus.join(', ')}`);
   }
 
-  const requiredPriorityOptions = ['P0', 'P1', 'P2'];
   const priorityOptions = new Set((priorityField.options || []).map((option) => option.name));
-  const missingPriority = requiredPriorityOptions.filter((option) => !priorityOptions.has(option));
+  const missingPriority = REQUIRED_PRIORITY_OPTIONS.filter((option) => !priorityOptions.has(option));
   if (missingPriority.length > 0) {
     throw new Error(`Project field "${priorityFieldName}" is missing options: ${missingPriority.join(', ')}`);
   }
