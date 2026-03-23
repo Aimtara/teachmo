@@ -15,7 +15,8 @@ const { gh, graphql } = createGitHubClient({ token });
 
 async function listIssues() {
   const maxPages = Number.parseInt(process.env.ISSUE_PACK_MAX_PAGES || '20', 10);
-  return listAllIssues({ gh, owner: repoOwner, repoName, maxPages: Number.isFinite(maxPages) ? maxPages : 20 });
+  const effectiveMaxPages = Number.isFinite(maxPages) && maxPages > 0 ? maxPages : 20;
+  return listAllIssues({ gh, owner: repoOwner, repoName, maxPages: effectiveMaxPages });
 }
 
 function findIssueByKey(issues, key) {
