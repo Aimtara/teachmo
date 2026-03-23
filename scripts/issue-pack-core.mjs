@@ -121,13 +121,29 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
 
   async function listIssues() {
     const all = [];
+    const perPage = 100;
+    const maxPagesEnv = process.env.ISSUE_PACK_MAX_PAGES;
+    const parsedMaxPages = maxPagesEnv ? Number.parseInt(maxPagesEnv, 10) : Number.NaN;
+    const effectiveMaxPages = Number.isFinite(parsedMaxPages) && parsedMaxPages > 0 ? parsedMaxPages : 10;
     let page = 1;
-    while (true) {
-      const items = await gh(`/repos/${owner}/${repoName}/issues?state=all&per_page=100&page=${page}`);
+
+    while (page <= effectiveMaxPages) {
+      const items = await gh(
+        `/repos/${owner}/${repoName}/issues?state=all&per_page=${perPage}&page=${page}`,
+      );
       const issuesOnly = items.filter((i) => !i.pull_request);
       all.push(...issuesOnly);
-      if (items.length < 100) break;
+      if (items.length < perPage) {
+        break;
+      }
       page += 1;
+    }
+
+    if (page > effectiveMaxPages && all.length && process.env.ISSUE_PACK_MAX_PAGES == null) {
+      console.warn(
+        `[issue-pack] Reached default page limit (${effectiveMaxPages}) when listing issues;` +
+          ' set ISSUE_PACK_MAX_PAGES to a higher value if you need to scan more issues.',
+      );
     }
     return all;
   }
