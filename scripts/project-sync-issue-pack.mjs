@@ -146,6 +146,35 @@ function getFieldByName(project, fieldName) {
   return project.fields.nodes.find((f) => f.name === fieldName);
 }
 
+
+function assertProjectFields({ statusField, priorityField, workstreamField, statusFieldName, priorityFieldName, workstreamFieldName }) {
+  if (!statusField) throw new Error(`Project field not found: ${statusFieldName}`);
+  if (!priorityField) throw new Error(`Project field not found: ${priorityFieldName}`);
+  if (!workstreamField) throw new Error(`Project field not found: ${workstreamFieldName}`);
+
+  if (!statusField.options) {
+    throw new Error(`Project field "${statusFieldName}" must be a single-select field`);
+  }
+
+  if (!priorityField.options) {
+    throw new Error(`Project field "${priorityFieldName}" must be a single-select field`);
+  }
+
+  const requiredStatusOptions = ['Todo', 'In Progress', 'Blocked', 'Done'];
+  const statusOptions = new Set((statusField.options || []).map((option) => option.name));
+  const missingStatus = requiredStatusOptions.filter((option) => !statusOptions.has(option));
+  if (missingStatus.length > 0) {
+    throw new Error(`Project field "${statusFieldName}" is missing options: ${missingStatus.join(', ')}`);
+  }
+
+  const requiredPriorityOptions = ['P0', 'P1', 'P2'];
+  const priorityOptions = new Set((priorityField.options || []).map((option) => option.name));
+  const missingPriority = requiredPriorityOptions.filter((option) => !priorityOptions.has(option));
+  if (missingPriority.length > 0) {
+    throw new Error(`Project field "${priorityFieldName}" is missing options: ${missingPriority.join(', ')}`);
+  }
+}
+
 function getSingleSelectOptionId(field, optionName) {
   return field?.options?.find((o) => o.name === optionName)?.id || null;
 }
@@ -220,6 +249,15 @@ async function main() {
   const statusField = getFieldByName(project, statusFieldName);
   const priorityField = getFieldByName(project, priorityFieldName);
   const workstreamField = getFieldByName(project, workstreamFieldName);
+
+  assertProjectFields({
+    statusField,
+    priorityField,
+    workstreamField,
+    statusFieldName,
+    priorityFieldName,
+    workstreamFieldName,
+  });
 
   for (const child of issuePack.children) {
     const issue = findIssueByKey(issues, child.key);

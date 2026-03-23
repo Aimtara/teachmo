@@ -4,6 +4,7 @@ import { createGitHubClient, listAllIssues, loadIssuePack, markerFor } from './i
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 const writeComment = String(process.env.WRITE_COMMENT || 'false').toLowerCase() === 'true';
+const dryRun = String(process.env.DRY_RUN || 'false').toLowerCase() === 'true';
 
 if (!repo || !token) {
   throw new Error('Missing GITHUB_REPOSITORY or GITHUB_TOKEN');
@@ -119,16 +120,20 @@ async function main() {
   const rollup = renderRollupTable(rows);
   const nextBody = replaceRollupSection(parentIssue.body || '', rollup);
 
-  await updateIssueBody(parentIssue.number, nextBody);
+  if (dryRun) {
+    console.log(`[dry-run] would update rollup on parent issue #${parentIssue.number}`);
+  } else {
+    await updateIssueBody(parentIssue.number, nextBody);
+  }
 
-  if (writeComment) {
+  if (writeComment && !dryRun) {
     await upsertRollupComment(
       parentIssue.number,
       `${rollup}\n\n_This rollup was generated automatically._`,
     );
   }
 
-  console.log(`Program rollup updated on parent issue #${parentIssue.number}.`);
+  console.log(`Program rollup ${dryRun ? 'previewed' : 'updated'} on parent issue #${parentIssue.number}.`);
 }
 
 main().catch((error) => {
