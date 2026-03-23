@@ -4,8 +4,23 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('request-context');
 
+const REQUEST_ID_RE = /^[A-Za-z0-9_\-]{1,128}$/;
+
 function getRequestId(req) {
-  return req.get('x-request-id') || randomUUID();
+  const incoming = req.get('x-request-id');
+  if (incoming && REQUEST_ID_RE.test(incoming)) {
+    return incoming;
+  }
+  return randomUUID();
+}
+
+function safePathname(req) {
+  const raw = req.originalUrl || req.url || '';
+  try {
+    return new URL(raw, 'http://localhost').pathname;
+  } catch {
+    return raw.split('?')[0];
+  }
 }
 
 export function attachRequestContext(req, res, next) {
@@ -20,7 +35,7 @@ export function attachRequestContext(req, res, next) {
     logger.info('HTTP request completed', {
       requestId,
       method: req.method,
-      path: req.originalUrl || req.url,
+      path: safePathname(req),
       statusCode: res.statusCode,
       durationMs,
       role: req.auth?.role || null,
@@ -41,12 +56,14 @@ export function globalErrorHandler(err, req, res, _next) {
   logger.error('Unhandled API error', {
     requestId,
     method: req.method,
-    path: req.originalUrl || req.url,
+    path: safePathname(req),
     role: req.auth?.role || null,
     organizationId: req.tenant?.organizationId || req.auth?.organizationId || req.auth?.districtId || null,
     schoolId: req.tenant?.schoolId || req.auth?.schoolId || null,
     surface: req.baseUrl || 'api',
+    errorName: err instanceof Error ? err.name : undefined,
     error: err instanceof Error ? err.message : String(err),
+    stack: err instanceof Error ? err.stack : undefined,
   });
 
   if (!res.headersSent) {
