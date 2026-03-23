@@ -323,7 +323,6 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
   } else if (parentIssue && updateExisting) {
     await updateIssue(parentIssue.number, {
       title: issuePack.parent.title,
-      body: issuePack.parent.body,
       labels: issuePack.parent.labels || [],
       assignees: normalizeAssignees(issuePack.parent.assignees || [], assigneeMap),
       milestone: parentMilestone || undefined,
@@ -367,7 +366,10 @@ export async function runIssuePack({ mode = 'bootstrap' } = {}) {
 
   const parentWasCreated = !existingParent;
   if (parentIssue && !dryRun && (parentWasCreated || updateExisting)) {
-    const nextParentBody = buildParentBodyWithLinks(issuePack.parent.body, createdOrFoundChildren);
+    const nextParentBody = buildParentBodyWithLinks(
+      parentIssue.body ?? issuePack.parent.body,
+      createdOrFoundChildren,
+    );
     await updateIssue(parentIssue.number, {
       title: issuePack.parent.title,
       body: nextParentBody,
