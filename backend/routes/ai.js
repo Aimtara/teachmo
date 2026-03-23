@@ -6,7 +6,6 @@ import { requireAuth } from '../middleware/auth.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { auditEvent } from '../security/audit.js';
-import { invokeLLM } from '../functions/invoke-llm.js';
 import { preRequestHook } from '../middleware/aiGovernance.js';
 import { callModel } from '../ai/llmAdapter.js';
 import { preToolGovernance } from '../middleware/preToolGovernance.js';
@@ -349,7 +348,7 @@ router.post('/tool', requirePermission('generate', 'ai'), preRequestHook, requir
       toolResult: actionResult,
     });
 
-    await dbQuery(
+    await query(
       `insert into ai_interactions
         (organization_id, school_id, actor_id, actor_role, child_id, prompt, response, token_prompt, token_response, token_total,
          safety_risk_score, safety_flags, model, metadata, latency_ms, inputs, outputs, prompt_id, prompt_version_id, user_id, cost_usd)
