@@ -81,28 +81,42 @@ function formatRollup({ parent, children }) {
 }
 
 const ROLLUP_MARKER = '<!-- issue-pack-rollup -->';
+const MAX_COMMENT_PAGES = 10;
 
 async function upsertRollupComment(issueNumber, body) {
   const bodyWithMarker = `${ROLLUP_MARKER}\n${body}`;
 
   let page = 1;
-  while (true) {
+  let mostRecent = null;
+
+  while (page <= MAX_COMMENT_PAGES) {
     const comments = await gh(
       `/repos/${owner}/${repoName}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
     );
-    const existing = comments.find((c) => (c.body || '').includes(ROLLUP_MARKER));
-    if (existing) {
-      await gh(`/repos/${owner}/${repoName}/issues/comments/${existing.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ body: bodyWithMarker }),
-      });
-      console.log(`Updated rollup comment ${existing.id} on parent issue #${issueNumber}`);
-      return;
+
+    for (const comment of comments) {
+      if ((comment.body || '').includes(ROLLUP_MARKER)) {
+        if (!mostRecent || comment.id > mostRecent.id) {
+          mostRecent = comment;
+        }
+      }
     }
-    if (comments.length < 100) break;
+
+    if (comments.length < 100) {
+      break;
+    }
+
     page += 1;
   }
 
+  if (mostRecent) {
+    await gh(`/repos/${owner}/${repoName}/issues/comments/${mostRecent.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body: bodyWithMarker }),
+    });
+    console.log(`Updated rollup comment ${mostRecent.id} on parent issue #${issueNumber}`);
+    return;
+  }
   await gh(`/repos/${owner}/${repoName}/issues/${issueNumber}/comments`, {
     method: 'POST',
     body: JSON.stringify({ body: bodyWithMarker }),
