@@ -33,9 +33,6 @@ export function createGovernanceDecision({
   }
 
   const normalizedLatencyMs = Number(latencyMs);
-  if (![1, 2, 3].includes(tier)) {
-    throw new Error(`Invalid tier: ${tier}`);
-  }
 
   const frozenMatchedPolicies = Array.isArray(matchedPolicies)
     ? Object.freeze(
@@ -52,7 +49,7 @@ export function createGovernanceDecision({
     requestId: requestId ?? null,
     tier,
     policyOutcome,
-    matchedPolicies: Array.isArray(matchedPolicies) ? [...matchedPolicies] : [],
+    matchedPolicies: frozenMatchedPolicies,
     denialReason: denialReason ?? null,
     requiredSkill: requiredSkill ?? null,
     requiresAuditEvent: Boolean(requiresAuditEvent),

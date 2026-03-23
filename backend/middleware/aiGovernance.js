@@ -44,24 +44,6 @@ async function isGovernanceEnabled(req) {
 
     let override = null;
 
-    const { rows } = await query(
-      `select key, enabled, school_id, rollout_percentage, canary_percentage, allowlist, denylist
-       from public.feature_flags
-    // Reuse memoized decision when available to avoid duplicate work per request.
-    if (typeof req._governanceFlagEnabled !== 'undefined') {
-      return req._governanceFlagEnabled;
-    }
-
-    const organizationId = req.auth?.organizationId || req.tenant?.organizationId;
-    const schoolId = req.auth?.schoolId || req.tenant?.schoolId;
-
-    if (!organizationId) {
-      req._governanceFlagEnabled = false;
-      return false;
-    }
-
-    let override = null;
-
     // If upstream middleware has already computed feature flag overrides for this request,
     // prefer those instead of doing another feature_flags DB round-trip.
     if (req.featureFlagOverrides && typeof req.featureFlagOverrides === 'object') {
@@ -92,31 +74,9 @@ async function isGovernanceEnabled(req) {
 
     req._governanceFlagEnabled = enabled;
     return enabled;
-  } catch {
-    req._governanceFlagEnabled = false;
-    return evaluateFlag({
-      key: GOVERNANCE_FLAG,
-      context: req.auth || {},
-      override: overrides[GOVERNANCE_FLAG],
-    });
   } catch (error) {
     // Shadow mode: never break requests, but emit a sanitized warning so failures are observable.
     console.warn('AI governance feature flag evaluation failed; falling back to disabled.', {
-const ALLOWED_CLIENT_INTENTS = new Set([
-  'EXPLORE_DEEP_LINK',
-  'submit_event',
-  'school_request',
-  'HOMEWORK_HELP',
-]);
-
-function classifyIntent(req) {
-  const body = req.body || {};
-  const rawIntent = body.intent || body.route || body.action || null;
-  const explicitIntent = typeof rawIntent === 'string' ? rawIntent : null;
-
-  if (explicitIntent && ALLOWED_CLIENT_INTENTS.has(explicitIntent)) {
-    return explicitIntent;
-  }
       organizationId: req.auth?.organizationId || req.tenant?.organizationId,
       schoolId: req.auth?.schoolId || req.tenant?.schoolId,
       errorMessage: error && typeof error.message === 'string' ? error.message : String(error),

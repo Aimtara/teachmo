@@ -9,8 +9,6 @@ import { auditEvent } from '../security/audit.js';
 import { invokeLLM } from '../functions/invoke-llm.js';
 import { preRequestHook } from '../middleware/aiGovernance.js';
 import { callModel } from '../ai/llmAdapter.js';
-import { query as dbQuery } from '../db.js';
-import { preRequestHook } from '../middleware/aiGovernance.js';
 import { preToolGovernance } from '../middleware/preToolGovernance.js';
 import { applyPostResponseGovernance } from '../middleware/postResponseGovernance.js';
 import { getGovernedSkill, listGovernedSkills } from '../ai/skillRegistry.js';
@@ -235,15 +233,6 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
         }
       : { source: 'completion' };
 
-          governanceAction,
-          verifier: null,
-          source: 'completion',
-          governance: buildGovernanceMetadata(govDecision, {
-            enabled: Boolean(req.governanceEnabled),
-          }),
-        }
-      : { source: 'completion' };
-
     const post = await applyPostResponseGovernance({
       req,
       content: effectiveContent,
@@ -296,11 +285,6 @@ router.post('/completion', requirePermission('generate', 'ai'), preRequestHook, 
     }
 
     return res.json({
-      content: response?.content ?? null,
-      model: budgetResult.model,
-      usage,
-      governance: govDecision
-        ? { requestId: govDecision.requestId, shadowMode: true }
       content: effectiveContent,
       model: budgetResult.model,
       usage,
