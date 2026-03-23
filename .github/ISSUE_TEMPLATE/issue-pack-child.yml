@@ -12,6 +12,14 @@ body:
       placeholder: "<!-- issue-pack-key: gate-0 -->"
     validations:
       required: true
+  - type: textarea
+    id: issue_pack_marker
+    attributes:
+      label: Issue pack marker
+      description: "This marker must appear in the issue body so automation can discover this child epic. Replace gate-0 with the key you entered above if needed."
+      value: "<!-- issue-pack-key: gate-0 -->"
+    validations:
+      required: true
   - type: input
     id: parent_reference
     attributes:
