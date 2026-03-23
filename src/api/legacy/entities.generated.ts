@@ -1,4 +1,4 @@
-import { apiClient } from "@/services/core/client";
+import { apiClient } from '@/services/core/client';
 
 const {
   list,
@@ -9,7 +9,16 @@ const {
   delete: deleteEntity
 } = apiClient.entity;
 
-const entity = (name) => ({
+type EntityAdapter = {
+  list: (...args: unknown[]) => Promise<unknown[]>;
+  filter: (...args: unknown[]) => Promise<unknown[]>;
+  get: (...args: unknown[]) => Promise<unknown | null>;
+  create: (...args: unknown[]) => Promise<unknown>;
+  update: (...args: unknown[]) => Promise<unknown>;
+  delete: (...args: unknown[]) => Promise<void>;
+};
+
+const entity = (name: string): EntityAdapter => ({
   list: (...args) => list(name, ...args),
   filter: (...args) => filter(name, ...args),
   get: (...args) => get(name, ...args),

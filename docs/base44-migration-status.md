@@ -1,6 +1,6 @@
 # Base44 Legacy Migration Status
 
-_Last updated: 2026-03-14_
+_Last updated: 2026-03-23_
 
 ## Archival status
 
@@ -17,13 +17,14 @@ Migration is **functionally complete for runtime code paths**.
 ### Completed in code paths
 
 - Runtime Base44 SDK dependency removed (`@base44/sdk` no longer in dependencies).
-- Legacy Base44 client file retired; compatibility behavior now lives in `src/api/compatClient.js`.
+- Legacy Base44 client file retired; compatibility behavior now lives in `src/api/compatClient.ts`.
 - Core/domain/backend adapters route through `apiClient` + Nhost-backed auth.
-- Generated/legacy entity exports bridge to `apiClient` rather than direct Base44 client bindings.
+- Generated/legacy entity exports bridge now lives in `src/api/legacy/entities.generated.ts` and routes to `apiClient` rather than direct Base44 client bindings.
 - Adapter implementation files were renamed from `.base44.ts` to `.compat.ts` and callers updated.
 - Neutral platform exports are active under `src/api/platform/**` (`platformEntitiesMap`, `platformFunctionsMap`, `platformApi`).
 - Platform backing maps/functions are implemented under `src/api/legacy/**`.
 - Legacy `src/api/base44/**` compatibility wrapper namespace has been fully retired from source.
+- Legacy compatibility bridge is now typed in TypeScript, reducing one of the remaining JavaScript-era adapter surfaces.
 
 ### Remaining migration surfaces
 

@@ -1,19 +1,33 @@
+import express, { type NextFunction, type Request, type Response } from 'express';
 import request from 'supertest';
-import express from 'express';
 import { requireTenant } from '../../../backend/middleware/tenant.js';
 import { requireScopes } from '../../../backend/middleware/permissions.js';
 import { query } from '../../../backend/db.js';
 import { resetPolicyCache } from '../../../backend/utils/policyEngine.js';
 
 jest.mock('../../../backend/db.js', () => ({
-  query: jest.fn(),
+  query: jest.fn()
 }));
 
 const orgA = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const orgB = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
+const mockedQuery = query as jest.MockedFunction<typeof query>;
+
+type AuthContext = {
+  userId: string | null;
+  role: string | null;
+  organizationId: string | null;
+  schoolId: string | null;
+  scopes: string[];
+};
+
+type RequestWithAuth = Request & {
+  auth: AuthContext;
+};
+
 function mockPolicyQuery() {
-  query.mockImplementation(async (sql, params) => {
+  mockedQuery.mockImplementation(async (sql: string, params?: unknown[]) => {
     if (sql.includes('from public.tenant_settings')) {
       if (params?.[0] === orgA) {
         return {
@@ -22,11 +36,11 @@ function mockPolicyQuery() {
               settings: {
                 permissions: {
                   allow: ['analytics:read'],
-                  deny: ['users:manage'],
-                },
-              },
-            },
-          ],
+                  deny: ['users:manage']
+                }
+              }
+            }
+          ]
         };
       }
       if (params?.[0] === orgB) {
@@ -36,11 +50,11 @@ function mockPolicyQuery() {
               settings: {
                 permissions: {
                   allow: [],
-                  deny: [],
-                },
-              },
-            },
-          ],
+                  deny: []
+                }
+              }
+            }
+          ]
         };
       }
     }
@@ -50,28 +64,29 @@ function mockPolicyQuery() {
 }
 
 describe('policy engine permissions', () => {
-  let app;
+  let app: ReturnType<typeof express>;
 
   beforeAll(() => {
     process.env.NODE_ENV = 'test';
     app = express();
     app.use(express.json());
-    app.use((req, res, next) => {
-      req.auth = {
-        userId: req.headers['x-test-user-id'] || null,
-        role: req.headers['x-test-role'] || null,
-        organizationId: req.headers['x-test-org-id'] || null,
-        schoolId: req.headers['x-test-school-id'] || null,
-        scopes: [],
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+      const requestWithAuth = req as RequestWithAuth;
+      requestWithAuth.auth = {
+        userId: String(req.headers['x-test-user-id'] ?? '') || null,
+        role: String(req.headers['x-test-role'] ?? '') || null,
+        organizationId: String(req.headers['x-test-org-id'] ?? '') || null,
+        schoolId: String(req.headers['x-test-school-id'] ?? '') || null,
+        scopes: []
       };
       next();
     });
 
-    app.get('/secure', requireTenant, requireScopes(['analytics:read']), (req, res) => {
+    app.get('/secure', requireTenant, requireScopes(['analytics:read']), (_req, res) => {
       res.json({ ok: true });
     });
 
-    app.get('/manage-users', requireTenant, requireScopes(['users:manage']), (req, res) => {
+    app.get('/manage-users', requireTenant, requireScopes(['users:manage']), (_req, res) => {
       res.json({ ok: true });
     });
   });

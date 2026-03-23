@@ -1,8 +1,17 @@
-/* eslint-env node */
 import { query } from '../db.js';
 import { createLogger } from './logger.js';
 
 const logger = createLogger('partner-audit');
+
+type LogPartnerActionInput = {
+  districtId?: string | null;
+  partnerId?: string | null;
+  actorId?: string | null;
+  action?: string | null;
+  entity?: string | null;
+  entityId?: string | null;
+  metadata?: Record<string, unknown>;
+};
 
 export async function logPartnerAction({
   districtId,
@@ -11,8 +20,8 @@ export async function logPartnerAction({
   action,
   entity,
   entityId,
-  metadata = {},
-}) {
+  metadata = {}
+}: LogPartnerActionInput): Promise<boolean | undefined> {
   if (!districtId || !partnerId || !action) return;
   try {
     await query(

@@ -7,12 +7,17 @@ const PATTERNS = {
   email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/,
   phone: /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/,
   profanity: /\b(damn|hell|asshole)\b/i,
-  pressure: /\b(buy now|hurry|limited time offer)\b/i,
+  pressure: /\b(buy now|hurry|limited time offer)\b/i
 };
 
-export function scanContent(content) {
+type ScanResult = {
+  isSafe: boolean;
+  flags: string[];
+};
+
+export function scanContent(content: unknown): ScanResult {
   const textToCheck = typeof content === 'string' ? content : JSON.stringify(content);
-  const flags = [];
+  const flags: string[] = [];
 
   if (PATTERNS.ssn.test(textToCheck)) flags.push('PII: SSN detected');
   if (PATTERNS.email.test(textToCheck)) flags.push('PII: Email address detected in public field');
@@ -22,6 +27,6 @@ export function scanContent(content) {
 
   return {
     isSafe: flags.length === 0,
-    flags,
+    flags
   };
 }

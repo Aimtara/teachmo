@@ -1,23 +1,23 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-03-13T19:42:15.753Z
+Generated: 2026-03-23T02:48:57.405Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
 | .js | 192 |
-| .jsx | 476 |
-| .ts | 295 |
-| .tsx | 60 |
+| .jsx | 481 |
+| .ts | 326 |
+| .tsx | 68 |
 
 ## JS/TS inventory by top-level directory
 
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
-| src | 7 | 475 | 187 | 60 |
-| backend | 147 | 0 | 6 | 0 |
-| nhost | 30 | 0 | 86 | 0 |
+| src | 0 | 480 | 201 | 68 |
+| backend | 154 | 0 | 22 | 0 |
+| nhost | 30 | 0 | 87 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
 | public | 1 | 0 | 0 | 0 |
 | .storybook | 0 | 0 | 2 | 0 |
@@ -82,7 +82,9 @@ Generated: 2026-03-13T19:42:15.753Z
 - [x] Migrated orchestrator domain module from `src/domains/orchestrator.js` to `src/domains/orchestrator.ts` with typed run/action helpers.
 - [x] Migrated auth domain module from `src/domains/auth.js` to `src/domains/auth.ts` with typed profile lookup/mutation inputs.
 - [x] Migrated audit log domain module from `src/domains/auditLog.js` to `src/domains/auditLog.ts` with typed sanitization/log input helpers.
-- [x] Completed Phase 1 foundation hardening: shared HTTP/runtime-validation boundaries are applied across targeted API/domain modules; remaining `src/**/*.js` files are intentional mocks/tests/generated adapters tracked in the JS exception register.
+- [x] Completed Phase 1 foundation hardening: shared HTTP/runtime-validation boundaries are applied across targeted API/domain modules; remaining `src/**/*.js` files are primarily intentional mocks/tests/generated adapters tracked in the JS exception register.
+- [x] Migrated Base44 compatibility bridge from `src/api/compatClient.js` to `src/api/compatClient.ts` with typed Nhost auth/function contracts and normalized-user shaping.
+- [x] Migrated generated legacy entity bridge from `src/api/legacy/entities.generated.js` to `src/api/legacy/entities.generated.ts` to keep compatibility exports on typed adapters.
 - [ ] Continue applying the shared HTTP client and runtime-validation-backed contracts across remaining API modules and backend integration boundaries.
 
 ## Phase 2 frontend vertical-slice kickoff progress
@@ -107,7 +109,26 @@ Generated: 2026-03-13T19:42:15.753Z
 - [x] Migrated async safety utility `src/components/shared/AsyncBoundary.jsx` to `src/components/shared/AsyncBoundary.tsx` with typed HOC fallback/error contracts and generic `safeAsync` return typing.
 - [x] Migrated shared media utility `src/components/shared/LazyImage.jsx` to `src/components/shared/LazyImage.tsx` with typed props, intersection observer ref typing, and safe cleanup.
 - [x] Migrated shared empty-state primitives `src/components/shared/EmptyStates.jsx` to `src/components/shared/EmptyStates.tsx` with typed action/item contracts and typed props across exported empty-state variants.
+- [x] Migrated hook utility `src/hooks/useUndo.jsx` to `src/hooks/useUndo.ts` with typed undo-option contracts and timeout-ref typing.
+- [x] Migrated provider slice `src/providers/{FeatureFlagProvider,ReactQueryProvider}.jsx` and `src/components/providers/ReactQueryProvider.jsx` to TypeScript with typed children/flags contracts.
 - [ ] Continue remaining hook-slice consumers and then proceed to shared UI primitive slices.
+
+## Phase 3 backend/service migration progress
+
+- [x] Migrated backend utility modules `backend/utils/{auditDiff,envCheck,tenantScope}.js` to TypeScript with typed diff/env-check/tenant-scope contracts.
+- [x] Migrated backend utility modules `backend/utils/{campaignLimits,corsOrigins,partnerAudit}.js` to TypeScript with typed campaign-guardrail, CORS-origin, and partner-audit contracts.
+- [x] Migrated backend utility modules `backend/utils/{logger,featureFlags}.js` to TypeScript with typed log-level and feature-flag evaluation contracts.
+- [x] Migrated backend utility modules `backend/utils/{ssoJwt,ssoProviders,audit}.js` to TypeScript with typed SSO issuance/provider-config and audit-log contracts.
+- [x] Migrated backend utility modules `backend/utils/{contentSafety,tenantSettings,policyEngine}.js` to TypeScript with typed safety scanning, retention policy, and policy-cache contracts.
+- [x] Migrated backend utility module `backend/utils/observability.js` to TypeScript with typed summary/rule-evaluation/report payload contracts.
+- [x] Migrated backend helper shims `backend/orchestrator/contract.js`, `backend/ai/enforcementRules.js`, and `backend/orchestrator/agents/insightParser.js` to TypeScript.
+- [ ] Continue backend route/middleware conversion using typed request context contracts and shared utility typing.
+
+## Phase 4 tests/tooling convergence progress
+
+- [x] Migrated test/mocking support files `src/__mocks__/{msw,msw-node,lucide-react,react-markdown}.js` to TypeScript/TSX for typed test double contracts.
+- [x] Migrated backend policy test `src/__tests__/backend/permissions.test.js` to `src/__tests__/backend/permissions.test.ts` with typed auth request context helpers.
+- [ ] Continue converting remaining JS test/tooling files after frontend/backend runtime slices stabilize.
 
 ## Phase 0 kickoff checklist
 

@@ -1,12 +1,28 @@
-/* eslint-env node */
 import { SignJWT } from 'jose';
 
-function buildHasuraClaims({ userId, role, organizationId, schoolId }) {
-  const claims = {
+type HasuraClaims = {
+  'x-hasura-user-id': string;
+  'x-hasura-default-role': string;
+  'x-hasura-allowed-roles': string[];
+  'x-hasura-organization-id': string;
+  'x-hasura-school-id'?: string;
+};
+
+type IssueSsoJwtInput = {
+  userId: string;
+  role: string;
+  organizationId: string;
+  schoolId?: string;
+  provider?: string;
+  email?: string;
+};
+
+function buildHasuraClaims({ userId, role, organizationId, schoolId }: IssueSsoJwtInput): HasuraClaims {
+  const claims: HasuraClaims = {
     'x-hasura-user-id': userId,
     'x-hasura-default-role': role,
     'x-hasura-allowed-roles': [role],
-    'x-hasura-organization-id': organizationId,
+    'x-hasura-organization-id': organizationId
   };
 
   if (schoolId) {
@@ -16,7 +32,7 @@ function buildHasuraClaims({ userId, role, organizationId, schoolId }) {
   return claims;
 }
 
-function resolveSecret() {
+function resolveSecret(): Uint8Array {
   const secret = process.env.SSO_JWT_SECRET || process.env.AUTH_MOCK_SECRET || '';
   if (!secret) {
     throw new Error('SSO_JWT_SECRET is required to issue SSO tokens');
@@ -30,8 +46,8 @@ export async function issueSsoJwt({
   organizationId,
   schoolId,
   provider,
-  email,
-}) {
+  email
+}: IssueSsoJwtInput): Promise<string> {
   if (!userId || !role || !organizationId) {
     throw new Error('missing required claims for SSO token');
   }
@@ -39,8 +55,7 @@ export async function issueSsoJwt({
   const now = Math.floor(Date.now() / 1000);
   const rawTtlMinutes = process.env.SSO_JWT_TTL_MINUTES;
   const parsedTtlMinutes = Number(rawTtlMinutes);
-  const safeTtlMinutes =
-    Number.isFinite(parsedTtlMinutes) && parsedTtlMinutes > 0 ? parsedTtlMinutes : 60;
+  const safeTtlMinutes = Number.isFinite(parsedTtlMinutes) && parsedTtlMinutes > 0 ? parsedTtlMinutes : 60;
   const exp = now + Math.max(safeTtlMinutes, 5) * 60;
   const issuer = process.env.SSO_JWT_ISSUER || process.env.AUTH_ISSUER || 'teachmo-sso';
   const audience = process.env.SSO_JWT_AUDIENCE || process.env.AUTH_AUDIENCE || 'teachmo-api';
@@ -49,7 +64,7 @@ export async function issueSsoJwt({
     role,
     provider,
     email,
-    'https://hasura.io/jwt/claims': buildHasuraClaims({ userId, role, organizationId, schoolId }),
+    'https://hasura.io/jwt/claims': buildHasuraClaims({ userId, role, organizationId, schoolId })
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(userId)
