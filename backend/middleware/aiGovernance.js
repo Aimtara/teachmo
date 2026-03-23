@@ -132,18 +132,18 @@ export async function preRequestHook(req, res, next) {
     req.governanceContext = ctx;
 
     if (decision.requiresAuditEvent) {
-      try {
-        await recordGovernanceDecision({
-          decision,
-          actorId: auth.userId ?? null,
-          organizationId: auth.organizationId || tenant.organizationId || null,
-          schoolId: auth.schoolId || tenant.schoolId || null,
-        });
-        req.governanceAuditRecorded = true;
-      } catch {
-        req.governanceAuditRecorded = false;
-      }
+      // Best-effort: we attempt to record the governance decision, but underlying
+      // storage may swallow errors. Use `null` to indicate that persistence
+      // success is unknown rather than guaranteed.
+      req.governanceAuditRecorded = null;
+      await recordGovernanceDecision({
+        decision,
+        actorId: auth.userId ?? null,
+        organizationId: auth.organizationId || tenant.organizationId || null,
+        schoolId: auth.schoolId || tenant.schoolId || null,
+      });
     } else {
+      // No audit event was required, so there was nothing to persist.
       req.governanceAuditRecorded = true;
     }
 
