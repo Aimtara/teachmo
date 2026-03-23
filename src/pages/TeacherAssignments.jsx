@@ -24,11 +24,14 @@ export default function TeacherAssignments() {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const loadClasses = async () => {
       if (!user) return;
       setLoading(true);
+      setLoadError('');
       try {
         const classData = await OrgService.getClassrooms(user.id);
         const mappedClasses = classData.map((course) => ({
@@ -43,12 +46,15 @@ export default function TeacherAssignments() {
         }
       } catch (error) {
         console.error('Failed to load teacher classes:', error);
+        setClasses([]);
+        setSelectedClass(null);
+        setLoadError('Unable to load your classes right now.');
       } finally {
         setLoading(false);
       }
     };
     loadClasses();
-  }, [user, courseIdParam]);
+  }, [user, courseIdParam, retryCount]);
 
   // Render assignments for a selected class
   if (!loading && selectedClass) {
@@ -88,10 +94,42 @@ export default function TeacherAssignments() {
               Create and manage assignments for your classes
             </p>
           </header>
+          {!loading && loadError && (
+            <Card>
+              <CardContent className="p-8 text-center space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Could not load classes</h3>
+                <p className="text-gray-600" role="alert">{loadError}</p>
+                <div className="flex justify-center gap-3">
+                  <Button onClick={() => setRetryCount((prev) => prev + 1)}>Retry</Button>
+                  <Link to={createPageUrl('TeacherClasses')}>
+                    <Button variant="outline">Go to Classes</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {!loading && !loadError && courseIdParam && !selectedClass && (
+            <Card>
+              <CardContent className="p-8 text-center space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Class not found</h3>
+                <p className="text-gray-600">
+                  We could not find the class you requested. It may no longer be available.
+                </p>
+                <div className="flex justify-center gap-3">
+                  <Link to={createPageUrl('TeacherAssignments')}>
+                    <Button>Back to all classes</Button>
+                  </Link>
+                  <Link to={createPageUrl('TeacherClasses')}>
+                    <Button variant="outline">Go to Classes</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {loading && (
             <p className="text-gray-500">Loading your classes…</p>
           )}
-          {!loading && classes.length === 0 && (
+          {!loading && !loadError && !courseIdParam && classes.length === 0 && (
             <Card>
               <CardContent className="p-8 text-center space-y-4">
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto" />
@@ -105,7 +143,7 @@ export default function TeacherAssignments() {
               </CardContent>
             </Card>
           )}
-          {!loading && classes.length > 0 && (
+          {!loading && !loadError && classes.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {classes.map((cls) => (
                 <Card key={cls.course.id} className="bg-white border border-gray-200 shadow-sm">
