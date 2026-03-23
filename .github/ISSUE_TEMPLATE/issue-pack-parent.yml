@@ -1,0 +1,36 @@
+name: Issue Pack Parent Tracker
+about: Create or update the program parent tracker issue from issue-pack conventions.
+title: "Teachmo Completion Matrix Tracking Issue"
+labels:
+  - program-board
+  - planning
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when manually creating the parent tracker issue.
+  - type: input
+    id: issue_pack_key
+    attributes:
+      label: Issue pack key marker
+      description: Keep this marker stable for automation lookups.
+      value: "<!-- issue-pack-key: parent-tracker -->"
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      value: "Use this issue as the working closure board for Teachmo’s SSOT epics and governed AI requirements."
+    validations:
+      required: true
+  - type: textarea
+    id: automation_rollup
+    attributes:
+      label: Automation rollup
+      value: "_This section is updated by the issue-pack bootstrap/sync workflow._"
+  - type: textarea
+    id: linked_children
+    attributes:
+      label: Linked child issues
+      value: "_This section is updated automatically._"
