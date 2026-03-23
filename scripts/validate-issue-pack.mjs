@@ -32,7 +32,7 @@ function main() {
   for (const child of pack.children || []) {
     assert(child.key, 'every child.key is required');
     assert(child.title, `child ${child.key} is missing title`);
-    assert(hasAnyIssuePackMarker(child.body || ''), `child ${child.key} is missing issue-pack marker in body`);
+    assert((child.body || '').includes(markerFor(child.key)), `child ${child.key} is missing issue-pack marker in body`);
 
     const projectFields = child.project_fields || {};
     assert(projectFields.status, `child ${child.key} missing project_fields.status`);
