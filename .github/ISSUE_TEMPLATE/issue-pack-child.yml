@@ -7,9 +7,9 @@ body:
   - type: input
     id: issue_pack_key
     attributes:
-      label: Issue pack key
-      description: "Use a stable key (example: gate-0, gate-1, ai-runtime-audit)."
-      placeholder: gate-0
+      label: Issue pack key marker (HTML comment)
+      description: "Enter the full HTML comment marker used by automation (example: <!-- issue-pack-key: gate-0 -->)."
+      placeholder: "<!-- issue-pack-key: gate-0 -->"
     validations:
       required: true
   - type: input
