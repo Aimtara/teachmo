@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, FileText, Plus, RefreshCw } from 'lucide-react';
-import { apiClient } from '@/services/core/client';
+import { graphqlRequest } from '@/lib/graphql';
 import { GoogleClassroomService } from '@/services/integrations/googleClassroom';
 
 function formatDueDate(value) {
@@ -29,6 +29,15 @@ function deriveSubmissionCount(assignment) {
   if (typeof assignment?.submissionCount === 'number') return assignment.submissionCount;
   return 0;
 }
+
+const ASSIGNMENT_FIELDS = `
+  id
+  title
+  description
+  due_at
+  submission_count
+  created_at
+`;
 
 export default function AssignmentsView({ classData, currentUser }) {
   const courseName = classData?.course?.name || classData?.course?.title || 'This class';
@@ -68,7 +77,18 @@ export default function AssignmentsView({ classData, currentUser }) {
     setError('');
 
     try {
-      const assignmentData = await apiClient.entity.filter('Assignment', { course_id: courseId });
+      const query = `
+        query AssignmentsByCourse($courseId: String!) {
+          assignments(
+            where: { course_id: { _eq: $courseId } }
+            order_by: [{ due_at: asc_nulls_last }, { created_at: desc }]
+          ) {
+            ${ASSIGNMENT_FIELDS}
+          }
+        }
+      `;
+      const result = await graphqlRequest({ query, variables: { courseId: String(courseId) } });
+      const assignmentData = result?.assignments ?? [];
       setAssignments(Array.isArray(assignmentData) ? assignmentData : []);
     } catch (loadError) {
       console.error('Failed to load assignments:', loadError);
@@ -91,15 +111,22 @@ export default function AssignmentsView({ classData, currentUser }) {
 
     try {
       const payload = {
-        course_id: courseId,
+        course_id: String(courseId),
         title: formState.title.trim(),
         description: formState.description.trim() || null,
         due_at: formState.dueAt ? new Date(formState.dueAt).toISOString() : null,
         status: 'active',
-        teacher_user_id: currentUser.id,
+        teacher_user_id: String(currentUser.id),
       };
 
-      await apiClient.entity.create('Assignment', payload);
+      const mutation = `
+        mutation CreateAssignment($object: assignments_insert_input!) {
+          insert_assignments_one(object: $object) {
+            ${ASSIGNMENT_FIELDS}
+          }
+        }
+      `;
+      await graphqlRequest({ query: mutation, variables: { object: payload } });
       setFormState({ title: '', description: '', dueAt: '' });
       setIsCreateOpen(false);
       await loadAssignments();
