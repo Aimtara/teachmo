@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
 const repository = process.env.GITHUB_REPOSITORY;
-const token = process.env.GITHUB_TOKEN || process.env.PROJECT_AUTOMATION_TOKEN;
+const token = process.env.PROJECT_AUTOMATION_TOKEN || process.env.GITHUB_TOKEN;
 const dryRun = String(process.env.DRY_RUN || 'true').toLowerCase();
 
 if (!repository) {
