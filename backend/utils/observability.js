@@ -8,8 +8,15 @@ export function clampNumber(value, fallback = 0) {
 }
 
 export function parseRange({ start, end, defaultDays = 7 } = {}) {
-  const endDate = end ? new Date(String(end)) : new Date();
-  const startDate = start ? new Date(String(start)) : new Date(Date.now() - defaultDays * 24 * 60 * 60 * 1000);
+  const now = Date.now();
+  const defaultEnd = new Date(now);
+  const defaultStart = new Date(now - defaultDays * 24 * 60 * 60 * 1000);
+
+  const parsedEnd = end ? new Date(String(end)) : defaultEnd;
+  const endDate = Number.isFinite(parsedEnd.getTime()) ? parsedEnd : defaultEnd;
+
+  const parsedStart = start ? new Date(String(start)) : defaultStart;
+  const startDate = Number.isFinite(parsedStart.getTime()) ? parsedStart : defaultStart;
   return { start: startDate, end: endDate };
 }
 
