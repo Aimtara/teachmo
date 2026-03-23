@@ -1,18 +1,10 @@
-name: Bootstrap Issue Pack
+name: Sync Issue Pack to GitHub Project
 
 on:
   workflow_dispatch:
     inputs:
       dry_run:
         description: "Preview only (true/false)"
-        required: false
-        default: "true"
-      update_existing:
-        description: "Update existing issues if found (true/false)"
-        required: false
-        default: "false"
-      create_missing:
-        description: "Create missing issues (true/false)"
         required: false
         default: "true"
       project_owner:
@@ -23,14 +15,19 @@ on:
         description: "Optional GitHub Project v2 number"
         required: false
         default: ""
+  push:
+    paths:
+      - "ops/issue-pack.yml"
+      - "scripts/project-sync-issue-pack.mjs"
+      - "scripts/issue-pack-core.mjs"
 
 permissions:
   contents: read
-  issues: write
+  issues: read
   projects: write
 
 jobs:
-  bootstrap:
+  project-sync:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -47,13 +44,11 @@ jobs:
       - name: Validate issue pack config
         run: node scripts/validate-issue-pack.mjs
 
-      - name: Bootstrap issue pack
+      - name: Sync issues to GitHub Project
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DRY_RUN: ${{ github.event.inputs.dry_run }}
-          UPDATE_EXISTING: ${{ github.event.inputs.update_existing }}
-          CREATE_MISSING: ${{ github.event.inputs.create_missing }}
-          PROJECT_OWNER: ${{ github.event.inputs.project_owner }}
-          PROJECT_NUMBER: ${{ github.event.inputs.project_number }}
+          GITHUB_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: node scripts/bootstrap-issue-pack.mjs
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          PROJECT_OWNER: ${{ github.event.inputs.project_owner || '' }}
+          PROJECT_NUMBER: ${{ github.event.inputs.project_number || '' }}
+        run: node scripts/project-sync-issue-pack.mjs
