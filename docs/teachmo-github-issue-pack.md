@@ -770,3 +770,17 @@ The codebase now contains many route/page/control-plane surfaces that the execut
 6. `Gate 3 closure: messaging reliability, digests, office hours, assignments sync`
 7. `Gate 4 closure: admin control room, analytics validation, runbooks, and escalations`
 8. `Enterprise hardening: SSO, SCIM, compliance evidence, retention, DSAR`
+
+---
+
+# Automation workflows
+
+- `bootstrap-issue-pack.yml` creates labels/issues and seeds parent-child links.
+- `sync-issue-pack.yml` runs on push to issue-pack sources (and manually) to keep existing issues aligned with YAML.
+- `rollup-program-status.yml` runs weekly (Monday 14:00 UTC) and updates the parent issue's **Automation Rollup** section with live child issue status.
+
+## Local commands
+
+- `npm run issues:bootstrap`
+- `npm run issues:sync`
+- `npm run issues:rollup`

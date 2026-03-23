@@ -6,6 +6,9 @@ on:
       write_comment:
         description: "Post rollup as a parent issue comment (true/false)"
         required: false
+        default: "false"
+  schedule:
+    - cron: "0 14 * * 1"
         default: "true"
   schedule:
     - cron: '0 13 * * 1-5'
@@ -29,6 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Roll up program status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WRITE_COMMENT: ${{ github.event.inputs.write_comment || 'false' }}
       - name: Build program rollup
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

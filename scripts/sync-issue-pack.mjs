@@ -7,6 +7,7 @@ if (process.env.DRY_RUN == null) {
   process.env.DRY_RUN = 'false';
 }
 if (process.env.CREATE_MISSING == null) {
+  process.env.CREATE_MISSING = 'false';
   process.env.CREATE_MISSING = 'true';
 }
 
