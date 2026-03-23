@@ -133,7 +133,7 @@ export async function evaluatePolicy(ctx) {
     policyOutcome,
     matchedPolicies,
     denialReason,
-    requiredSkill,
+    requiresAuditEvent: policyOutcome === POLICY_OUTCOMES.BLOCKED,
     requiresAuditEvent: policyOutcome !== POLICY_OUTCOMES.ALLOWED,
     latencyMs: Date.now() - start,
   });
