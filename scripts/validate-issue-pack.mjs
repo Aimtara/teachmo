@@ -20,12 +20,8 @@ function main() {
   const projectNumber = pack?.meta?.project?.number;
   const hasProject = Boolean(projectOwner && projectNumber);
 
-  if (projectOwner && !projectNumber) {
-    assert(false, 'meta.project.number is required when meta.project.owner is set');
-  }
-  if (projectNumber && !projectOwner) {
-    assert(false, 'meta.project.owner is required when meta.project.number is set');
-  }
+  assert(!projectOwner || projectNumber, 'meta.project.number is required when meta.project.owner is set');
+  assert(!projectNumber || projectOwner, 'meta.project.owner is required when meta.project.number is set');
 
   if (hasProject) {
     const fields = pack?.meta?.project?.fields || {};
