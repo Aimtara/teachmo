@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { redactForLogging } from '@/observability/redaction';
+import { redactRecord } from '@/observability/redaction';
 
-describe('redactForLogging', () => {
+describe('redactRecord', () => {
   it('redacts sensitive keys and obvious PII values', () => {
-    const result = redactForLogging({
+    const result = redactRecord({
       token: 'secret-token',
       email: 'student@example.com',
       nested: {

@@ -1,5 +1,5 @@
 import { BUILD_SHA } from '@/generated/buildMeta';
-import { redactObject } from '@/observability/redaction';
+import { redactRecord } from '@/observability/redaction';
 
 export const OBSERVABILITY_EVENT_NAMES = [
   'onboarding.complete',
@@ -38,7 +38,7 @@ export function createObservabilityEvent(
     ...input,
     timestamp: input.timestamp ?? new Date().toISOString(),
     release: input.release ?? BUILD_SHA,
-    metadata: input.metadata ? redactObject(input.metadata) : undefined,
+    metadata: input.metadata ? redactRecord(input.metadata) : undefined,
   };
 }
 

@@ -33,8 +33,11 @@ function runtimeEnv(): EnvReader {
 }
 
 function resolveEnvValue(nameOrValue: string | EnvValue, env: EnvReader): EnvValue {
-  if (typeof nameOrValue === 'string' && /^[A-Z][A-Z0-9_]*$/.test(nameOrValue)) {
-    return env[nameOrValue];
+  if (
+    typeof nameOrValue === 'string' &&
+    /^[A-Z][A-Z0-9_]*$/.test(nameOrValue)
+  ) {
+    return Object.prototype.hasOwnProperty.call(env, nameOrValue) ? env[nameOrValue] : undefined;
   }
   return nameOrValue;
 }
@@ -111,7 +114,7 @@ export function envNumber(
 }
 
 export function requireClientEnv(name: string, env: EnvReader = runtimeEnv()): string {
-  const value = envString(name, { env });
+  const value = envString(env[name], { env });
   if (!value) throw new Error(`Missing required client environment variable: ${name}`);
   return value;
 }
@@ -120,10 +123,13 @@ export function assertNoProductionBypass(env: EnvReader = runtimeEnv()): void {
   const appEnv = getAppEnv(env);
   if (appEnv !== 'production' && appEnv !== 'staging') return;
 
-  const enabled = BYPASS_FLAG_NAMES.filter((name) => envFlag(name, { env, defaultValue: false, strict: true }));
+  const enabled = BYPASS_FLAG_NAMES.filter((name) =>
+    Object.prototype.hasOwnProperty.call(env, name) &&
+    envFlag(name, { env, defaultValue: false, strict: true })
+  );
   if (enabled.length > 0) {
     throw new Error(
-      `Production/staging auth bypass flags are forbidden: ${enabled.join(', ')}. Disable bypass flags before deployment.`
+      `Unsafe auth bypass: production/staging auth bypass flags are forbidden: ${enabled.join(', ')}. Disable bypass flags before deployment.`
     );
   }
 

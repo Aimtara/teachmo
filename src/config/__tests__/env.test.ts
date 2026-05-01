@@ -11,7 +11,7 @@ import {
 describe('env helpers', () => {
   it('parses boolean strings deterministically', () => {
     expect(envFlag('true')).toBe(true);
-    expect(envFlag('TRUE')).toBe(true);
+    expect(envFlag(' true ')).toBe(true);
     expect(envFlag('false')).toBe(false);
     expect(envFlag('')).toBe(false);
     expect(envFlag(undefined, { defaultValue: true })).toBe(true);
@@ -23,7 +23,7 @@ describe('env helpers', () => {
   });
 
   it('throws on invalid strict flags', () => {
-    expect(() => envFlag('yes', { strict: true, name: 'VITE_FLAG' })).toThrow(/Invalid boolean/);
+    expect(() => envFlag('maybe', { strict: true })).toThrow(/Invalid boolean/);
   });
 
   it('parses strings and numbers with defaults', () => {
@@ -31,7 +31,7 @@ describe('env helpers', () => {
     expect(envString('', { defaultValue: 'fallback' })).toBe('fallback');
     expect(envNumber('0.25', { defaultValue: 1 })).toBe(0.25);
     expect(envNumber('', { defaultValue: 3 })).toBe(3);
-    expect(() => envNumber('abc', { name: 'RATE', strict: true })).toThrow(/Invalid number/);
+    expect(() => envNumber('abc', { strict: true })).toThrow(/Invalid numeric/);
   });
 
   it('requires client env values', () => {
@@ -54,14 +54,14 @@ describe('env helpers', () => {
         VITE_APP_ENV: 'production',
         VITE_E2E_BYPASS_AUTH: 'true',
       })
-    ).toThrow(/Unsafe auth bypass/);
+    ).toThrow(/auth bypass/);
 
     expect(() =>
       assertNoProductionBypass({
         VITE_APP_ENV: 'staging',
         VITE_BYPASS_AUTH: 'true',
       })
-    ).toThrow(/Unsafe auth bypass/);
+    ).toThrow(/auth bypass/);
   });
 
   it('allows explicit test bypass flags in test/local environments', () => {

@@ -71,7 +71,7 @@ const ALLOWLIST = [
   },
 ];
 
-function trackedFiles() {
+export function trackedFiles() {
   return execFileSync('git', ['ls-files'], { encoding: 'utf8' })
     .trim()
     .split('\n')
@@ -84,47 +84,55 @@ function isAllowlisted(file) {
   return ALLOWLIST.some((entry) => file === entry.path || file.startsWith(entry.path));
 }
 
-const findings = [];
+export function detectPiiLogging(inputs = trackedFiles()) {
+  const findings = [];
 
-for (const file of trackedFiles()) {
-  const lines = readFileSync(file, 'utf8').split(/\r?\n/);
-  lines.forEach((line, index) => {
-    const logMatch = line.match(LOG_CALL_RE);
-    if (!logMatch) return;
-    if (isAllowlisted(file)) return;
+  for (const input of inputs) {
+    const file = typeof input === 'string' ? input : input.path;
+    const source = typeof input === 'string' ? readFileSync(input, 'utf8') : input.content;
+    const lines = source.split(/\r?\n/);
+    lines.forEach((line, index) => {
+      const logMatch = line.match(LOG_CALL_RE);
+      if (!logMatch) return;
+      if (isAllowlisted(file)) return;
 
-    const logArgs = logMatch[2] || '';
-    const isConsoleLog = logMatch[1] === 'console.log';
-    const dangerous = DANGEROUS_ARG_RE.test(logArgs);
-    const explicitlyRedacted = /redact|REDACTED|safe/i.test(logArgs);
+      const logArgs = logMatch[2] || '';
+      const isConsoleLog = logMatch[1] === 'console.log';
+      const dangerous = DANGEROUS_ARG_RE.test(logArgs);
+      const explicitlyRedacted = /redact|REDACTED|safe/i.test(logArgs);
 
-    if (dangerous && !explicitlyRedacted) {
-      findings.push({
-        file,
-        line: index + 1,
-        pattern: 'sensitive logging argument',
-        reason: 'Log call appears to include PII, message content, prompts, auth material, or secrets.',
-      });
-      return;
-    }
+      if (dangerous && !explicitlyRedacted) {
+        findings.push({
+          file,
+          line: index + 1,
+          pattern: 'sensitive logging argument',
+          reason: 'Log call appears to include PII, message content, prompts, auth material, or secrets.',
+        });
+        return;
+      }
 
-    if (isConsoleLog && !/^\s*console\.log\(\s*['"`][^$`]*['"`]\s*\)?;?\s*$/.test(line)) {
-      findings.push({
-        file,
-        line: index + 1,
-        pattern: 'console.log',
-        reason: 'Use the redacting logger for non-static operational logs.',
-      });
-    }
-  });
+      if (isConsoleLog && !/^\s*console\.log\(\s*['"`][^$`]*['"`]\s*\)?;?\s*$/.test(line)) {
+        findings.push({
+          file,
+          line: index + 1,
+          pattern: 'console.log',
+          reason: 'Use the redacting logger for non-static operational logs.',
+        });
+      }
+    });
+  }
+  return findings;
 }
 
-if (findings.length) {
-  console.error('PII logging check failed:');
-  findings.forEach((finding) => {
-    console.error(`${finding.file}:${finding.line} ${finding.pattern} ${finding.reason}`);
-  });
-  process.exit(1);
-}
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const findings = detectPiiLogging();
+  if (findings.length) {
+    console.error('PII logging check failed:');
+    findings.forEach((finding) => {
+      console.error(`${finding.file}:${finding.line} ${finding.pattern} ${finding.reason}`);
+    });
+    process.exit(1);
+  }
 
-console.log(`PII logging check passed (${trackedFiles().length} files scanned).`);
+  console.log(`PII logging check passed (${trackedFiles().length} files scanned).`);
+}

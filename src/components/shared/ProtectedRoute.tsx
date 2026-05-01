@@ -6,6 +6,12 @@ import { canAll, type Action, type Role } from '@/security/permissions';
 import { canAccess } from '@/config/rbac';
 import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
 
+let allowDevAuthBypassForTests = true;
+
+export function __setAllowDevAuthBypassForTests(value: boolean) {
+  allowDevAuthBypassForTests = value;
+}
+
 type Props = {
   children: React.ReactNode;
   requiredRole?: string | string[];
@@ -55,7 +61,11 @@ export default function ProtectedRoute({
 
   // 🚀 GOD MODE DEV SWITCH
   // Keep hook order stable by evaluating this after hooks are declared.
-  if (import.meta.env.DEV) {
+  if (
+    import.meta.env.DEV &&
+    allowDevAuthBypassForTests &&
+    import.meta.env.VITE_DISABLE_DEV_ROUTE_BYPASS !== 'true'
+  ) {
     return <>{children}</>;
   }
 

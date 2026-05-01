@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
+import { __setAllowDevAuthBypassForTests } from '@/components/shared/ProtectedRoute';
 
 let authState = { isAuthenticated: false, isLoading: false };
 let roleState = { role: 'parent', roleSource: 'jwt', loading: false, needsOnboarding: false };
@@ -36,6 +37,7 @@ function renderGuard(allowedRoles?: string[]) {
 
 describe('ProtectedRoute production-like behavior', () => {
   beforeEach(() => {
+    __setAllowDevAuthBypassForTests(false);
     authState = { isAuthenticated: false, isLoading: false };
     roleState = { role: 'parent', roleSource: 'jwt', loading: false, needsOnboarding: false };
   });

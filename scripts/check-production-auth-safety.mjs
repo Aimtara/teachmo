@@ -2,17 +2,6 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-const mode = process.argv.includes('--test') ? 'test' : 'check';
-const fixture = process.env.CHECK_PRODUCTION_AUTH_FIXTURE;
-
-const files =
-  mode === 'test' && fixture
-    ? [fixture]
-    : execFileSync('git', ['ls-files'], { encoding: 'utf8' })
-        .split('\n')
-        .filter(Boolean)
-        .filter((file) => /\.(js|jsx|ts|tsx|mjs|cjs|md|ya?ml|env|example|toml|json)$/.test(file));
-
 const frontendFile = (file) =>
   file.startsWith('src/') &&
   !file.startsWith('src/domains/') &&
@@ -86,14 +75,8 @@ function allowed(file, line) {
   return ALLOWLIST.some((entry) => file === entry.file && new RegExp(entry.pattern).test(line));
 }
 
-const violations = [];
-for (const file of files) {
-  let text = '';
-  try {
-    text = readFileSync(file, 'utf8');
-  } catch {
-    continue;
-  }
+export function checkAuthSafetyText(file, text) {
+  const violations = [];
   const lines = text.split('\n');
   lines.forEach((line, idx) => {
     for (const check of checks) {
@@ -103,14 +86,43 @@ for (const file of files) {
       }
     }
   });
+  return violations;
 }
 
-if (violations.length) {
-  console.error('Production auth safety violations found:');
-  for (const v of violations) {
-    console.error(`${v.file}:${v.line} ${v.check} ${v.reason}\n  ${v.source}`);
+export function runProductionAuthSafetyCheck() {
+  const mode = process.argv.includes('--test') ? 'test' : 'check';
+  const fixture = process.env.CHECK_PRODUCTION_AUTH_FIXTURE;
+
+  const files =
+    mode === 'test' && fixture
+      ? [fixture]
+      : execFileSync('git', ['ls-files'], { encoding: 'utf8' })
+          .split('\n')
+          .filter(Boolean)
+          .filter((file) => /\.(js|jsx|ts|tsx|mjs|cjs|md|ya?ml|env|example|toml|json)$/.test(file));
+
+  const violations = [];
+  for (const file of files) {
+    let text = '';
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch {
+      continue;
+    }
+    violations.push(...checkAuthSafetyText(file, text));
   }
-  process.exit(1);
+
+  return { files, violations };
 }
 
-console.log(`Production auth safety check passed (${files.length} files scanned).`);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const result = runProductionAuthSafetyCheck();
+  if (result.violations.length) {
+    console.error('Production auth safety violations found:');
+    for (const v of result.violations) {
+      console.error(`${v.file}:${v.line} ${v.check} ${v.reason}\n  ${v.source}`);
+    }
+    process.exit(1);
+  }
+  console.log(`Production auth safety check passed (${result.files.length} files scanned).`);
+}
