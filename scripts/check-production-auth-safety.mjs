@@ -39,8 +39,18 @@ const ALLOWLIST = [
   },
   {
     file: 'scripts/check-production-auth-safety.mjs',
-    pattern: 'VITE_',
+    pattern: 'VITE_|AUTH_MODE',
     reason: 'This script intentionally contains forbidden patterns so it can detect them.',
+  },
+  {
+    file: 'scripts/check-production-auth-safety.test.mjs',
+    pattern: 'VITE_|AUTH_MODE',
+    reason: 'Unit tests intentionally include forbidden patterns to prove detection.',
+  },
+  {
+    file: 'docs/readiness/production-hardening-inventory.md',
+    pattern: 'VITE_INTERNAL_API_KEY',
+    reason: 'Inventory documents a remediated historical client-visible secret-looking env risk.',
   },
 ];
 

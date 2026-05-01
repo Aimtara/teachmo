@@ -43,7 +43,7 @@ Commit: `e472b0c`
 ### Critical
 - UI direct backend access existed in pages/hooks/components.
 - Dev/e2e bypass flags lacked centralized production/staging rejection.
-- `VITE_INTERNAL_API_KEY` exposed a secret-looking value in frontend code.
+- A deprecated client-visible internal API key env var exposed a secret-looking value in frontend code; it has been removed and replaced with authenticated user/session context.
 
 ### High
 - Dockerfiles used nondeterministic `npm install` patterns.
