@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { redactForLogging } from './redaction';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -25,23 +26,25 @@ export function withRequestContext(context: LogContext = {}) {
 }
 
 function log(level: LogLevel, message: string, context: LogContext = {}) {
-  const payload = withRequestContext(context);
+  const rawPayload = withRequestContext(context);
+  const payload = redactForLogging(rawPayload) as ReturnType<typeof withRequestContext>;
   const consoleMethod = level === 'debug' ? 'log' : level;
   const printable = { ...payload };
-  if (payload.error instanceof Error) {
-    printable.error = { name: payload.error.name, message: payload.error.message, stack: payload.error.stack };
+  if (rawPayload.error instanceof Error) {
+    printable.error = { name: rawPayload.error.name, message: rawPayload.error.message };
   }
 
-  console[consoleMethod]?.(`[${payload.requestId}] ${message}`, printable);
+  const safeMessage = String(redactForLogging(message));
+  console[consoleMethod]?.(`[${payload.requestId}] ${safeMessage}`, printable);
 
   if (Sentry.getCurrentHub()?.getClient()) {
     Sentry.withScope((scope) => {
       scope.setTag('request_id', payload.requestId);
       if (payload.scope) scope.setTag('scope', payload.scope);
       if (payload.userId) scope.setUser({ id: payload.userId });
-      if (payload.extra) scope.setExtras(payload.extra);
-      if (payload.error instanceof Error) scope.captureException(payload.error);
-      else scope.captureMessage(message, level === 'warn' ? 'warning' : level);
+      if (payload.extra) scope.setExtras(redactForLogging(payload.extra) as Record<string, unknown>);
+      if (rawPayload.error instanceof Error) scope.captureException(rawPayload.error);
+      else scope.captureMessage(safeMessage, level === 'warn' ? 'warning' : level);
     });
   }
 

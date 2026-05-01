@@ -10,7 +10,7 @@ Full-stack starter wired for Nhost with onboarding, role dashboards, and GraphQL
 2. Install dependencies and start the dev server:
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -18,6 +18,8 @@ npm run dev
 
 - `/healthz` is a public deploy verification endpoint (build SHA + minimal config checks).
 - Set `VITE_MAINTENANCE_MODE=true` to enable the emergency maintenance screen (except `/healthz`).
+- Production safety gates are available through `npm run check:production:fast`, `npm run check:production`, and `npm run check:launch`.
+- Readiness status, manual production work, and the final hardening readout live under `docs/readiness/`.
 
 ## Backend (Nhost + Hasura)
 - Core schema migration: `nhost/migrations/001_teachmo_core/up.sql`
@@ -93,7 +95,7 @@ flowchart LR
   - Teacher (`/teacher/dashboard`) for classroom and training tracking.
   - Partner (`/partners/dashboard`) for submissions.
   - Admin (`/admin`) for org/school provisioning and role assignment.
-- Messaging, events, activities, children, and partner submission operations organized in `src/domains/**` using the shared GraphQL helper at `src/lib/graphql.js`.
+- Messaging, events, activities, children, and partner submission operations organized in `src/domains/**` using the shared GraphQL helper at `src/lib/graphql.ts`.
 
 ## API schema & typed operations
 

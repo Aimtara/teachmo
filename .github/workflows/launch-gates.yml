@@ -63,12 +63,12 @@ jobs:
         run: |
           set -euo pipefail
           echo "Scanning for prohibited client-side secrets..."
-          if grep -rE "VITE_OPS_ADMIN_KEY|x-ops-admin-key|OPS_ADMIN_KEY" src/; then
+          if rg -n "VITE_OPS_ADMIN_KEY|x-ops-admin-key|OPS_ADMIN_KEY" src/; then
             echo "❌ FAILED: Found forbidden ops/admin key pattern in frontend code."
             exit 1
           fi
           if [ -f .env.example ]; then
-            if grep -E "^VITE_.*(KEY|SECRET|PASSWORD|TOKEN)=" .env.example; then
+            if rg -n "^VITE_.*(KEY|SECRET|PASSWORD|TOKEN)=" .env.example; then
               echo "❌ FAILED: .env.example contains a VITE_* variable that looks like a secret."
               exit 1
             fi
@@ -80,6 +80,9 @@ jobs:
       # --------------------------------------------------------
       - name: Install dependencies (root)
         run: npm ci
+
+      - name: G0 - Production Safety Static Checks
+        run: npm run check:production:fast
 
       - name: Install dependencies (backend)
         working-directory: backend

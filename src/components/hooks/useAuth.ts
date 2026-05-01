@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
+import { assertNoProductionBypass, envFlag } from '@/config/env';
 import { useUserRole } from '@/hooks/useUserRole';
 
 type E2EMockUser = {
@@ -22,7 +23,8 @@ type AuthUser = {
 };
 
 export function useAuth() {
-  const isE2EBypass = import.meta.env.VITE_E2E_BYPASS_AUTH === 'true';
+  assertNoProductionBypass();
+  const isE2EBypass = envFlag('VITE_E2E_BYPASS_AUTH');
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const userData = useUserData() as AuthUser | null;
   const role = useUserRole();

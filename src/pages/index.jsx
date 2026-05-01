@@ -11,8 +11,9 @@ import Landing from './Landing.jsx';
 import { TelemetryBootstrap } from '@/observability/TelemetryBootstrap';
 import Healthz from './Healthz.tsx';
 import Maintenance from './Maintenance.tsx';
+import { envFlag } from '@/config/env';
 
-const MAINTENANCE_MODE = String(import.meta.env.VITE_MAINTENANCE_MODE ?? '').toLowerCase() === 'true';
+const MAINTENANCE_MODE = envFlag('VITE_MAINTENANCE_MODE');
 
 function RoleRedirect() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@/config/api';
+import { assertNoProductionBypass, envFlag, getAppEnv } from '@/config/env';
 import { nhost } from '@/lib/nhostClient';
 
 const E2E_SESSION_KEY = 'teachmo_e2e_session';
@@ -16,11 +17,14 @@ type OpsFetchOptions = {
 type OpsError = Error & { status?: number };
 
 function isE2EBypassEnabled() {
-  const flag = String(import.meta.env.VITE_E2E_BYPASS_AUTH || '').toLowerCase() === 'true';
+  assertNoProductionBypass(import.meta.env);
+  const flag = envFlag('VITE_E2E_BYPASS_AUTH', { defaultValue: false, env: import.meta.env });
   if (!flag) return false;
-  const isTestMode = String(import.meta.env.MODE || '').toLowerCase() === 'test';
-  const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-  return isTestMode || isLocalhost;
+  const appEnv = getAppEnv(import.meta.env);
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  return appEnv === 'test' || appEnv === 'local' || appEnv === 'development' || isLocalhost;
 }
 
 function getE2ESession(): E2ESession | null {

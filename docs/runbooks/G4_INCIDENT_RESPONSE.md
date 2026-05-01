@@ -5,6 +5,8 @@
 1. Check `/healthz` and confirm the reported build SHA.
 2. Review Sentry for new errors or regressions.
 3. Determine scope (single tenant vs. global).
+4. Review `docs/observability.md` event/audit schema before adding emergency logs; do not log raw PII, message bodies, child names, tokens, cookies, or raw AI prompts.
+5. Run `npm run check:pii-logging` before merging an incident hotfix that changes logging/instrumentation.
 
 ## Mitigation options
 
@@ -21,3 +23,4 @@
 
 - Document root cause, mitigation, and follow-up tasks.
 - Add permanent fixes and regression tests.
+- Capture evidence for audit-critical incidents (permission denial, role change, moderation, messaging safety) without including raw sensitive payloads.

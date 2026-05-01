@@ -1,7 +1,11 @@
 import { APP_ENV, BUILD_SHA, BUILD_TIME } from '@/generated/buildMeta';
+import { envFlag, envString, getAppEnv } from '@/config/env';
 
-const NHOST_CONFIGURED = Boolean(import.meta.env.VITE_NHOST_BACKEND_URL);
-const MAINTENANCE_MODE = String(import.meta.env.VITE_MAINTENANCE_MODE ?? '').toLowerCase() === 'true';
+const NHOST_CONFIGURED = Boolean(
+  envString('VITE_NHOST_BACKEND_URL') || envString('VITE_NHOST_SUBDOMAIN')
+);
+const MAINTENANCE_MODE = envFlag('VITE_MAINTENANCE_MODE', { defaultValue: false });
+const RESOLVED_APP_ENV = getAppEnv();
 
 const status = NHOST_CONFIGURED ? 'ok' : 'degraded';
 
@@ -10,7 +14,7 @@ const payload = {
   build: {
     sha: BUILD_SHA,
     time: BUILD_TIME,
-    env: APP_ENV
+    env: RESOLVED_APP_ENV === 'unknown' ? APP_ENV : RESOLVED_APP_ENV
   },
   nhostConfigured: NHOST_CONFIGURED,
   maintenanceMode: MAINTENANCE_MODE
@@ -52,7 +56,7 @@ export default function Healthz() {
             </div>
             <div>
               <dt className="text-muted-foreground">Environment</dt>
-              <dd>{APP_ENV}</dd>
+              <dd>{RESOLVED_APP_ENV === 'unknown' ? APP_ENV : RESOLVED_APP_ENV}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Nhost configured</dt>

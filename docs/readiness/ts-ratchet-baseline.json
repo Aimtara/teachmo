@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-05-01T22:15:00.000Z",
+  "commit": "e472b0c",
+  "counts": {
+    "js": 217,
+    "jsx": 488,
+    "ts": 305,
+    "tsx": 63,
+    "any": 451,
+    "tsIgnore": 0,
+    "tsExpectError": 0
+  },
+  "budgets": {
+    "allowJsIncrease": 0,
+    "allowJsxIncrease": 0,
+    "allowAnyIncrease": 0,
+    "allowTsIgnoreIncrease": 0,
+    "allowTsExpectErrorIncrease": 0
+  },
+  "exceptions": []
+}
