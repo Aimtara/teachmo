@@ -17,11 +17,9 @@ if (dsn) {
     ],
     tracesSampleRate: envNumber(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE, {
       defaultValue: 0.1,
-      name: 'VITE_SENTRY_TRACES_SAMPLE_RATE',
     }),
     replaysSessionSampleRate: envNumber(import.meta.env.VITE_SENTRY_REPLAY_SAMPLE_RATE, {
       defaultValue: 0.05,
-      name: 'VITE_SENTRY_REPLAY_SAMPLE_RATE',
     }),
     replaysOnErrorSampleRate: 1.0,
     environment: import.meta.env.MODE || APP_ENV || 'development'

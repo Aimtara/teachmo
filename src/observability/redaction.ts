@@ -52,3 +52,6 @@ export function redactRecord<T extends Record<string, unknown>>(input?: T | null
     ? (redacted as Record<string, unknown>)
     : {};
 }
+
+export const redactForLogging = redactValue;
+export const redactForObservability = redactRecord;
