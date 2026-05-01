@@ -31,7 +31,7 @@ The repository is **not yet a full production GO** because live staging/producti
 
 - Added `src/config/env.ts` with deterministic env helpers and production/staging bypass rejection.
 - Replaced unsafe env parsing in health/maintenance/auth/sentry/Nhost paths.
-- Removed `VITE_INTERNAL_API_KEY` frontend header injection from `src/domains/executionBoard.ts`.
+- Removed the former frontend internal API key header injection from `src/domains/executionBoard.ts`.
 - Added `src/observability/redaction.ts` and `src/observability/events.ts`.
 - Redacted observability/logger payloads before console/Sentry emission.
 - Made `ProtectedRoute` testable in production-like mode without removing the existing dev convenience bypass.
@@ -79,7 +79,7 @@ The repository is **not yet a full production GO** because live staging/producti
 ## Existing functionality preservation
 
 - No routes, pages, public APIs, domain exports, or workflows were deleted.
-- Existing dev route-bypass behavior remains enabled by default in dev, but can be disabled for production-like tests via `VITE_DISABLE_DEV_ROUTE_BYPASS=true`.
+- Existing dev route-bypass behavior remains enabled by default in dev, but can be disabled for production-like tests with the dedicated disable-dev-route-bypass flag.
 - Launch-gates mock/e2e bypass remains test-only and is blocked from staging/production by runtime/static checks.
 - Healthz remains public and maintenance mode still excludes `/healthz`.
 
