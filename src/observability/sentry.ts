@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
+import { envNumber, envString } from '@/config/env';
 import { APP_ENV, BUILD_SHA } from '@/generated/buildMeta';
 
-const dsn = import.meta.env.VITE_SENTRY_DSN;
+const dsn = envString(import.meta.env.VITE_SENTRY_DSN);
 
 if (dsn) {
   Sentry.init({
@@ -14,8 +15,12 @@ if (dsn) {
         blockAllMedia: true
       })
     ],
-    tracesSampleRate: Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
-    replaysSessionSampleRate: Number(import.meta.env.VITE_SENTRY_REPLAY_SAMPLE_RATE ?? 0.05),
+    tracesSampleRate: envNumber(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE, {
+      defaultValue: 0.1,
+    }),
+    replaysSessionSampleRate: envNumber(import.meta.env.VITE_SENTRY_REPLAY_SAMPLE_RATE, {
+      defaultValue: 0.05,
+    }),
     replaysOnErrorSampleRate: 1.0,
     environment: import.meta.env.MODE || APP_ENV || 'development'
   });

@@ -1,3 +1,5 @@
+import { redactForLogging } from '@/observability/redaction';
+
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
 const LOG_LEVELS: LogLevel[] = ['error', 'warn', 'info', 'debug'];
@@ -47,7 +49,7 @@ export const createLogger = (namespace = 'app'): Logger => {
   const logWithLevel = (level: LogLevel, method: 'error' | 'warn' | 'info' | 'debug') =>
     (...args: unknown[]) => {
       if (!shouldLog(level)) return;
-      console[method](prefix, ...args);
+      console[method](prefix, ...args.map((arg) => redactForLogging(arg)));
     };
 
   return {

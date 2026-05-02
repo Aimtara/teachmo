@@ -37,3 +37,13 @@
 - Backup/restore drills: `runbooks/G4_BACKUP_RESTORE.md`
 - Incident response: `runbooks/G4_INCIDENT_RESPONSE.md`
 - Environment & secrets: `runbooks/G4_ENVIRONMENT.md`
+- Hasura production readiness: `runbooks/hasura-production-readiness.md`
+
+## Production Readiness
+
+- Production hardening status: `readiness/production-hardening-status.md`
+- Baseline/current inventory: `readiness/production-hardening-inventory.md`
+- Manual production work register: `readiness/manual-production-work.md`
+- Final readiness readout: `readiness/production-readiness-readout.md`
+- Observability standards: `observability.md`
+- Feature flags and bypass policy: `feature-flags.md`

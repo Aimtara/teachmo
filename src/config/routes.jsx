@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 import { MomentGuard } from '@/components/governance/MomentGuard';
+import { envFlag } from '@/config/env';
 
 const UnifiedDiscover = lazy(() => import('@/pages/UnifiedDiscover'));
 const DiscoverRoute = () => (
@@ -10,7 +11,8 @@ const DiscoverRoute = () => (
 );
 
 // Internal routes are dev-friendly by default, but can be explicitly enabled in production.
-const ENABLE_INTERNAL_ROUTES = import.meta.env.DEV || import.meta.env.VITE_ENABLE_INTERNAL_ROUTES === 'true';
+const ENABLE_INTERNAL_ROUTES =
+  import.meta.env.DEV || envFlag('VITE_ENABLE_INTERNAL_ROUTES', { defaultValue: false });
 
 export const ROUTE_DEFINITIONS = [
   {

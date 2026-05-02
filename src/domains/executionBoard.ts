@@ -1,7 +1,5 @@
 import { API_BASE_URL } from '@/config/api';
 
-const INTERNAL_KEY = import.meta.env.VITE_INTERNAL_API_KEY;
-
 type QueryParams = Record<string, string | number | boolean | null | undefined>;
 
 type HttpOptions = {
@@ -11,12 +9,10 @@ type HttpOptions = {
 };
 
 function headers(extra: Record<string, string> = {}) {
-  const h: Record<string, string> = {
+  return {
     'Content-Type': 'application/json',
     ...extra,
   };
-  if (INTERNAL_KEY) h['x-internal-key'] = INTERNAL_KEY;
-  return h;
 }
 
 async function http(path: string, { method = 'GET', body, actor }: HttpOptions = {}) {

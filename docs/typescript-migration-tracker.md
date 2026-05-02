@@ -1,15 +1,45 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-03-13T19:42:15.753Z
+Generated: 2026-05-01T22:30:00.000Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 192 |
-| .jsx | 476 |
-| .ts | 295 |
-| .tsx | 60 |
+| .js | 217 |
+| .jsx | 488 |
+| .ts | 305 |
+| .tsx | 63 |
+
+## Production ratchet baseline
+
+The production hardening pass adds a failing ratchet gate. Current committed baseline:
+
+| Metric | Baseline | Budgeted increase |
+| --- | ---: | ---: |
+| `.js` files | 217 | 0 |
+| `.jsx` files | 488 | 0 |
+| `any` tokens in `.ts/.tsx` | 451 | 0 |
+| `@ts-ignore` | 0 | 0 |
+| `@ts-expect-error` | 0 | 0 |
+
+Commands:
+
+```bash
+npm run check:ts-ratchet
+npm run migration:ts:inventory
+```
+
+Baseline file: `docs/readiness/ts-ratchet-baseline.json`. Refreshing it must be intentional, reviewed, and paired with this tracker.
+
+## Next recommended slices
+
+| Slice | Owner placeholder | Target date placeholder | Notes |
+| --- | --- | --- | --- |
+| Admin GraphQL pages | Frontend Platform DRI | YYYY-MM-DD | Move raw `graphqlRequest` calls behind admin domain modules. |
+| Partner portal REST pages | Partner Platform DRI | YYYY-MM-DD | Complete service-layer wrappers for direct `fetch` usage. |
+| Backend route contracts | Backend Platform DRI | YYYY-MM-DD | Introduce typed request/response schemas before JS-to-TS conversion. |
+| Nhost function shared utilities | Data Platform DRI | YYYY-MM-DD | Convert shared function helpers and reduce `any` budgets. |
 
 ## JS/TS inventory by top-level directory
 

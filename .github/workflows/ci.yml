@@ -24,6 +24,9 @@ jobs:
       - name: Preflight (env example)
         run: npm run preflight:example
 
+      - name: Production fast checks
+        run: npm run check:production:fast
+
       - name: Backend syntax check
         run: npm run backend:check
 

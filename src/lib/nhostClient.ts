@@ -1,8 +1,9 @@
 import { NhostClient } from '@nhost/nhost-js';
+import { envString } from '@/config/env';
 
-const backendUrl = String(import.meta.env.VITE_NHOST_BACKEND_URL || '').trim();
-const subdomain = String(import.meta.env.VITE_NHOST_SUBDOMAIN || '').trim();
-const region = String(import.meta.env.VITE_NHOST_REGION || '').trim();
+const backendUrl = envString('VITE_NHOST_BACKEND_URL');
+const subdomain = envString('VITE_NHOST_SUBDOMAIN');
+const region = envString('VITE_NHOST_REGION');
 
 const nhostConfig = backendUrl
   ? { backendUrl }
