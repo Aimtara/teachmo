@@ -39,10 +39,28 @@ Keep these only in backend/Nhost function runtime secret stores:
 - SMTP/Postmark/SendGrid credentials
 - invite, digest, directory sync, and event webhook tokens
 
+## Urgent rotation note
+
+An older tracked Nhost config contained a Google OAuth client-secret-looking value. It has been removed from source control, but the value must be treated as compromised:
+
+1. Rotate the Google OAuth client secret in Google Cloud.
+2. Invalidate/delete the old secret.
+3. Update the Nhost production/staging dashboard or secret manager with the new value.
+4. Attach evidence to `docs/readiness/evidence/production-smoke-template.md` or the release issue.
+
+Do not store OAuth client secrets in `nhost/nhost.toml`; use `{{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}` or the Nhost dashboard secret store.
+
+## Nhost config safety
+
+- Deployable config is `nhost/nhost.toml` and must pass `npm run check:nhost-config-safety`.
+- Local-only examples may use `nhost/nhost.local.example.toml`; never deploy that file.
+- Production config must avoid wildcard CORS, dev mode, public DB access, anonymous auth, disabled email verification, and enabled Hasura console.
+
 ## Validation
 
 - `npm run preflight:env`
 - `npm run preflight:example`
 - `npm run check:secret-hygiene`
+- `npm run check:nhost-config-safety`
 - `npm run check:production-auth-safety`
 - `npm run check:production`

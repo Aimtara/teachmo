@@ -20,6 +20,13 @@ npm run dev
 - Set `VITE_MAINTENANCE_MODE=true` to enable the emergency maintenance screen (except `/healthz`).
 - Production safety gates are available through `npm run check:production:fast`, `npm run check:production`, and `npm run check:launch`.
 - Readiness status, manual production work, and the final hardening readout live under `docs/readiness/`.
+- Release contract and evidence-driven launch docs:
+  - `docs/runbooks/release-contract.md`
+  - `docs/runbooks/nhost-production-config.md`
+  - `docs/runbooks/hasura-permission-smoke.md`
+  - `docs/runbooks/observability-and-slos.md`
+  - `docs/readiness/evidence/`
+  - `docs/readiness/swot-closure.md`
 
 ## Backend (Nhost + Hasura)
 - Core schema migration: `nhost/migrations/001_teachmo_core/up.sql`
@@ -27,7 +34,8 @@ npm run dev
 - Setup docs: `nhost/docs/hasura_setup.md`, `nhost/docs/permissions.md`
 
 Hasura runtime settings (CORS, console/dev mode defaults, JWT secret placeholder)
-are configured in `nhost/nhost.toml`.
+are configured in `nhost/nhost.toml`. The tracked deployable config is safe by
+default; local-only unsafe examples are isolated in `nhost/nhost.local.example.toml`.
 
 Start Nhost locally with `nhost up` and apply migrations; use the docs to track tables and permissions.
 

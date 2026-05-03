@@ -17,3 +17,14 @@
 
 - [ ] Added or updated tests.
 - [ ] Included relevant command output in PR description.
+
+## Production readiness gates
+
+- [ ] `npm run check:production:fast`
+- [ ] `npm run check:secret-hygiene`
+- [ ] `npm run check:nhost-config-safety`
+- [ ] `npm run check:api-boundaries`
+- [ ] `npm run check:hasura-readiness`
+- [ ] `npm run check:pii-logging`
+- [ ] If touching Nhost/Hasura/RBAC: attached permission smoke or documented manual evidence.
+- [ ] If touching logging/AI/messaging/child data: verified no raw PII, prompts, tokens, or message bodies are logged.
