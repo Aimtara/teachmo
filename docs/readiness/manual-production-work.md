@@ -2,6 +2,8 @@
 
 These items require live environment access, human approval, vendor-console access, or legal/compliance ownership. They are **not complete** until evidence is attached by the listed owner.
 
+Every item in this register must produce an evidence packet before it can be marked complete. Evidence packets must include the executor, reviewer, environment, timestamp, command/dashboard path, expected result, actual result, attached screenshots/logs, and a pass/fail decision. Templates live under `docs/readiness/evidence/`.
+
 | ID | Category | Severity | Manual task | Why it cannot be automated here | Exact steps | Required access/credentials | Owner placeholder | Target date placeholder | Evidence required | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | MPW-001 | Nhost | Critical | Verify real staging Nhost project | Requires staging Nhost access | `nhost link`; select staging; run metadata/migration status command; capture project ID | Nhost staging admin | TBD | TBD | Command output + screenshot | [ ] manual |
@@ -30,3 +32,49 @@ These items require live environment access, human approval, vendor-console acce
 | MPW-024 | Nhost config | Critical | Verify production Nhost config matches safe repo policy | Provider dashboard settings may differ from tracked config. | Compare production/staging dashboard CORS, dev mode, console, allowlist, public DB access, anonymous auth, email verification, HIBP, and error concealment against `docs/runbooks/nhost-production-config.md`. | Nhost production/staging admin | TBD | TBD | Completed config matrix and screenshots | [ ] manual |
 | MPW-025 | Bundle budget | Medium | Approve or reduce production bundle budget | Current app exceeds the 500 kB brotli aggregate budget; safe vendor chunking improved diagnosis but not pass/fail. | Review build output, decide whether to lazy-load additional heavy features or approve revised aggregate budget; capture decision. | Frontend lead / product owner | TBD | TBD | `npm run build`, `npm run check:size` output and approval note | [ ] manual/decision |
 | MPW-026 | Observability | High | SLO and alert routing live verification | Requires live Sentry/monitoring/on-call systems. | Configure alerts from `docs/runbooks/observability-and-slos.md`, trigger test alert, confirm on-call receipt and escalation. | Sentry/monitoring admin, on-call lead | TBD | TBD | Alert screenshot, incident channel receipt, escalation notes | [ ] manual |
+
+## Evidence template map
+
+| Manual item(s) | Evidence template |
+| --- | --- |
+| MPW-001, MPW-005, MPW-024 | `docs/readiness/evidence/staging-nhost-verification-template.md` |
+| MPW-002, MPW-024 | `docs/readiness/evidence/production-nhost-verification-template.md` |
+| MPW-003, MPW-004 | `docs/readiness/evidence/hasura-permissions-review-template.md` |
+| MPW-010 | `docs/readiness/evidence/role-smoke-test-template.md` |
+| MPW-007 | `docs/readiness/evidence/backup-restore-drill-template.md` |
+| MPW-008 | `docs/readiness/evidence/rollback-drill-template.md` |
+| MPW-006, MPW-015, MPW-026 | `docs/readiness/evidence/sentry-alert-routing-template.md` |
+| MPW-016 | `docs/readiness/evidence/dns-tls-verification-template.md` |
+| MPW-018 | `docs/readiness/evidence/storage-bucket-permissions-template.md` |
+| MPW-023 | `docs/readiness/evidence/oauth-secret-rotation-template.md` |
+| MPW-011, MPW-012, MPW-014, MPW-021 | `docs/readiness/evidence/legal-privacy-ai-review-template.md` |
+
+## Launch decision matrix
+
+| Decision | Minimum evidence required | Current status |
+| --- | --- | --- |
+| Broad production GO | All Critical and High manual items complete, browser E2E/a11y evidence attached, no unreviewed high dependency findings, no unowned high API-boundary exceptions, privacy/legal/AI governance signoff complete. | NO-GO. Manual evidence incomplete. |
+| Controlled pilot GO | Staging Nhost/Hasura/Sentry verified, OAuth secret rotated, real role smoke complete, backup and rollback drills complete, E13/E16 scope explicitly accepted or gated. | CONDITIONAL. Evidence still required. |
+| Internal demo/dev | Automated `check:launch` green and manual caveats documented. | Allowed with ratchets and no production claims. |
+
+## Launch decision matrix
+
+| Launch decision | Blocking evidence required | Non-blocking follow-up | Decision owner placeholder |
+| --- | --- | --- | --- |
+| Broad production | MPW-001 through MPW-024 completed with attached evidence; browser E2E/a11y pass or signed waiver; no unreviewed high runtime audit findings; API-boundary exceptions approved. | Continued lint burn-down and bundle total-JS reduction under ratchets. | CEO / CTO / Security / Legal |
+| Controlled pilot | Staging Nhost/Hasura/Sentry verified; OAuth secret rotated; role smoke, backup/restore, rollback, storage, DNS/TLS, support/on-call evidence attached; E13/E16 launch scope explicitly accepted. | Production Nhost proof can follow only if pilot is staging-only. | Product + Engineering + Security |
+| Internal demo/dev | Automated launch checks pass; secrets remain safe; demo uses non-production data. | Live drills and legal reviews not required for demo-only environments. | Engineering lead |
+
+## Evidence template index
+
+- Staging Nhost: `docs/readiness/evidence/staging-nhost-verification-template.md`
+- Production Nhost: `docs/readiness/evidence/production-nhost-verification-template.md`
+- Hasura permissions: `docs/readiness/evidence/hasura-permissions-review-template.md`
+- Role smoke: `docs/readiness/evidence/role-smoke-test-template.md`
+- Backup/restore: `docs/readiness/evidence/backup-restore-drill-template.md`
+- Rollback: `docs/readiness/evidence/rollback-drill-template.md`
+- Sentry/alert routing: `docs/readiness/evidence/sentry-alert-routing-template.md`
+- DNS/TLS: `docs/readiness/evidence/dns-tls-verification-template.md`
+- Storage permissions: `docs/readiness/evidence/storage-bucket-permissions-template.md`
+- OAuth secret rotation: `docs/readiness/evidence/oauth-secret-rotation-template.md`
+- Legal/privacy/AI governance: `docs/readiness/evidence/legal-privacy-ai-review-template.md`
