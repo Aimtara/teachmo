@@ -100,3 +100,33 @@ Policy direction for this closure: **hybrid ratchet** unless safe dependency rem
 | Controlled pilot | CONDITIONAL | Manual environment verification, OAuth secret rotation evidence, role smoke, backup/rollback proof, explicit gate-scope decision for E13/E16. |
 | Internal demo/dev | GO with ratchets | Existing automated launch checks pass. |
 
+## Phase 2 dependency-security update
+
+Phase 2 materially reduced audit exposure without removing product functionality.
+
+| Metric | Before | After | Notes |
+| --- | ---: | ---: | --- |
+| Root full npm audit findings | 25 total / 12 high | 10 total / 4 high | Remaining full-audit highs are dev/optional build-time chains documented in `config/audit-exceptions.json`. |
+| Root launch/runtime audit findings | 25 total / 12 high | 0 high/critical | `npm run check:audit` audits production runtime scope (`--omit=dev --omit=optional`) and passed. |
+| Backend package audit | 7 findings after lodash removal | 0 | `cd backend && npm audit --audit-level=high` passed after backend dependency updates. |
+| Nhost functions audit | 2 findings after nodemailer update | 0 | `cd nhost/functions && npm audit fix && npm audit --audit-level=high` passed. |
+
+Dependency actions completed:
+
+- Removed obsolete root `bundlesize` and unused `react-quill`.
+- Removed direct root/backend `lodash` usage by replacing `isEqual` and `debounce` with local helpers.
+- Upgraded direct vulnerable packages including Vite 6 patch line, DOMPurify, PostCSS, Nodemailer, backend Nodemon, Nhost Nodemailer, Vitest coverage/runtime, and size-limit tooling.
+- Added targeted npm overrides for production transitive `@xmldom/xmldom`, `path-to-regexp`, `picomatch`, `brace-expansion`, and `lodash`.
+- Added `npm run check:audit` plus `config/audit-exceptions.json` for documented dev/optional residual findings.
+
+Validation:
+
+- `npm run check:audit`: PASS.
+- `cd backend && npm audit --audit-level=high`: PASS.
+- `cd nhost/functions && npm audit --audit-level=high`: PASS.
+- `npm run typecheck`: PASS.
+- `npm run test:smoke`: PASS.
+- `npm run test:backend`: PASS.
+- `cd backend && npm test`: PASS.
+- `npm run build && npm run check:size`: PASS.
+

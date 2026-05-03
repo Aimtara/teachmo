@@ -1,5 +1,24 @@
 /* eslint-env node */
-import _ from 'lodash';
+
+function isPlainObject(value) {
+  return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+function deepEqual(left, right) {
+  if (Object.is(left, right)) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((item, index) => deepEqual(item, right[index]));
+  }
+  if (isPlainObject(left) || isPlainObject(right)) {
+    if (!isPlainObject(left) || !isPlainObject(right)) return false;
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) return false;
+    return leftKeys.every((key) => Object.prototype.hasOwnProperty.call(right, key) && deepEqual(left[key], right[key]));
+  }
+  return false;
+}
 
 /**
  * Compares two objects and returns the difference.
@@ -13,7 +32,7 @@ export function calculateDiff(original, updated) {
   const after = {};
 
   Object.keys(updated).forEach((key) => {
-    if (!_.isEqual(original[key], updated[key])) {
+    if (!deepEqual(original[key], updated[key])) {
       if (original[key] !== undefined) before[key] = original[key];
       after[key] = updated[key];
     }
