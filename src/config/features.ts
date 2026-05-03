@@ -5,6 +5,7 @@ export const FEATURES = {
   COMMUNITY: false,
 
   CALENDAR: false,
+  OFFICE_HOURS: false,
   MESSAGING: false,
   AI_ASSISTANT: false,
 
