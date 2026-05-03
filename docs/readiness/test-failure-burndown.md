@@ -58,4 +58,18 @@ Target date placeholder: 2026-05-10
 
 ## Remaining test debt
 
-No remaining automated test blocker is known for the scoped commands in this burn-down. Playwright E2E remains a separate optional/manual gate and is intentionally not run by Vitest.
+No remaining automated test blocker is known for the scoped unit/smoke/backend commands in this burn-down.
+
+## Browser-level follow-up validation
+
+The remaining-work closure reran browser-level validation after installing the missing Playwright Chromium browser:
+
+- `npm run test:e2e`: **FAIL** — 2 passed, 4 skipped, 6 failed. The failures are now actionable route/a11y/product-scope issues rather than missing-browser setup:
+  - login page has axe color-contrast/landmark/region violations,
+  - calendar and teacher classes routes are feature-disabled while tests expect enabled content,
+  - AI transparency keyboard focus expectation does not match current tab order,
+  - non-admin Ops Orchestrator route remains on `/ops/orchestrator` instead of redirecting,
+  - offline service-worker readiness timed out.
+- `npm run test:a11y`: **FAIL** — Jest a11y suites are not runnable under the current Jest/CommonJS transform because several tests import Vitest APIs, top-level await, and Vite `import.meta` modules.
+
+See `docs/readiness/browser-e2e-a11y-readiness.md` for the detailed browser QA register.
