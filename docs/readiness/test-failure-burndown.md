@@ -1,15 +1,16 @@
 # Test Failure Burn-down
 
-Generated: 2026-05-03
+Generated: 2026-05-03  
+Latest validation commit: `02ff82b`
 
 ## Current status
 
 | Command | Baseline status | Failure category | Planned resolution |
 | --- | --- | --- | --- |
-| `npm run test:backend` | PASS: 30 suites / 186 tests | None | Preserve root backend Jest strategy. |
-| `cd backend && npm test` | FAIL: 15 failed suites / 4 failed tests in backend-local Jest | Backend package Jest config issue | Align backend package script with root Jest config. |
-| `npm run test -- --run` | FAIL: 25 failed files / 32 failed tests | Vitest discovery + mock-shape + stale expectations | Exclude wrong-runner tests first, then fix remaining unit tests. |
-| `npm run test:smoke` | PASS: 5 files / 15 tests | None | Keep green throughout. |
+| `npm run test:backend` | PASS: 30 suites / 186 tests | None | Preserved root backend Jest strategy. |
+| `cd backend && npm test` | FAIL: 15 failed suites / 4 failed tests in backend-local Jest | Backend package Jest config issue | **PASS after alignment** with root Jest config. |
+| `npm run test -- --run` | FAIL: 25 failed files / 32 failed tests | Vitest discovery + mock-shape + stale expectations | **PASS after discovery/mocks/expectation fixes**: 34 files / 127 tests. |
+| `npm run test:smoke` | PASS: 5 files / 15 tests | None | PASS: 5 files / 15 tests. |
 
 ## Backend package Jest
 
@@ -21,6 +22,14 @@ Root backend Jest is the known-good configuration. Package-local Jest currently 
 
 Owner placeholder: Backend Platform  
 Target date placeholder: 2026-05-10
+
+### Backend resolution
+
+- `backend/package.json` now runs `jest --config ../jest.backend.config.cjs --runInBand`.
+- `backend/__tests__/featureFlags.test.js` resolves repository paths from the test file location instead of `process.cwd()`, so both root and backend package invocations agree.
+- Validation:
+  - `npm run test:backend`: PASS.
+  - `npm test --prefix backend`: PASS.
 
 ## Full Vitest failure categories
 
@@ -42,3 +51,11 @@ Target date placeholder: 2026-05-10
 | 2026-05-03 baseline | `cd backend && npm test` | FAIL | 15 failed suites; divergent config. |
 | 2026-05-03 baseline | `npm run test -- --run` | FAIL | 25 failed files / 32 failed tests. |
 | 2026-05-03 baseline | `npm run test:smoke` | PASS | 5 files / 15 tests. |
+| 2026-05-03 final | `npm run test:backend` | PASS | Root backend Jest remains green. |
+| 2026-05-03 final | `npm test --prefix backend` | PASS | Backend package-level Jest fixed. |
+| 2026-05-03 final | `npm run test -- --run` | PASS | 34 files / 127 tests. Wrong-runner suites excluded from Vitest. |
+| 2026-05-03 final | `npm run test:smoke` | PASS | 5 files / 15 tests. |
+
+## Remaining test debt
+
+No remaining automated test blocker is known for the scoped commands in this burn-down. Playwright E2E remains a separate optional/manual gate and is intentionally not run by Vitest.

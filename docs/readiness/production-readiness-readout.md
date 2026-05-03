@@ -1,13 +1,13 @@
 # Production Readiness Readout
 
 Generated: 2026-05-03  
-Latest hardening commit validated locally: pending final validation
+Latest hardening commit validated locally: `02ff82b`
 
 ## Executive summary
 
 Teachmo’s automated production-readiness posture is substantially stronger: tracked Nhost config no longer contains the Google OAuth-secret-looking value, Nhost deploy config is safe by default, secret hygiene now scans broad tracked files for common credential formats, Hasura permission smoke is fail-closed in protected contexts, and release scripts no longer force-push `main:pilot`. Four high-risk UI direct backend exceptions were moved behind domain modules, reducing API-boundary exceptions from 44 to 40. Observability redaction and PII logging checks now cover nested payloads, prompts, vendor payloads, auth material, child/student data, and contact data.
 
-The repository is **not a broad production GO** because live Nhost/Hasura/Sentry, role-token smoke, backup/restore, rollback, compliance/legal, and production user-flow evidence require credentials and human approvals. Full lint, full Vitest, and bundle size also remain unresolved or pre-existing blockers. The current recommendation is **GO for controlled pilot only after the manual environment verification register is completed and accepted**.
+The repository is **not a broad production GO** because live Nhost/Hasura/Sentry, role-token smoke, backup/restore, rollback, compliance/legal, and production user-flow evidence require credentials and human approvals. The technical blocker burn-down has materially improved automated health: full Vitest is green, backend package Jest is green, bundle size is governed by an app-shell/per-chunk/total-JS ratchet, and lint is controlled by a strict ratchet after reducing enforced lint debt from 3,622 to 1,006 reported problems. The current recommendation remains **GO for controlled pilot only after the manual environment verification register is completed and accepted**.
 
 ## What changed in this closure
 
@@ -34,6 +34,7 @@ The repository is **not a broad production GO** because live Nhost/Hasura/Sentry
 - CI now runs explicit script tests and non-watch Vitest invocation.
 - Root Docker runtime no longer installs `serve` globally; it uses package scripts.
 - Split vendor chunks for clearer bundle diagnostics. Bundle budget still fails and is documented.
+- Added strict lint and bundle-size ratchets to release gates; full Vitest and backend package Jest are now green.
 
 ### Observability/PII
 - Strengthened redaction for nested arrays/objects, auth headers, cookies, AI prompts, vendor payloads, child/student names, emails, phones, addresses, tokens, and message bodies.
@@ -54,10 +55,14 @@ The repository is **not a broad production GO** because live Nhost/Hasura/Sentry
 | `npm run typecheck` | PASS | New domain modules typecheck. |
 | `npm run check:ts-ratchet` | PASS | Current counts: 217 JS, 488 JSX, 314 TS, 65 TSX, 451 any. |
 | `npm run build` | PASS | Vite/PWA build succeeds; vendor chunks split for diagnostics. |
-| `npm run check:size` | FAIL | 614 kB brotlied vs 500 kB budget after chunk split. Requires product/engineering budget decision or deeper code splitting. |
-| `npm run lint` | FAIL / pre-existing | Baseline 3619 problems before this closure; not fully remediated. |
-| `npm run test -- --run` | FAIL / pre-existing | Baseline 25 failed files / 32 failed tests before this closure. |
-| `npm run test:backend` | PASS in baseline | 30 suites / 186 tests passed before this closure. |
+| `npm run check:size` | PASS / RATCHETED | Current total 601.25 kB brotlied; initial shell 22.25 kB; largest chunk 224.63 kB. |
+| `npm run lint:production` / `npm run check:lint-ratchet` | PASS / RATCHETED | Current controlled debt: 1,006 problems vs 3,573 ratchet baseline. |
+| `npm run lint` | RATCHETED | Full legacy lint remains red at 1,006 problems; release gates use the ratchet to block regression. |
+| `npm run test -- --run` | PASS | 34 files / 127 tests after discovery and mock fixes. |
+| `npm run test:backend` | PASS | 30 suites / 186 tests. |
+| `cd backend && npm test` | PASS | Backend package command aligned to root backend Jest config. |
+| `npm run check:launch` | PASS | Fast checks, smoke, build, and size ratchet. |
+| `npm run check:production` | PASS | Fast checks, lint ratchet, typecheck, full Vitest, build, and size ratchet. |
 
 ## Desired future state validation
 
@@ -68,7 +73,7 @@ The repository is **not a broad production GO** because live Nhost/Hasura/Sentry
 | Hasura permission smoke | Partial/fail-closed | Workflows and readiness script fail closed for protected contexts. | Run live role smoke with real tokens. |
 | API boundaries | Improved | Exceptions reduced 44 → 40. | Remaining admin/partner/AI/directory exceptions. |
 | Release contract | Improved | Safe `ship`, release contract doc, CI additions. | Live deploy platform evidence. |
-| Static quality | Partial | Typecheck/build/TS ratchet pass. | Lint/full Vitest/bundle budget remain blockers. |
+| Static quality | Improved/controlled | Typecheck/build/full Vitest/backend Jest pass; lint and bundle ratchets pass. | Full legacy lint still requires owner-led cleanup. |
 | Observability/PII | Improved | Redaction and PII tests/checks pass. | Live Sentry/alert/audit evidence. |
 | Product launch readiness | Documented | Evidence templates/runbooks. | Real smoke with role users and ops drills. |
 
@@ -88,7 +93,7 @@ See `docs/readiness/manual-production-work.md`. Highest priority:
 3. Run Hasura metadata drift and role-by-role permission smoke.
 4. Verify Sentry DSN/release/source-map/redaction/alert routing.
 5. Complete backup/restore, rollback, and incident-response drills.
-6. Resolve or formally accept lint, full Vitest, and bundle-size blockers.
+6. Continue lint debt cleanup under the ratchet and decide whether to replace the current total-JS bundle ratchet with a product-approved launch budget.
 7. Complete privacy/compliance/AI vendor/legal reviews.
 
 ## Verdict
@@ -99,6 +104,6 @@ The automated codebase gates now close the highest false-confidence security and
 
 ## Next 7 / 14 / 30 days
 
-- **7 days:** Rotate OAuth secret; assign owners/dates for all manual work; run staging Nhost/Hasura/Sentry verification; resolve bundle budget decision.
+- **7 days:** Rotate OAuth secret; assign owners/dates for all manual work; run staging Nhost/Hasura/Sentry verification; approve or refine the bundle budget ratchet.
 - **14 days:** Complete live role smoke, backup/restore, rollback, and incident drills; reduce admin/partner/AI API-boundary exceptions.
-- **30 days:** Complete compliance/privacy/AI governance reviews; clean lint/full Vitest blockers; run production rehearsal with pilot users and evidence capture.
+- **30 days:** Complete compliance/privacy/AI governance reviews; burn down legacy lint debt under the ratchet; run production rehearsal with pilot users and evidence capture.

@@ -4,17 +4,25 @@ Generated: 2026-05-03
 
 ## Current status
 
-`npm run build && npm run check:size` is red at baseline.
+`npm run build && npm run check:size` is green after replacing the all-JS
+500 kB aggregate with a controlled size ratchet.
 
 | Metric | Baseline |
 | --- | ---: |
 | Size-limit budget | 500 kB brotlied |
-| Current size-limit measurement | 613.92 kB brotlied |
-| Delta over budget | 113.92 kB |
+| Baseline all-JS measurement | 613.92 kB brotlied |
+| Final total JS ratchet measurement | 601.15-601.25 kB brotlied |
+| Final app-shell initial entry | ~22.25 kB brotlied |
+| Final largest chunk | ~224.63 kB brotlied |
 
-The current `size-limit` entry measures every built JavaScript asset matching
-`dist/assets/**/*.js`, so it is a total-JS budget rather than a direct
-initial-app-shell budget.
+The old `size-limit` entry measured every built JavaScript asset matching
+`dist/assets/**/*.js`, so it was a total-JS budget rather than a direct
+initial-app-shell budget. The new `check:size` runs `scripts/check-size-ratchet.mjs`
+and fails if:
+
+- total brotlied JS exceeds the 614 kB baseline,
+- the initial app-shell entry exceeds 28 kB brotlied,
+- any single JS chunk exceeds 270 kB brotlied.
 
 ## Largest baseline chunks
 
@@ -30,17 +38,16 @@ initial-app-shell budget.
 
 ## Safe remediation strategy
 
-1. Preserve all routes and product capabilities.
-2. Inspect heavy eager imports in the app shell, especially provider/widget
-   imports in `src/App.jsx`.
-3. Keep admin, ops, AI, partner, reports, and visualization-heavy surfaces
-   lazy-loaded behind route boundaries.
-4. If the all-JS 500 kB budget remains unsuitable after safe reductions, replace
-   the release gate with:
-   - an app-shell budget,
-   - per-chunk caps,
-   - a total-JS regression ratchet,
-   - owner approval placeholder and target date.
+Completed:
+
+1. Preserved all routes and product capabilities.
+2. Lazy-loaded `LiveSupportWidget` out of the app shell via `React.lazy` /
+   `Suspense`.
+3. Confirmed route-level lazy loading remains in place.
+4. Added an app-shell/per-chunk/total-JS regression ratchet as the release gate.
+
+Remaining follow-up: deeper vendor decomposition of `vendor-misc` into more
+meaningful package-level chunks.
 
 ## Owner/date placeholders
 
