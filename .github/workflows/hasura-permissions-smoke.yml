@@ -22,20 +22,8 @@ jobs:
           HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT }}
           TEST_JWT_TEACHER: ${{ secrets.TEST_JWT_TEACHER }}
           TEST_JWT_DISTRICT_ADMIN: ${{ secrets.TEST_JWT_DISTRICT_ADMIN }}
+          REQUIRE_HASURA_SMOKE: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+          # Protected contexts must be fail-closed when permission-smoke secrets are missing.
+          REQUIRE_HASURA_SMOKE_TRUE_DOCUMENTED: "true"
         run: |
-          if [ -z "$HASURA_GRAPHQL_ENDPOINT" ]; then
-            echo "HASURA_GRAPHQL_ENDPOINT secret is not set, skipping smoke tests"
-            exit 0
-          fi
-
-          if [ -z "$TEST_JWT_TEACHER" ]; then
-            echo "TEST_JWT_TEACHER secret is not set, skipping smoke tests"
-            exit 0
-          fi
-
-          if [ -z "$TEST_JWT_DISTRICT_ADMIN" ]; then
-            echo "TEST_JWT_DISTRICT_ADMIN secret is not set, skipping smoke tests"
-            exit 0
-          fi
-
           node scripts/hasura-permissions-smoke.mjs
