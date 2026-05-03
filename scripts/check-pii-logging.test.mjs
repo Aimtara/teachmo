@@ -24,3 +24,19 @@ test('detectPiiLogging allows redacted logging', () => {
 
   assert.equal(findings.length, 0);
 });
+
+test('detectPiiLogging flags child data, auth headers, prompts, and vendor payload logging', () => {
+  const findings = detectPiiLogging([
+    {
+      path: 'src/example.ts',
+      content: [
+        "logger.info('child', child.fullName);",
+        "logger.warn('auth', request.headers.authorization);",
+        "console.error('ai prompt', rawPrompt);",
+        "logger.debug('vendor', vendorPayload);",
+      ].join('\n'),
+    },
+  ]);
+
+  assert.equal(findings.length, 4);
+});

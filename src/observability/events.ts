@@ -9,6 +9,12 @@ export const OBSERVABILITY_EVENT_NAMES = [
   'permission.denied',
   'role.changed',
   'moderation.action',
+  'auth.failure',
+  'child.link.changed',
+  'admin.action',
+  'ops.action',
+  'ai.governance.decision',
+  'data.requested',
 ] as const;
 
 export type ObservabilityEventName = (typeof OBSERVABILITY_EVENT_NAMES)[number];

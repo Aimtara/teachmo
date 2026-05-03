@@ -1,8 +1,9 @@
 const SENSITIVE_KEY_RE =
-  /(password|passcode|secret|token|jwt|authorization|cookie|set-cookie|session|api[_-]?key|bearer|refresh|access[_-]?token|id[_-]?token|ssn|social|message|body|content|prompt|transcript|childname|studentname|email|phone|address)/i;
+  /(password|passcode|secret|token|jwt|authorization|auth[_-]?header|cookie|set-cookie|session|api[_-]?key|bearer|refresh|access[_-]?token|id[_-]?token|ssn|social|message|body|content|prompt|vendor[_-]?payload|transcript|child[_-]?name|student[_-]?name|learner[_-]?name|email|phone|address|street|zip|postal)/i;
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 const PHONE_RE = /\b(?:\+\d{1,3}[\s-]?)?(?:\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{4})\b/;
+const ADDRESS_RE = /\b\d{1,6}\s+[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){0,5}\s+(?:street|st|avenue|ave|road|rd|lane|ln|drive|dr|boulevard|blvd|court|ct|way|circle|cir)\b/i;
 const LONG_TOKEN_RE = /[A-Za-z0-9+/_=-]{32,}/;
 
 const MAX_DEPTH = 4;
@@ -17,7 +18,7 @@ export function isSensitiveKey(key: string): boolean {
 }
 
 export function looksSensitiveValue(value: string): boolean {
-  return EMAIL_RE.test(value) || PHONE_RE.test(value) || LONG_TOKEN_RE.test(value);
+  return EMAIL_RE.test(value) || PHONE_RE.test(value) || ADDRESS_RE.test(value) || LONG_TOKEN_RE.test(value);
 }
 
 export function redactValue(value: unknown, depth = MAX_DEPTH): unknown {
