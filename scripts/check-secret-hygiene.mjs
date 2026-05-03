@@ -8,6 +8,22 @@ const PLACEHOLDER_RE =
 
 const ALLOWLIST = [
   {
+    file: 'scripts/check-secret-hygiene.mjs',
+    pattern: /GOCSPX|clientSecret|HASURA_GRAPHQL_ADMIN_SECRET|DATABASE_URL|OPENAI_API_KEY|PRIVATE KEY/,
+    reason: 'Secret hygiene scanner contains detection regex literals by design.',
+  },
+  {
+    file: 'scripts/check-secret-hygiene.test.mjs',
+    pattern:
+      /(GOCSPX-|clientSecret\s*[:=]|HASURA_GRAPHQL_ADMIN_SECRET|DATABASE_URL=postgresql:\/\/teachmo:realpassword@db\.example\.com|OPENAI_API_KEY=sk-proj-|-----BEGIN PRIVATE KEY-----)/,
+    reason: 'Secret hygiene unit tests intentionally include synthetic prohibited patterns.',
+  },
+  {
+    file: 'nhost/nhost.local.example.toml',
+    pattern: /clientSecret = 'REPLACE_ME_LOCAL_ONLY'/,
+    reason: 'Local-only example uses an explicit placeholder.',
+  },
+  {
     file: '.github/workflows/launch-gates.yml',
     pattern: /postgresql:\/\/postgres:postgres@localhost:5432\/teachmo/,
     reason: 'CI-only local Postgres service credential.',

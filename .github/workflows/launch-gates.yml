@@ -56,26 +56,6 @@ jobs:
           cache: npm
 
       # --------------------------------------------------------
-      # G0: Secret Hygiene Scan
-      # --------------------------------------------------------
-      - name: G0 - Secret Hygiene Scan
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Scanning for prohibited client-side secrets..."
-          if rg -n "VITE_OPS_ADMIN_KEY|x-ops-admin-key|OPS_ADMIN_KEY" src/; then
-            echo "❌ FAILED: Found forbidden ops/admin key pattern in frontend code."
-            exit 1
-          fi
-          if [ -f .env.example ]; then
-            if rg -n "^VITE_.*(KEY|SECRET|PASSWORD|TOKEN)=" .env.example; then
-              echo "❌ FAILED: .env.example contains a VITE_* variable that looks like a secret."
-              exit 1
-            fi
-          fi
-          echo "✅ G0 Secret Hygiene Passed."
-
-      # --------------------------------------------------------
       # Install & Build
       # --------------------------------------------------------
       - name: Install dependencies (root)
@@ -84,12 +64,18 @@ jobs:
       - name: G0 - Production Safety Static Checks
         run: npm run check:production:fast
 
+      - name: Script check tests
+        run: npm run test:scripts
+
       - name: Install dependencies (backend)
         working-directory: backend
         run: npm ci
 
       - name: Build frontend (for stable CI serving)
         run: npm run build
+
+      - name: Check bundle size
+        run: npm run check:size
 
       - name: Wait for Postgres
         shell: bash
