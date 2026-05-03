@@ -35,7 +35,7 @@ Teachmo remains a **controlled pilot candidate only after manual environment evi
 | --- | --- | --- | --- |
 | Dependency security | 12 high audit vulnerabilities | Fix safe chains; add `check:audit`; document expiring exceptions only where upstream/breaking risk blocks safe fix. | Broad launch blocker if unreviewed high findings remain. |
 | Lint | 1,006 ratcheted problems | Eliminate parser and `no-undef` where feasible; reduce unused vars; tighten ratchet. | Controlled by ratchet; full green preferred. |
-| API boundaries | 40 temporary exceptions | Extract high-risk admin/AI/directory/integration calls behind adapters; reduce allowlist. | Broad launch blocker if high-risk direct UI calls remain unowned. |
+| API boundaries | 40 temporary exceptions; reduced to 37 after extracting CCPA geolocation, service connection, and integration health calls behind domain adapters. | Continue extracting high-risk admin/AI/directory calls behind adapters. | Broad launch blocker if high-risk direct UI calls remain unowned. |
 | Bundle | 601.28 kB total brotli | Reduce safely and enforce hybrid app-shell/per-chunk/total ratchet. | Requires owner approval if old 500 kB aggregate is not used. |
 | Manual readiness | 26 manual items | Convert to executable evidence templates and launch decision matrix. | Broad launch blocker until live evidence exists. |
 | Browser QA | Not rerun at phase 1 | Run Playwright/Jest a11y if feasible; document blockers. | Required before broad launch; recommended before pilot. |

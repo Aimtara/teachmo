@@ -15,8 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
-import { API_BASE_URL } from '@/config/api';
-import { nhost } from '@/lib/nhostClient';
+import { disconnectIntegrationService, startIntegrationAuth } from '@/domains/integrations/serviceConnection';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ServiceConnect');
@@ -47,33 +46,11 @@ export default function ServiceConnect({
     };
   }, []);
 
-  const getIntegrationHeaders = async () => {
-    const token = await nhost.auth.getAccessToken();
-    return {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  };
-
   const handleConnect = async () => {
     setIsConnecting(true);
 
     try {
-      const token = await nhost.auth.getAccessToken();
-      const headers = await getIntegrationHeaders();
-
-      const res = await fetch(`${API_BASE_URL}/integrations/${serviceKey}/auth`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...headers,
-        },
-      });
-
-      const data = res.ok
-        ? await res.json()
-        : { authUrl: `https://${serviceKey}.com/login?mock=true` };
+      const data = await startIntegrationAuth(serviceKey);
 
       const width = 600;
       const height = 700;
@@ -118,19 +95,7 @@ export default function ServiceConnect({
     setIsConnecting(true);
 
     try {
-      const headers = await getIntegrationHeaders();
-      const response = await fetch(
-        `${API_BASE_URL}/integrations/${serviceKey}/disconnect`,
-        {
-          method: 'POST',
-          headers,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to disconnect service');
-      }
-
+      await disconnectIntegrationService(serviceKey);
       setIsConnected(false);
       ultraMinimalToast.success(`Disconnected ${serviceName}`);
     } catch (error) {

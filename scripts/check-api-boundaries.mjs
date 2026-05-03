@@ -39,14 +39,6 @@ const TEMPORARY_ALLOWLIST = [
       'Partner REST surfaces are isolated integration paths; service-adapter extraction is tracked before production scale.',
   },
   {
-    path: 'src/components/integration/ServiceConnect.jsx',
-    patterns: ['fetch'],
-    owner: 'Integrations Platform',
-    targetRemoval: '2026-07-15',
-    reason:
-      'External integration OAuth endpoints are REST-backed; UI adapter migration tracked as production follow-up.',
-  },
-  {
     pathPrefix: 'src/components/admin/',
     patterns: ['fetch'],
     owner: 'Admin Platform',
@@ -59,13 +51,6 @@ const TEMPORARY_ALLOWLIST = [
     owner: 'AI Platform',
     targetRemoval: '2026-07-15',
     reason: 'AI service calls require governance-aware service adapter extraction.',
-  },
-  {
-    pathPrefix: 'src/components/compliance/',
-    patterns: ['fetch'],
-    owner: 'Compliance Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'Compliance REST calls require a dedicated compliance service adapter.',
   },
   {
     pathPrefix: 'src/components/discover/',

@@ -1,18 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { API_BASE_URL } from '@/config/api';
-
-async function fetchJson(path, options = {}) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
-
-  const payload = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(payload?.error || 'Request failed');
-  }
-  return payload;
-}
+import { getRosterRun, listRosterAlerts, retryRosterRun } from '@/domains/integrations/rosterHealth';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -42,7 +29,7 @@ export default function AdminIntegrationHealth() {
     setError('');
     setSuccess('');
     try {
-      const data = await fetchJson('/integrations/roster/alerts');
+      const data = await listRosterAlerts();
       setAlerts(data);
       if (data.length && !selectedAlertId) {
         setSelectedAlertId(data[0].id);
@@ -59,7 +46,7 @@ export default function AdminIntegrationHealth() {
     setRunLoading(true);
     setError('');
     try {
-      const data = await fetchJson(`/integrations/roster/runs/${runId}`);
+      const data = await getRosterRun(runId);
       setSelectedRun(data);
     } catch (err) {
       setError(err?.message || 'Failed to load run.');
@@ -74,7 +61,7 @@ export default function AdminIntegrationHealth() {
     setError('');
     setSuccess('');
     try {
-      const data = await fetchJson(`/integrations/roster/runs/${selectedAlert.runId}/retry`, { method: 'POST' });
+      const data = await retryRosterRun(selectedAlert.runId);
       setSelectedRun(data);
       setSuccess('Retry started.');
       await loadAlerts();
