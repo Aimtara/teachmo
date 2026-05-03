@@ -1,0 +1,30 @@
+# Gate Audit Closure
+
+Generated: 2026-05-03  
+Baseline commit: `dad6ee8`
+
+This document tracks closure status for the remaining Gate 2, Gate 3, and Gate 4 items. It separates implemented repository evidence from live-environment proof that still requires staging/production credentials.
+
+## Baseline status
+
+| Gate item | Previous audit status | Baseline repository evidence | Current launch classification |
+| --- | --- | --- | --- |
+| E10 Directory flow | Partial/stubbed | Directory pages/adapters exist (`AdminDirectoryImport`, `AdminDirectoryApprovals`, directory Nhost functions), but end-to-end live directory request proof is not attached. | Controlled pilot candidate after role smoke; broad launch needs live evidence. |
+| E11 Approvals + reason capture | Partial/stubbed | Approval adapters support approve/reject reason payloads. UI and audit evidence need validation. | Controlled pilot candidate if reason-required checks pass. |
+| E12 CSV/OneRoster-lite import | Partial/stubbed | CSV preview/import and jobs exist; OneRoster-lite deterministic mapping needs stronger evidence. | Pilot candidate with dry-run preview; live import evidence required. |
+| E13 Deterministic identity mapping | Not started | No dedicated deterministic identity mapping rules/module found during baseline inspection. | Launch blocker unless implemented or explicitly gated. |
+| E14 Messaging SLO + retries | Partial/stubbed | Messaging domain and notification queue exist; SLO/retry evidence needs consolidation. | Pilot blocker until retry/SLO evidence is documented/tested. |
+| E15 Digest reliability | Partial/stubbed | Weekly brief/digest workflows exist; duplicate-prevention/recovery evidence needs validation. | Pilot blocker until reliability runbook/evidence exists. |
+| E16 Office hours booking | Not started | `src/components/calendar/OfficeHours.jsx` renders “temporarily unavailable.” | Launch blocker unless v0 implemented or feature gated out of launch. |
+| E17 Assignments sync v0 | Partial/stubbed | Teacher assignments and backend assignment route exist; external LMS sync proof is incomplete. | Pilot candidate with mock/dry-run; live LMS proof required. |
+| E18 Admin sync now + troubleshooting | Partial/stubbed | Admin integration health/SIS pages exist, but direct UI API calls remain and need adapter/test coverage. | Pilot blocker until adapter and troubleshooting evidence improved. |
+| E20 Adoption/delivery/sync dashboards validation | Partial/stubbed | Admin analytics exists; direct UI API calls and validation evidence remain. | Pilot blocker until data contracts/stale-state evidence documented. |
+| E22 Runbooks + support playbook publication evidence | Partial/stubbed | Several G4 runbooks exist; support playbook publication evidence template missing. | Manual readiness blocker. |
+| E23 Command Center approvals/escalations live proof | Partial/stubbed | Command Center page/domain exists; live proof/evidence template missing. | Manual live-proof blocker. |
+
+## Closure criteria for this pass
+
+- E13 and E16 must not remain silent unknowns: implement a v0, or explicitly document/gate them as launch blockers.
+- Gate items that require live credentials remain manual and require evidence templates.
+- Any UI direct backend calls touched for these gates should move behind adapters and reduce API-boundary exceptions.
+
