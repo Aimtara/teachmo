@@ -86,14 +86,14 @@ export const useAsyncSafe = () => {
     }, 0);
   };
 
-  const safeAsync = async <T>(asyncFn: () => Promise<T>): Promise<T | null> => {
+  async function safeAsync<T>(asyncFn: () => Promise<T>): Promise<T | null> {
     try {
       return await asyncFn();
     } catch (error) {
       handleAsyncError(error);
       return null;
     }
-  };
+  }
 
   return { safeAsync };
 };

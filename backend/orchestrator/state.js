@@ -183,8 +183,7 @@ export function reduceState(prev, signal, features, opts = {}) {
   }
   if (next.cooldownUntil) {
     const c = new Date(next.cooldownUntil);
-    // eslint-disable-next-line no-restricted-globals
-    if (!isNaN(c.getTime()) && c.getTime() <= now.getTime()) {
+        if (!isNaN(c.getTime()) && c.getTime() <= now.getTime()) {
       next.cooldownUntil = null;
     }
   }

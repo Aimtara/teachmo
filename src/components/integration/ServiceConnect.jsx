@@ -31,20 +31,15 @@ export default function ServiceConnect({
   const [isConnected, setIsConnected] = useState(connected);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const pollRef = useRef(null);
-
-  useEffect(() => {
-    const currentInterval = intervalRef.current;
-    return () => {
-      if (currentInterval) {
-        window.clearInterval(currentInterval);
-      }
-    };
-  }, []);
   const timerRef = useRef(null);
 
   // Cleanup interval timer on unmount
   useEffect(() => {
     return () => {
+      if (pollRef.current) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
       if (timerRef.current) {
         window.clearInterval(timerRef.current);
         timerRef.current = null;
@@ -128,11 +123,7 @@ export default function ServiceConnect({
         `${API_BASE_URL}/integrations/${serviceKey}/disconnect`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...headers,
-          },
+          headers,
         }
       );
 

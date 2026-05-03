@@ -25,9 +25,9 @@ Execution baseline:
 
 After scoped config/policy work, ratcheted lint state:
 
-- Total ratcheted problems: 1,006
-- Errors: 849
-- Warnings: 157
+- Total ratcheted problems: 940
+- Errors: 795
+- Warnings: 145
 - Removed from hard legacy gate: 2,414 `react/prop-types` and 162 `react/no-unescaped-entities` findings.
 
 ## Rule counts
@@ -35,14 +35,14 @@ After scoped config/policy work, ratcheted lint state:
 | Rule | Count | Category | Proposed treatment |
 | --- | ---: | --- | --- |
 | `react/prop-types` | 2,414 | Legacy JS/JSX policy debt | Scoped off as a legacy JS/JSX policy; tracked in docs and ratchet baseline. |
-| `no-unused-vars` | 667 | Mechanical/source debt | Fix safe instances; ratchet remainder if too broad. |
+| `no-unused-vars` | 626 | Mechanical/source debt | Fix safe instances; ratchet remainder if too broad. |
 | `react/no-unescaped-entities` | 162 | User-facing copy lint | Scoped off for legacy copy; avoid broad copy churn without owner review. |
 | `react-hooks/exhaustive-deps` | 83 | Behavior-sensitive hook debt | Do not auto-fix broadly without characterization. |
-| `no-undef` | 74 | Config/environment + real missing symbols | Fix globals/config first, then source. |
-| `react-refresh/only-export-components` | 68 | Dev-refresh policy warnings | Scoped policy or targeted refactors. |
-| `@typescript-eslint/no-explicit-any` | 54 | TS migration debt | Fix obvious cases; ratchet remainder. |
-| `no-redeclare` | 28 | Source/test debt | Inspect before mechanical fixes. |
-| `@typescript-eslint/no-unused-vars` | 13 | Mechanical TS debt | Fix safe instances. |
+| `no-undef` | 0 | Config/environment + real missing symbols | Eliminated in May 2026 closure; ratchet prevents reintroduction. |
+| `react-refresh/only-export-components` | 63 | Dev-refresh policy warnings | Scoped policy or targeted refactors. |
+| `@typescript-eslint/no-explicit-any` | 115 | TS migration debt | Increased because TS-syntax JSX pages were renamed to TSX instead of hidden from lint; ratcheted explicitly. |
+| `no-redeclare` | 7 | Source/test debt | Inspect before mechanical fixes. |
+| `@typescript-eslint/no-unused-vars` | 16 | Mechanical TS debt | Fix safe instances. |
 | `no-case-declarations` | 10 | Mechanical JS debt | Add block scopes where safe. |
 
 Additional small categories: `react/display-name`, `react-hooks/rules-of-hooks`, `react/no-children-prop`, `no-prototype-builtins`, `no-unsafe-finally`, `react/jsx-no-undef`, `react/no-unknown-property`, `no-useless-escape`.
@@ -51,6 +51,8 @@ Additional small categories: `react/display-name`, `react-hooks/rules-of-hooks`,
 
 - Added scoped Vitest globals for test files.
 - Added service-worker globals for `src/service-worker.ts`.
+- Eliminated the parser bucket by renaming TS-syntax admin pages to TSX, ignoring non-runtime testing artifacts/declaration files, and removing stale disable directives.
+- Eliminated `no-undef` by importing missing entities, fixing undefined state references, and replacing pseudocode agent calls with safe local adapters.
 - Disabled core `no-undef` for TypeScript files and rely on `npm run typecheck` for TS symbol validation.
 - Fixed the `OAuth2Consent` parse blocker while preserving redirect-scheme security assertions.
 - Added `scripts/check-lint-ratchet.mjs`.
@@ -61,14 +63,14 @@ Additional small categories: `react/display-name`, `react-hooks/rules-of-hooks`,
 
 | Rule | Allowed count |
 | --- | ---: |
-| `no-unused-vars` | 668 |
-| `no-undef` | 33 |
-| parser errors | 25 |
-| `@typescript-eslint/no-explicit-any` | 53 |
-| `@typescript-eslint/no-unused-vars` | 13 |
-| `no-redeclare` | 31 |
-| `react-hooks/exhaustive-deps` | 83 |
-| `react-refresh/only-export-components` | 68 |
+| `no-unused-vars` | 626 |
+| `no-undef` | 0 |
+| parser errors | 0 |
+| `@typescript-eslint/no-explicit-any` | 115 |
+| `@typescript-eslint/no-unused-vars` | 16 |
+| `no-redeclare` | 7 |
+| `react-hooks/exhaustive-deps` | 82 |
+| `react-refresh/only-export-components` | 63 |
 | other listed lint rules | exact count in `scripts/check-lint-ratchet.mjs` |
 
 The ratchet also keeps the original higher full-debt baseline visible, so future

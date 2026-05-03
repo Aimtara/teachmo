@@ -37,8 +37,7 @@ export function makeId(prefix = 'id') {
  */
 export function parseTimestamp(iso) {
   const d = iso ? new Date(iso) : new Date();
-  // eslint-disable-next-line no-restricted-globals
-  if (isNaN(d.getTime())) return new Date();
+    if (isNaN(d.getTime())) return new Date();
   return d;
 }
 

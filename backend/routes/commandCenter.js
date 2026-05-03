@@ -21,8 +21,7 @@ function ensureStore() {
       );
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('commandCenter: failed to ensure store', err);
+        console.error('commandCenter: failed to ensure store', err);
   }
 }
 

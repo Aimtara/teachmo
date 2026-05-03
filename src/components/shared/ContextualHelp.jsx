@@ -11,6 +11,7 @@ import {
   Clock,
   CheckCircle
 } from "lucide-react";
+import { User } from "@/api/entities";
 
 const CONTEXTUAL_TIPS = {
   'Dashboard': [

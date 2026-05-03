@@ -9,7 +9,7 @@ import { nhost } from '@/utils/nhost';
  */
 export default function AdminAICostControls() {
   const { hasPermission } = usePermissions();
-  const [budget, setBudget] = useState<any>({
+  const [budget, setBudget] = useState({
     monthly_limit_usd: 10,
     fallback_policy: 'block',
     alert_threshold: 0.8,
@@ -18,7 +18,7 @@ export default function AdminAICostControls() {
 
   const loadBudget = async () => {
     try {
-      const res: any = await nhost.graphql.request(
+      const res = await nhost.graphql.request(
         `
           query GetBudget {
             ai_tenant_budgets(limit: 1) {
@@ -86,14 +86,14 @@ export default function AdminAICostControls() {
           label="Monthly Budget (USD)"
           type="number"
           value={budget.monthly_limit_usd}
-          onChange={(e: any) =>
+          onChange={(e) =>
             setBudget({ ...budget, monthly_limit_usd: parseFloat(e.target.value) || 0 })
           }
         />
         <Select
           label="Fallback Policy"
           value={budget.fallback_policy}
-          onChange={(e: any) => setBudget({ ...budget, fallback_policy: e.target.value })}
+          onChange={(e) => setBudget({ ...budget, fallback_policy: e.target.value })}
           options={[
             { value: 'block', label: 'Block when exceeded' },
             { value: 'degrade', label: 'Degrade to cheaper model' },
@@ -107,7 +107,7 @@ export default function AdminAICostControls() {
           max={1}
           step={0.01}
           value={budget.alert_threshold}
-          onChange={(e: any) =>
+          onChange={(e) =>
             setBudget({ ...budget, alert_threshold: parseFloat(e.target.value) || 0 })
           }
         />

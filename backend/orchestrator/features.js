@@ -30,8 +30,7 @@ export function extractFeatures(signal, opts = {}) {
   // deadline -> urgency
   if (deadlineIso) {
     const d = new Date(deadlineIso);
-    // eslint-disable-next-line no-restricted-globals
-    if (!isNaN(d.getTime())) {
+        if (!isNaN(d.getTime())) {
       const hours = Math.max(0, (d.getTime() - now.getTime()) / 36e5);
       // Within 0h => 1. Within 72h => ~0.3. Beyond => small.
       const u = hours <= 0 ? 1 : 1 / (1 + hours / 12);

@@ -18,7 +18,9 @@ const reactRules = {
 
 const typeOnlyGlobals = {
   EventListener: 'readonly',
-  ServiceWorkerGlobalScope: 'readonly'
+  ServiceWorkerGlobalScope: 'readonly',
+  SurfaceType: 'readonly',
+  MomentId: 'readonly'
 };
 
 export default [
@@ -29,7 +31,9 @@ export default [
       'coverage/**',
       'node_modules/**',
       'backend/node_modules/**',
-      'nhost/functions/node_modules/**'
+      'nhost/functions/node_modules/**',
+      '**/*.d.ts',
+      'src/components/testing/**'
     ]
   },
   {

@@ -19,7 +19,7 @@ export default function SecurityStatusWidget() {
       setIsLoading(true);
       const summary = await fetchAuditSummary();
       if (!cancelled) {
-        setStatus(computeStatus(summary));
+        setStatus(computeSecurityStatus(summary));
         setIsLoading(false);
       }
     };

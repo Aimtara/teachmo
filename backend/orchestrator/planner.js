@@ -25,8 +25,7 @@ export function runDailyPlanner({ state, recentSignals, now, k = 3, horizonHours
     .map((s) => ({ s, deadline: s?.payload?.deadline }))
     .filter((x) => typeof x.deadline === 'string')
     .map((x) => ({ ...x, d: new Date(x.deadline) }))
-    // eslint-disable-next-line no-restricted-globals
-    .filter((x) => !isNaN(x.d.getTime()))
+        .filter((x) => !isNaN(x.d.getTime()))
     .filter((x) => x.d.getTime() >= now.getTime() && x.d.getTime() <= windowEnd.getTime())
     .slice(0, 10);
 
