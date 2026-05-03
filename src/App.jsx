@@ -1,4 +1,5 @@
 // Use only the modern NhostProvider. The NhostReactProvider has been deprecated.
+import { lazy, Suspense } from 'react';
 import { NhostProvider } from '@nhost/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -12,12 +13,13 @@ import { TypingIndicatorProvider } from './providers/TypingIndicatorProvider';
 import { WebSocketProvider } from './providers/WebSocketProvider';
 import { TenantProvider } from './contexts/TenantContext';
 import { TenantBrandingProvider } from './contexts/TenantBrandingContext';
-import LiveSupportWidget from './components/support/LiveSupportWidget';
 import FeatureFlagProvider from './providers/FeatureFlagProvider.jsx';
 import { I18nProvider } from './components/shared/InternationalizationProvider';
 import GlobalErrorBoundary from './components/shared/GlobalErrorBoundary';
 import { useStore } from './components/hooks/useStore';
 import { isFeatureEnabled } from './utils/featureFlags';
+
+const LiveSupportWidget = lazy(() => import('./components/support/LiveSupportWidget'));
 
 function App() {
   const featureI18nEnabled = useStore((state) => {
@@ -40,7 +42,9 @@ function App() {
                   <TenantBrandingProvider>
                     <FeatureFlagProvider>
                       <Pages />
-                      <LiveSupportWidget />
+                      <Suspense fallback={null}>
+                        <LiveSupportWidget />
+                      </Suspense>
                     </FeatureFlagProvider>
                   </TenantBrandingProvider>
                 </TenantProvider>
