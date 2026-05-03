@@ -219,7 +219,6 @@
     "lodash": "npm:lodash-es@latest",
     "@xmldom/xmldom": "latest",
     "path-to-regexp": "latest",
-    "picomatch": "latest",
-    "brace-expansion": "latest"
+    "picomatch": "latest"
   }
 }

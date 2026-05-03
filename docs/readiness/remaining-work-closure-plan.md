@@ -43,6 +43,23 @@ Teachmo remains a **controlled pilot candidate only after manual environment evi
 | Gate 3 | Messaging/digests/assignments partial; E16 placeholder | Implement/gate office hours and reliability slices. | Pilot blocker if office hours is promised. |
 | Gate 4 | Admin/analytics/command center partial | Adapter extraction, validation docs, support playbook, live-proof templates. | Broad launch blocker until live proof. |
 
+## TypeScript migration ratchet note
+
+The closure intentionally renamed thirteen parser-blocked admin `.jsx` files to
+`.tsx` and added typed office-hours/domain modules. This increased tracked
+TypeScript file and `any` counts while reducing `.jsx` count and eliminating
+parser/`no-undef` lint debt. `docs/readiness/ts-ratchet-baseline.json` was
+updated to the reviewed post-rename inventory:
+
+- `js`: 219
+- `jsx`: 475
+- `ts`: 319
+- `tsx`: 78
+- `any`: 512
+
+No `@ts-ignore` or `@ts-expect-error` exceptions were introduced. Future work
+should reduce `any` in the renamed admin pages and Nhost function shared helpers.
+
 ## Dependency audit baseline summary
 
 High-severity or notable findings:
