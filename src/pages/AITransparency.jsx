@@ -57,9 +57,9 @@ export default function AITransparency() {
                   {doc.summary ? <p className="text-sm text-muted-foreground">{doc.summary}</p> : null}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <ReactMarkdown className="prose prose-sm max-w-none text-slate-700">
-                    {doc.body_markdown}
-                  </ReactMarkdown>
+                  <div className="prose prose-sm max-w-none text-slate-700">
+                    <ReactMarkdown>{doc.body_markdown}</ReactMarkdown>
+                  </div>
                   {Array.isArray(doc.links) && doc.links.length > 0 ? (
                     <div className="space-y-1">
                       <p className="text-xs uppercase tracking-wide text-slate-500">References</p>

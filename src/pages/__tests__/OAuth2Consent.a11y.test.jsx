@@ -3,27 +3,29 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { axe, toHaveNoViolations } from 'jest-axe';
-import OAuth2Consent from '@/pages/OAuth2Consent.jsx';
+import { vi } from 'vitest';
 
 expect.extend(toHaveNoViolations);
 
 const NEVER_RESOLVING = new Promise(() => {});
 
-jest.mock('@nhost/react', () => ({
-  useAuthenticationStatus: jest.fn(() => ({ isAuthenticated: false, isLoading: false })),
+vi.mock('@nhost/react', () => ({
+  useAuthenticationStatus: vi.fn(() => ({ isAuthenticated: false, isLoading: false })),
 }));
 
-jest.mock('@/lib/nhostClient', () => ({
+vi.mock('@/lib/nhostClient', () => ({
   nhost: {
     auth: {
-      oauth2LoginGet: jest.fn(),
-      oauth2LoginPost: jest.fn(),
+      oauth2LoginGet: vi.fn(),
+      oauth2LoginPost: vi.fn(),
     },
   },
 }));
 
-const { useAuthenticationStatus } = require('@nhost/react');
-const { nhost } = require('@/lib/nhostClient');
+const { useAuthenticationStatus } = await import('@nhost/react');
+const { nhost } = await import('@/lib/nhostClient');
+const { default: OAuth2Consent } = await import('@/pages/OAuth2Consent.jsx');
+
 const mockOauth2LoginGet = nhost.auth.oauth2LoginGet;
 const mockOauth2LoginPost = nhost.auth.oauth2LoginPost;
 
@@ -187,6 +189,8 @@ describe('OAuth2Consent – behaviour', () => {
         expect(screen.getByRole('alert')).toHaveTextContent(/no redirect uri/i)
       );
     });
+  });
+
   it('shows an error when the approve response redirect URI has a dangerous scheme', async () => {
     useAuthenticationStatus.mockReturnValue({ isAuthenticated: true, isLoading: false });
     mockOauth2LoginGet.mockResolvedValue({ body: sampleDetails });

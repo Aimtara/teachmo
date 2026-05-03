@@ -1,17 +1,18 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import { SurfaceBoundary } from '../SurfaceBoundary';
 import { logGovernanceEvent, getGovernanceEvents } from '@/governance/events';
 
 // Mock the events module to track logging
-jest.mock('@/governance/events', () => ({
-  logGovernanceEvent: jest.fn(),
-  getGovernanceEvents: jest.fn(() => []),
+vi.mock('@/governance/events', () => ({
+  logGovernanceEvent: vi.fn(),
+  getGovernanceEvents: vi.fn(() => []),
 }));
 
 describe('SurfaceBoundary', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders children when surface is allowed in the current moment', () => {

@@ -69,13 +69,24 @@ describe('getWebSocketUrl', () => {
 
   it('returns null when base url cannot be resolved', () => {
     const originalEnv = import.meta.env;
+    const originalWindow = globalThis.window;
     try {
       (import.meta as any).env = {};
+      Object.defineProperty(globalThis, 'window', {
+        value: { location: { protocol: 'https:', host: 'teachmo-pilot.onrender.com' } },
+        configurable: true,
+        writable: true,
+      });
       
       const url = getWebSocketUrl('test-token');
       expect(url).toBeNull();
     } finally {
       (import.meta as any).env = originalEnv;
+      Object.defineProperty(globalThis, 'window', {
+        value: originalWindow,
+        configurable: true,
+        writable: true,
+      });
     }
   });
 });

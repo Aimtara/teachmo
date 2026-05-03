@@ -7,12 +7,12 @@ import { graphqlRequest } from '@/lib/graphql';
 
 expect.extend(toHaveNoViolations);
 
-jest.mock('@/lib/graphql', () => ({
-  graphqlRequest: jest.fn()
+vi.mock('@/lib/graphql', () => ({
+  graphqlRequest: vi.fn()
 }));
 
 test('AI transparency page passes basic a11y checks', async () => {
-  graphqlRequest.mockResolvedValue({
+  vi.mocked(graphqlRequest).mockResolvedValue({
     ai_policy_docs: [
       {
         id: 'doc-1',
