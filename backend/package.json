@@ -14,8 +14,8 @@
     "tick:daily": "node jobs/orchestratorTick.js daily",
     "tick:weekly": "node jobs/orchestratorTick.js weekly",
     "test:ops-auth": "jest --config ../jest.backend.config.cjs --testPathPattern ops-auth",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.js --runInBand",
-    "test:feature-flags": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.js --runInBand __tests__/featureFlags.test.js"
+    "test": "jest --config ../jest.backend.config.cjs --runInBand",
+    "test:feature-flags": "jest --config ../jest.backend.config.cjs --runInBand __tests__/featureFlags.test.js"
   },
   "dependencies": {
     "@node-saml/passport-saml": "^5.1.0",

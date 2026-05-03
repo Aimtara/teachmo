@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { evaluateFlag, getRegistry } from '../utils/featureFlags.js';
 
-const backendDir = path.resolve(process.cwd(), 'backend');
-const repoRoot = process.cwd();
+const repoRoot = path.resolve(process.cwd(), process.cwd().endsWith(`${path.sep}backend`) ? '..' : '.');
+const backendDir = path.join(repoRoot, 'backend');
 
 test('feature flag registry entries include test matrix coverage', () => {
   const registry = getRegistry();
