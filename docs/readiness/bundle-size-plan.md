@@ -11,8 +11,8 @@ Generated: 2026-05-03
 | --- | ---: |
 | Size-limit budget | 500 kB brotlied |
 | Baseline all-JS measurement | 613.92 kB brotlied |
-| Final total JS ratchet measurement | 601.15-601.25 kB brotlied |
-| Final app-shell initial entry | ~22.25 kB brotlied |
+| Final total JS ratchet measurement | 601.28 kB brotlied |
+| Final app-shell initial entry | ~22.33 kB brotlied |
 | Final largest chunk | ~224.63 kB brotlied |
 
 The old `size-limit` entry measured every built JavaScript asset matching
@@ -20,9 +20,25 @@ The old `size-limit` entry measured every built JavaScript asset matching
 initial-app-shell budget. The new `check:size` runs `scripts/check-size-ratchet.mjs`
 and fails if:
 
-- total brotlied JS exceeds the 614 kB baseline,
-- the initial app-shell entry exceeds 28 kB brotlied,
-- any single JS chunk exceeds 270 kB brotlied.
+- total brotlied JS exceeds the tightened 602 kB baseline,
+- the initial app-shell entry exceeds 24 kB brotlied,
+- any single JS chunk exceeds 230 kB brotlied.
+
+## Policy decision
+
+The closure adopts a **hybrid launch bundle policy**:
+
+1. The initial app shell is the hard launch metric because Teachmo is route-split
+   and most admin/AI/partner/reporting code is lazy-loaded.
+2. The largest-chunk cap protects slow-route experience and prevents the
+   historical `vendor-misc` catch-all from regressing.
+3. The total-JS cap remains a ratchet and cannot increase silently, but the old
+   500 kB all-JS aggregate is not used as the primary launch gate without product
+   owner approval because it measures lazy-loaded surfaces together.
+
+Safe dependency work removed unused `react-quill`/`quill` and obsolete
+`bundlesize` tooling. Current total JS did not materially change because those
+packages were not part of the production route graph.
 
 ## Largest baseline chunks
 
@@ -47,7 +63,8 @@ Completed:
 4. Added an app-shell/per-chunk/total-JS regression ratchet as the release gate.
 
 Remaining follow-up: deeper vendor decomposition of `vendor-misc` into more
-meaningful package-level chunks.
+meaningful package-level chunks and product review of whether to continue
+reducing aggregate lazy-loaded JS toward 500 kB.
 
 ## Owner/date placeholders
 

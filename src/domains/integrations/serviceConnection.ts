@@ -22,6 +22,8 @@ export async function requestServiceAuth(serviceKey: string) {
   return res.json();
 }
 
+export const startIntegrationAuth = requestServiceAuth;
+
 export async function disconnectService(serviceKey: string) {
   const response = await fetch(`${API_BASE_URL}/integrations/${encodeURIComponent(serviceKey)}/disconnect`, {
     method: 'POST',
@@ -34,3 +36,5 @@ export async function disconnectService(serviceKey: string) {
 
   return response.json().catch(() => ({}));
 }
+
+export const disconnectIntegrationService = disconnectService;

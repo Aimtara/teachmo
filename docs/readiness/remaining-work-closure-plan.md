@@ -86,9 +86,9 @@ High-severity or notable findings:
 | Total brotli JS | 601.28 kB |
 | Initial app-shell brotli | 22.28 kB |
 | Largest JS chunk brotli | 224.63 kB |
-| Current total cap | 614 kB |
-| Current app-shell cap | 28 kB |
-| Current largest-chunk cap | 270 kB |
+| Current total cap | 602 kB |
+| Current app-shell cap | 24 kB |
+| Current largest-chunk cap | 230 kB |
 
 Policy direction for this closure: **hybrid ratchet** unless safe dependency removal and route splitting bring total brotli below 500 kB without removing features.
 
