@@ -23,22 +23,6 @@ const APPROVED_PREFIXES = [
 
 const TEMPORARY_ALLOWLIST = [
   {
-    path: 'src/components/teacher/AssignmentsView.jsx',
-    patterns: ['graphqlRequest'],
-    owner: 'Frontend Platform',
-    targetRemoval: '2026-06-30',
-    reason:
-      'Characterized legacy teacher assignment UI; needs dedicated assignments domain extraction before removal.',
-  },
-  {
-    path: 'src/pages/TeacherDashboard.jsx',
-    patterns: ['graphqlRequest'],
-    owner: 'Frontend Platform',
-    targetRemoval: '2026-06-30',
-    reason:
-      'Legacy teacher dashboard summary query remains temporarily direct pending dashboard domain consolidation.',
-  },
-  {
     pathPrefix: 'src/pages/Admin',
     patterns: ['graphqlRequest', 'fetch'],
     owner: 'Admin Platform',
@@ -53,14 +37,6 @@ const TEMPORARY_ALLOWLIST = [
     targetRemoval: '2026-07-15',
     reason:
       'Partner REST surfaces are isolated integration paths; service-adapter extraction is tracked before production scale.',
-  },
-  {
-    path: 'src/components/messages/ChatWindow.jsx',
-    patterns: ['fetch'],
-    owner: 'Messaging Platform',
-    targetRemoval: '2026-06-30',
-    reason:
-      'Translation function invocation must move into canonical messaging domain after Nhost function contract review.',
   },
   {
     path: 'src/components/integration/ServiceConnect.jsx',
@@ -104,13 +80,6 @@ const TEMPORARY_ALLOWLIST = [
     owner: 'Frontend Platform',
     targetRemoval: '2026-06-30',
     reason: 'Legacy hooks are domain-like compatibility boundaries pending relocation to src/domains or src/services.',
-  },
-  {
-    path: 'src/components/SecurityStatusWidget.tsx',
-    patterns: ['fetch'],
-    owner: 'Security Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'Security status widget calls ops status REST until a security service adapter is extracted.',
   },
   {
     path: 'src/pages/AIPromptLibrary.jsx',

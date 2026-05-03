@@ -11,6 +11,7 @@ import { useWebSocket } from '@/providers/WebSocketProvider';
 import { sendMessageStatusUpdate } from '@/utils/MessageStatusUpdater';
 import backendAdapter from '@/backend/adapter';
 import { CommunicationService } from '@/services/communication/api';
+import { translateMessage } from '@/domains/messaging';
 
 export default function ChatWindow({ conversationId, recipientUser, currentUser }) {
   const [messages, setMessages] = useState([]);
@@ -167,23 +168,10 @@ export default function ChatWindow({ conversationId, recipientUser, currentUser 
     if (!message || translatedMessages[messageId]) return;
 
     try {
-      const response = await fetch('/functions/translateMessage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}` // Or however you store the token
-        },
-        body: JSON.stringify({
-          text: message.content,
-          targetLanguage: targetLang
-        })
+      const data = await translateMessage({
+        text: message.content,
+        targetLanguage: targetLang,
       });
-
-      if (!response.ok) {
-        throw new Error('Translation request failed');
-      }
-
-      const data = await response.json();
       setTranslatedMessages(prev => ({
         ...prev,
         [messageId]: data.translatedText
