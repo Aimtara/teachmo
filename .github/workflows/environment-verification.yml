@@ -1,0 +1,69 @@
+name: Environment verification
+
+on:
+  pull_request:
+    paths:
+      - 'nhost/**'
+      - 'scripts/ops/env-verify.mjs'
+      - '.github/workflows/environment-verification.yml'
+      - 'docs/ops/environment-verification.md'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to verify
+        type: choice
+        required: true
+        default: staging
+        options: [staging, production]
+      require_live:
+        description: Fail if live secrets are missing
+        type: boolean
+        required: true
+        default: true
+  schedule:
+    - cron: '17 8 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET: ${{ inputs.target || 'staging' }}
+      REQUIRE_LIVE: ${{ inputs.require_live || (github.event_name == 'schedule') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify environment configuration
+        env:
+          APP_BASE_URL: ${{ secrets.STAGING_APP_BASE_URL }}
+          API_BASE_URL: ${{ secrets.STAGING_API_BASE_URL }}
+          EXPECTED_CORS_ORIGINS: ${{ secrets.STAGING_EXPECTED_CORS_ORIGINS }}
+          HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT }}
+          TEST_JWT_PARENT: ${{ secrets.TEST_JWT_PARENT }}
+          TEST_JWT_TEACHER: ${{ secrets.TEST_JWT_TEACHER }}
+          TEST_JWT_PARTNER: ${{ secrets.TEST_JWT_PARTNER }}
+          TEST_JWT_DISTRICT_ADMIN: ${{ secrets.TEST_JWT_DISTRICT_ADMIN }}
+          TEST_JWT_OPS: ${{ secrets.TEST_JWT_OPS }}
+        run: |
+          set -euo pipefail
+          args=(--target "$TARGET" --output-dir artifacts/ops)
+          if [ "$REQUIRE_LIVE" = "true" ]; then
+            args+=(--require-live)
+          fi
+          node scripts/ops/env-verify.mjs "${args[@]}"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: environment-verification-${{ env.TARGET }}
+          path: artifacts/ops/

@@ -1,0 +1,55 @@
+name: Compliance and AI Governance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Secret hygiene
+        run: npm run check:secret-hygiene
+
+      - name: PII logging check
+        run: npm run check:pii-logging
+
+      - name: AI governance backend tests
+        run: npm run test:backend -- --runInBand backend/__tests__/governance.policy.test.js backend/__tests__/governance.runtime.test.js backend/__tests__/ai.enforcement.test.js
+
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
+
+      - name: Generate compliance report
+        if: always()
+        run: npm run ops:compliance-report -- --output-dir artifacts/ops --skip-gitleaks
+
+      - name: Upload compliance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-ai-governance
+          path: artifacts/ops/

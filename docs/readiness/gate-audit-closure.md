@@ -35,3 +35,29 @@ This document tracks closure status for the remaining Gate 2, Gate 3, and Gate 4
 - Browser evidence improved: `npm run test:a11y` now runs under Vitest and passes 22 checks; `npm run test:e2e` passes 7 browser smokes with 5 explicit credential/environment skips.
 - New live-proof templates were added for directory identity conflicts, office-hours verification, messaging/digest retry proof, assignments sync proof, and admin sync/dashboard validation.
 
+## May 4 operational automation update
+
+- Added `role-smoke-gate-proofs` automation with local/mock Playwright coverage for Parent, Teacher, Partner, Admin, and Ops/system-admin route access.
+- Added Gate 2/3/4 Playwright proof specs:
+  - Gate 2: directory import, SIS roster, integration health, and explicit human-review annotation for identity mapping conflicts.
+  - Gate 3: messaging, office-hours/calendar, teacher assignments, and parent digest/today surfaces.
+  - Gate 4: admin analytics, integration health/sync troubleshooting, and command-center escalation routes.
+- Added `scripts/ops/gate-proof-report.mjs` to emit a Markdown review packet for high-risk flows. Credentialed staging runs must upload the Playwright HTML report and gate proof summary before feature enablement.
+- Local evidence from this automation pass:
+  - `npm run e2e:roles`: PASS, 5 role-smoke tests.
+  - `npm run e2e:gates` with scoped `VITE_FEATURE_*` flags: PASS, 7 Gate proof tests. Integration-health API proxy warnings were observed because the local backend was not running; route/UI smoke still passed. Credentialed staging remains required for API/data assertions.
+
+## Gate automation mapping
+
+| Gate item | New automation | Human review still required |
+| --- | --- | --- |
+| E10 Directory flow | `tests/e2e/gate2-directory.spec.ts` checks directory/import/admin integration routes render. | Real CSV/OneRoster-lite import evidence and redacted import logs. |
+| E11 Approvals + reason capture | Gate 2 proof reaches approval-capable directory surfaces. | Reviewer signoff for approve/reject reason capture in staging. |
+| E12 CSV/OneRoster-lite import | Gate 2 route smoke plus schema/metadata CI. | Staging upload/preview proof with safe fixture data. |
+| E13 Deterministic identity mapping | Gate 2 proof adds a `human-review-required` annotation for identity conflicts. | Conflict queue review and decision evidence. |
+| E14/E15 Messaging and digest reliability | Gate 3 proof reaches messaging and parent digest/today surfaces. | Retry/backoff/idempotency and scheduled digest recovery logs. |
+| E16 Office hours booking | Gate 3 proof reaches office-hours/calendar surfaces under scoped test flags. | Persistent booking/cancel/reschedule and notification evidence. |
+| E17 Assignments sync | Gate 3 proof reaches teacher assignment surfaces. | LMS/mock dry-run sync report and optional live sync evidence. |
+| E18/E20 Admin sync + dashboards | Gate 4 proof reaches analytics and integration-health surfaces. | Source-data reconciliation and sync-now troubleshooting evidence. |
+| E23 Command Center proof | Gate 4 proof reaches command-center route. | Live approval/escalation proof packet. |
+

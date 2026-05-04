@@ -1,0 +1,89 @@
+name: Backup Restore Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment target
+        type: choice
+        options: [staging, production]
+        default: staging
+      operation:
+        description: Operation to run
+        type: choice
+        options: [backup-restore, rollback-dry-run, rollback-execute]
+        default: backup-restore
+      production_approved:
+        description: Type APPROVED for production execution after environment approval
+        required: false
+        default: ''
+  schedule:
+    - cron: '0 8 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  backup-restore:
+    if: github.event_name == 'schedule' || inputs.operation == 'backup-restore'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target == 'production' && 'production-ops' || 'staging-ops' }}
+    env:
+      TARGET: ${{ inputs.target || 'staging' }}
+      PRODUCTION_APPROVED: ${{ inputs.production_approved || '' }}
+      SOURCE_DATABASE_URL: ${{ inputs.target == 'production' && secrets.PRODUCTION_DATABASE_URL || secrets.STAGING_DATABASE_URL }}
+      RESTORE_DATABASE_URL: ${{ secrets.DISPOSABLE_RESTORE_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install Postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Run backup/restore drill
+        run: |
+          set -euo pipefail
+          if [ "$TARGET" = "production" ] && [ "$PRODUCTION_APPROVED" != "APPROVED" ]; then
+            echo "::error::Production backup/restore requires protected environment approval and production_approved=APPROVED."
+            exit 1
+          fi
+          npm run ops:backup-restore -- --target "$TARGET" --output-dir artifacts/ops
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backup-restore-report
+          path: artifacts/ops/
+
+  rollback:
+    if: inputs.operation == 'rollback-dry-run' || inputs.operation == 'rollback-execute'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target == 'production' && 'production-ops' || 'staging-ops' }}
+    env:
+      TARGET: ${{ inputs.target }}
+      DEPLOY_PROVIDER: ${{ secrets.DEPLOY_PROVIDER }}
+      DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+      CURRENT_REF: ${{ github.sha }}
+      PREVIOUS_REF: ${{ github.event.before }}
+      ROLLBACK_APPROVAL: ${{ inputs.production_approved }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run rollback drill
+        run: |
+          set -euo pipefail
+          MODE_ARGS=""
+          if [ "${{ inputs.operation }}" = "rollback-execute" ]; then
+            MODE_ARGS="--execute --approval $ROLLBACK_APPROVAL"
+          fi
+          npm run ops:rollback -- --target "$TARGET" $MODE_ARGS --output-dir artifacts/ops
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rollback-report
+          path: artifacts/ops/

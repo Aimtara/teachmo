@@ -1,0 +1,12 @@
+title = "Teachmo secret scanning policy"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Repository placeholders and documented examples only. Do not add real secrets."
+paths = [
+  '''docs/readiness/evidence/.*template\.md''',
+  '''\.env\.example''',
+  '''backend/\.env\.example''',
+]

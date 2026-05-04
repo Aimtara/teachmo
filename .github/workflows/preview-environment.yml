@@ -1,0 +1,140 @@
+name: Preview environment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Preview provider to run
+        type: choice
+        options: [auto, vercel, netlify]
+        default: auto
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-preview:
+    name: Build preview artifact
+    runs-on: ubuntu-latest
+    outputs:
+      has_vercel: ${{ steps.provider.outputs.has_vercel }}
+      has_netlify: ${{ steps.provider.outputs.has_netlify }}
+      selected_provider: ${{ steps.provider.outputs.selected_provider }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build preview bundle
+        env:
+          VITE_SOURCEMAP: "false"
+          VITE_ENABLE_INTERNAL_ROUTES: "true"
+        run: npm run build:ci
+
+      - name: Detect configured preview provider
+        id: provider
+        env:
+          SELECTED_PROVIDER: ${{ inputs.provider || 'auto' }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          has_vercel=false
+          has_netlify=false
+          if [ -n "${VERCEL_TOKEN}" ] && [ -n "${VERCEL_ORG_ID}" ] && [ -n "${VERCEL_PROJECT_ID}" ]; then
+            has_vercel=true
+          fi
+          if [ -n "${NETLIFY_AUTH_TOKEN}" ] && [ -n "${NETLIFY_SITE_ID}" ]; then
+            has_netlify=true
+          fi
+          echo "has_vercel=${has_vercel}" >> "$GITHUB_OUTPUT"
+          echo "has_netlify=${has_netlify}" >> "$GITHUB_OUTPUT"
+          echo "selected_provider=${SELECTED_PROVIDER}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload preview bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-dist
+          path: dist
+          retention-days: 7
+
+      - name: Preview provider setup notice
+        if: steps.provider.outputs.has_vercel != 'true' && steps.provider.outputs.has_netlify != 'true'
+        run: |
+          cat <<'MD' >> "$GITHUB_STEP_SUMMARY"
+          ## Preview deployment not published
+
+          The preview bundle built successfully and was uploaded as an artifact, but no deploy provider
+          secrets are configured. Configure either:
+
+          - Vercel: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+          - Netlify: `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`
+
+          See `docs/process/collaboration.md` for setup and review rules.
+          MD
+
+  vercel-preview:
+    name: Publish Vercel preview
+    needs: build-preview
+    if: needs.build-preview.outputs.has_vercel == 'true' && (needs.build-preview.outputs.selected_provider == 'auto' || needs.build-preview.outputs.selected_provider == 'vercel')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Deploy preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          url=$(vercel deploy --token "$VERCEL_TOKEN" --yes)
+          {
+            echo "## Vercel preview"
+            echo
+            echo "$url"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  netlify-preview:
+    name: Publish Netlify preview
+    needs: build-preview
+    if: needs.build-preview.outputs.has_netlify == 'true' && (needs.build-preview.outputs.selected_provider == 'auto' || needs.build-preview.outputs.selected_provider == 'netlify')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build:ci
+      - name: Deploy preview
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: ./dist
+          production-deploy: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Preview for ${{ github.event.pull_request.head.sha || github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":separateMultipleMajorReleases",
+    ":prHourlyLimit2",
+    ":prConcurrentLimit10"
+  ],
+  "timezone": "America/New_York",
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "dependencyDashboardTitle": "Teachmo Dependency Automation Dashboard",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"],
+    "automerge": false,
+    "labels": ["dependencies", "lockfile-maintenance"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["dependencies", "security"],
+    "automerge": false,
+    "dependencyDashboardApproval": false
+  },
+  "packageRules": [
+    {
+      "description": "Automerge low-risk devDependency patch updates after CI passes",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "requiredStatusChecks": [
+        "CI / build",
+        "dependency-security / npm-audit-policy"
+      ],
+      "labels": ["dependencies", "dev-dependencies", "automerge-candidate"]
+    },
+    {
+      "description": "Group safe devDependency minor updates but require review",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "safe dev dependency minor updates",
+      "automerge": false,
+      "labels": ["dependencies", "dev-dependencies"]
+    },
+    {
+      "description": "Runtime dependency changes require human review",
+      "matchDepTypes": ["dependencies"],
+      "automerge": false,
+      "labels": ["dependencies", "runtime-review"]
+    },
+    {
+      "description": "Security updates are never automerged",
+      "matchCategories": ["security"],
+      "automerge": false,
+      "labels": ["dependencies", "security", "human-review-required"]
+    },
+    {
+      "description": "Major updates require explicit migration review",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "dependencyDashboardApproval": true,
+      "labels": ["dependencies", "major-update", "human-review-required"]
+    },
+    {
+      "description": "Nhost and auth libraries are production-sensitive",
+      "matchPackageNames": ["/^@nhost//", "jose", "passport", "passport-openidconnect", "@node-saml/passport-saml"],
+      "automerge": false,
+      "labels": ["dependencies", "auth-sensitive", "human-review-required"]
+    }
+  ]
+}

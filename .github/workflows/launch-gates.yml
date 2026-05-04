@@ -76,11 +76,21 @@ jobs:
           VITE_E2E_BYPASS_AUTH: "true"
           VITE_DISABLE_DEV_ROUTE_BYPASS: "false"
           VITE_ENABLE_DEV_ROUTE_BYPASS: "true"
-          VITE_ENABLE_INTERNAL_ROUTES: "true"
+          # Keep the size ratchet tied to the production route surface. The
+          # dev server below enables internal routes for launch-gate browser
+          # smoke without making the production bundle budget absorb every
+          # internal/admin proof surface.
+          VITE_ENABLE_INTERNAL_ROUTES: "false"
           VITE_API_BASE_URL: "http://localhost:4000"
         run: npm run build:ci
 
       - name: Check bundle size
+        env:
+          VITE_E2E_BYPASS_AUTH: "true"
+          VITE_DISABLE_DEV_ROUTE_BYPASS: "false"
+          VITE_ENABLE_DEV_ROUTE_BYPASS: "true"
+          VITE_ENABLE_INTERNAL_ROUTES: "false"
+          VITE_API_BASE_URL: "http://localhost:4000"
         run: npm run check:size
 
       - name: Wait for Postgres

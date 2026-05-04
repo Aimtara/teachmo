@@ -1,0 +1,82 @@
+name: Synthetic Monitoring
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment target
+        type: choice
+        options: [staging, production]
+        default: staging
+      base_url:
+        description: Frontend base URL
+        required: true
+      api_url:
+        description: Backend API URL
+        required: true
+      verify_alerts:
+        description: Trigger Sentry/alert verification
+        type: boolean
+        default: false
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: synthetic-monitoring-${{ github.event.inputs.target || 'scheduled' }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ github.event.inputs.target == 'production' && 'production-monitoring' || 'staging-monitoring' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Resolve monitor targets
+        id: targets
+        run: |
+          BASE_URL="${{ github.event.inputs.base_url || secrets.SYNTHETIC_BASE_URL }}"
+          API_URL="${{ github.event.inputs.api_url || secrets.SYNTHETIC_API_URL }}"
+          if [ -z "$BASE_URL" ] || [ -z "$API_URL" ]; then
+            echo "::error::SYNTHETIC_BASE_URL/SYNTHETIC_API_URL or workflow inputs are required for scheduled monitoring."
+            exit 1
+          fi
+          echo "base_url=$BASE_URL" >> "$GITHUB_OUTPUT"
+          echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
+      - name: Run synthetic Playwright checks
+        env:
+          PLAYWRIGHT_WEB_SERVER: "false"
+          PLAYWRIGHT_BASE_URL: ${{ steps.targets.outputs.base_url }}
+          SYNTHETIC_API_URL: ${{ steps.targets.outputs.api_url }}
+          SYNTHETIC_PARENT_EMAIL: ${{ secrets.SYNTHETIC_PARENT_EMAIL }}
+          SYNTHETIC_PARENT_PASSWORD: ${{ secrets.SYNTHETIC_PARENT_PASSWORD }}
+          SYNTHETIC_TEACHER_EMAIL: ${{ secrets.SYNTHETIC_TEACHER_EMAIL }}
+          SYNTHETIC_TEACHER_PASSWORD: ${{ secrets.SYNTHETIC_TEACHER_PASSWORD }}
+        run: npm run e2e:synthetic
+      - name: Verify Sentry/alert routing
+        env:
+          SYNTHETIC_BASE_URL: ${{ steps.targets.outputs.base_url }}
+          SYNTHETIC_API_URL: ${{ steps.targets.outputs.api_url }}
+          SYNTHETIC_VERIFY_ALERTS: ${{ github.event.inputs.verify_alerts && 'true' || 'false' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: npm run ops:synthetic-monitor -- --output-dir artifacts/ops
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-monitoring
+          path: |
+            artifacts/ops/
+            playwright-report/
+            test-results/

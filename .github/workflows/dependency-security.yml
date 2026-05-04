@@ -1,0 +1,86 @@
+name: Dependency and security automation
+
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+      - 'nhost/functions/package.json'
+      - 'nhost/functions/package-lock.json'
+      - 'scripts/check-audit.mjs'
+      - 'config/audit-exceptions.json'
+      - '.github/workflows/dependency-security.yml'
+      - 'renovate.json'
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '30 8 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  npm-audit-policy:
+    name: npm audit policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Enforce runtime audit exceptions
+        env:
+          AUDIT_SUMMARY_PATH: security-reports/root-runtime-audit-summary.json
+        run: |
+          mkdir -p security-reports
+          npm run check:audit
+
+      - name: Full root audit report
+        if: always()
+        run: |
+          mkdir -p security-reports
+          npm audit --audit-level=high --json > security-reports/root-full-audit.json || true
+
+      - name: Backend audit
+        working-directory: backend
+        run: |
+          npm ci
+          npm audit --audit-level=high --json > ../security-reports/backend-audit.json
+
+      - name: Nhost functions audit
+        working-directory: nhost/functions
+        run: |
+          npm ci
+          npm audit --audit-level=high --json > ../../security-reports/nhost-functions-audit.json
+
+      - name: Upload audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-security-audit-reports
+          path: security-reports/
+
+  dependency-review:
+    name: GitHub dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD
+

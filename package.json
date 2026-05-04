@@ -30,6 +30,13 @@
     "check:pii-logging": "node scripts/check-pii-logging.mjs",
     "check:secret-hygiene": "node scripts/check-secret-hygiene.mjs",
     "check:nhost-config-safety": "node scripts/check-nhost-config-safety.mjs",
+    "check:schema-metadata": "node scripts/ops/validate-schema-metadata.mjs",
+    "ops:env-verify": "node scripts/ops/env-verify.mjs",
+    "ops:secret-rotation": "node scripts/ops/secret-rotation.mjs",
+    "ops:backup-restore": "node scripts/ops/backup-restore-drill.mjs",
+    "ops:rollback-drill": "node scripts/ops/rollback-drill.mjs",
+    "ops:synthetic-monitor": "node scripts/ops/synthetic-monitor.mjs",
+    "ops:compliance-report": "node scripts/ops/compliance-report.mjs",
     "check:production:fast": "npm run preflight:example && npm run check:audit && npm run check:secret-hygiene && npm run check:nhost-config-safety && npm run check:api-boundaries && npm run check:production-auth-safety && npm run check:hasura-readiness && npm run check:ts-ratchet && npm run check:pii-logging && npm run check:lint-ratchet",
     "check:production": "npm run check:production:fast && npm run lint:production && npm run typecheck && npm run test -- --run && npm run build && npm run check:size",
     "check:launch": "npm run check:production:fast && npm run test:smoke && npm run build && npm run check:size",
@@ -45,6 +52,10 @@
     "e2e": "playwright test",
     "test:e2e": "npm run e2e",
     "e2e:ops": "playwright test --grep @launch-gates",
+    "e2e:roles": "playwright test tests/e2e/role-smoke.spec.ts",
+    "e2e:gates": "playwright test tests/e2e/gate2-directory.spec.ts tests/e2e/gate3-messaging-assignments.spec.ts tests/e2e/gate4-admin-analytics.spec.ts",
+    "e2e:synthetic": "playwright test tests/e2e/synthetic-monitor.spec.ts",
+    "ops:gate-proof-report": "node scripts/ops/gate-proof-report.mjs",
     "e2e:a11y": "PLAYWRIGHT_WEB_SERVER=true playwright test tests/e2e/a11y.spec.ts",
     "e2e:ui": "playwright test --ui",
     "prebuild": "node scripts/generate-build-meta.mjs",
@@ -65,7 +76,7 @@
     "issues:go-live": "node scripts/go-live-issue-automation.mjs",
     "issues:smoke-activity": "node scripts/smoke-issue-activity.mjs",
     "issues:project-validate": "node scripts/validate-project-config.mjs",
-    "test:scripts": "node --test scripts/check-api-boundaries.test.mjs scripts/check-production-auth-safety.test.mjs scripts/check-secret-hygiene.test.mjs scripts/check-nhost-config-safety.test.mjs scripts/check-ts-ratchet.test.mjs scripts/check-hasura-readiness.test.mjs scripts/check-pii-logging.test.mjs"
+    "test:scripts": "node --test scripts/check-api-boundaries.test.mjs scripts/check-audit.test.mjs scripts/check-production-auth-safety.test.mjs scripts/check-secret-hygiene.test.mjs scripts/check-nhost-config-safety.test.mjs scripts/check-ts-ratchet.test.mjs scripts/check-hasura-readiness.test.mjs scripts/check-pii-logging.test.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^16.6.0",

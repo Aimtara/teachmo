@@ -1,0 +1,63 @@
+name: Visual regression
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  storybook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Storybook
+        run: npm run build-storybook -- --output-dir storybook-static
+
+      - name: Upload Storybook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: storybook-static
+          retention-days: 14
+
+      - name: Chromatic visual regression
+        if: ${{ secrets.CHROMATIC_PROJECT_TOKEN != '' }}
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: storybook-static
+          exitZeroOnChanges: false
+          onlyChanged: true
+          autoAcceptChanges: false
+
+      - name: Chromatic setup notice
+        if: ${{ secrets.CHROMATIC_PROJECT_TOKEN == '' }}
+        run: |
+          echo "::notice::CHROMATIC_PROJECT_TOKEN is not configured. Storybook build artifact was uploaded, but snapshot diff approval is inactive."
+          {
+            echo "## Visual regression setup required"
+            echo ""
+            echo "- Storybook build: completed"
+            echo "- Chromatic upload: skipped because CHROMATIC_PROJECT_TOKEN is not configured"
+            echo "- Required action: add the token and make this check required before broad production launch"
+          } >> "$GITHUB_STEP_SUMMARY"
