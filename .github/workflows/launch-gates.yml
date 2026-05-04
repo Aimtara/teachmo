@@ -135,6 +135,7 @@ jobs:
         env:
           AUTO_APPLY_NHOST_SCHEMA: "false"
           SKIP_MIGRATIONS: "true"
+          DISABLE_BACKGROUND_JOBS: "true"
         run: |
           set -euo pipefail
           nohup npm run start > ../backend-ci.log 2>&1 &
