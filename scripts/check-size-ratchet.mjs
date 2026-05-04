@@ -5,7 +5,7 @@ import path from 'node:path';
 const distAssetsDir = path.resolve('dist/assets');
 const baseline = {
   totalBrotliKb: 596,
-  maxInitialBrotliKb: 23,
+  maxInitialBrotliKb: 22.2,
   maxChunkBrotliKb: 214,
 };
 

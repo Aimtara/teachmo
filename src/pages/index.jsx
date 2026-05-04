@@ -7,13 +7,13 @@ import { getDefaultPathForRole, useUserRoleState } from '@/hooks/useUserRole';
 import { getSavedOnboardingFlowPreference, resolveOnboardingPath } from '@/lib/onboardingFlow';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import FeatureGate from '@/components/shared/FeatureGate';
-import Landing from './Landing.jsx';
 import { TelemetryBootstrap } from '@/observability/TelemetryBootstrap';
 import Healthz from './Healthz.tsx';
 import Maintenance from './Maintenance.tsx';
 import { envFlag } from '@/config/env';
 
 const MAINTENANCE_MODE = envFlag('VITE_MAINTENANCE_MODE');
+const Landing = ROUTE_CONFIG.find((route) => route.name === 'Landing')?.Component;
 
 function RoleRedirect() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
@@ -21,7 +21,7 @@ function RoleRedirect() {
 
   if (isLoading || roleLoading)
     return <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
-  if (!isAuthenticated) return <Landing />;
+  if (!isAuthenticated && Landing) return <Landing />;
 
   if (needsOnboarding) {
     return (
