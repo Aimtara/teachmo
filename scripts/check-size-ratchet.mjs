@@ -4,9 +4,9 @@ import path from 'node:path';
 
 const distAssetsDir = path.resolve('dist/assets');
 const baseline = {
-  totalBrotliKb: 602,
-  maxInitialBrotliKb: 24,
-  maxChunkBrotliKb: 225,
+  totalBrotliKb: 598,
+  maxInitialBrotliKb: 23,
+  maxChunkBrotliKb: 214,
 };
 
 function collectJsFiles(dir) {
