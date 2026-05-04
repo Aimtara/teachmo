@@ -1,0 +1,148 @@
+name: Schema and Metadata Validation
+
+on:
+  pull_request:
+    paths:
+      - 'backend/migrations/**'
+      - 'nhost/migrations/**'
+      - 'nhost/metadata/**'
+      - 'scripts/ops/validate-schema-metadata.mjs'
+      - '.github/workflows/schema-and-metadata.yml'
+      - 'codegen.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/migrations/**'
+      - 'nhost/migrations/**'
+      - 'nhost/metadata/**'
+      - 'scripts/ops/validate-schema-metadata.mjs'
+      - '.github/workflows/schema-and-metadata.yml'
+      - 'codegen.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+    inputs:
+      require_live_codegen:
+        description: 'Require HASURA_GRAPHQL_URL/HASURA_GRAPHQL_ADMIN_SECRET and run live GraphQL codegen'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  schema-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: teachmo
+        options: >-
+          --health-cmd="pg_isready -U postgres -d teachmo"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/teachmo
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: teachmo
+      AUTO_APPLY_NHOST_SCHEMA: "true"
+      REQUIRE_NHOST_BASE_SCHEMA: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for Postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..30}; do
+            if (echo > /dev/tcp/"$DB_HOST"/"$DB_PORT") >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Postgres did not become reachable"
+          exit 1
+
+      - name: Bootstrap local auth schema
+        run: |
+          node --input-type=module - <<'NODE'
+          import pg from 'pg';
+          const client = new pg.Client({
+            host: process.env.DB_HOST,
+            port: Number(process.env.DB_PORT || 5432),
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+          });
+          await client.connect();
+          await client.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+          await client.query('CREATE EXTENSION IF NOT EXISTS citext');
+          await client.query('CREATE SCHEMA IF NOT EXISTS auth');
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS auth.users (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              email text,
+              display_name text,
+              disabled boolean DEFAULT false,
+              created_at timestamptz DEFAULT now()
+            )
+          `);
+          await client.end();
+          NODE
+
+      - name: Validate metadata files
+        run: npm run check:schema-metadata -- --metadata-only --output artifacts/schema-metadata.json --markdown artifacts/schema-metadata.md
+
+      - name: Run migrations
+        working-directory: backend
+        continue-on-error: true
+        run: node migrate.js
+
+      - name: Validate migrated database and metadata
+        run: npm run check:schema-metadata -- --database-url "$DATABASE_URL" --output artifacts/schema-metadata-db.json --markdown artifacts/schema-metadata-db.md
+
+      - name: GraphQL type generation guard
+        env:
+          HASURA_GRAPHQL_URL: ${{ secrets.HASURA_GRAPHQL_URL }}
+          HASURA_GRAPHQL_ADMIN_SECRET: ${{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}
+          REQUIRE_LIVE_CODEGEN: ${{ inputs.require_live_codegen || github.event_name == 'schedule' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HASURA_GRAPHQL_URL:-}" ] || [ -z "${HASURA_GRAPHQL_ADMIN_SECRET:-}" ]; then
+            if [ "${REQUIRE_LIVE_CODEGEN:-false}" = "true" ]; then
+              echo "Live GraphQL codegen was required but HASURA_GRAPHQL_URL/HASURA_GRAPHQL_ADMIN_SECRET are missing."
+              exit 1
+            fi
+            echo "::notice::Skipping live GraphQL codegen because Hasura secrets are not configured for this context."
+            exit 0
+          fi
+          npm run graphql:codegen
+          git diff --exit-code src/api/generated/graphql.ts
+
+      - name: Upload schema reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-metadata-reports
+          path: artifacts/

@@ -1,0 +1,12 @@
+schema:
+  - ${HASURA_GRAPHQL_ENDPOINT}:
+      headers:
+        x-hasura-admin-secret: ${HASURA_GRAPHQL_ADMIN_SECRET}
+documents:
+  - "src/**/*.{ts,tsx,js,jsx}"
+  - "nhost/functions/**/*.{ts,js}"
+generates:
+  src/api/generated/graphql.ts:
+    plugins:
+      - typescript
+      - typescript-operations
