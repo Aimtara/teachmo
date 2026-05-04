@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { listSchoolParticipationRequests, updateSchoolParticipationRequestStatus } from '@/domains/admin/schoolRequests';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,50 +14,11 @@ export default function AdminSchoolRequests() {
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['school-requests', filter],
-    queryFn: async () => {
-      const query = `
-        query GetSchoolRequests($status: String) {
-          school_participation_requests(
-            where: { status: { _eq: $status } }
-            order_by: { created_at: desc }
-          ) {
-            id
-            school_name
-            school_domain
-            status
-            notes
-            user {
-              id
-              display_name
-              email
-            }
-            created_at
-          }
-        }
-      `;
-      const result = await graphqlRequest({
-        query,
-        variables: { status: filter === 'all' ? undefined : filter }
-      });
-      return result.school_participation_requests;
-    }
+    queryFn: () => listSchoolParticipationRequests(filter === 'all' ? undefined : filter)
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }) => {
-      const query = `
-        mutation UpdateRequest($id: uuid!, $status: String!) {
-          update_school_participation_requests_by_pk(
-            pk_columns: { id: $id },
-            _set: { status: $status }
-          ) {
-            id
-            status
-          }
-        }
-      `;
-      return graphqlRequest({ query, variables: { id, status } });
-    },
+    mutationFn: ({ id, status }) => updateSchoolParticipationRequestStatus({ id, status }),
     onSuccess: () => {
       queryClient.invalidateQueries(['school-requests']);
     }

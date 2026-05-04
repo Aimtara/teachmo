@@ -5,55 +5,14 @@ import { RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { showToast } from '@/components/shared/UltraMinimalToast';
-import { graphqlRequest } from '@/lib/graphql';
+import { fetchPersonalizedDiscoverRecommendations } from '@/domains/discover/recommendations';
 import RecommendationCard from './RecommendationCard';
-
-const RECOMMENDATION_QUERY = `query DiscoverRecommendations($limit: Int) {
-  activities(order_by: { created_at: desc }, limit: $limit) {
-    id
-    title
-    description
-    subject
-    grade_level
-    category
-    library_items(limit: 1) {
-      id
-      url
-      format
-    }
-  }
-}`;
-
-const buildRecommendation = (activity) => {
-  const libraryItem = activity?.library_items?.[0] ?? null;
-  const tags = [activity?.category, libraryItem?.format].filter(Boolean);
-
-  return {
-    id: activity?.id,
-    title: activity?.title,
-    summary: activity?.description,
-    subject: activity?.subject,
-    gradeLevel: activity?.grade_level,
-    tags,
-    ctaLabel: libraryItem?.url ? 'Open resource' : 'View details',
-    ctaHref: libraryItem?.url ?? undefined
-  };
-};
 
 const fetchRecommendations = async (userId) => {
   if (!userId) return { items: [], unavailable: true };
 
   try {
-    const data = await graphqlRequest({
-      query: RECOMMENDATION_QUERY,
-      variables: { limit: 6 }
-    });
-    const activities = data?.activities ?? [];
-
-    return {
-      items: activities.map(buildRecommendation),
-      unavailable: false
-    };
+    return await fetchPersonalizedDiscoverRecommendations({ limit: 6 });
   } catch (error) {
     return { items: [], unavailable: false, error };
   }

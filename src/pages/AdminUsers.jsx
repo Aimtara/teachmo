@@ -7,10 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { nhost } from '@/lib/nhostClient';
 import { useUserRole } from '@/hooks/useUserRole';
 import { canAll } from '@/security/permissions';
 import { logAuditEvent } from '@/api/functions';
+import { createImpersonation } from '@/domains/admin/users';
 
 const ROLES = ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'];
 
@@ -109,20 +109,7 @@ export default function AdminUsers() {
 
   const impersonateMutation = useMutation({
     mutationFn: async (userId) => {
-      const token = await nhost.auth.getAccessToken();
-      const response = await fetch('/api/admin/impersonations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ userId }),
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to start impersonation');
-      }
-      return response.json();
+      return createImpersonation(userId);
     },
     onSuccess: (data) => {
       toast({

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, AlertTriangle, Server } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { API_BASE_URL } from '@/config/api';
+import { getAdminSystemHealth } from '@/domains/admin/systemHealth';
 import { useTenant } from '@/contexts/TenantContext';
 import { nhost } from '@/lib/nhostClient';
 
@@ -26,11 +26,7 @@ export default function AdminSystemHealth() {
   const healthQuery = useQuery({
     queryKey: ['system-health', headersQuery.data],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/admin/system/health`, { headers: headersQuery.data });
-      if (!response.ok) throw new Error('Failed to load system health');
-      return response.json();
-    },
+    queryFn: async () => getAdminSystemHealth(headersQuery.data),
   });
 
   const services = healthQuery.data?.services || [];

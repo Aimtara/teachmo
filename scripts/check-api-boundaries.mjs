@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const UI_PREFIXES = ['src/pages/', 'src/components/', 'src/hooks/', 'src/app/', 'src/routes/'];
-const MAX_TEMPORARY_EXCEPTIONS = 30;
+const MAX_TEMPORARY_EXCEPTIONS = 24;
 const APPROVED_PREFIXES = [
   'src/pages/__tests__/',
   'src/components/**/__tests__/',
@@ -54,25 +54,11 @@ const TEMPORARY_ALLOWLIST = [
     reason: 'AI service calls require governance-aware service adapter extraction.',
   },
   {
-    pathPrefix: 'src/components/discover/',
-    patterns: ['graphqlRequest'],
-    owner: 'Discover Platform',
-    targetRemoval: '2026-06-30',
-    reason: 'Discover GraphQL query requires a discover domain hook extraction.',
-  },
-  {
     pathPrefix: 'src/hooks/',
     patterns: ['graphqlRequest'],
     owner: 'Frontend Platform',
     targetRemoval: '2026-06-30',
     reason: 'Legacy hooks are domain-like compatibility boundaries pending relocation to src/domains or src/services.',
-  },
-  {
-    path: 'src/pages/AIPromptLibrary.jsx',
-    patterns: ['fetch'],
-    owner: 'AI Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'AI prompt library requires governance-aware service adapter extraction.',
   },
   {
     path: 'src/pages/AITransparency.jsx',
@@ -87,13 +73,6 @@ const TEMPORARY_ALLOWLIST = [
     owner: 'Ops Platform',
     targetRemoval: '2026-07-15',
     reason: 'Execution board fallback fetch remains temporarily direct pending full ops domain migration.',
-  },
-  {
-    path: 'src/pages/SchoolDirectoryAdmin.jsx',
-    patterns: ['graphqlRequest'],
-    owner: 'Directory Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'School directory admin query requires directory admin service extraction.',
   },
   {
     path: 'src/components/shared/ProtectedRoute.tsx',
