@@ -92,6 +92,33 @@ jobs:
           echo "❌ Postgres did not become reachable at ${DB_HOST}:${DB_PORT}"
           exit 1
 
+      - name: Bootstrap local Nhost auth schema
+        run: |
+          node --input-type=module - <<'NODE'
+          import pg from 'pg';
+
+          const client = new pg.Client({
+            host: process.env.DB_HOST,
+            port: Number(process.env.DB_PORT || 5432),
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+          });
+
+          await client.connect();
+          await client.query('CREATE SCHEMA IF NOT EXISTS auth');
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS auth.users (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              email text,
+              display_name text,
+              disabled boolean DEFAULT false,
+              created_at timestamptz DEFAULT now()
+            )
+          `);
+          await client.end();
+          NODE
+
       # --------------------------------------------------------
       # G0: Backend Auth Tests (Unit)
       # --------------------------------------------------------
