@@ -60,8 +60,7 @@ export function shouldSuppressNotifyNow({ state, signal, features, bucket, now }
 
   if (state.cooldownUntil) {
     const c = new Date(state.cooldownUntil);
-    // eslint-disable-next-line no-restricted-globals
-    if (!isNaN(c.getTime()) && now.getTime() < c.getTime()) {
+        if (!isNaN(c.getTime()) && now.getTime() < c.getTime()) {
       return { suppress: true, reason: 'cooldown_active' };
     }
   }

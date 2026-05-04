@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Page, Card, Button, Table, Modal } from '@/components/ui';
+import { Page, Button, Table, Modal } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { nhost } from '@/utils/nhost';
 

@@ -10,14 +10,14 @@ import { nhost } from '@/utils/nhost';
  */
 export default function AdminSISSync() {
   const { hasPermission } = usePermissions();
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState([]);
   const [frequency, setFrequency] = useState('daily');
   const [provider, setProvider] = useState('oneroster');
   const [loading, setLoading] = useState(false);
 
   const loadJobs = async () => {
     try {
-      const res: any = await nhost.graphql.request(
+      const res = await nhost.graphql.request(
         `
           query ListRosterJobs {
             sis_sync_jobs(order_by: { created_at: desc }, limit: 10) {
@@ -85,7 +85,7 @@ export default function AdminSISSync() {
           <Select
             label="Provider"
             value={provider}
-            onChange={(e: any) => setProvider(e.target.value)}
+            onChange={(e) => setProvider(e.target.value)}
             options={[
               { value: 'oneroster', label: 'OneRoster CSV' },
               { value: 'classlink', label: 'ClassLink' },
@@ -96,7 +96,7 @@ export default function AdminSISSync() {
           <Select
             label="Frequency"
             value={frequency}
-            onChange={(e: any) => setFrequency(e.target.value)}
+            onChange={(e) => setFrequency(e.target.value)}
             options={[
               { value: 'hourly', label: 'Hourly' },
               { value: 'daily', label: 'Daily' },

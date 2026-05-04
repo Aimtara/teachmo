@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
 import { populateSchoolDirectory } from '@/api/functions';
+import {
+  listSchoolDirectoryEntries,
+  updateSchoolDirectoryIntegrationEnabled
+} from '@/domains/directory/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -32,47 +35,12 @@ export default function SchoolDirectoryAdmin() {
 
   const { data: schools, isLoading } = useQuery({
     queryKey: ['school-directory', search],
-    queryFn: async () => {
-      const query = `
-        query GetSchoolDirectory($search: String) {
-          school_directory(
-            where: { name: { _ilike: $search } }
-            order_by: { name: asc }
-            limit: 50
-          ) {
-            id
-            name
-            nces_id
-            city
-            state
-            integration_enabled
-            created_at
-          }
-        }
-      `;
-      const result = await graphqlRequest({
-        query,
-        variables: { search: `%${search}%` }
-      });
-      return result.school_directory;
-    }
+    queryFn: async () => listSchoolDirectoryEntries(search)
   });
 
   const updateSchoolMutation = useMutation({
-    mutationFn: async ({ id, integration_enabled }) => {
-      const query = `
-        mutation UpdateSchool($id: uuid!, $integration_enabled: Boolean!) {
-          update_school_directory_by_pk(
-            pk_columns: { id: $id },
-            _set: { integration_enabled: $integration_enabled }
-          ) {
-            id
-            integration_enabled
-          }
-        }
-      `;
-      return graphqlRequest({ query, variables: { id, integration_enabled } });
-    },
+    mutationFn: async ({ id, integration_enabled }) =>
+      updateSchoolDirectoryIntegrationEnabled(id, integration_enabled),
     onSuccess: () => {
       queryClient.invalidateQueries(['school-directory']);
       toast({ title: 'School updated', description: 'Integration settings saved.' });

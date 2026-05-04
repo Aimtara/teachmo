@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { API_BASE_URL } from '@/config/api';
+import { listAdminAuditLogs } from '@/domains/admin/auditLogs';
 
 type AuditLogEntry = {
   id: string | number;
@@ -16,8 +16,7 @@ export const AuditLogViewer = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/admin/audit-logs`)
-      .then((res) => res.json())
+    listAdminAuditLogs()
       .then((data) => setLogs(data))
       .finally(() => setLoading(false));
   }, []);

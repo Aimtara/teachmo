@@ -10,7 +10,6 @@ import { Loader2, Search, MapPin, AlertTriangle, Sparkles, Calendar, Filter } fr
 import { AnimatePresence, motion } from "framer-motion";
 import LocalEventCard from "./LocalEventCard";
 import EventFilters from "./EventFilters";
-import { debounce } from "lodash";
 
 export default function LocalEventsView({ user, selectedChild, generalCategoryFilter }) {
     const [searchLocation, setSearchLocation] = useState(user?.location || "");

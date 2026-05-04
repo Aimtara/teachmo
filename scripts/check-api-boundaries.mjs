@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const UI_PREFIXES = ['src/pages/', 'src/components/', 'src/hooks/', 'src/app/', 'src/routes/'];
+const MAX_TEMPORARY_EXCEPTIONS = 21;
 const APPROVED_PREFIXES = [
   'src/pages/__tests__/',
   'src/components/**/__tests__/',
@@ -23,22 +24,6 @@ const APPROVED_PREFIXES = [
 
 const TEMPORARY_ALLOWLIST = [
   {
-    path: 'src/components/teacher/AssignmentsView.jsx',
-    patterns: ['graphqlRequest'],
-    owner: 'Frontend Platform',
-    targetRemoval: '2026-06-30',
-    reason:
-      'Characterized legacy teacher assignment UI; needs dedicated assignments domain extraction before removal.',
-  },
-  {
-    path: 'src/pages/TeacherDashboard.jsx',
-    patterns: ['graphqlRequest'],
-    owner: 'Frontend Platform',
-    targetRemoval: '2026-06-30',
-    reason:
-      'Legacy teacher dashboard summary query remains temporarily direct pending dashboard domain consolidation.',
-  },
-  {
     pathPrefix: 'src/pages/Admin',
     patterns: ['graphqlRequest', 'fetch'],
     owner: 'Admin Platform',
@@ -55,22 +40,6 @@ const TEMPORARY_ALLOWLIST = [
       'Partner REST surfaces are isolated integration paths; service-adapter extraction is tracked before production scale.',
   },
   {
-    path: 'src/components/messages/ChatWindow.jsx',
-    patterns: ['fetch'],
-    owner: 'Messaging Platform',
-    targetRemoval: '2026-06-30',
-    reason:
-      'Translation function invocation must move into canonical messaging domain after Nhost function contract review.',
-  },
-  {
-    path: 'src/components/integration/ServiceConnect.jsx',
-    patterns: ['fetch'],
-    owner: 'Integrations Platform',
-    targetRemoval: '2026-07-15',
-    reason:
-      'External integration OAuth endpoints are REST-backed; UI adapter migration tracked as production follow-up.',
-  },
-  {
     pathPrefix: 'src/components/admin/',
     patterns: ['fetch'],
     owner: 'Admin Platform',
@@ -85,41 +54,6 @@ const TEMPORARY_ALLOWLIST = [
     reason: 'AI service calls require governance-aware service adapter extraction.',
   },
   {
-    pathPrefix: 'src/components/compliance/',
-    patterns: ['fetch'],
-    owner: 'Compliance Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'Compliance REST calls require a dedicated compliance service adapter.',
-  },
-  {
-    pathPrefix: 'src/components/discover/',
-    patterns: ['graphqlRequest'],
-    owner: 'Discover Platform',
-    targetRemoval: '2026-06-30',
-    reason: 'Discover GraphQL query requires a discover domain hook extraction.',
-  },
-  {
-    pathPrefix: 'src/hooks/',
-    patterns: ['graphqlRequest'],
-    owner: 'Frontend Platform',
-    targetRemoval: '2026-06-30',
-    reason: 'Legacy hooks are domain-like compatibility boundaries pending relocation to src/domains or src/services.',
-  },
-  {
-    path: 'src/components/SecurityStatusWidget.tsx',
-    patterns: ['fetch'],
-    owner: 'Security Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'Security status widget calls ops status REST until a security service adapter is extracted.',
-  },
-  {
-    path: 'src/pages/AIPromptLibrary.jsx',
-    patterns: ['fetch'],
-    owner: 'AI Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'AI prompt library requires governance-aware service adapter extraction.',
-  },
-  {
     path: 'src/pages/AITransparency.jsx',
     patterns: ['graphqlRequest'],
     owner: 'AI Platform',
@@ -132,13 +66,6 @@ const TEMPORARY_ALLOWLIST = [
     owner: 'Ops Platform',
     targetRemoval: '2026-07-15',
     reason: 'Execution board fallback fetch remains temporarily direct pending full ops domain migration.',
-  },
-  {
-    path: 'src/pages/SchoolDirectoryAdmin.jsx',
-    patterns: ['graphqlRequest'],
-    owner: 'Directory Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'School directory admin query requires directory admin service extraction.',
   },
   {
     path: 'src/components/shared/ProtectedRoute.tsx',
@@ -269,3 +196,10 @@ if (violations.length) {
 console.log(
   `API boundary check passed (${allowed.length} temporary exception${allowed.length === 1 ? '' : 's'} documented).`
 );
+
+if (allowed.length > MAX_TEMPORARY_EXCEPTIONS) {
+  console.error(
+    `API boundary ratchet failed: ${allowed.length} temporary exceptions > ${MAX_TEMPORARY_EXCEPTIONS} allowed.`
+  );
+  process.exit(1);
+}

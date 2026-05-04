@@ -4,12 +4,7 @@ import PropTypes from 'prop-types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-async function fetchJson(url, opts = {}) {
-  const response = await fetch(url, opts);
-  if (!response.ok) throw new Error(await response.text());
-  return response.json();
-}
+import { simulateAIPolicyDecision } from '@/domains/admin/aiPolicySimulation';
 
 export default function AIPolicySimulationPanel({ headers, apiBaseUrl }) {
   const [form, setForm] = useState({
@@ -25,13 +20,13 @@ export default function AIPolicySimulationPanel({ headers, apiBaseUrl }) {
 
   const simulation = useMutation({
     mutationFn: async () =>
-      fetchJson(`${apiBaseUrl}/admin/ai/simulate-policy`, {
-        method: 'POST',
+      simulateAIPolicyDecision({
+        apiBaseUrl,
         headers,
-        body: JSON.stringify({
+        payload: {
           ...form,
           consentScope: form.consentScope.split(',').map((s) => s.trim()).filter(Boolean),
-        }),
+        },
       }),
   });
   const missingHeaders = !headers || typeof headers !== 'object';

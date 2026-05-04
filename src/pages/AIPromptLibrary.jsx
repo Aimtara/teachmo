@@ -5,17 +5,14 @@ import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
-
-async function fetchJson(url, opts = {}) {
-  const response = await fetch(url, opts);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Request failed');
-  }
-  return response.json();
-}
+import {
+  createAIPrompt,
+  createAIPromptVersion,
+  getAIPromptVersions,
+  listAIPrompts,
+  updateAIPrompt,
+} from '@/domains/ai/promptLibrary';
 
 export default function AIPromptLibrary() {
   const [selectedPromptId, setSelectedPromptId] = useState(null);
@@ -37,14 +34,13 @@ export default function AIPromptLibrary() {
   const promptsQuery = useQuery({
     queryKey: ['ai-prompts-admin'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/prompts`, { headers: headersQuery.data }),
+    queryFn: async () => listAIPrompts(headersQuery.data),
   });
 
   const versionsQuery = useQuery({
     queryKey: ['ai-prompts-versions', selectedPromptId],
     enabled: Boolean(headersQuery.data && selectedPromptId),
-    queryFn: async () =>
-      fetchJson(`${API_BASE_URL}/admin/ai/prompts/${selectedPromptId}/versions`, { headers: headersQuery.data }),
+    queryFn: async () => getAIPromptVersions(selectedPromptId, headersQuery.data),
     onSuccess: (data) => {
       if (data?.prompt) {
         setPromptDetails({
@@ -60,15 +56,11 @@ export default function AIPromptLibrary() {
 
   const createPromptMutation = useMutation({
     mutationFn: async () => {
-      return fetchJson(`${API_BASE_URL}/admin/ai/prompts`, {
-        method: 'POST',
-        headers: headersQuery.data,
-        body: JSON.stringify({
-          name: newPrompt.name,
-          description: newPrompt.description,
-          content: newPrompt.content,
-        }),
-      });
+      return createAIPrompt({
+        name: newPrompt.name,
+        description: newPrompt.description,
+        content: newPrompt.content,
+      }, headersQuery.data);
     },
     onSuccess: (data) => {
       promptsQuery.refetch();
@@ -79,15 +71,11 @@ export default function AIPromptLibrary() {
 
   const updatePromptMutation = useMutation({
     mutationFn: async () => {
-      return fetchJson(`${API_BASE_URL}/admin/ai/prompts/${selectedPromptId}`, {
-        method: 'PUT',
-        headers: headersQuery.data,
-        body: JSON.stringify({
-          name: promptDetails.name,
-          description: promptDetails.description,
-          isArchived: promptDetails.isArchived,
-        }),
-      });
+      return updateAIPrompt(selectedPromptId, {
+        name: promptDetails.name,
+        description: promptDetails.description,
+        isArchived: promptDetails.isArchived,
+      }, headersQuery.data);
     },
     onSuccess: () => {
       promptsQuery.refetch();
@@ -97,14 +85,10 @@ export default function AIPromptLibrary() {
 
   const createVersionMutation = useMutation({
     mutationFn: async () => {
-      return fetchJson(`${API_BASE_URL}/admin/ai/prompts/${selectedPromptId}/versions`, {
-        method: 'POST',
-        headers: headersQuery.data,
-        body: JSON.stringify({
-          content: versionContent,
-          setActive: true,
-        }),
-      });
+      return createAIPromptVersion(selectedPromptId, {
+        content: versionContent,
+        setActive: true,
+      }, headersQuery.data);
     },
     onSuccess: () => {
       versionsQuery.refetch();

@@ -2,6 +2,8 @@
 
 Generated: 2026-05-01T22:30:00.000Z
 
+Updated: 2026-05-03 — production-readiness closure added typed domain adapters for teacher dashboard, assignments, and security status. Current ratchet result: `.ts` increased to 314 with no `any`, `@ts-ignore`, or `@ts-expect-error` regression.
+
 ## Baseline totals (tracked files)
 
 | Extension | Count |

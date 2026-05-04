@@ -1,9 +1,8 @@
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { getTenantSsoSettings } from '@/domains/tenant/ssoSettings';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import useTenantSSOSettings from '@/hooks/useTenantSSOSettings';
-import { graphqlRequest } from '@/lib/graphql';
 
 const scopeState = {
   data: { organizationId: 'org-1', districtId: null },
@@ -13,11 +12,13 @@ vi.mock('@/hooks/useTenantScope', () => ({
   useTenantScope: () => scopeState,
 }));
 
-vi.mock('@/lib/graphql', () => ({
-  graphqlRequest: vi.fn(),
+vi.mock('@/domains/tenant/ssoSettings', () => ({
+  getTenantSsoSettings: vi.fn(),
 }));
 
-const graphqlRequestMock = vi.mocked(graphqlRequest);
+const getTenantSSOSettingsMock = vi.mocked(getTenantSsoSettings);
+
+const { default: useTenantSSOSettings } = await import('@/hooks/useTenantSSOSettings');
 
 
 function createWrapper() {
@@ -36,15 +37,15 @@ function createWrapper() {
 
 describe('useTenantSSOSettings', () => {
   beforeEach(() => {
-    graphqlRequestMock.mockReset();
+    getTenantSSOSettingsMock.mockReset();
     scopeState.data = { organizationId: 'org-1', districtId: null };
   });
 
   it('reads providers and requireSso from organization_id tenant settings', async () => {
-    graphqlRequestMock.mockResolvedValue({
-      enterprise_sso_settings: [{ provider: 'google' }, { provider: 'entraid' }],
-      tenant_settings: [{ settings: { require_sso: true } }],
-    } as any);
+    getTenantSSOSettingsMock.mockResolvedValue({
+      providers: ['google', 'entraid'],
+      requireSso: true,
+    });
 
     const { result } = renderHook(() => useTenantSSOSettings(), { wrapper: createWrapper() });
 
@@ -54,21 +55,21 @@ describe('useTenantSSOSettings', () => {
       providers: ['google', 'entraid'],
       requireSso: true,
     });
+    expect(getTenantSSOSettingsMock).toHaveBeenCalledWith('org-1');
   });
 
-  it('falls back to legacy district_id query when organization_id field is unavailable', async () => {
-    graphqlRequestMock
-      .mockRejectedValueOnce(new Error('field "organization_id" does not exist in type: tenant_settings_bool_exp'))
-      .mockResolvedValueOnce({
-        enterprise_sso_settings: [{ provider: 'azuread' }],
-        tenant_settings: [{ settings: { requireSso: true } }],
-      } as any);
+  it('uses district_id scope when organization_id is unavailable', async () => {
+    scopeState.data = { organizationId: null, districtId: 'district-1' };
+    getTenantSSOSettingsMock.mockResolvedValue({
+      providers: ['azuread'],
+      requireSso: true,
+    });
 
     const { result } = renderHook(() => useTenantSSOSettings(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(graphqlRequestMock).toHaveBeenCalledTimes(2);
+    expect(getTenantSSOSettingsMock).toHaveBeenCalledWith('district-1');
     expect(result.current.data).toEqual({ providers: ['azuread'], requireSso: true });
   });
 });

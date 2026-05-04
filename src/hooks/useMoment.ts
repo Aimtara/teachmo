@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MomentContract, MomentId, getCurrentMoment } from '@/governance/momentContract';
 
 export const useMoment = () => {

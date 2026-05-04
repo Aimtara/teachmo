@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { X, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { shouldShowCcpaBanner } from '@/domains/compliance/ccpa';
 
 export default function CCPABanner() {
   const [isVisible, setIsVisible] = useState(false);
@@ -16,11 +17,7 @@ export default function CCPABanner() {
     // Simple IP-based location check (in production, use a proper geolocation service)
     const checkUserLocation = async () => {
       try {
-        // This is a simplified check - in production, use a proper geolocation API
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        
-        if (data.region_code === 'CA' || data.country_code === 'US') {
+        if (await shouldShowCcpaBanner()) {
           setUserLocation('CA');
           setIsVisible(true);
         }

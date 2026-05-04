@@ -3,17 +3,16 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import AITransparency from '@/pages/AITransparency.jsx';
-import { graphqlRequest } from '@/lib/graphql';
+import { listAIPolicyDocs } from '@/domains/ai/transparency';
 
 expect.extend(toHaveNoViolations);
 
-jest.mock('@/lib/graphql', () => ({
-  graphqlRequest: jest.fn()
+vi.mock('@/domains/ai/transparency', () => ({
+  listAIPolicyDocs: vi.fn()
 }));
 
 test('AI transparency page passes basic a11y checks', async () => {
-  graphqlRequest.mockResolvedValue({
-    ai_policy_docs: [
+  vi.mocked(listAIPolicyDocs).mockResolvedValue([
       {
         id: 'doc-1',
         slug: 'ai-purpose',
@@ -23,8 +22,7 @@ test('AI transparency page passes basic a11y checks', async () => {
         links: ['https://teachmo.com/ai'],
         published_at: new Date().toISOString(),
       }
-    ]
-  });
+  ]);
 
   const queryClient = new QueryClient();
   const { container } = render(

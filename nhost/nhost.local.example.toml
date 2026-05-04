@@ -1,0 +1,30 @@
+[global]
+
+# Local developer-only Nhost profile.
+# Copy selected values into your untracked local Nhost config only when running
+# `nhost up` on a private workstation. Do not deploy this file and do not copy
+# these settings into staging or production.
+
+[hasura.settings]
+corsDomain = ['http://localhost:5173', 'http://localhost:4173']
+devMode = true
+enableAllowList = false
+enableConsole = true
+enabledAPIs = ['metadata', 'graphql', 'pgdump', 'config']
+
+[auth.method.anonymous]
+enabled = true
+
+[auth.method.emailPassword]
+emailVerificationRequired = false
+
+[auth.misc]
+concealErrors = false
+
+[postgres.resources]
+enablePublicAccess = true
+
+[auth.method.oauth.google]
+enabled = false
+clientId = 'YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com'
+clientSecret = 'REPLACE_ME_LOCAL_ONLY'

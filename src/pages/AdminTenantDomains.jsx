@@ -1,6 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import {
+  addTenantDomain,
+  listTenantDomains,
+  removeTenantDomain,
+  setPrimaryTenantDomain,
+} from '@/domains/admin/tenantDomains';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -16,36 +21,13 @@ export default function AdminTenantDomains() {
   const domainsQuery = useQuery({
     queryKey: ['tenant-domains', organizationId],
     enabled: Boolean(organizationId),
-    queryFn: async () => {
-      const query = `query TenantDomains($organizationId: uuid!) {
-        tenant_domains(where: { organization_id: { _eq: $organizationId } }, order_by: { domain: asc }) {
-          id
-          domain
-          is_primary
-          verified_at
-        }
-      }`;
-      const data = await graphqlRequest({ query, variables: { organizationId } });
-      return data?.tenant_domains ?? [];
-    },
+    queryFn: async () => listTenantDomains(organizationId),
   });
 
   const addDomainMutation = useMutation({
     mutationFn: async () => {
       if (!organizationId) throw new Error('Missing organization scope');
-      const mutation = `mutation AddTenantDomain($object: tenant_domains_insert_input!) {
-        insert_tenant_domains_one(object: $object) { id }
-      }`;
-      await graphqlRequest({
-        query: mutation,
-        variables: {
-          object: {
-            organization_id: organizationId,
-            domain: newDomain.trim().toLowerCase(),
-            is_primary: false,
-          },
-        },
-      });
+      await addTenantDomain({ organizationId, domain: newDomain.trim().toLowerCase() });
     },
     onSuccess: () => {
       setNewDomain('');
@@ -55,23 +37,14 @@ export default function AdminTenantDomains() {
 
   const setPrimaryMutation = useMutation({
     mutationFn: async ({ id }) => {
-      const mutation = `mutation SetPrimaryDomain($organizationId: uuid!, $id: uuid!) {
-        update_tenant_domains(where: { organization_id: { _eq: $organizationId } }, _set: { is_primary: false }) {
-          affected_rows
-        }
-        update_tenant_domains_by_pk(pk_columns: { id: $id }, _set: { is_primary: true }) { id }
-      }`;
-      await graphqlRequest({ query: mutation, variables: { organizationId, id } });
+      await setPrimaryTenantDomain({ organizationId, id });
     },
     onSuccess: () => domainsQuery.refetch(),
   });
 
   const removeDomainMutation = useMutation({
     mutationFn: async ({ id }) => {
-      const mutation = `mutation RemoveTenantDomain($id: uuid!) {
-        delete_tenant_domains_by_pk(id: $id) { id }
-      }`;
-      await graphqlRequest({ query: mutation, variables: { id } });
+      await removeTenantDomain(id);
     },
     onSuccess: () => domainsQuery.refetch(),
   });

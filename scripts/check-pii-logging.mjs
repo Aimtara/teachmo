@@ -6,7 +6,7 @@ const SOURCE_EXT_RE = /\.(js|jsx|ts|tsx|mjs|cjs)$/;
 const SCANNED_ROOTS = ['src/', 'backend/', 'nhost/functions/'];
 const LOG_CALL_RE = /\b(console\.(?:log|info|warn|error|debug)|logger\.(?:debug|info|warn|error))\s*\((.*)/;
 const DANGEROUS_ARG_RE =
-  /(password|secret|token|accessToken|idToken|jwt|authorization|cookie|message\.body|body\s*:|input\.body|childName|studentName|email|phone|address|prompt|transcript)/i;
+  /(password|secret|token|accessToken|idToken|jwt|authorization|authHeader|cookie|message\.body|messageBody|body\s*:|input\.body|childName|child\.(?:fullName|name)|studentName|student\.(?:fullName|name)|email|phone|address|prompt|rawPrompt|transcript|vendorPayload|aiPrompt)/i;
 
 const ALLOWLIST = [
   {

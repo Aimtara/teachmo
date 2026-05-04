@@ -49,6 +49,12 @@ export function getExecutionBoard() {
   return http('/execution-board/board');
 }
 
+export function getSingleExecutionBoard() {
+  return http('/execution-board');
+}
+
+export const getPublicExecutionBoard = getSingleExecutionBoard;
+
 export function updateExecutionEpic(id: string, patch: Record<string, unknown>, actor?: string) {
   return http(`/execution-board/epics/${id}`, { method: 'PATCH', body: patch, actor });
 }

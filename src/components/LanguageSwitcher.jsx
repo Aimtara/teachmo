@@ -17,7 +17,7 @@ export default function LanguageSwitcher() {
     <Select
       label="Language"
       value={locale}
-      onChange={(e: any) => setLocale(e.target.value)}
+      onChange={(e) => setLocale(e.target.value)}
       options={options}
     />
   );

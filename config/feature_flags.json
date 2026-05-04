@@ -29,6 +29,13 @@
       "testMatrix": ["messaging_flagged_off"]
     },
     {
+      "key": "OFFICE_HOURS",
+      "description": "Enable office hours availability and booking v0.",
+      "defaultEnabled": false,
+      "owner": "learning",
+      "testMatrix": ["office_hours_flagged_off"]
+    },
+    {
       "key": "AI_ASSISTANT",
       "description": "Expose the AI assistant surfaces in the UI.",
       "defaultEnabled": false,

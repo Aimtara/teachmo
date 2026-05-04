@@ -208,7 +208,7 @@ export default function Login() {
   }, [isAuthenticated, navigate, searchParams, selectedFlow]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <main id="main-content" className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-4xl space-y-8">
         <div className="text-center space-y-3">
           <h1 className="text-2xl font-semibold text-gray-900">Sign in to Teachmo</h1>
@@ -350,7 +350,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex justify-center rounded-md bg-emerald-600 py-2 px-4 text-sm font-semibold text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full flex justify-center rounded-md bg-emerald-700 py-2 px-4 text-sm font-semibold text-white hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? 'Working…' : authMode === AUTH_MODES.SIGN_UP ? 'Create account' : 'Sign in'}
               </button>
@@ -395,7 +395,7 @@ export default function Login() {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, FileText, Plus, RefreshCw } from 'lucide-react';
-import { graphqlRequest } from '@/lib/graphql';
+import { createAssignment, listAssignmentsByCourse } from '@/domains/assignments';
 import { GoogleClassroomService } from '@/services/integrations/googleClassroom';
 
 function formatDueDate(value) {
@@ -77,18 +77,7 @@ export default function AssignmentsView({ classData, currentUser }) {
     setError('');
 
     try {
-      const query = `
-        query AssignmentsByCourse($courseId: String!) {
-          assignments(
-            where: { course_id: { _eq: $courseId } }
-            order_by: [{ due_at: asc_nulls_last }, { created_at: desc }]
-          ) {
-            ${ASSIGNMENT_FIELDS}
-          }
-        }
-      `;
-      const result = await graphqlRequest({ query, variables: { courseId: String(courseId) } });
-      const assignmentData = result?.assignments ?? [];
+      const assignmentData = await listAssignmentsByCourse(String(courseId));
       setAssignments(Array.isArray(assignmentData) ? assignmentData : []);
     } catch (loadError) {
       console.error('Failed to load assignments:', loadError);
@@ -119,14 +108,7 @@ export default function AssignmentsView({ classData, currentUser }) {
         teacher_user_id: String(currentUser.id),
       };
 
-      const mutation = `
-        mutation CreateAssignment($object: assignments_insert_input!) {
-          insert_assignments_one(object: $object) {
-            ${ASSIGNMENT_FIELDS}
-          }
-        }
-      `;
-      await graphqlRequest({ query: mutation, variables: { object: payload } });
+      await createAssignment(payload);
       setFormState({ title: '', description: '', dueAt: '' });
       setIsCreateOpen(false);
       await loadAssignments();

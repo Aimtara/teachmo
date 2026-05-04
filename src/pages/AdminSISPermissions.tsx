@@ -70,6 +70,7 @@ export default function AdminSISPermissions() {
   return (
     <Page title="SIS Permissions">
       <p>Manage insert/update permissions for SIS/SCIM tables by role.</p>
+      {loading && <p className="text-sm text-muted-foreground">Updating permission…</p>}
       <Table
         data={permissions}
         columns={[

@@ -14,8 +14,8 @@
     "tick:daily": "node jobs/orchestratorTick.js daily",
     "tick:weekly": "node jobs/orchestratorTick.js weekly",
     "test:ops-auth": "jest --config ../jest.backend.config.cjs --testPathPattern ops-auth",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.js --runInBand",
-    "test:feature-flags": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.js --runInBand __tests__/featureFlags.test.js"
+    "test": "jest --config ../jest.backend.config.cjs --runInBand",
+    "test:feature-flags": "jest --config ../jest.backend.config.cjs --runInBand __tests__/featureFlags.test.js"
   },
   "dependencies": {
     "@node-saml/passport-saml": "^5.1.0",
@@ -24,7 +24,6 @@
     "express": "^4.22.1",
     "express-rate-limit": "^8.2.2",
     "jose": "^5.6.3",
-    "lodash": "^4.17.23",
     "passport": "^0.7.0",
     "passport-openidconnect": "^0.1.2",
     "pdfkit": "^0.15.0",
@@ -34,7 +33,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "nodemon": "^2.0.22",
+    "nodemon": "^3.1.14",
     "supertest": "^7.1.4"
   }
 }

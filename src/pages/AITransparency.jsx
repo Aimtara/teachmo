@@ -1,31 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
-import { graphqlRequest } from '@/lib/graphql';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { listAIPolicyDocs } from '@/domains/ai/transparency';
 
 export default function AITransparency() {
   const docsQuery = useQuery({
     queryKey: ['ai-policy-docs'],
-    queryFn: async () => {
-      const query = `query AIPolicyDocs {
-        ai_policy_docs(where: { organization_id: { _is_null: true } }, order_by: { published_at: desc }) {
-          id
-          slug
-          title
-          summary
-          body_markdown
-          links
-          published_at
-        }
-      }`;
-
-      const res = await graphqlRequest({ query });
-      return res?.ai_policy_docs ?? [];
-    },
+    queryFn: listAIPolicyDocs,
   });
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <main id="main-content" className="min-h-screen bg-slate-50">
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
         <header className="space-y-3">
           <h1 className="text-3xl font-semibold text-slate-900">AI Transparency</h1>
@@ -57,9 +42,9 @@ export default function AITransparency() {
                   {doc.summary ? <p className="text-sm text-muted-foreground">{doc.summary}</p> : null}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <ReactMarkdown className="prose prose-sm max-w-none text-slate-700">
-                    {doc.body_markdown}
-                  </ReactMarkdown>
+                  <div className="prose prose-sm max-w-none text-slate-700">
+                    <ReactMarkdown>{doc.body_markdown}</ReactMarkdown>
+                  </div>
                   {Array.isArray(doc.links) && doc.links.length > 0 ? (
                     <div className="space-y-1">
                       <p className="text-xs uppercase tracking-wide text-slate-500">References</p>
@@ -80,6 +65,6 @@ export default function AITransparency() {
           )}
         </section>
       </div>
-    </div>
+    </main>
   );
 }

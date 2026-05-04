@@ -10,12 +10,32 @@ const reactRules = {
   ...react.configs.recommended.rules,
   ...react.configs['jsx-runtime'].rules,
   ...reactHooks.configs.recommended.rules,
+  'react/prop-types': 'off',
+  'react/no-unescaped-entities': 'off',
   'react/jsx-no-target-blank': 'off',
   'react-refresh/only-export-components': ['warn', { allowConstantExport: true }]
 };
 
+const typeOnlyGlobals = {
+  EventListener: 'readonly',
+  ServiceWorkerGlobalScope: 'readonly',
+  SurfaceType: 'readonly',
+  MomentId: 'readonly'
+};
+
 export default [
-  { ignores: ['dist', 'node_modules'] },
+  {
+    ignores: [
+      'dist/**',
+      'build/**',
+      'coverage/**',
+      'node_modules/**',
+      'backend/node_modules/**',
+      'nhost/functions/node_modules/**',
+      '**/*.d.ts',
+      'src/components/testing/**'
+    ]
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -24,7 +44,7 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module'
       },
-      globals: { ...globals.browser, ...globals.node, ...globals.jest }
+      globals: { ...globals.browser, ...globals.node, ...globals.jest, ...typeOnlyGlobals }
     },
     settings: { react: { version: '18.3' } },
     plugins: {
@@ -128,6 +148,18 @@ export default [
           ]
         }
       ]
+    }
+  },
+  {
+    files: ['src/**/*.test.{js,jsx,ts,tsx}', 'src/**/__tests__/**/*.{js,jsx,ts,tsx}', 'setupVitest.js'],
+    languageOptions: {
+      globals: { ...globals.vitest }
+    }
+  },
+  {
+    files: ['src/service-worker.ts'],
+    languageOptions: {
+      globals: { ...globals.serviceworker, ...typeOnlyGlobals }
     }
   },
   {

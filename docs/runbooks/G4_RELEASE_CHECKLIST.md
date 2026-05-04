@@ -7,6 +7,7 @@ Use this checklist for controlled pilot and production deployments.
 - [ ] `npm ci`
 - [ ] `npm run preflight:example`
 - [ ] `npm run check:secret-hygiene`
+- [ ] `npm run check:nhost-config-safety`
 - [ ] `npm run check:api-boundaries`
 - [ ] `npm run check:production-auth-safety`
 - [ ] `npm run check:hasura-readiness`
@@ -21,6 +22,9 @@ Use this checklist for controlled pilot and production deployments.
 - [ ] `npm run check:production`
 - [ ] `npm run check:launch`
 
+Current known caveat: broad `npm run lint`, full `npm run test -- --run`, and `npm run check:size`
+are tracked as production-readiness blockers until the documented debt is resolved or formally accepted.
+
 ## Environment pre-deploy
 
 - [ ] `VITE_NHOST_BACKEND_URL` or `VITE_NHOST_SUBDOMAIN`/`VITE_NHOST_REGION` is configured.
@@ -29,6 +33,7 @@ Use this checklist for controlled pilot and production deployments.
 - [ ] No bypass flags are enabled outside local/test (`VITE_E2E_BYPASS_AUTH=false`, `VITE_BYPASS_AUTH=false`).
 - [ ] `VITE_SENTRY_DSN` and Sentry release environment are configured.
 - [ ] Hasura metadata/migrations are applied and drift checked using the Hasura readiness runbook.
+- [ ] `nhost/nhost.toml` matches `docs/runbooks/nhost-production-config.md`; any local-only config is taken from `nhost/nhost.local.example.toml` and never deployed.
 
 ## Deploy verification
 
@@ -38,6 +43,7 @@ Use this checklist for controlled pilot and production deployments.
 - [ ] Smoke test login, role redirect, parent dashboard, teacher dashboard, partner dashboard, admin/ops access control, discover/explore, messaging, and unauthorized state.
 - [ ] Run `npm run e2e:ops` against staging with test users if credentials are available.
 - [ ] Run accessibility smoke (`npm run test:a11y` and `npm run e2e:a11y` where browser deps are available).
+- [ ] Run Hasura permission smoke with `REQUIRE_HASURA_SMOKE=true` using `docs/runbooks/hasura-permission-smoke.md`.
 
 ## Post-deploy
 

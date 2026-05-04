@@ -1,0 +1,39 @@
+{
+  "generated": "2026-05-03",
+  "policy": {
+    "defaultAuditCommand": "npm audit --audit-level=high --omit=dev --omit=optional",
+    "reason": "The launch gate audits production runtime dependencies. Dev-only and optional build-time findings remain tracked here and in readiness docs."
+  },
+  "exceptions": [
+    {
+      "package": "vite-plugin-pwa",
+      "advisories": ["workbox-build", "@rollup/plugin-terser", "serialize-javascript"],
+      "severity": "high",
+      "exposure": "optional build-time PWA service-worker generation only; not installed in production runtime audit",
+      "reason": "Current latest vite-plugin-pwa pulls Workbox 7.x, which npm audit flags via serialize-javascript. Audit's suggested fix is a downgrade to vite-plugin-pwa 0.19.8, which would reintroduce older PWA behavior and major-version breakage risk. The dependency is optional and excluded from the production runtime audit gate while upstream publishes a patched chain.",
+      "mitigation": "PWA generation is exercised by build tests; no untrusted user input is passed to Workbox serialization; production runtime audit omits optional/dev dependencies.",
+      "owner": "Frontend Platform Owner",
+      "expires": "2026-06-30"
+    },
+    {
+      "package": "@storybook/addon-essentials",
+      "advisories": ["@storybook/addon-actions", "uuid"],
+      "severity": "moderate",
+      "exposure": "dev-only Storybook tooling",
+      "reason": "Latest Storybook major is incompatible with the current Vite 6/React toolchain without a larger Storybook migration. Not production runtime exposed.",
+      "mitigation": "Storybook is not part of production build or runtime audit; revisit with Storybook/Vite major upgrade.",
+      "owner": "Frontend Platform Owner",
+      "expires": "2026-07-31"
+    },
+    {
+      "package": "@flydotio/dockerfile",
+      "advisories": ["diff"],
+      "severity": "low",
+      "exposure": "dev/build helper only",
+      "reason": "Audit's fix points to a package downgrade. Not production runtime exposed.",
+      "mitigation": "Excluded from production runtime audit; monitor upstream.",
+      "owner": "DevOps Platform Owner",
+      "expires": "2026-07-31"
+    }
+  ]
+}

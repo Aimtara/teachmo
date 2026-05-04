@@ -24,10 +24,20 @@ test.describe('role-based routing', () => {
 });
 
 test('offline caching keeps core assets available', async ({ page, context }) => {
+  test.skip(
+    !process.env.PLAYWRIGHT_PWA_BASE_URL,
+    'PWA offline cache smoke requires a production preview URL; Vite dev does not register the service worker.'
+  );
+
   await page.goto('/');
   const hasServiceWorker = await page.evaluate(async () => {
     if (!('serviceWorker' in navigator)) return { supported: false, caches: [] };
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) => {
+        window.setTimeout(() => reject(new Error('service_worker_not_ready')), 5000);
+      }),
+    ]);
     const cacheKeys = 'caches' in window ? await caches.keys() : [];
     return { supported: true, scope: registration.scope, caches: cacheKeys };
   });

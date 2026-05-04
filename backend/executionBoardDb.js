@@ -424,7 +424,7 @@ export async function updateGate(gate, patch, actor) {
          updated_at = NOW()
      WHERE gate = $3
      RETURNING gate`,
-    [checklist, status, gate]
+    [checklistJson, status, gate]
   );
 
   if (res.rowCount === 0) return false;

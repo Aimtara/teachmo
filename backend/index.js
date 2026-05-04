@@ -37,11 +37,17 @@ if (shouldSeedDemo) {
 await runMigrations();
 seedExecutionBoardData();
 await seedOpsDemoData();
-startRetentionPurgeScheduler();
-startNotificationQueueScheduler();
-startObservabilitySchedulers();
-startRosterSyncScheduler();
-startSisContinuousSyncScheduler();
+
+const shouldStartSchedulers = String(process.env.DISABLE_BACKGROUND_JOBS || '').toLowerCase() !== 'true';
+if (shouldStartSchedulers) {
+  startRetentionPurgeScheduler();
+  startNotificationQueueScheduler();
+  startObservabilitySchedulers();
+  startRosterSyncScheduler();
+  startSisContinuousSyncScheduler();
+} else {
+  logger.info('Background schedulers disabled via DISABLE_BACKGROUND_JOBS.');
+}
 
 const server = app.listen(PORT, () => {
   logger.info(`Teachmo backend server running on port ${PORT}`);

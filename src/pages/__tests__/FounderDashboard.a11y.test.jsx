@@ -1,5 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
+import { vi } from 'vitest';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import FounderDashboard from '@/pages/FounderDashboard.jsx';
 import { getGovernanceEvents } from '@/governance/events';
@@ -7,8 +8,8 @@ import { getGovernanceEvents } from '@/governance/events';
 expect.extend(toHaveNoViolations);
 
 // Mock the governance events
-jest.mock('@/governance/events', () => ({
-  getGovernanceEvents: jest.fn(() => []),
+vi.mock('@/governance/events', () => ({
+  getGovernanceEvents: vi.fn(() => []),
 }));
 
 describe('FounderDashboard accessibility', () => {

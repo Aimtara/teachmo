@@ -1,4 +1,5 @@
 import { graphqlRequest } from '@/lib/graphql';
+import { nhost } from '@/lib/nhostClient';
 
 type CreateThreadInput = {
   subject: string;
@@ -60,4 +61,22 @@ export async function listThreads(profileId: string) {
 
   const data = await graphqlRequest({ query, variables: { profileId } });
   return data?.thread_participants?.map((item: { thread: unknown }) => item.thread) || [];
+}
+
+export async function translateMessageContent(text: string, targetLanguage = 'en') {
+  const token = await nhost.auth.getAccessToken();
+  const response = await fetch('/functions/translateMessage', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ text, targetLanguage }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Translation request failed (${response.status})`);
+  }
+
+  return response.json() as Promise<{ translatedText?: string }>;
 }

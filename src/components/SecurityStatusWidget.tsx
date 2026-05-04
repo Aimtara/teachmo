@@ -1,68 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('security-status-widget');
-
-type AuditFindingStatus = 'passed' | 'failed' | 'pending';
-
-type AuditFinding = {
-  id: string;
-  control: string;
-  status: AuditFindingStatus;
-  severity?: 'low' | 'medium' | 'high';
-};
-
-type AuditSummaryResponse = {
-  findings?: AuditFinding[];
-  lastChecked?: string;
-};
-
-type SecurityStatus = {
-  passed: number;
-  failed: number;
-  pending: number;
-  lastChecked: string;
-};
-
-const FALLBACK_FINDINGS: AuditFinding[] = [
-  { id: 'encryption', control: 'Encryption at rest', status: 'passed', severity: 'high' },
-  { id: 'sso', control: 'SSO enforcement', status: 'pending', severity: 'medium' },
-  { id: 'least-privilege', control: 'Least privilege reviews', status: 'passed', severity: 'medium' },
-  { id: 'audit-trail', control: 'Audit trail coverage', status: 'failed', severity: 'high' },
-];
-
-async function fetchAuditSummary(): Promise<AuditSummaryResponse> {
-  if (typeof fetch !== 'function') return { findings: FALLBACK_FINDINGS, lastChecked: new Date().toISOString() };
-
-  const response = await fetch('/functions/security/audit-summary').catch((error) => {
-    logger.warn('Audit summary fetch failed', error);
-    return null;
-  });
-
-  if (!response?.ok) {
-    return { findings: FALLBACK_FINDINGS, lastChecked: new Date().toISOString() };
-  }
-
-  return response.json();
-}
-
-function computeStatus(summary: AuditSummaryResponse): SecurityStatus {
-  const findings = summary.findings ?? [];
-  const counts = findings.reduce(
-    (acc, finding) => {
-      acc[finding.status] += 1;
-      return acc;
-    },
-    { passed: 0, failed: 0, pending: 0 } as Record<AuditFindingStatus, number>,
-  );
-
-  return {
-    passed: counts.passed,
-    failed: counts.failed,
-    pending: counts.pending,
-    lastChecked: summary.lastChecked ?? new Date().toISOString(),
-  };
-}
+import { computeSecurityStatus, fetchAuditSummary, type SecurityStatus } from '@/domains/securityStatus';
 
 export default function SecurityStatusWidget() {
   const [status, setStatus] = useState<SecurityStatus | null>(null);
@@ -82,7 +19,7 @@ export default function SecurityStatusWidget() {
       setIsLoading(true);
       const summary = await fetchAuditSummary();
       if (!cancelled) {
-        setStatus(computeStatus(summary));
+        setStatus(computeSecurityStatus(summary));
         setIsLoading(false);
       }
     };

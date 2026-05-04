@@ -38,12 +38,24 @@
 - Incident response: `runbooks/G4_INCIDENT_RESPONSE.md`
 - Environment & secrets: `runbooks/G4_ENVIRONMENT.md`
 - Hasura production readiness: `runbooks/hasura-production-readiness.md`
+- Hasura permission smoke: `runbooks/hasura-permission-smoke.md`
+- Nhost production config: `runbooks/nhost-production-config.md`
+- Release contract: `runbooks/release-contract.md`
+- Observability and SLOs: `runbooks/observability-and-slos.md`
 
 ## Production Readiness
 
 - Production hardening status: `readiness/production-hardening-status.md`
 - Baseline/current inventory: `readiness/production-hardening-inventory.md`
 - Manual production work register: `readiness/manual-production-work.md`
+- Open findings remediation plan: `readiness/open-findings-remediation-plan.md`
+- API-boundary exception register: `readiness/api-boundary-exceptions.md`
+- Browser E2E and a11y readiness: `readiness/browser-e2e-a11y-readiness.md`
+- Bundle size plan: `readiness/bundle-size-plan.md`
+- Gate audit closure: `readiness/gate-audit-closure.md`
+- Remaining work closure plan: `readiness/remaining-work-closure-plan.md`
+- SWOT closure: `readiness/swot-closure.md`
+- Evidence templates: `readiness/evidence/`
 - Final readiness readout: `readiness/production-readiness-readout.md`
 - Observability standards: `observability.md`
 - Feature flags and bypass policy: `feature-flags.md`

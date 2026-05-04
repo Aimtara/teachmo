@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthenticationStatus, useUserId } from '@nhost/react';
 import { Link, Navigate } from 'react-router-dom';
-import { graphqlRequest } from '@/lib/graphql';
+import { getTeacherDashboardSummary } from '@/domains/teacherDashboard';
 import { User } from '@/api/entities';
 import GoogleClassroomConnect from '@/components/integration/GoogleClassroomConnect';
 import { Badge } from '@/components/ui/badge';
@@ -25,42 +25,7 @@ export default function TeacherDashboard() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['teacher-dashboard', userId],
     enabled: isAuthenticated && Boolean(userId),
-    queryFn: async () => {
-      // Updated query to include assignments and submission aggregates
-      const query = `query TeacherDashboard($eventsLimit: Int, $assignmentsLimit: Int) {
-        classrooms(order_by: { name: asc }) {
-          id
-          name
-        }
-        events(order_by: { starts_at: asc }, limit: $eventsLimit) {
-          id
-          title
-          starts_at
-          classroom {
-            name
-          }
-        }
-        assignments(
-          order_by: { due_at: asc }, 
-          limit: $assignmentsLimit, 
-          where: { status: { _eq: "active" } }
-        ) {
-          id
-          title
-          due_at
-          classroom {
-            name
-          }
-          submissions_aggregate {
-            aggregate {
-              count
-            }
-          }
-        }
-      }`;
-
-      return graphqlRequest({ query, variables: { eventsLimit: 5, assignmentsLimit: 5 } });
-    }
+    queryFn: () => getTeacherDashboardSummary({ eventsLimit: 5, assignmentsLimit: 5 })
   });
 
   const classrooms = data?.classrooms ?? [];

@@ -28,8 +28,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4173
 
-RUN npm i -g serve
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 
 EXPOSE 4173
-CMD ["sh", "-c", "serve -s dist -l ${PORT}"]
+CMD ["sh", "-c", "npx vite preview --host 0.0.0.0 --port ${PORT}"]

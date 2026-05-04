@@ -21,4 +21,43 @@ describe('redactRecord', () => {
       phoneValue: '[REDACTED]',
     });
   });
+
+  it('redacts nested arrays, auth material, AI prompts, addresses, and child/student data', () => {
+    const result = redactRecord({
+      authorization: 'Bearer abcdefghijklmnopqrstuvwxyz123456',
+      aiPrompt: 'Summarize this student note',
+      vendorPayload: {
+        rawPrompt: 'Use private student context',
+        responseBody: 'model output',
+      },
+      children: [
+        {
+          childName: 'Pat Student',
+          studentName: 'Sam Learner',
+          homeAddress: '123 Main St, Springfield',
+          note: 'non-sensitive aggregate',
+        },
+      ],
+      contact: {
+        phone: '(555) 123-4567',
+        emailAddress: 'guardian@example.com',
+      },
+    }) as Record<string, unknown>;
+
+    expect(result.authorization).toBe('[REDACTED]');
+    expect(result.aiPrompt).toBe('[REDACTED]');
+    expect(result.vendorPayload).toBe('[REDACTED]');
+    expect(result.children).toEqual([
+      {
+        childName: '[REDACTED]',
+        studentName: '[REDACTED]',
+        homeAddress: '[REDACTED]',
+        note: 'non-sensitive aggregate',
+      },
+    ]);
+    expect(result.contact).toMatchObject({
+      phone: '[REDACTED]',
+      emailAddress: '[REDACTED]',
+    });
+  });
 });

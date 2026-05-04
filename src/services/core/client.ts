@@ -105,12 +105,14 @@ export const apiClient = {
       await client.delete(...args);
     }
   },
-  async get<T>(endpoint: string, _params?: Record<string, unknown>): Promise<T> {
+  async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
     logger.debug(`[GET] ${endpoint}`);
+    void params;
     throw new Error('apiClient.get is not implemented. Use a domain module or requestJson instead.');
   },
-  async post<T>(endpoint: string, _body?: unknown): Promise<T> {
+  async post<T>(endpoint: string, body?: unknown): Promise<T> {
     logger.debug(`[POST] ${endpoint}`);
+    void body;
     throw new Error('apiClient.post is not implemented. Use a domain module or requestJson instead.');
   },
   functions: {

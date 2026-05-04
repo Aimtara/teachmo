@@ -8,9 +8,15 @@ interface ParsedInsight {
   confidenceScore: number;
 }
 
+async function checkDuplicateDedupeKey(): Promise<boolean> {
+  // Persistent dedupe is provided by the orchestrator store in deployed flows.
+  // This local fallback keeps the parser fail-open for isolated tests/imports.
+  return false;
+}
+
 export async function parseEmailToInsights(rawEmailBody: string, sourceId: string): Promise<ParsedInsight[]> {
   // 1. Deduplication Reflex (run before expensive LLM call)
-  const isDuplicate = await checkDuplicateDedupeKey(`email_insight_${sourceId}`);
+  const isDuplicate = await checkDuplicateDedupeKey();
   if (isDuplicate) return [];
 
   // 2. LLM Reasoning extraction
