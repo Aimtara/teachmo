@@ -1,0 +1,75 @@
+name: Role Smoke and Gate Proofs
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'backend/**'
+      - 'tests/e2e/**'
+      - 'package*.json'
+      - '.github/workflows/role-smoke-gate-proofs.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: local or staging
+        default: local
+        type: choice
+        options: [local, staging]
+
+permissions:
+  contents: read
+
+jobs:
+  role-gate-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VITE_E2E_BYPASS_AUTH: "true"
+      VITE_DISABLE_DEV_ROUTE_BYPASS: "true"
+      VITE_ENABLE_INTERNAL_ROUTES: "true"
+      VITE_FEATURE_CALENDAR: "true"
+      VITE_FEATURE_TEACHER_CLASSES: "true"
+      VITE_FEATURE_TEACHER_ASSIGNMENTS: "true"
+      VITE_FEATURE_TEACHER_MESSAGES: "true"
+      VITE_FEATURE_OFFICE_HOURS: "true"
+          VITE_FEATURE_MESSAGING: "true"
+          VITE_FEATURE_SCHOOL_DIRECTORY: "true"
+          VITE_FEATURE_ENTERPRISE_SIS_ROSTER: "true"
+      AUTH_MOCK_SECRET: role-gate-secret
+      PLAYWRIGHT_WEB_SERVER: "true"
+      PLAYWRIGHT_BASE_URL: ${{ inputs.target == 'staging' && secrets.STAGING_BASE_URL || 'http://localhost:5173' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run role smoke
+        env:
+          PLAYWRIGHT_WEB_SERVER: ${{ inputs.target == 'staging' && 'false' || 'true' }}
+        run: npm run e2e:roles
+
+      - name: Run Gate 2/3/4 proofs
+        env:
+          PLAYWRIGHT_WEB_SERVER: ${{ inputs.target == 'staging' && 'false' || 'true' }}
+        run: npm run e2e:gates
+
+      - name: Generate proof summary
+        if: always()
+        run: npm run ops:gate-proof-report -- --output-dir artifacts/ops
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: role-gate-proof-artifacts
+          path: |
+            playwright-report
+            test-results
+            artifacts/ops/gate-proof-summary.*
