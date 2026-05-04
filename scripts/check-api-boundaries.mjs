@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const UI_PREFIXES = ['src/pages/', 'src/components/', 'src/hooks/', 'src/app/', 'src/routes/'];
-const MAX_TEMPORARY_EXCEPTIONS = 24;
+const MAX_TEMPORARY_EXCEPTIONS = 21;
 const APPROVED_PREFIXES = [
   'src/pages/__tests__/',
   'src/components/**/__tests__/',
@@ -52,13 +52,6 @@ const TEMPORARY_ALLOWLIST = [
     owner: 'AI Platform',
     targetRemoval: '2026-07-15',
     reason: 'AI service calls require governance-aware service adapter extraction.',
-  },
-  {
-    pathPrefix: 'src/hooks/',
-    patterns: ['graphqlRequest'],
-    owner: 'Frontend Platform',
-    targetRemoval: '2026-06-30',
-    reason: 'Legacy hooks are domain-like compatibility boundaries pending relocation to src/domains or src/services.',
   },
   {
     path: 'src/pages/AITransparency.jsx',
