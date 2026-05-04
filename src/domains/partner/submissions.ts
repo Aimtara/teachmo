@@ -25,10 +25,14 @@ export function createPartnerSubmission(
   });
 }
 
-export function updatePartnerSubmissionTitle(id: string, title: string, headers: TenantHeaders = {}) {
+export function updatePartnerSubmission(id: string, payload: { title: string }, headers: TenantHeaders = {}) {
   return apiJson<PartnerSubmission>(`/submissions/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers,
-    body: { title },
+    body: payload,
   });
+}
+
+export function updatePartnerSubmissionTitle(id: string, title: string, headers: TenantHeaders = {}) {
+  return updatePartnerSubmission(id, { title }, headers);
 }

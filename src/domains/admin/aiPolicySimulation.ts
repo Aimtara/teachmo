@@ -23,3 +23,5 @@ export function simulateAIPolicy(
     body: input,
   });
 }
+
+export const simulateAIPolicyDecision = simulateAIPolicy;
