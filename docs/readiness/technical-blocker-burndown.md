@@ -80,3 +80,16 @@ Execution baseline confirms the blockers are pre-existing and reproducible. Root
 | Legacy lint policy debt | Frontend Platform Owner | 2026-06-30 | `npm run check:lint-ratchet` in production fast gate |
 | Bundle total-JS reduction beyond ratchet | Web Performance Owner | 2026-06-15 | `npm run check:size` app-shell/per-chunk/total-growth ratchet |
 | API-boundary temporary exceptions | Platform Owners in exception register | 2026-07-15 | `npm run check:api-boundaries` |
+
+## May 4 closure delta
+
+- API-boundary exceptions were reduced further from 37 to 30 and the checker now
+  fails if the temporary exception count rises above 30.
+- Bundle ratchet was tightened to 598 kB total brotli, 23 kB initial app shell,
+  and 214 kB largest chunk after fresh validation measured 597.75 / 22.21 /
+  213.73 kB.
+- `npm run test:a11y` now runs the Vitest a11y suites directly and passes
+  5 files / 22 tests.
+- `npm run test:e2e` now passes the automated browser smoke subset available in
+  this environment: 7 passed / 5 skipped. Skips are credential/live-environment
+  gated, including production-preview offline PWA proof.

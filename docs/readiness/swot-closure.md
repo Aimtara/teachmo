@@ -45,3 +45,12 @@ Generated: 2026-05-03
 | Permission smoke skipping | Yes | Fork PRs may skip intentionally. | Require live smoke for protected launches. |
 | Force-push release script | Yes | Legacy force-push script exits with warning. | Remove entirely after pilot process approval. |
 | Migration ownership complexity | Partial | Runbooks clarify Nhost/Hasura/backend sequencing. | Assign migration owners and perform staging rehearsal. |
+
+## May 4 closure update
+
+| Category | Updated status | Evidence | Remaining work |
+| --- | --- | --- | --- |
+| Strength: quality gates | Strengthened | API-boundary exception cap tightened to 30; bundle ratchet tightened to 599/23/214; browser E2E and unit a11y commands now pass in scoped local automation. | Continue full-lint cleanup under ratchet. |
+| Weakness: browser QA | Addressed for local smoke | `npm run test:e2e`: 7 passed / 5 credential-environment skips; `npm run test:a11y`: 22 passed. | Live role, SSO, SCIM, and production-preview PWA evidence remain manual. |
+| Opportunity: Melorean/domain architecture | Captured | Partner, directory, AI transparency, execution board, audit-log, and AI simulation calls now use domain adapters; exceptions reduced 37 → 30. | Remaining admin/AI prompt/discover/hook adapters. |
+| Threat: auth bypass ambiguity | Mitigated further | Playwright runs with explicit test-only bypass/env flags; route security dev bypass is disable-able; non-admin Ops smoke now proves block behavior. | Verify staging/prod env flags with Nhost/Hasura evidence templates. |

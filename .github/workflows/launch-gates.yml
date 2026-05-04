@@ -72,7 +72,13 @@ jobs:
         run: npm ci
 
       - name: Build frontend (for stable CI serving)
-        run: npm run build
+        env:
+          VITE_E2E_BYPASS_AUTH: "true"
+          VITE_DISABLE_DEV_ROUTE_BYPASS: "false"
+          VITE_ENABLE_DEV_ROUTE_BYPASS: "true"
+          VITE_ENABLE_INTERNAL_ROUTES: "true"
+          VITE_API_BASE_URL: "http://localhost:4000"
+        run: npm run build:ci
 
       - name: Check bundle size
         run: npm run check:size
@@ -92,6 +98,34 @@ jobs:
           echo "❌ Postgres did not become reachable at ${DB_HOST}:${DB_PORT}"
           exit 1
 
+      - name: Bootstrap local Nhost auth schema
+        run: |
+          node --input-type=module - <<'NODE'
+          import pg from 'pg';
+
+          const client = new pg.Client({
+            host: process.env.DB_HOST,
+            port: Number(process.env.DB_PORT || 5432),
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+          });
+
+          await client.connect();
+          await client.query('CREATE EXTENSION IF NOT EXISTS citext');
+          await client.query('CREATE SCHEMA IF NOT EXISTS auth');
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS auth.users (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              email text,
+              display_name text,
+              disabled boolean DEFAULT false,
+              created_at timestamptz DEFAULT now()
+            )
+          `);
+          await client.end();
+          NODE
+
       # --------------------------------------------------------
       # G0: Backend Auth Tests (Unit)
       # --------------------------------------------------------
@@ -104,6 +138,10 @@ jobs:
       # --------------------------------------------------------
       - name: Start backend (CI)
         working-directory: backend
+        env:
+          AUTO_APPLY_NHOST_SCHEMA: "false"
+          SKIP_MIGRATIONS: "true"
+          DISABLE_BACKGROUND_JOBS: "true"
         run: |
           set -euo pipefail
           nohup npm run start > ../backend-ci.log 2>&1 &
@@ -113,15 +151,22 @@ jobs:
         env:
           PORT: 3000
           VITE_E2E_BYPASS_AUTH: "true"
+          VITE_DISABLE_DEV_ROUTE_BYPASS: "true"
+          VITE_ENABLE_INTERNAL_ROUTES: "true"
+          VITE_FEATURE_CALENDAR: "true"
+          VITE_FEATURE_TEACHER_CLASSES: "true"
+          VITE_FEATURE_TEACHER_ASSIGNMENTS: "true"
+          VITE_FEATURE_TEACHER_MESSAGES: "true"
+          VITE_FEATURE_OFFICE_HOURS: "true"
           VITE_API_BASE_URL: "http://localhost:4000"
         run: |
           set -euo pipefail
-          nohup npm run preview -- --host 0.0.0.0 --port 3000 > frontend-ci.log 2>&1 &
+          nohup npm run dev -- --host 0.0.0.0 --port 3000 > frontend-ci.log 2>&1 &
           echo $! > frontend-ci.pid
 
       - name: Wait for backend + frontend
         run: |
-          npx wait-on http://localhost:4000/api/ops/health http://localhost:3000 --timeout 60000
+          npx wait-on http://localhost:4000/api http://localhost:3000 --timeout 60000
 
       # --------------------------------------------------------
       # G3: Operational Readiness (E2E Smoke)
@@ -131,7 +176,8 @@ jobs:
 
       - name: G3 - Ops E2E Smoke Test
         env:
-          BASE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_WEB_SERVER: "false"
           AUTH_MOCK_SECRET: launch-gates-secret
         run: |
           npm run e2e:ops

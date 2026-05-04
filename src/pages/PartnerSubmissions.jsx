@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { API_BASE_URL } from '@/config/api';
 import { useUserId } from '@nhost/react';
 import { useTenantScope } from '@/hooks/useTenantScope';
+import {
+  createPartnerSubmission,
+  listPartnerSubmissions,
+  updatePartnerSubmission,
+} from '@/domains/partner/submissions';
 
 const types = ['event', 'resource', 'offer'];
 
@@ -21,7 +25,7 @@ export default function PartnerSubmissions() {
   }, [userId, scope?.districtId, scope?.schoolId]);
 
   const load = async () => {
-    const data = await fetch(`${API_BASE_URL}/submissions`, { headers: tenantHeaders }).then((r) => r.json());
+    const data = await listPartnerSubmissions(tenantHeaders);
     setSubmissions(data);
   };
 
@@ -29,25 +33,15 @@ export default function PartnerSubmissions() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch(`${API_BASE_URL}/submissions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...tenantHeaders },
-      body: JSON.stringify({ ...form, type: current }),
-    });
-    if (res.ok) {
-      setForm({ title: '', description: '' });
-      load();
-    }
+    await createPartnerSubmission({ ...form, type: current }, tenantHeaders);
+    setForm({ title: '', description: '' });
+    load();
   };
 
   const updateTitle = async (id) => {
     const newTitle = window.prompt('Update submission title');
     if (!newTitle) return;
-    await fetch(`${API_BASE_URL}/submissions/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...tenantHeaders },
-      body: JSON.stringify({ title: newTitle }),
-    });
+    await updatePartnerSubmission(id, { title: newTitle }, tenantHeaders);
     load();
   };
 

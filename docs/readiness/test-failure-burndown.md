@@ -62,14 +62,9 @@ No remaining automated test blocker is known for the scoped unit/smoke/backend c
 
 ## Browser-level follow-up validation
 
-The remaining-work closure reran browser-level validation after installing the missing Playwright Chromium browser:
+The May 4 continuation reran browser-level validation after reinstalling the matching Playwright Chromium browser:
 
-- `npm run test:e2e`: **FAIL** — 2 passed, 4 skipped, 6 failed. The failures are now actionable route/a11y/product-scope issues rather than missing-browser setup:
-  - login page has axe color-contrast/landmark/region violations,
-  - calendar and teacher classes routes are feature-disabled while tests expect enabled content,
-  - AI transparency keyboard focus expectation does not match current tab order,
-  - non-admin Ops Orchestrator route remains on `/ops/orchestrator` instead of redirecting,
-  - offline service-worker readiness timed out.
-- `npm run test:a11y`: **FAIL** — Jest a11y suites are not runnable under the current Jest/CommonJS transform because several tests import Vitest APIs, top-level await, and Vite `import.meta` modules.
+- `npm run test:e2e`: **PASS / SCOPED** — 7 passed, 5 skipped. Login axe, admin dashboard smoke, calendar smoke, AI transparency keyboard smoke, teacher classes smoke, and Ops Orchestrator admin/non-admin checks pass. Skips remain credential/environment scoped: enterprise SSO, tenant-isolation SCIM, live credential role-routing, and production-build offline/PWA service-worker proof.
+- `npm run test:a11y`: **PASS** — 5 files / 22 tests now run under Vitest instead of the incompatible Jest CJS runner.
 
 See `docs/readiness/browser-e2e-a11y-readiness.md` for the detailed browser QA register.

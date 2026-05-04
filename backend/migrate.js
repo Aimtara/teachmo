@@ -257,6 +257,11 @@ async function withMigrationAdvisoryLock(fn) {
 }
 
 export async function runMigrations() {
+  if (String(process.env.SKIP_MIGRATIONS || '').toLowerCase() === 'true') {
+    console.warn('⚠️ SKIP_MIGRATIONS=true; skipping database migrations for this process.');
+    return;
+  }
+
   await withMigrationAdvisoryLock(async () => {
     await ensureMigrationsTable();
 

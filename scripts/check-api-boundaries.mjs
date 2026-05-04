@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const UI_PREFIXES = ['src/pages/', 'src/components/', 'src/hooks/', 'src/app/', 'src/routes/'];
+const MAX_TEMPORARY_EXCEPTIONS = 30;
 const APPROVED_PREFIXES = [
   'src/pages/__tests__/',
   'src/components/**/__tests__/',
@@ -223,3 +224,10 @@ if (violations.length) {
 console.log(
   `API boundary check passed (${allowed.length} temporary exception${allowed.length === 1 ? '' : 's'} documented).`
 );
+
+if (allowed.length > MAX_TEMPORARY_EXCEPTIONS) {
+  console.error(
+    `API boundary ratchet failed: ${allowed.length} temporary exceptions > ${MAX_TEMPORARY_EXCEPTIONS} allowed.`
+  );
+  process.exit(1);
+}

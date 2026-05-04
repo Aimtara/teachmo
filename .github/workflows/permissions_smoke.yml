@@ -15,7 +15,21 @@ jobs:
           node-version: '20'
       - name: Install ts-node
         run: npm ci
+      - name: Check permissions smoke configuration
+        id: config
+        env:
+          HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT }}
+          TEST_JWT_TEACHER: ${{ secrets.TEST_JWT_TEACHER }}
+          TEST_JWT_DISTRICT_ADMIN: ${{ secrets.TEST_JWT_DISTRICT_ADMIN }}
+        run: |
+          if [ -n "$HASURA_GRAPHQL_ENDPOINT" ] && [ -n "$TEST_JWT_TEACHER" ] && [ -n "$TEST_JWT_DISTRICT_ADMIN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping live Hasura permissions smoke because required repository secrets are not configured for this context."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run permissions smoke tests
+        if: steps.config.outputs.ready == 'true'
         env:
           HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT }}
           TEST_JWT_TEACHER: ${{ secrets.TEST_JWT_TEACHER }}

@@ -20,9 +20,21 @@ Generated: 2026-05-03
 - Audit events are emitted through a callback so live backend integrations can persist them without changing UI behavior.
 - The feature is represented by `FEATURES.OFFICE_HOURS` and remains explicit for launch-scoping decisions.
 
+## May 4 closure update
+
+- Browser smoke now exercises gated teacher classes through scoped E2E-only
+  feature flags without enabling the feature by default for production.
+- Manual proof templates were added for office-hours live verification,
+  messaging/digest retry recovery, and assignments sync dry-run/live LMS proof.
+- `npm run test:e2e` now passes the browser smoke subset that can run without
+  live credentials; credential/live-service cases remain skipped.
+
 ## Remaining launch evidence
 
 - Wire office-hours blocks/bookings to live Nhost/Hasura or backend API tables.
 - Run parent/teacher role smoke with real users.
 - Verify notification/reminder delivery.
 - Confirm calendar timezone behavior across district timezone and browser timezone.
+- Complete `docs/readiness/evidence/office-hours-live-verification-template.md`.
+- Complete `docs/readiness/evidence/messaging-digest-retry-proof-template.md`.
+- Complete `docs/readiness/evidence/assignments-sync-live-proof-template.md`.

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:ci": "VITE_SOURCEMAP=false vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint src backend --ext .js,.jsx,.ts,.tsx",
     "lint:production": "npm run check:lint-ratchet",
@@ -16,7 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "test:backend": "jest --config jest.backend.config.cjs",
     "test:watch": "jest --watch",
-    "test:a11y": "jest --testPathPattern=a11y",
+    "test:a11y": "vitest run src/pages/__tests__/Login.a11y.test.jsx src/pages/__tests__/OAuth2Consent.a11y.test.jsx src/pages/__tests__/FounderDashboard.a11y.test.jsx src/pages/__tests__/AITransparency.a11y.test.jsx src/components/layout/__tests__/Header.a11y.test.jsx",
     "test:smoke": "vitest run src/pages/__tests__/Healthz.test.tsx src/components/shared/__tests__/ProtectedRoute.test.tsx src/config/__tests__/env.test.ts src/observability/__tests__/redaction.test.ts src/observability/__tests__/events.test.ts",
     "backend:check": "node --check backend/routes/ops.js",
     "check:size": "node scripts/check-size-ratchet.mjs",

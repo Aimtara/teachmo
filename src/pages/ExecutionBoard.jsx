@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuthenticationStatus } from '@nhost/react';
-import { API_BASE_URL } from '@/config/api';
+import { getPublicExecutionBoard } from '@/domains/executionBoard';
 
 function toArray(value) {
   if (!value) return [];
@@ -49,9 +49,7 @@ export default function ExecutionBoard() {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/execution-board`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await getPublicExecutionBoard();
         setBoard(data);
         setError(null);
       } catch (err) {
