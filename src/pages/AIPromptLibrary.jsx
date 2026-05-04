@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { nhost } from '@/lib/nhostClient';
 import {
-  createPrompt,
-  createPromptVersion,
-  getPromptVersions,
-  listPrompts,
-  updatePrompt,
+  createAIPrompt,
+  createAIPromptVersion,
+  getAIPromptVersions,
+  listAIPrompts,
+  updateAIPrompt,
 } from '@/domains/ai/promptLibrary';
 
 export default function AIPromptLibrary() {
@@ -34,13 +34,13 @@ export default function AIPromptLibrary() {
   const promptsQuery = useQuery({
     queryKey: ['ai-prompts-admin'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => listPrompts(headersQuery.data),
+    queryFn: async () => listAIPrompts(headersQuery.data),
   });
 
   const versionsQuery = useQuery({
     queryKey: ['ai-prompts-versions', selectedPromptId],
     enabled: Boolean(headersQuery.data && selectedPromptId),
-    queryFn: async () => getPromptVersions(selectedPromptId, headersQuery.data),
+    queryFn: async () => getAIPromptVersions(selectedPromptId, headersQuery.data),
     onSuccess: (data) => {
       if (data?.prompt) {
         setPromptDetails({
@@ -56,12 +56,11 @@ export default function AIPromptLibrary() {
 
   const createPromptMutation = useMutation({
     mutationFn: async () => {
-      return createPrompt({
-        headers: headersQuery.data,
+      return createAIPrompt({
         name: newPrompt.name,
         description: newPrompt.description,
         content: newPrompt.content,
-      });
+      }, headersQuery.data);
     },
     onSuccess: (data) => {
       promptsQuery.refetch();
@@ -72,12 +71,11 @@ export default function AIPromptLibrary() {
 
   const updatePromptMutation = useMutation({
     mutationFn: async () => {
-      return updatePrompt(selectedPromptId, {
-        headers: headersQuery.data,
+      return updateAIPrompt(selectedPromptId, {
         name: promptDetails.name,
         description: promptDetails.description,
         isArchived: promptDetails.isArchived,
-      });
+      }, headersQuery.data);
     },
     onSuccess: () => {
       promptsQuery.refetch();
@@ -87,11 +85,10 @@ export default function AIPromptLibrary() {
 
   const createVersionMutation = useMutation({
     mutationFn: async () => {
-      return createPromptVersion(selectedPromptId, {
-        headers: headersQuery.data,
+      return createAIPromptVersion(selectedPromptId, {
         content: versionContent,
         setActive: true,
-      });
+      }, headersQuery.data);
     },
     onSuccess: () => {
       versionsQuery.refetch();

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getTenantSSOSettings } from '@/domains/tenant/ssoSettings';
+import { getTenantSsoSettings } from '@/domains/tenant/ssoSettings';
 import { useTenantScope } from '@/hooks/useTenantScope';
 
 /**
@@ -14,7 +14,7 @@ export function useTenantSSOSettings() {
   return useQuery({
     queryKey: ['tenant-sso-settings', organizationId],
     enabled: Boolean(organizationId),
-    queryFn: () => getTenantSSOSettings(organizationId),
+    queryFn: () => getTenantSsoSettings(organizationId),
   });
 }
 

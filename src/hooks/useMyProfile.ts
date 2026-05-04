@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useUserData } from '@nhost/react';
-import { getProfileByUserId, type Profile } from '@/domains/profile';
+import { getMyProfile, type Profile } from '@/domains/profile';
 
 export function useMyProfile() {
   const authUser = useUserData();
@@ -11,7 +11,7 @@ export function useMyProfile() {
     enabled: Boolean(userId),
     queryFn: async (): Promise<Profile | null> => {
       if (!userId) return null;
-      return getProfileByUserId(userId);
+      return getMyProfile(userId);
     },
   });
 }

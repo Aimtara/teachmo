@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useUserData } from '@nhost/react';
-import { listTenantFeatureFlagsForUser } from '@/domains/tenant/featureFlags';
+import { getTenantFeatureFlagsForUser } from '@/domains/tenant/featureFlags';
 
 type FeatureFlags = Record<string, boolean>;
 
@@ -13,7 +13,7 @@ export function useTenantFeatureFlags() {
     enabled: Boolean(userId),
     queryFn: async (): Promise<FeatureFlags> => {
       if (!userId) return {};
-      return listTenantFeatureFlagsForUser(userId);
+      return getTenantFeatureFlagsForUser(userId);
     },
   });
 }

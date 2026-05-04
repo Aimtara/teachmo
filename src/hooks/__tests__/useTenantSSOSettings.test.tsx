@@ -1,9 +1,8 @@
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { getTenantSsoSettings } from '@/domains/tenant/ssoSettings';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import useTenantSSOSettings from '@/hooks/useTenantSSOSettings';
-import { getTenantSSOSettings } from '@/domains/tenant/ssoSettings';
 
 const scopeState = {
   data: { organizationId: 'org-1', districtId: null },
@@ -14,10 +13,12 @@ vi.mock('@/hooks/useTenantScope', () => ({
 }));
 
 vi.mock('@/domains/tenant/ssoSettings', () => ({
-  getTenantSSOSettings: vi.fn(),
+  getTenantSsoSettings: vi.fn(),
 }));
 
-const getTenantSSOSettingsMock = vi.mocked(getTenantSSOSettings);
+const getTenantSSOSettingsMock = vi.mocked(getTenantSsoSettings);
+
+const { default: useTenantSSOSettings } = await import('@/hooks/useTenantSSOSettings');
 
 
 function createWrapper() {

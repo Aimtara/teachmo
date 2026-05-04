@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useUserRole } from '@/hooks/useUserRole';
 import { canAll } from '@/security/permissions';
 import { logAuditEvent } from '@/api/functions';
-import { createImpersonation } from '@/domains/admin/users';
+import { startUserImpersonation } from '@/domains/admin/users';
 
 const ROLES = ['parent', 'teacher', 'school_admin', 'district_admin', 'system_admin'];
 
@@ -109,7 +109,7 @@ export default function AdminUsers() {
 
   const impersonateMutation = useMutation({
     mutationFn: async (userId) => {
-      return createImpersonation(userId);
+      return startUserImpersonation(userId);
     },
     onSuccess: (data) => {
       toast({
