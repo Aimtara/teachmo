@@ -163,7 +163,8 @@ jobs:
 
       - name: G3 - Ops E2E Smoke Test
         env:
-          BASE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_WEB_SERVER: "false"
           AUTH_MOCK_SECRET: launch-gates-secret
         run: |
           npm run e2e:ops
