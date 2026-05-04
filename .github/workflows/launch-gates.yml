@@ -151,10 +151,17 @@ jobs:
         env:
           PORT: 3000
           VITE_E2E_BYPASS_AUTH: "true"
+          VITE_DISABLE_DEV_ROUTE_BYPASS: "true"
+          VITE_ENABLE_INTERNAL_ROUTES: "true"
+          VITE_FEATURE_CALENDAR: "true"
+          VITE_FEATURE_TEACHER_CLASSES: "true"
+          VITE_FEATURE_TEACHER_ASSIGNMENTS: "true"
+          VITE_FEATURE_TEACHER_MESSAGES: "true"
+          VITE_FEATURE_OFFICE_HOURS: "true"
           VITE_API_BASE_URL: "http://localhost:4000"
         run: |
           set -euo pipefail
-          nohup npm run preview -- --host 0.0.0.0 --port 3000 > frontend-ci.log 2>&1 &
+          nohup npm run dev -- --host 0.0.0.0 --port 3000 > frontend-ci.log 2>&1 &
           echo $! > frontend-ci.pid
 
       - name: Wait for backend + frontend
