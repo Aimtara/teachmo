@@ -147,3 +147,41 @@ Validation:
 - `cd backend && npm test`: PASS.
 - `npm run build && npm run check:size`: PASS.
 
+## May 4 closure update
+
+This execution pass completed a further repository-controlled burn-down while
+continuing to keep live-environment tasks separate from automated claims.
+
+| Area | Before this pass | After May 4 pass | Evidence |
+| --- | ---: | ---: | --- |
+| API-boundary exceptions | 37 | 30 | `npm run check:api-boundaries`; ratchet cap now fails above 30. |
+| Runtime high/critical vulnerabilities | 0 | 0 | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
+| Full raw audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are dev/optional PWA/workbox chain exceptions. |
+| Lint ratchet | 940 problems | 940 problems | Parser and `no-undef` remain 0. |
+| TypeScript `any` count | 512 baseline | 511 | E2E fixtures no longer add broad `any`. |
+| Bundle size ratchet | 602/24/225 kB | 599/23/214 kB | Current build: 598.64 kB total, 22.45 kB initial, 213.73 kB largest chunk. |
+| Unit/smoke/backend tests | PASS | PASS | Full Vitest 35/145, smoke 5/15, backend Jest 31/190. |
+| Browser E2E | FAIL: 2 pass / 6 fail / 4 skipped | PASS scoped smoke: 7 pass / 5 skipped | Login axe, calendar, teacher, keyboard, admin, and ops route guard now pass. |
+| Unit a11y command | FAIL under Jest runner | PASS under Vitest runner | `npm run test:a11y`: 5 files / 22 tests. |
+
+Additional work completed:
+
+- Extracted AI transparency, school-directory admin, partner incentives,
+  partner submissions, execution-board fallback, admin audit-log, and AI policy
+  simulation calls behind domain adapters.
+- Added scoped Playwright feature flags for gated browser smoke without enabling
+  gated features globally.
+- Hardened the dev/E2E route-guard path so mock E2E roles are evaluated instead
+  of bypassing authorization checks.
+- Added missing live-evidence templates for directory identity conflicts,
+  office-hours verification, messaging/digest retry proof, assignments sync, and
+  admin sync/dashboard validation.
+
+## Current final classification
+
+| Launch mode | Classification | Required evidence before promotion |
+| --- | --- | --- |
+| Broad production | NO-GO | Critical/high manual evidence remains incomplete: live Nhost/Hasura/Sentry/storage/DNS/OAuth/legal/support/backup/rollback/role-smoke and Gate 2/3/4 live proofs. |
+| Controlled pilot | CONDITIONAL | Automated gates are materially stronger and browser smoke is green; pilot still requires OAuth rotation plus staging Nhost/Hasura/Sentry, role smoke, backup/rollback, and scoped Gate 2/3/4 acceptance. |
+| Internal demo/dev | GO with ratchets | Automated launch/production checks, browser smoke, and a11y command pass with documented manual caveats. |
+
