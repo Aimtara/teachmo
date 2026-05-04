@@ -1,11 +1,10 @@
 
-import React, { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Lightbulb, Book, MessageSquare, ArrowRight, Sparkles } from 'lucide-react';
-import { isToday, parseISO, isAfter, isBefore, startOfDay } from 'date-fns'; // Added parseISO, isAfter, isBefore, startOfDay
-import { Activity, Assignment } from '@/api/entities';
+import { isToday, parseISO } from 'date-fns';
+import { Activity } from '@/api/entities';
 import { useToast } from '@/components/ui/use-toast';
 import SwipeableActivityCard from '../activities/SwipeableActivityCard';
 import { Link } from 'react-router-dom';
@@ -20,13 +19,8 @@ const getIconForType = (type) => {
   }
 };
 
-export default function TodaysFocus({ user, activities = [], schoolAssignments = [], messages = [], onUpdate }) {
-  const [selectedActivity, setSelectedActivity] = useState(null);
+export default function TodaysFocus({ activities = [], schoolAssignments = [], onUpdate }) {
   const { toast } = useToast();
-
-  // New state variables
-  const [currentFocus, setCurrentFocus] = useState('today');
-  const [isLoading, setIsLoading] = useState(false);
 
   // Safely filter activities with null checks
   // Note: These filters are for activities only and use 'due_date' as primary date for 'planned' activities.
@@ -37,25 +31,6 @@ export default function TodaysFocus({ user, activities = [], schoolAssignments =
              activity.due_date && 
              isToday(parseISO(activity.due_date));
     }).map(a => ({ ...a, type: 'activity' })); // Add type for consistent rendering in todaysItems
-  }, [activities]);
-
-  const upcomingActivities = useMemo(() => {
-    return activities.filter(activity => {
-      if (!activity || !activity.status) return false;
-      return activity.status === 'planned' && 
-             activity.due_date && 
-             isAfter(parseISO(activity.due_date), new Date()) && 
-             !isToday(parseISO(activity.due_date));
-    }).slice(0, 3);
-  }, [activities]);
-
-  const overdueActivities = useMemo(() => {
-    return activities.filter(activity => {
-      if (!activity || !activity.status) return false;
-      return activity.status === 'planned' && 
-             activity.due_date && 
-             isBefore(parseISO(activity.due_date), startOfDay(new Date()));
-    });
   }, [activities]);
 
   const handleActivityComplete = async (activity) => {

@@ -1,23 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   AlertTriangle, 
   CheckCircle, 
   Clock, 
-  Eye, 
-  Smartphone,
-  Palette,
-  Navigation,
-  Users,
-  FileText,
-  Target,
-  ArrowRight,
   TrendingUp,
-  Zap
 } from 'lucide-react';
 
 // UX Audit findings mapped to current implementation
