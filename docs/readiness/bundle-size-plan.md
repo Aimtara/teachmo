@@ -1,6 +1,6 @@
 # Bundle Size Plan
 
-Generated: 2026-05-03
+Generated: 2026-05-04
 
 ## Current status
 
@@ -11,18 +11,18 @@ Generated: 2026-05-03
 | --- | ---: |
 | Size-limit budget | 500 kB brotlied |
 | Baseline all-JS measurement | 613.92 kB brotlied |
-| Final total JS ratchet measurement | 601.28 kB brotlied |
-| Final app-shell initial entry | ~22.33 kB brotlied |
-| Final largest chunk | ~224.63 kB brotlied |
+| May 4 total JS ratchet measurement | 597.75 kB brotlied |
+| May 4 app-shell initial entry | 22.21 kB brotlied |
+| May 4 largest chunk | 213.73 kB brotlied |
 
 The old `size-limit` entry measured every built JavaScript asset matching
 `dist/assets/**/*.js`, so it was a total-JS budget rather than a direct
 initial-app-shell budget. The new `check:size` runs `scripts/check-size-ratchet.mjs`
 and fails if:
 
-- total brotlied JS exceeds the tightened 602 kB baseline,
-- the initial app-shell entry exceeds 24 kB brotlied,
-- any single JS chunk exceeds 230 kB brotlied.
+- total brotlied JS exceeds the tightened 598 kB baseline,
+- the initial app-shell entry exceeds 23 kB brotlied,
+- any single JS chunk exceeds 214 kB brotlied.
 
 ## Policy decision
 
@@ -61,6 +61,7 @@ Completed:
    `Suspense`.
 3. Confirmed route-level lazy loading remains in place.
 4. Added an app-shell/per-chunk/total-JS regression ratchet as the release gate.
+5. Tightened the ratchet again after the May 4 closure build: total 598 kB, app shell 23 kB, largest chunk 214 kB.
 
 Remaining follow-up: deeper vendor decomposition of `vendor-misc` into more
 meaningful package-level chunks and product review of whether to continue

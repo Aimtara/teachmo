@@ -49,6 +49,10 @@
 - Baseline/current inventory: `readiness/production-hardening-inventory.md`
 - Manual production work register: `readiness/manual-production-work.md`
 - API-boundary exception register: `readiness/api-boundary-exceptions.md`
+- Browser E2E and a11y readiness: `readiness/browser-e2e-a11y-readiness.md`
+- Bundle size plan: `readiness/bundle-size-plan.md`
+- Gate audit closure: `readiness/gate-audit-closure.md`
+- Remaining work closure plan: `readiness/remaining-work-closure-plan.md`
 - SWOT closure: `readiness/swot-closure.md`
 - Evidence templates: `readiness/evidence/`
 - Final readiness readout: `readiness/production-readiness-readout.md`
