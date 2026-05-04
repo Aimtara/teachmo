@@ -3,6 +3,8 @@ import { SignJWT } from 'jose';
 
 const E2E_SESSION_KEY = 'teachmo_e2e_session';
 
+const opsApiAvailable = () => process.env.LAUNCH_GATES_BACKEND_API_AVAILABLE === 'true';
+
 async function mintMockToken({
   role,
   userId,
@@ -47,6 +49,9 @@ test.describe('@launch-gates ops auth smoke', () => {
 
     await page.goto(`${baseURL}/ops/orchestrator`);
     await expect(page.getByRole('heading', { name: /Ops Orchestrator Timeline/i })).toBeVisible();
+    if (opsApiAvailable()) {
+      await expect(page.getByText(/Families/i).first()).toBeVisible();
+    }
   });
 
   test('non-admin is blocked from Ops Orchestrator', async ({ page, baseURL }) => {
@@ -61,6 +66,6 @@ test.describe('@launch-gates ops auth smoke', () => {
 
     await page.goto(`${baseURL}/ops/orchestrator`);
 
-    await expect(page).not.toHaveURL(/\/ops\/orchestrator$/i);
+    await expect(page.locator('body')).not.toContainText(/Ops Orchestrator Timeline/i);
   });
 });
