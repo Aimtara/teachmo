@@ -10,9 +10,11 @@ const DiscoverRoute = () => (
   </MomentGuard>
 );
 
-// Internal routes are dev-friendly by default, but can be explicitly enabled in production.
+// Internal routes are dev-friendly by default, but can be explicitly enabled
+// in non-production preview/test builds. Use the explicit environment object so
+// Vite can statically replace flags in production bundles as well as dev.
 const ENABLE_INTERNAL_ROUTES =
-  import.meta.env.DEV || envFlag('VITE_ENABLE_INTERNAL_ROUTES', { defaultValue: false });
+  import.meta.env.DEV || envFlag('VITE_ENABLE_INTERNAL_ROUTES', { defaultValue: false, env: import.meta.env });
 
 function isRouteBypassEnabled() {
   const appEnv = getAppEnv(import.meta.env);
