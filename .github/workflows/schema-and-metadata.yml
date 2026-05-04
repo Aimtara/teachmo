@@ -51,7 +51,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/teachmo
+      DATABASE_URL: postgresql://postgres:${{ env.DB_PASSWORD }}@localhost:5432/teachmo
       DB_HOST: localhost
       DB_PORT: 5432
       DB_USER: postgres

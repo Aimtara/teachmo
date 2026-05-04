@@ -29,6 +29,26 @@ const ALLOWLIST = [
     reason: 'CI-only local Postgres service credential.',
   },
   {
+    file: '.github/workflows/schema-and-metadata.yml',
+    pattern: /postgresql:\/\/postgres:postgres@localhost:5432\/teachmo/,
+    reason: 'CI-only local disposable Postgres service credential.',
+  },
+  {
+    file: '.github/workflows/schema-and-metadata.yml',
+    pattern: /HASURA_GRAPHQL_ADMIN_SECRET/,
+    reason: 'Workflow references GitHub secret names, not secret values.',
+  },
+  {
+    file: '.github/workflows/secret-rotation.yml',
+    pattern: /NHOST_ADMIN_SECRET/,
+    reason: 'Workflow references GitHub secret names, not secret values.',
+  },
+  {
+    file: 'scripts/ops/secret-rotation.mjs',
+    pattern: /nhost_admin_secret|NHOST_NEW_ADMIN_SECRET/,
+    reason: 'Secret rotation script references secret identifiers and environment variable names only.',
+  },
+  {
     file: 'backend/__tests__/envCheck.test.js',
     pattern: /NHOST_ADMIN_SECRET = 'secret'/,
     reason: 'Unit test sets a fake secret literal.',

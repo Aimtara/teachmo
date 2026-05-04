@@ -32,10 +32,10 @@ jobs:
       VITE_FEATURE_TEACHER_ASSIGNMENTS: "true"
       VITE_FEATURE_TEACHER_MESSAGES: "true"
       VITE_FEATURE_OFFICE_HOURS: "true"
-          VITE_FEATURE_MESSAGING: "true"
-          VITE_FEATURE_SCHOOL_DIRECTORY: "true"
-          VITE_FEATURE_ENTERPRISE_SIS_ROSTER: "true"
-      AUTH_MOCK_SECRET: role-gate-secret
+      VITE_FEATURE_MESSAGING: "true"
+      VITE_FEATURE_SCHOOL_DIRECTORY: "true"
+      VITE_FEATURE_ENTERPRISE_SIS_ROSTER: "true"
+      AUTH_MOCK_SECRET: test-role-gate-secret
       PLAYWRIGHT_WEB_SERVER: "true"
       PLAYWRIGHT_BASE_URL: ${{ inputs.target == 'staging' && secrets.STAGING_BASE_URL || 'http://localhost:5173' }}
     steps:

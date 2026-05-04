@@ -10,7 +10,7 @@ const SECRET_REQUIREMENTS = {
     'NHOST_PROJECT_ID',
     'NHOST_MANAGEMENT_TOKEN',
   ],
-  nhost_admin_secret: ['NHOST_PROJECT_ID', 'NHOST_MANAGEMENT_TOKEN', 'NHOST_NEW_ADMIN_SECRET'],
+  nhost_platform_secret: ['NHOST_PROJECT_ID', 'NHOST_MANAGEMENT_TOKEN', 'NHOST_NEW_ADMIN_SECRET'],
 };
 
 function argValue(argv, name, fallback = null) {
