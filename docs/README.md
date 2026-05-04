@@ -48,6 +48,7 @@
 - Production hardening status: `readiness/production-hardening-status.md`
 - Baseline/current inventory: `readiness/production-hardening-inventory.md`
 - Manual production work register: `readiness/manual-production-work.md`
+- Open findings remediation plan: `readiness/open-findings-remediation-plan.md`
 - API-boundary exception register: `readiness/api-boundary-exceptions.md`
 - Browser E2E and a11y readiness: `readiness/browser-e2e-a11y-readiness.md`
 - Bundle size plan: `readiness/bundle-size-plan.md`
