@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { API_BASE_URL } from '@/config/api';
 import { useUserId } from '@nhost/react';
 import { useTenantScope } from '@/hooks/useTenantScope';
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
@@ -8,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ultraMinimalToast } from '@/components/shared/UltraMinimalToast';
+import {
+  applyForPartnerIncentive,
+  claimPartnerIncentive,
+  listPartnerIncentiveApplications,
+  listPartnerIncentives,
+} from '@/domains/partner/incentives';
 
 function PartnerIncentivesContent() {
   const [list, setList] = useState([]);
@@ -27,9 +32,9 @@ function PartnerIncentivesContent() {
   const load = async () => {
     try {
       const [incentives, applications] = await Promise.all([
-        fetch(`${API_BASE_URL}/incentives`, { headers: tenantHeaders }).then((r) => r.json()),
+        listPartnerIncentives(tenantHeaders),
         partnerId
-          ? fetch(`${API_BASE_URL}/incentives/applications/${partnerId}`, { headers: tenantHeaders }).then((r) => r.json())
+          ? listPartnerIncentiveApplications(partnerId, tenantHeaders)
           : Promise.resolve([]),
       ]);
       setList(incentives || []);
@@ -46,11 +51,7 @@ function PartnerIncentivesContent() {
 
   const apply = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/incentives/${id}/apply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...tenantHeaders },
-        body: JSON.stringify({ partnerId }),
-      });
+      await applyForPartnerIncentive(id, partnerId, tenantHeaders);
       load();
     } catch (error) {
       console.error('Failed to apply for incentive:', error);
@@ -60,11 +61,7 @@ function PartnerIncentivesContent() {
 
   const claim = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/incentives/${id}/claim`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...tenantHeaders },
-        body: JSON.stringify({ partnerId }),
-      });
+      await claimPartnerIncentive(id, partnerId, tenantHeaders);
       load();
     } catch (error) {
       console.error('Failed to claim incentive:', error);
