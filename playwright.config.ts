@@ -12,7 +12,8 @@ export default defineConfig({
   },
   webServer: shouldStartServer
     ? {
-        command: 'npm run dev -- --host 127.0.0.1 --port 5173',
+        command:
+          'VITE_FEATURE_CALENDAR=true VITE_FEATURE_TEACHER_CLASSES=true VITE_FEATURE_TEACHER_ASSIGNMENTS=true VITE_FEATURE_TEACHER_MESSAGES=true VITE_FEATURE_OFFICE_HOURS=true npm run dev -- --host 127.0.0.1 --port 5173',
         url: 'http://127.0.0.1:5173',
         reuseExistingServer: true,
         timeout: 120_000,

@@ -1,4 +1,5 @@
 import { useStore } from '@/components/hooks/useStore';
+import { envFlag } from '@/config/env';
 
 export const FEATURES = {
   DISCOVER: true,
@@ -36,6 +37,13 @@ export function isFeatureEnabled(key: FeatureKey): boolean {
   const featureFlags = state?.featureFlags ?? {};
   if (featureFlags && Object.prototype.hasOwnProperty.call(featureFlags, key)) {
     return Boolean(featureFlags[key]);
+  }
+
+  if (
+    envFlag(`VITE_FEATURE_${key}`, { defaultValue: false, strict: true }) ||
+    envFlag(`VITE_E2E_FEATURE_${key}`, { defaultValue: false, strict: true })
+  ) {
+    return true;
   }
 
   return Boolean(FEATURES[key]);
