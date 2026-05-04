@@ -106,6 +106,7 @@ jobs:
           });
 
           await client.connect();
+          await client.query('CREATE EXTENSION IF NOT EXISTS citext');
           await client.query('CREATE SCHEMA IF NOT EXISTS auth');
           await client.query(`
             CREATE TABLE IF NOT EXISTS auth.users (
@@ -131,6 +132,8 @@ jobs:
       # --------------------------------------------------------
       - name: Start backend (CI)
         working-directory: backend
+        env:
+          AUTO_APPLY_NHOST_SCHEMA: "false"
         run: |
           set -euo pipefail
           nohup npm run start > ../backend-ci.log 2>&1 &
