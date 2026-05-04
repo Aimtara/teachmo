@@ -1,7 +1,7 @@
 # Operational Automation Efficiency Plan
 
 Generated: 2026-05-04  
-Status: implementation in progress  
+Status: implemented in repository automation; live provider execution remains approval-gated  
 Owner placeholders: Engineering Platform, Security, QA/Release, DevOps, Product, Legal/Privacy
 
 ## Purpose
@@ -90,6 +90,20 @@ approval before broad production launch:
 | J | Compliance and AI governance | Secret/PII/gitleaks scans, governance tests, compliance report | New secret/PII/governance failures block CI. |
 | K | Final readout | Updated readiness docs and final automation matrix | Remaining manual tasks stay listed until evidence is attached. |
 
+## Automations implemented in this pass
+
+| Phase | Repository artifact | Trigger / command | Evidence produced |
+| --- | --- | --- | --- |
+| B Dependency/security | `renovate.json`, `.github/workflows/dependency-security.yml`, hardened `scripts/check-audit.mjs` | Renovate, PR/push/schedule security workflow, `npm run check:audit` | audit policy JSON summary and workflow logs; malformed/expired high/critical exceptions fail. |
+| C Visual regression | `.github/workflows/visual-regression.yml`, `docs/testing/visual-regression.md` | PR/push/manual Storybook build and Chromatic upload when token exists | `storybook-static` artifact; Chromatic diff approval gate when configured. |
+| D Collaboration | `.github/CODEOWNERS`, `.github/workflows/preview-environment.yml`, `docs/process/collaboration.md` | PR preview workflow | preview summary artifact; Vercel/Netlify deploy when provider secrets exist. |
+| E Schema/metadata | `.github/workflows/schema-and-metadata.yml`, `scripts/ops/validate-schema-metadata.mjs`, `codegen.yml`, `docs/ci/schema-and-metadata.md` | PR/push/manual/scheduled and `npm run check:schema-metadata` | JSON/Markdown schema-metadata report; optional DB and GraphQL typegen proof. |
+| F Environment/secrets | `.github/workflows/environment-verification.yml`, `.github/workflows/secret-rotation.yml`, `scripts/ops/env-verify.mjs`, `scripts/ops/secret-rotation.mjs` | nightly/manual and dry-run commands | redacted environment and rotation reports; execution requires protected GitHub environment approval. |
+| G Role/Gate proofs | `.github/workflows/role-smoke-gate-proofs.yml`, `tests/e2e/role-smoke.spec.ts`, `tests/e2e/gate*.spec.ts`, `scripts/ops/gate-proof-report.mjs` | PR/manual and `npm run e2e:roles`, `npm run e2e:gates` | Playwright report plus Gate 2/3/4 Markdown review packet. |
+| H Backup/rollback | `.github/workflows/backup-restore-rollback.yml`, `scripts/ops/backup-restore-drill.mjs`, `scripts/ops/rollback-drill.mjs` | weekly/manual dry-run or approved execution | schema/row-count comparison report; rollback smoke checklist/report. |
+| I Synthetic monitoring | `.github/workflows/synthetic-monitoring.yml`, `tests/e2e/synthetic-monitor.spec.ts`, `scripts/ops/synthetic-monitor.mjs`, `/api/healthz` | 15-minute schedule/manual | synthetic monitoring JSON/Markdown report; optional Sentry alert verification. |
+| J Compliance/AI | `.github/workflows/compliance-ai-governance.yml`, `scripts/ops/compliance-report.mjs`, `.gitleaks.toml` | PR/push/schedule/manual and `npm run ops:compliance-report` | compliance report covering secret hygiene, PII logging, gitleaks, and AI governance tests. |
+
 ## Reporting expectations
 
 Every new operational script should emit:
@@ -105,9 +119,9 @@ Every new operational script should emit:
 
 This automation pass is complete when:
 
-- low-risk repository checks run automatically on PRs,
-- credentialed operational checks can run nightly or on demand,
-- high-risk live mutations cannot execute without explicit human approval,
-- role/Gate proof reports are generated in CI,
-- backup/restore, rollback, synthetic monitoring, and compliance workflows produce evidence artifacts,
-- readiness docs identify all remaining manual evidence with owner placeholders and target dates.
+- low-risk repository checks run automatically on PRs — **complete**,
+- credentialed operational checks can run nightly or on demand — **complete, pending repository secrets for live environments**,
+- high-risk live mutations cannot execute without explicit human approval — **complete via protected environment workflows and explicit `--execute`/approval inputs**,
+- role/Gate proof reports are generated in CI — **complete**,
+- backup/restore, rollback, synthetic monitoring, and compliance workflows produce evidence artifacts — **complete**,
+- readiness docs identify all remaining manual evidence with owner placeholders and target dates — **complete; live signoff remains external/manual**.

@@ -37,6 +37,22 @@ Every item in this register must produce an evidence packet before it can be mar
 | MPW-030 | Assignments | High | Assignments sync live/dry-run proof | Requires LMS test tenant or approved mock | Run dry-run assignment sync, validate status/errors, then execute live staging sync if credentials exist. | LMS test credentials, teacher admin | TBD | TBD | `docs/readiness/evidence/assignments-sync-live-proof-template.md` | [ ] manual |
 | MPW-031 | Admin analytics | High | Admin sync and dashboard validation proof | Requires staging event/source data | Trigger sync-now/troubleshooting flows and reconcile adoption/delivery/sync dashboard counts to source events. | Admin test user, staging data access | TBD | TBD | `docs/readiness/evidence/admin-sync-dashboard-validation-template.md` | [ ] manual |
 
+## Automation support added May 4, 2026
+
+Repository automation now shortens evidence collection for MPW items while
+preserving human signoff for live/high-risk operations:
+
+| Manual item(s) | Automation support | Workflow / script | Human approval remains |
+| --- | --- | --- | --- |
+| MPW-001, MPW-002, MPW-005, MPW-024 | Environment config checks, CORS/auth redirect reachability, repo Nhost safety, optional Hasura smoke invocation, JSON/Markdown reports. | `.github/workflows/environment-verification.yml`; `npm run ops:env-verify` | Provider dashboard screenshots and production/staging admin signoff. |
+| MPW-003, MPW-004 | Metadata YAML validation, disposable DB migration validation, live GraphQL typegen guard, Hasura permission smoke linkage. | `.github/workflows/schema-and-metadata.yml`; `npm run check:schema-metadata`; `npm run smoke:hasura-permissions` | Live metadata export/import and full role permission matrix. |
+| MPW-006, MPW-015, MPW-026 | Synthetic monitor and alert verification scaffolding; Sentry/Slack checks are explicit and credential gated. | `.github/workflows/synthetic-monitoring.yml`; `npm run ops:synthetic-monitor` | Live Sentry alert receipt, Slack/email routing, on-call acknowledgment. |
+| MPW-007 | Backup/restore drill script with pg_dump/pg_restore, schema and row-count comparison, reports. | `.github/workflows/backup-restore-rollback.yml`; `npm run ops:backup-restore` | Staging/prod database credentials and production environment approval. |
+| MPW-008 | Rollback dry-run/execution scaffolding for Vercel/Netlify plus smoke command hooks. | `.github/workflows/backup-restore-rollback.yml`; `npm run ops:rollback-drill` | Deploy-platform approval and production rollback signoff. |
+| MPW-010, MPW-027, MPW-028, MPW-029, MPW-030, MPW-031 | Role smoke and Gate 2/3/4 Playwright specs with artifacts and human-review annotations for high-risk flows. | `.github/workflows/role-smoke-gate-proofs.yml`; `npm run e2e:roles`; `npm run e2e:gates` | Credentialed staging/prod users and reviewer approval of reports. |
+| MPW-011, MPW-012, MPW-014, MPW-021 | Secret hygiene, PII logging, gitleaks CI, and AI governance test report. | `.github/workflows/compliance-ai-governance.yml`; `npm run ops:compliance-report` | Counsel/privacy officer/vendor DPA approval. |
+| MPW-023 | Secret rotation prepare/execute workflow with protected environment approval and post-rotation smoke hook. | `.github/workflows/secret-rotation.yml`; `npm run ops:secret-rotation` | Google/Nhost provider execution approval and successful login evidence. |
+
 ## Evidence template map
 
 | Manual item(s) | Evidence template |

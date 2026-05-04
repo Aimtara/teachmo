@@ -72,3 +72,28 @@ ratchet changes:
 | `npm run check:secret-hygiene` | PASS | No new tracked secret patterns detected. |
 | `npm run check:nhost-config-safety` | PASS | Safe repo Nhost config remains enforced. |
 
+## May 4 operational automation update
+
+The operational automation pass added dependency/security automation on top of
+the existing runtime audit gate:
+
+- `renovate.json` groups safe dev-tool patch/minor updates and only enables
+  automerge for patch-level development dependencies after required checks pass.
+  Runtime, security, lockfile, and major updates still require human review.
+- `.github/workflows/dependency-security.yml` runs root, backend, and Nhost
+  function audits, dependency review, and the hardened audit policy.
+- `scripts/check-audit.mjs` now validates that every exception contains
+  package, advisory list, severity, exposure, reason, mitigation, owner, and a
+  non-expired expiration date. It can also emit JSON summaries for CI artifacts.
+- `scripts/check-audit.test.mjs` covers valid, malformed/expired, and
+  unreviewed high/critical finding cases.
+
+Latest local verification for this pass:
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `node --test scripts/check-audit.test.mjs` | PASS | 3 audit-policy tests. |
+| `npm run check:audit` | PASS | 0 unreviewed high/critical production runtime findings. |
+| `npm run test:scripts` | PASS | 18 script tests after adding audit-policy coverage. |
+| `npm run ops:compliance-report -- --output-dir artifacts/ops` | PASS | Secret hygiene, PII logging, AI governance tests passed; gitleaks skipped locally because CLI is not installed. |
+

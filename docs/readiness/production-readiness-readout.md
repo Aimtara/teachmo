@@ -13,6 +13,8 @@ Repository-controlled gates are materially stronger: runtime audit is clean, pro
 
 This closure:
 
+- Added operational automation workflows for dependency/security scans, visual regression, PR previews, schema/metadata validation, environment verification, secret rotation approvals, role smoke and Gate proofs, backup/restore and rollback drills, synthetic monitoring, compliance scanning, and AI governance reports.
+- Added dry-run-first operational scripts that emit redacted JSON/Markdown reports and require protected GitHub Environment approvals before high-risk live actions such as production secret rotation, backup/restore, rollback, or alert test execution.
 - Moved thirteen high-value direct UI backend calls behind domain adapters across discover, AI prompts, admin school requests/system health/tenant domains/users, and legacy tenant/profile hooks, reducing temporary API-boundary exceptions from 37 to 21 and adding a hard exception-count ratchet.
 - Repaired browser QA posture: `npm run test:a11y` now runs under Vitest and passes; Playwright now passes 7 executable smoke tests with 5 explicitly skipped credential/environment tests.
 - Fixed login page axe blockers by adding a main landmark and accessible submit-button contrast.
@@ -34,6 +36,8 @@ The main remaining blockers are live operations/compliance evidence and 21 still
 | TS ratchet `any` count | 512 baseline | 507 current | Improved after moving additional UI calls into typed domain adapters. |
 | Bundle ratchet | 602/24/225 kB caps | 596/22.2/214 kB caps | Tighter regression gate; total JS remains above old 500 kB aggregate. |
 | Browser E2E | 2 pass / 6 fail / 4 skipped | 7 pass / 0 fail / 5 skipped | Remaining skips require credentials/prod-like SW environment. |
+| Role/Gate proof automation | Manual evidence templates only | Local Playwright role smoke 5 pass; Gate 2/3/4 proofs 7 pass with scoped flags | CI artifacts now provide repository proof; staging live proof still manual. |
+| Operational automation workflows | Partial/scheduled Hasura only | 10 new/expanded workflows plus redacted reports | Provider tokens and protected environments required for live execution. |
 | Unit a11y | FAIL under Jest runner | PASS: 5 files / 22 tests | `test:a11y` now uses Vitest. |
 | Manual readiness | 26 manual items | 31 manual items with added evidence templates | Manual/live evidence remains production blocker. |
 
@@ -64,6 +68,7 @@ The main remaining blockers are live operations/compliance evidence and 21 still
 | TypeScript | PASS with current `any` below baseline. | `npm run check:ts-ratchet`; `npm run typecheck`. |
 | Unit/smoke/backend tests | PASS. | Vitest, smoke, backend Jest, backend package Jest. |
 | Browser E2E/a11y | PASS for executable smoke scope; 5 credential/environment skips. | `npm run test:e2e`; `npm run test:a11y`. |
+| Operational automation | PASS for dry-run/reporting scope; live provider actions gated. | `ops:*` scripts, role/Gate Playwright specs, GitHub Actions workflows. |
 | Full lint | Controlled by ratchet, not fully green. | `npm run check:lint-ratchet`; `npm run lint` still red at legacy baseline. |
 
 ## Tests and checks run
@@ -76,6 +81,16 @@ The main remaining blockers are live operations/compliance evidence and 21 still
 | `npm audit --audit-level=high --omit=dev --omit=optional` | PASS | Runtime scope clean. |
 | `npm audit --audit-level=high --json` | FAIL / documented | 10 total / 4 high optional/dev build-chain findings. |
 | `npm run test:scripts` | PASS | 15 script tests. |
+| `npm run check:schema-metadata` | PASS | 87 YAML/metadata checks pass; DB and live GraphQL typegen skip locally without credentials. |
+| `CI=true npm run build-storybook` | PASS | Storybook static build succeeds; Chromatic upload requires token in CI. |
+| `npm run ops:env-verify` | PASS / dry-run | Preview-mode report produced; staging/prod modes fail closed without secrets. |
+| `npm run ops:secret-rotation` | PASS / dry-run | Rotation prepare report produced; no secrets generated or changed. |
+| `npm run e2e:roles` | PASS | 5 role smoke tests passed locally after Playwright Chromium install. |
+| `npm run e2e:gates` | PASS | 7 Gate 2/3/4 proof specs passed with scoped test feature flags; backend API proxy warnings are expected without local backend. |
+| `npm run ops:backup-restore` | PASS / dry-run | Report produced; execution requires Postgres client tools and DB URLs. |
+| `npm run ops:rollback-drill` | PASS / dry-run | Report produced; provider execution remains approval-gated. |
+| `npm run ops:synthetic-monitor` | PASS / dry-run | Report produced; live URL/Sentry alert checks skip without credentials. |
+| `npm run ops:compliance-report` | PASS | Secret hygiene, PII logging, and AI governance tests pass; gitleaks action runs in CI. |
 | `npm run test:smoke` | PASS | 5 files / 15 tests. |
 | `npm run test:a11y` | PASS | 5 files / 22 tests under Vitest. |
 | `npm run typecheck` | PASS | TS compiler green. |
@@ -102,9 +117,24 @@ The main remaining blockers are live operations/compliance evidence and 21 still
 ## Functionality preservation
 
 - No product routes, migrations, backend routes, dashboards, or public APIs were removed.
+- Added `/api/healthz` as a minimal unauthenticated synthetic-monitoring endpoint that returns service/build status without tenant, user, or database data.
 - UI call-site behavior was preserved by moving raw `fetch`/`graphqlRequest` calls behind domain adapters that keep the same endpoint/query and response shapes.
 - Production feature defaults remain unchanged; calendar/teacher-class browser smoke uses scoped `VITE_FEATURE_*` flags only in Playwright.
 - Auth bypass remains forbidden for staging/production by existing safety checks; E2E bypass is explicit and local/test-scoped.
+
+## New operational automation added
+
+| Area | New artifacts | Evidence / approval behavior |
+| --- | --- | --- |
+| Dependency/security | `renovate.json`, dependency-security workflow, hardened `check-audit.mjs` | Safe dev patch automerge only after checks; high/critical runtime advisories require valid non-expired exceptions. |
+| Visual regression | Storybook/Chromatic workflow and visual regression doc | Storybook builds on PRs; Chromatic fails on unapproved diffs when token is configured. |
+| PR collaboration | CODEOWNERS, preview workflow, collaboration doc | Domain owners route reviews; preview deployment no-ops safely without Vercel/Netlify tokens. |
+| Schema/metadata | `check:schema-metadata`, schema workflow, codegen config | YAML/registry validation runs without secrets; DB and live GraphQL typegen fail closed when required. |
+| Environment/secrets | Env verification and secret-rotation scripts/workflows/docs | Reports are redacted; live rotations require protected environment approval and `--execute`. |
+| Role/Gate proofs | Role smoke and Gate 2/3/4 Playwright specs, report aggregator, workflow | Local proof passes; staging mode requires real base URL/role users and human review for high-risk flows. |
+| Backup/rollback | Backup/restore and rollback scripts/workflow/doc | Dry-run by default; production execution requires approval and provider/database credentials. |
+| Synthetic monitoring | `/api/healthz`, synthetic Playwright/spec script/workflow/doc | Scheduled checks can hit production; Sentry/alert tests require explicit env flags and credentials. |
+| Compliance/AI governance | gitleaks config, compliance workflow/report script/doc | Secret hygiene, PII logging, AI governance tests, and gitleaks run in CI with report artifacts. |
 
 ## Manual work still required
 
