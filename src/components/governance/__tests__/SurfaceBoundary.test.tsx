@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import { SurfaceBoundary } from '../SurfaceBoundary';
-import { logGovernanceEvent, getGovernanceEvents } from '@/governance/events';
+import { logGovernanceEvent } from '@/governance/events';
 
 // Mock the events module to track logging
 vi.mock('@/governance/events', () => ({

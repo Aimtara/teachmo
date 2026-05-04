@@ -47,7 +47,7 @@ export function TenantBrandingProvider({ children }: { children: React.ReactNode
           setState({ branding, loading: false });
           applyBranding(branding);
         }
-      } catch (err) {
+      } catch {
         if (mounted) setState({ branding: {}, loading: false });
       }
     })();

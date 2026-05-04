@@ -13,7 +13,7 @@ export async function flushQueuedRequests() {
       if (res.ok) {
         await removeRequest(item.id);
       }
-    } catch (err) {
+    } catch {
       break;
     }
   }

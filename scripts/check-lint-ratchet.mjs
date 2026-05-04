@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process';
 
 const baseline = {
-  errors: 791,
+  errors: 776,
   warnings: 145,
-  totalProblems: 936,
+  totalProblems: 921,
   rules: {
     'no-unused-vars': 626,
     'react-hooks/exhaustive-deps': 82,
@@ -12,7 +12,7 @@ const baseline = {
     parser: 0,
     'no-undef': 0,
     'no-redeclare': 7,
-    '@typescript-eslint/no-unused-vars': 16,
+    '@typescript-eslint/no-unused-vars': 1,
     'no-case-declarations': 10,
     'react/display-name': 5,
     'react-hooks/rules-of-hooks': 5,

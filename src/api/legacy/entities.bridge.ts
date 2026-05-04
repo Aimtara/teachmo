@@ -10,37 +10,37 @@ type EntityBridge = {
 };
 
 const entity = (name: string): EntityBridge => ({
-  list: async (..._args: unknown[]) => {
+  list: async () => {
     throw new Error(
       `Legacy entity bridge for "${name}".list() is no longer supported. ` +
         'Call apiClient.entity.list(name, ...) directly instead of using the legacy bridge.',
     );
   },
-  filter: async (..._args: unknown[]) => {
+  filter: async () => {
     throw new Error(
       `Legacy entity bridge for "${name}".filter() is no longer supported. ` +
         'Call apiClient.entity.filter(name, ...) directly instead of using the legacy bridge.',
     );
   },
-  get: async (..._args: unknown[]) => {
+  get: async () => {
     throw new Error(
       `Legacy entity bridge for "${name}".get() is no longer supported. ` +
         'Call apiClient.entity.get(name, ...) directly instead of using the legacy bridge.',
     );
   },
-  create: async (..._args: unknown[]) => {
+  create: async () => {
     throw new Error(
       `Legacy entity bridge for "${name}".create() is no longer supported. ` +
         'Call apiClient.entity.create(name, ...) directly instead of using the legacy bridge.',
     );
   },
-  update: async (..._args: unknown[]) => {
+  update: async () => {
     throw new Error(
       `Legacy entity bridge for "${name}".update() is no longer supported. ` +
         'Call apiClient.entity.update(name, ...) directly instead of using the legacy bridge.',
     );
   },
-  delete: async (..._args: unknown[]) => {
+  delete: async () => {
     throw new Error(
       `Legacy entity bridge for "${name}".delete() is no longer supported. ` +
         'Call apiClient.entity.delete(name, ...) directly instead of using the legacy bridge.',
