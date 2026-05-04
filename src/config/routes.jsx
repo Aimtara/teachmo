@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 import { MomentGuard } from '@/components/governance/MomentGuard';
-import { envFlag } from '@/config/env';
+import { envFlag, getAppEnv } from '@/config/env';
 
 const UnifiedDiscover = lazy(() => import('@/pages/UnifiedDiscover'));
 const DiscoverRoute = () => (
@@ -13,6 +13,13 @@ const DiscoverRoute = () => (
 // Internal routes are dev-friendly by default, but can be explicitly enabled in production.
 const ENABLE_INTERNAL_ROUTES =
   import.meta.env.DEV || envFlag('VITE_ENABLE_INTERNAL_ROUTES', { defaultValue: false });
+
+function isRouteBypassEnabled() {
+  const appEnv = getAppEnv(import.meta.env);
+  if (appEnv === 'production' || appEnv === 'staging') return false;
+  if (import.meta.env.VITE_DISABLE_DEV_ROUTE_BYPASS === 'true') return false;
+  return import.meta.env.DEV && envFlag('VITE_ENABLE_DEV_ROUTE_BYPASS', { defaultValue: true, env: import.meta.env });
+}
 
 export const ROUTE_DEFINITIONS = [
   {
@@ -663,7 +670,7 @@ export const ROUTE_CONFIG = ROUTE_DEFINITIONS.filter(
 ).map((route) => {
   // 🚀 DEV MODE BYPASS: Dynamically strip route security locally so we can view the UI
   // without touching the actual ROUTE_DEFINITIONS above.
-  if (import.meta.env.DEV) {
+  if (isRouteBypassEnabled()) {
     return {
       ...route,
       isPublic: true,

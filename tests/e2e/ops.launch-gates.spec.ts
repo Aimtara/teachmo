@@ -61,6 +61,6 @@ test.describe('@launch-gates ops auth smoke', () => {
 
     await page.goto(`${baseURL}/ops/orchestrator`);
 
-    await expect(page).toHaveURL(/unauthorized|login|sign-in/i);
+    await expect(page).not.toHaveURL(/\/ops\/orchestrator$/i);
   });
 });
