@@ -23,11 +23,11 @@ Execution baseline:
 - Errors: 3,465
 - Warnings: 157
 
-After scoped config/policy work and the final API-boundary adapter pass,
-ratcheted lint state:
+After scoped config/policy work, the API-boundary adapter pass, and the follow-up
+lint burn-down pass, ratcheted lint state:
 
-- Total ratcheted problems: 936
-- Errors: 791
+- Total ratcheted problems: 878
+- Errors: 733
 - Warnings: 145
 - Removed from hard legacy gate: 2,414 `react/prop-types` and 162 `react/no-unescaped-entities` findings.
 
@@ -36,14 +36,14 @@ ratcheted lint state:
 | Rule | Count | Category | Proposed treatment |
 | --- | ---: | --- | --- |
 | `react/prop-types` | 2,414 | Legacy JS/JSX policy debt | Scoped off as a legacy JS/JSX policy; tracked in docs and ratchet baseline. |
-| `no-unused-vars` | 626 | Mechanical/source debt | Fix safe instances; ratchet remainder if too broad. |
+| `no-unused-vars` | 583 | Mechanical/source debt | Fix safe instances; ratchet remainder if too broad. |
 | `react/no-unescaped-entities` | 162 | User-facing copy lint | Scoped off for legacy copy; avoid broad copy churn without owner review. |
 | `react-hooks/exhaustive-deps` | 82 | Behavior-sensitive hook debt | Do not auto-fix broadly without characterization. |
 | `no-undef` | 0 | Config/environment + real missing symbols | Eliminated in May 2026 closure; ratchet prevents reintroduction. |
 | `react-refresh/only-export-components` | 63 | Dev-refresh policy warnings | Scoped policy or targeted refactors. |
 | `@typescript-eslint/no-explicit-any` | 111 | TS migration debt | Reduced by moving SSO/profile/feature-flag code into typed domain adapters; ratcheted explicitly. |
 | `no-redeclare` | 7 | Source/test debt | Inspect before mechanical fixes. |
-| `@typescript-eslint/no-unused-vars` | 16 | Mechanical TS debt | Fix safe instances. |
+| `@typescript-eslint/no-unused-vars` | 1 | Mechanical TS debt | Nearly eliminated; keep at ratchet 1 until the remaining item is safely reviewed. |
 | `no-case-declarations` | 10 | Mechanical JS debt | Add block scopes where safe. |
 
 Additional small categories: `react/display-name`, `react-hooks/rules-of-hooks`, `react/no-children-prop`, `no-prototype-builtins`, `no-unsafe-finally`, `react/jsx-no-undef`, `react/no-unknown-property`, `no-useless-escape`.
@@ -60,16 +60,17 @@ Additional small categories: `react/display-name`, `react-hooks/rules-of-hooks`,
 - Added `npm run lint:production` and `npm run check:lint-ratchet`.
 - Added lint ratchet to `check:production:fast`, `check:launch`, and `check:production`.
 - Moved discover recommendations, AI prompt library, tenant profile/feature flag/SSO hooks, and several admin pages behind domain adapters, lowering `@typescript-eslint/no-explicit-any` and preserving parser/`no-undef` at zero.
+- Removed high-volume unused imports/state from onboarding, UX audit, dashboard focus, and TypeScript support files, reducing ratcheted lint **936 → 878** while keeping warning debt unchanged.
 
 ## Current ratchet baseline
 
 | Rule | Allowed count |
 | --- | ---: |
-| `no-unused-vars` | 626 |
+| `no-unused-vars` | 583 |
 | `no-undef` | 0 |
 | parser errors | 0 |
 | `@typescript-eslint/no-explicit-any` | 111 |
-| `@typescript-eslint/no-unused-vars` | 16 |
+| `@typescript-eslint/no-unused-vars` | 1 |
 | `no-redeclare` | 7 |
 | `react-hooks/exhaustive-deps` | 82 |
 | `react-refresh/only-export-components` | 63 |

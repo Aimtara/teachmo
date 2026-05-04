@@ -11,8 +11,8 @@ Generated: 2026-05-04
 | --- | ---: |
 | Size-limit budget | 500 kB brotlied |
 | Baseline all-JS measurement | 613.92 kB brotlied |
-| May 4 final total JS ratchet measurement | 595.09 kB brotlied |
-| May 4 final app-shell initial entry | 22.50 kB brotlied |
+| May 4 follow-up total JS ratchet measurement | 595.34 kB brotlied |
+| May 4 follow-up app-shell initial entry | 22.09 kB brotlied |
 | May 4 final largest chunk | 213.67 kB brotlied |
 
 The old `size-limit` entry measured every built JavaScript asset matching
@@ -21,7 +21,7 @@ initial-app-shell budget. The new `check:size` runs `scripts/check-size-ratchet.
 and fails if:
 
 - total brotlied JS exceeds the tightened 596 kB baseline,
-- the initial app-shell entry exceeds 23 kB brotlied,
+- the initial app-shell entry exceeds 22.2 kB brotlied,
 - any single JS chunk exceeds 214 kB brotlied.
 
 ## Policy decision
@@ -45,7 +45,7 @@ packages were not part of the production route graph.
 | Chunk | Brotli size | Notes |
 | --- | ---: | --- |
 | `vendor-misc-*.js` | 213.67 kB | Broad catch-all vendor chunk and current largest asset. |
-| `index-*.js` | 22.50 kB | App shell entry and hard launch metric. |
+| `index-*.js` | 22.09 kB | App shell entry and hard launch metric after lazy-loading the landing page out of the route shell. |
 
 ## Safe remediation strategy
 
@@ -57,6 +57,7 @@ Completed:
 3. Confirmed route-level lazy loading remains in place.
 4. Added an app-shell/per-chunk/total-JS regression ratchet as the release gate.
 5. Tightened the ratchet again after the final May 4 closure build: total 596 kB, app shell 23 kB, largest chunk 214 kB.
+6. Lazy-loaded the unauthenticated landing page from `src/pages/index.jsx`, removing the mixed static/dynamic import and tightening the app-shell cap to 22.2 kB.
 
 Remaining follow-up: deeper vendor decomposition of `vendor-misc` into more
 meaningful package-level chunks and product review of whether to continue

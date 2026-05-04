@@ -30,9 +30,9 @@ The main remaining blockers are live operations/compliance evidence and 21 still
 | Runtime high/critical audit findings | 0 | 0 | Runtime audit gate passes. |
 | Full raw npm audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are documented optional/dev PWA build-chain findings. |
 | API-boundary temporary exceptions | 37 | 21 | Improved; remaining high-risk admin/AI exceptions need owner review before broad launch. |
-| Lint ratchet | 940 problems, parser/no-undef 0 | 936 problems, parser/no-undef 0 | Controlled; full lint remains legacy debt. |
+| Lint ratchet | 940 problems, parser/no-undef 0 | 878 problems, parser/no-undef 0 | Controlled; full lint remains legacy debt. |
 | TS ratchet `any` count | 512 baseline | 507 current | Improved after moving additional UI calls into typed domain adapters. |
-| Bundle ratchet | 602/24/225 kB caps | 596/23/214 kB caps | Tighter regression gate; total JS remains above old 500 kB aggregate. |
+| Bundle ratchet | 602/24/225 kB caps | 596/22.2/214 kB caps | Tighter regression gate; total JS remains above old 500 kB aggregate. |
 | Browser E2E | 2 pass / 6 fail / 4 skipped | 7 pass / 0 fail / 5 skipped | Remaining skips require credentials/prod-like SW environment. |
 | Unit a11y | FAIL under Jest runner | PASS: 5 files / 22 tests | `test:a11y` now uses Vitest. |
 | Manual readiness | 26 manual items | 31 manual items with added evidence templates | Manual/live evidence remains production blocker. |
@@ -60,7 +60,7 @@ The main remaining blockers are live operations/compliance evidence and 21 still
 | --- | --- | --- |
 | Dependency audit | Runtime PASS; full raw audit still has documented dev/optional findings. | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
 | API boundary | PASS with 21 exceptions and hard cap. | `npm run check:api-boundaries`. |
-| Bundle | PASS with tighter 596/23/214 kB caps. | `npm run build`; `npm run check:size`. |
+| Bundle | PASS with tighter 596/22.2/214 kB caps. | `npm run build`; `npm run check:size`. |
 | TypeScript | PASS with current `any` below baseline. | `npm run check:ts-ratchet`; `npm run typecheck`. |
 | Unit/smoke/backend tests | PASS. | Vitest, smoke, backend Jest, backend package Jest. |
 | Browser E2E/a11y | PASS for executable smoke scope; 5 credential/environment skips. | `npm run test:e2e`; `npm run test:a11y`. |
@@ -81,12 +81,12 @@ The main remaining blockers are live operations/compliance evidence and 21 still
 | `npm run typecheck` | PASS | TS compiler green. |
 | `npm run check:ts-ratchet` | PASS | Current `any` count 507 vs baseline 512. |
 | `npm run check:api-boundaries` | PASS | 21 documented exceptions. |
-| `npm run check:lint-ratchet` | PASS | 936 controlled lint problems; parser/no-undef 0. |
+| `npm run check:lint-ratchet` | PASS | 878 controlled lint problems; parser/no-undef 0. |
 | `npm run test -- --run` | PASS | 35 files / 145 tests. |
 | `npm run test:backend` | PASS | Backend Jest green. |
 | `npm test --prefix backend` | PASS | Backend package Jest green. |
 | `npm run build` | PASS | Vite/PWA build succeeds. |
-| `npm run check:size` | PASS | 595.09 kB total, 22.50 kB initial, 213.67 kB largest. |
+| `npm run check:size` | PASS | 595.34 kB total, 22.09 kB initial, 213.67 kB largest. |
 | `npm run test:e2e` | PASS / scoped | 7 passed, 5 skipped for missing credentials/prod-like offline environment. |
 | `npm run check:launch` | PASS | Fast checks + smoke + build + size. |
 | `npm run check:production` | PASS | Fast checks + lint ratchet + typecheck + Vitest + build + size. |
