@@ -141,7 +141,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const opts = parseArgs();
   const report = buildRotationReport(opts);
   const { jsonPath, mdPath } = writeReports({ outputDir: opts.outputDir, name: 'secret-rotation', report });
-  console.log(`[secret-rotation] ${JSON.stringify(report.totals)}`);
+  console.log('[secret-rotation] Report generated with redacted evidence.');
   console.log(`[secret-rotation] Wrote ${jsonPath} and ${mdPath}`);
   if (report.totals.fail > 0) process.exit(1);
 }
