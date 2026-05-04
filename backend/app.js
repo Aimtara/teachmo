@@ -134,6 +134,19 @@ app.get('/api/metrics', (req, res) => {
   res.json(getMetricsSnapshot());
 });
 
+app.get('/api/healthz', async (req, res) => {
+  const health = {
+    status: 'ok',
+    service: 'teachmo-api',
+    checks: {
+      api: 'ok',
+      metrics: 'ok',
+    },
+  };
+
+  res.json(health);
+});
+
 // Root endpoint to verify API is running
 app.get('/api', (req, res) => {
   res.send({ message: 'Welcome to the Teachmo API' });
