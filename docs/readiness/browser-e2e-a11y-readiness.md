@@ -6,7 +6,8 @@ Generated: 2026-05-04
 
 Browser QA is materially improved. `npm run test:a11y` now runs the a11y
 component/page checks under Vitest instead of the incompatible Jest/CommonJS
-runner and passes. Playwright Chromium was installed and `npm run test:e2e`
+runner and passes. After `npm ci`, Playwright browsers had to be reinstalled
+with `npx playwright install chromium`; `npm run test:e2e`
 now passes all automated smoke tests that do not require external credentials
 or a production service-worker environment: **7 passed / 5 skipped / 0 failed**.
 

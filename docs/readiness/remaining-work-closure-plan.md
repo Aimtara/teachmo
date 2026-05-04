@@ -154,12 +154,12 @@ continuing to keep live-environment tasks separate from automated claims.
 
 | Area | Before this pass | After May 4 pass | Evidence |
 | --- | ---: | ---: | --- |
-| API-boundary exceptions | 37 | 30 | `npm run check:api-boundaries`; ratchet cap now fails above 30. |
+| API-boundary exceptions | 37 | 21 | `npm run check:api-boundaries`; ratchet cap now fails above 21. |
 | Runtime high/critical vulnerabilities | 0 | 0 | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
 | Full raw audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are dev/optional PWA/workbox chain exceptions. |
-| Lint ratchet | 940 problems | 940 problems | Parser and `no-undef` remain 0. |
-| TypeScript `any` count | 512 baseline | 511 | E2E fixtures no longer add broad `any`. |
-| Bundle size ratchet | 602/24/225 kB | 599/23/214 kB | Current build: 598.64 kB total, 22.45 kB initial, 213.73 kB largest chunk. |
+| Lint ratchet | 940 problems | 936 problems | Parser and `no-undef` remain 0; `@typescript-eslint/no-explicit-any` is down to 111. |
+| TypeScript `any` count | 512 baseline | 507 | Domain extractions improved typed surface while adding TS adapter files. |
+| Bundle size ratchet | 602/24/225 kB | 596/23/214 kB | Current build: 595.09 kB total, 22.50 kB initial, 213.67 kB largest chunk. |
 | Unit/smoke/backend tests | PASS | PASS | Full Vitest 35/145, smoke 5/15, backend Jest 31/190. |
 | Browser E2E | FAIL: 2 pass / 6 fail / 4 skipped | PASS scoped smoke: 7 pass / 5 skipped | Login axe, calendar, teacher, keyboard, admin, and ops route guard now pass. |
 | Unit a11y command | FAIL under Jest runner | PASS under Vitest runner | `npm run test:a11y`: 5 files / 22 tests. |
@@ -167,8 +167,9 @@ continuing to keep live-environment tasks separate from automated claims.
 Additional work completed:
 
 - Extracted AI transparency, school-directory admin, partner incentives,
-  partner submissions, execution-board fallback, admin audit-log, and AI policy
-  simulation calls behind domain adapters.
+  partner submissions, execution-board fallback, admin audit-log, AI policy
+  simulation, discover recommendations, AI prompt library, tenant hooks, and
+  selected admin school/user/system/domain calls behind domain adapters.
 - Added scoped Playwright feature flags for gated browser smoke without enabling
   gated features globally.
 - Hardened the dev/E2E route-guard path so mock E2E roles are evaluated instead

@@ -60,3 +60,15 @@ The full raw audit still reports dev/optional build-tool advisories, primarily f
 | `npm run test:smoke` | PASS |
 | `npm run build && npm run check:size` | PASS |
 
+## May 4 final verification
+
+The final closure run re-verified dependency posture after API-boundary and
+ratchet changes:
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm run check:audit` | PASS | Production runtime scope has 0 high/critical findings. |
+| `npm audit --audit-level=high` | FAIL / documented | Full raw audit still reports 10 total findings: 2 low, 4 moderate, 4 high. The high findings remain the optional/dev PWA Workbox/`serialize-javascript` chain already documented in `config/audit-exceptions.json`. |
+| `npm run check:secret-hygiene` | PASS | No new tracked secret patterns detected. |
+| `npm run check:nhost-config-safety` | PASS | Safe repo Nhost config remains enforced. |
+

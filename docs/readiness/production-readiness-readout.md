@@ -1,27 +1,27 @@
 # Production Readiness Readout
 
 Generated: 2026-05-04  
-Latest closure validation commit: `32d40c4` plus final docs commit
+Latest closure validation commit: `57a109a` plus final docs commit
 
 ## Verdict
 
 **GO for controlled pilot only after manual environment verification is completed. NO-GO for broad production launch today.**
 
-Repository-controlled gates are materially stronger: runtime audit is clean, production aggregates pass, browser smoke/a11y automation now runs, API-boundary exceptions are down to 30, and bundle/TS/API/lint ratchets block regression. Broad production still depends on live Nhost/Hasura/Sentry/storage/DNS/OAuth/legal/role-smoke evidence and human signoff that cannot be completed from this VM.
+Repository-controlled gates are materially stronger: runtime audit is clean, production aggregates pass, browser smoke/a11y automation runs, API-boundary exceptions are down to 21, and bundle/TS/API/lint ratchets block regression. Broad production still depends on live Nhost/Hasura/Sentry/storage/DNS/OAuth/legal/role-smoke evidence and human signoff that cannot be completed from this VM.
 
 ## Executive summary
 
 This closure:
 
-- Moved seven high-value direct UI backend calls behind domain adapters, reducing temporary API-boundary exceptions from 37 to 30 and adding a hard exception-count ratchet.
+- Moved thirteen high-value direct UI backend calls behind domain adapters across discover, AI prompts, admin school requests/system health/tenant domains/users, and legacy tenant/profile hooks, reducing temporary API-boundary exceptions from 37 to 21 and adding a hard exception-count ratchet.
 - Repaired browser QA posture: `npm run test:a11y` now runs under Vitest and passes; Playwright now passes 7 executable smoke tests with 5 explicitly skipped credential/environment tests.
 - Fixed login page axe blockers by adding a main landmark and accessible submit-button contrast.
 - Hardened E2E auth coverage so launch-gate route tests run with explicit local/test bypass flags, while production/staging bypass flags remain forbidden.
 - Added scoped test-only feature flags for gated calendar/teacher-class browser smoke without changing production defaults.
-- Tightened bundle policy to 599 kB total brotli, 23 kB app shell, and 214 kB largest chunk.
+- Tightened bundle policy to 596 kB total brotli, 23 kB app shell, and 214 kB largest chunk.
 - Added manual evidence templates for directory identity conflict review, office-hours live verification, messaging/digest retry proof, assignments sync proof, and admin sync/dashboard validation.
 
-The main remaining blockers are live operations/compliance evidence and 30 still-owned API-boundary exceptions, mostly broader admin/AI surfaces that need sequenced service-adapter migration.
+The main remaining blockers are live operations/compliance evidence and 21 still-owned API-boundary exceptions, mostly broader admin/AI surfaces that need sequenced service-adapter migration.
 
 ## Remaining work snapshot
 
@@ -29,10 +29,10 @@ The main remaining blockers are live operations/compliance evidence and 30 still
 | --- | ---: | ---: | --- |
 | Runtime high/critical audit findings | 0 | 0 | Runtime audit gate passes. |
 | Full raw npm audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are documented optional/dev PWA build-chain findings. |
-| API-boundary temporary exceptions | 37 | 30 | Improved; remaining high-risk admin/AI exceptions need owner review before broad launch. |
-| Lint ratchet | 940 problems, parser/no-undef 0 | 940 problems, parser/no-undef 0 | Controlled; full lint remains legacy debt. |
-| TS ratchet `any` count | 512 baseline | 511 current | Improved by removing E2E `any` casts. |
-| Bundle ratchet | 602/24/225 kB caps | 599/23/214 kB caps | Tighter regression gate; total JS remains above old 500 kB aggregate. |
+| API-boundary temporary exceptions | 37 | 21 | Improved; remaining high-risk admin/AI exceptions need owner review before broad launch. |
+| Lint ratchet | 940 problems, parser/no-undef 0 | 936 problems, parser/no-undef 0 | Controlled; full lint remains legacy debt. |
+| TS ratchet `any` count | 512 baseline | 507 current | Improved after moving additional UI calls into typed domain adapters. |
+| Bundle ratchet | 602/24/225 kB caps | 596/23/214 kB caps | Tighter regression gate; total JS remains above old 500 kB aggregate. |
 | Browser E2E | 2 pass / 6 fail / 4 skipped | 7 pass / 0 fail / 5 skipped | Remaining skips require credentials/prod-like SW environment. |
 | Unit a11y | FAIL under Jest runner | PASS: 5 files / 22 tests | `test:a11y` now uses Vitest. |
 | Manual readiness | 26 manual items | 31 manual items with added evidence templates | Manual/live evidence remains production blocker. |
@@ -59,8 +59,8 @@ The main remaining blockers are live operations/compliance evidence and 30 still
 | Blocker | Status | Evidence |
 | --- | --- | --- |
 | Dependency audit | Runtime PASS; full raw audit still has documented dev/optional findings. | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
-| API boundary | PASS with 30 exceptions and hard cap. | `npm run check:api-boundaries`. |
-| Bundle | PASS with tighter 599/23/214 kB caps. | `npm run build`; `npm run check:size`. |
+| API boundary | PASS with 21 exceptions and hard cap. | `npm run check:api-boundaries`. |
+| Bundle | PASS with tighter 596/23/214 kB caps. | `npm run build`; `npm run check:size`. |
 | TypeScript | PASS with current `any` below baseline. | `npm run check:ts-ratchet`; `npm run typecheck`. |
 | Unit/smoke/backend tests | PASS. | Vitest, smoke, backend Jest, backend package Jest. |
 | Browser E2E/a11y | PASS for executable smoke scope; 5 credential/environment skips. | `npm run test:e2e`; `npm run test:a11y`. |
@@ -79,21 +79,21 @@ The main remaining blockers are live operations/compliance evidence and 30 still
 | `npm run test:smoke` | PASS | 5 files / 15 tests. |
 | `npm run test:a11y` | PASS | 5 files / 22 tests under Vitest. |
 | `npm run typecheck` | PASS | TS compiler green. |
-| `npm run check:ts-ratchet` | PASS | Current `any` count 511 vs baseline 512. |
-| `npm run check:api-boundaries` | PASS | 30 documented exceptions. |
-| `npm run check:lint-ratchet` | PASS | 940 controlled lint problems; parser/no-undef 0. |
+| `npm run check:ts-ratchet` | PASS | Current `any` count 507 vs baseline 512. |
+| `npm run check:api-boundaries` | PASS | 21 documented exceptions. |
+| `npm run check:lint-ratchet` | PASS | 936 controlled lint problems; parser/no-undef 0. |
 | `npm run test -- --run` | PASS | 35 files / 145 tests. |
 | `npm run test:backend` | PASS | Backend Jest green. |
 | `npm test --prefix backend` | PASS | Backend package Jest green. |
 | `npm run build` | PASS | Vite/PWA build succeeds. |
-| `npm run check:size` | PASS | 598.64 kB total, 22.45 kB initial, 213.73 kB largest. |
+| `npm run check:size` | PASS | 595.09 kB total, 22.50 kB initial, 213.67 kB largest. |
 | `npm run test:e2e` | PASS / scoped | 7 passed, 5 skipped for missing credentials/prod-like offline environment. |
 | `npm run check:launch` | PASS | Fast checks + smoke + build + size. |
 | `npm run check:production` | PASS | Fast checks + lint ratchet + typecheck + Vitest + build + size. |
 
 ## Files changed
 
-- **Source/domain adapters:** `src/domains/http.ts`, admin/AI/directory/partner adapters, `src/domains/executionBoard.ts`, and related UI pages/components.
+- **Source/domain adapters:** admin/AI/discover/profile/tenant adapters, existing directory/partner/execution adapters, and related UI pages/components/hooks.
 - **UI/a11y/auth:** `src/pages/Login.jsx`, `src/components/shared/ProtectedRoute.tsx`, `src/config/features.ts`, `src/config/routes.jsx`.
 - **Tests/E2E:** Playwright admin/calendar/keyboard/ops/offline specs; `package.json` a11y script; AI transparency a11y mock.
 - **Scripts/config:** API-boundary ratchet, bundle-size ratchet, Playwright config, `.gitignore`.
@@ -124,7 +124,7 @@ Highest-priority manual work remains:
 | --- | --- | --- | --- | --- |
 | Critical | Live Nhost/Hasura/RBAC settings may differ from repo-safe config. | Complete MPW-001 through MPW-005 and MPW-024. | Platform/Security | TBD |
 | Critical | Previously exposed OAuth secret may still be valid. | Complete MPW-023 rotation proof. | Security/Auth | TBD |
-| High | 30 API-boundary exceptions remain. | Continue adapter extraction under checker cap. | Admin/AI/Frontend Platform | 2026-07-15 |
+| High | 21 API-boundary exceptions remain. | Continue adapter extraction under checker cap. | Admin/AI Platform | 2026-07-15 |
 | High | Browser E2E skips still require credentials/prod-like SW setup. | Run skipped specs in staging with credentials; attach evidence. | QA/Release | TBD |
 | High | Gate 2/3/4 live proof incomplete. | Use new evidence templates for E10–E23. | Product/Platform | TBD |
 | Medium | Full lint remains red. | Continue ratcheted cleanup; parser/no-undef remain blocked at 0. | Frontend Platform | 2026-06-30 |

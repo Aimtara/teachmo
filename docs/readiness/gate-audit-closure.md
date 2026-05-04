@@ -31,7 +31,7 @@ This document tracks closure status for the remaining Gate 2, Gate 3, and Gate 4
 
 ## May 4 closure update
 
-- API-boundary exceptions were reduced **37 → 30** by extracting AI transparency, directory admin, partner incentives/submissions, execution board fallback, audit-log viewer, and AI policy simulation calls into domain modules.
+- API-boundary exceptions were reduced **37 → 21** by extracting AI transparency, directory admin, partner incentives/submissions, execution board fallback, audit-log viewer, AI policy simulation, personalized discover, AI prompt library, school requests, system health, tenant domains, admin impersonation, and tenant/profile hook calls into domain modules.
 - Browser evidence improved: `npm run test:a11y` now runs under Vitest and passes 22 checks; `npm run test:e2e` passes 7 browser smokes with 5 explicit credential/environment skips.
 - New live-proof templates were added for directory identity conflicts, office-hours verification, messaging/digest retry proof, assignments sync proof, and admin sync/dashboard validation.
 

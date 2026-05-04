@@ -11,16 +11,16 @@ Generated: 2026-05-04
 | --- | ---: |
 | Size-limit budget | 500 kB brotlied |
 | Baseline all-JS measurement | 613.92 kB brotlied |
-| May 4 total JS ratchet measurement | 597.75 kB brotlied |
-| May 4 app-shell initial entry | 22.21 kB brotlied |
-| May 4 largest chunk | 213.73 kB brotlied |
+| May 4 final total JS ratchet measurement | 595.09 kB brotlied |
+| May 4 final app-shell initial entry | 22.50 kB brotlied |
+| May 4 final largest chunk | 213.67 kB brotlied |
 
 The old `size-limit` entry measured every built JavaScript asset matching
 `dist/assets/**/*.js`, so it was a total-JS budget rather than a direct
 initial-app-shell budget. The new `check:size` runs `scripts/check-size-ratchet.mjs`
 and fails if:
 
-- total brotlied JS exceeds the tightened 598 kB baseline,
+- total brotlied JS exceeds the tightened 596 kB baseline,
 - the initial app-shell entry exceeds 23 kB brotlied,
 - any single JS chunk exceeds 214 kB brotlied.
 
@@ -42,15 +42,10 @@ packages were not part of the production route graph.
 
 ## Largest baseline chunks
 
-| Chunk | Gzip size | Notes |
+| Chunk | Brotli size | Notes |
 | --- | ---: | --- |
-| `vendor-misc-*.js` | 268.97 kB | Broad catch-all vendor chunk. |
-| `vendor-visualization-*.js` | 90.77 kB | Visualization libraries such as Recharts/React Flow/D3 family. |
-| `vendor-react-*.js` | 58.10 kB | React, React DOM, routing. |
-| `vendor-ui-helpers-*.js` | 30.99 kB | Lucide/date-fns/TanStack helpers. |
-| `vendor-nhost-*.js` | 27.76 kB | Nhost/GraphQL/Jose. |
-| `index-*.js` | 27.57 kB | App shell entry. |
-| `vendor-radix-*.js` | 20.70 kB | Radix component primitives. |
+| `vendor-misc-*.js` | 213.67 kB | Broad catch-all vendor chunk and current largest asset. |
+| `index-*.js` | 22.50 kB | App shell entry and hard launch metric. |
 
 ## Safe remediation strategy
 
@@ -61,7 +56,7 @@ Completed:
    `Suspense`.
 3. Confirmed route-level lazy loading remains in place.
 4. Added an app-shell/per-chunk/total-JS regression ratchet as the release gate.
-5. Tightened the ratchet again after the May 4 closure build: total 598 kB, app shell 23 kB, largest chunk 214 kB.
+5. Tightened the ratchet again after the final May 4 closure build: total 596 kB, app shell 23 kB, largest chunk 214 kB.
 
 Remaining follow-up: deeper vendor decomposition of `vendor-misc` into more
 meaningful package-level chunks and product review of whether to continue
