@@ -30,7 +30,7 @@ async function setE2ESession(page, session: { role: string; accessToken: string;
     ([key, value]) => {
       window.localStorage.setItem(key, JSON.stringify(value));
     },
-    [E2E_SESSION_KEY, session] as any
+    [E2E_SESSION_KEY, session] as [string, { role: string; accessToken: string; userId: string }]
   );
 }
 

@@ -18,6 +18,15 @@ type UpdateSchoolIntegrationResponse = {
   update_school_directory_by_pk?: Pick<SchoolDirectoryEntry, 'id' | 'integration_enabled'> | null;
 };
 
+type SchoolDirectoryVariables = {
+  search: string;
+};
+
+type UpdateSchoolIntegrationVariables = {
+  id: string;
+  integration_enabled: boolean;
+};
+
 export async function listSchoolDirectoryEntries(search: string): Promise<SchoolDirectoryEntry[]> {
   const query = `
     query GetSchoolDirectory($search: String) {
@@ -37,7 +46,7 @@ export async function listSchoolDirectoryEntries(search: string): Promise<School
     }
   `;
 
-  const result = await graphqlRequest<SchoolDirectoryResponse>({
+  const result = await graphqlRequest<SchoolDirectoryResponse, SchoolDirectoryVariables>({
     query,
     variables: { search: `%${search}%` },
   });
@@ -64,7 +73,7 @@ export async function updateSchoolDirectoryIntegrationEnabled({
     }
   `;
 
-  const result = await graphqlRequest<UpdateSchoolIntegrationResponse>({
+  const result = await graphqlRequest<UpdateSchoolIntegrationResponse, UpdateSchoolIntegrationVariables>({
     query: mutation,
     variables: { id, integration_enabled: integrationEnabled },
   });

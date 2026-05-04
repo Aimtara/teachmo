@@ -4,6 +4,11 @@ import { login } from './_auth';
 
 const E2E_SESSION_KEY = 'teachmo_e2e_session';
 
+type InitSessionArgs = [
+  string,
+  { role: string; accessToken: string; userId: string },
+];
+
 async function mintMockToken() {
   return new SignJWT({
     'https://hasura.io/jwt/claims': {
@@ -21,8 +26,8 @@ async function mintMockToken() {
 test('admin flow smoke: admin dashboard loads', async ({ page }) => {
   const token = await mintMockToken();
   await page.addInitScript(
-    ([key, value]) => window.localStorage.setItem(key, JSON.stringify(value)),
-    [E2E_SESSION_KEY, { role: 'system_admin', accessToken: token, userId: 'user_admin' }] as any
+    ([key, value]: InitSessionArgs) => window.localStorage.setItem(key, JSON.stringify(value)),
+    [E2E_SESSION_KEY, { role: 'system_admin', accessToken: token, userId: 'user_admin' }] satisfies InitSessionArgs
   );
   await login(page);
   await page.goto('/admin');
