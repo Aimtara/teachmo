@@ -30,11 +30,15 @@ jobs:
       - name: Backend syntax check
         run: npm run backend:check
 
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
       - name: Backend unit tests
         run: npm run test:backend
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint:production
 
       - name: Backend syntax check
         run: node --check backend/routes/ops.js

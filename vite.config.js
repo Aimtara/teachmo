@@ -5,6 +5,10 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const shouldGenerateSourceMaps =
+  process.env.VITE_SOURCEMAP === 'true' ||
+  Boolean(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT);
+
 const plugins = [
   react(),
   VitePWA({
@@ -73,7 +77,7 @@ export default defineConfig({
     }
   },
   build: {
-    sourcemap: true,
+    sourcemap: shouldGenerateSourceMaps,
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
