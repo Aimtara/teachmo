@@ -65,7 +65,7 @@
     "issues:go-live": "node scripts/go-live-issue-automation.mjs",
     "issues:smoke-activity": "node scripts/smoke-issue-activity.mjs",
     "issues:project-validate": "node scripts/validate-project-config.mjs",
-    "test:scripts": "node --test scripts/check-api-boundaries.test.mjs scripts/check-production-auth-safety.test.mjs scripts/check-secret-hygiene.test.mjs scripts/check-nhost-config-safety.test.mjs scripts/check-ts-ratchet.test.mjs scripts/check-hasura-readiness.test.mjs scripts/check-pii-logging.test.mjs"
+    "test:scripts": "node --test scripts/check-api-boundaries.test.mjs scripts/check-audit.test.mjs scripts/check-production-auth-safety.test.mjs scripts/check-secret-hygiene.test.mjs scripts/check-nhost-config-safety.test.mjs scripts/check-ts-ratchet.test.mjs scripts/check-hasura-readiness.test.mjs scripts/check-pii-logging.test.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^16.6.0",
