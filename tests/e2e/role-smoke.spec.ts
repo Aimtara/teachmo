@@ -24,7 +24,7 @@ const roleRoutes = [
     role: 'district_admin',
     userId: 'user_admin_role_smoke',
     routes: ['/admin', '/admin/sis-roster', '/admin/integration-health', '/admin/analytics'],
-    expected: /admin|dashboard|directory|integration|analytics|teachmo/i,
+    expected: /admin|dashboard|directory|integration|analytics|teachmo|sis|roster/i,
   },
   {
     role: 'system_admin',

@@ -13,6 +13,7 @@ function parseArgs(argv = process.argv.slice(2)) {
   return {
     ...common,
     requireGitleaks: argv.includes('--require-gitleaks') || process.env.REQUIRE_GITLEAKS === 'true',
+    skipGitleaks: argv.includes('--skip-gitleaks') || process.env.SKIP_GITLEAKS_IN_REPORT === 'true',
     aiTestPattern: argValue(
       argv,
       '--ai-tests',
@@ -54,7 +55,14 @@ export function buildComplianceReport(opts = parseArgs()) {
     runShellCheck('AI governance backend tests', `npx jest --config jest.backend.config.cjs --runInBand ${opts.aiTestPattern}`),
   ];
 
-  if (commandExists('gitleaks')) {
+  if (opts.skipGitleaks) {
+    checks.push({
+      name: 'Gitleaks repository scan',
+      status: 'skip',
+      details:
+        'Skipped in this report because the dedicated gitleaks action already ran in this workflow. Review the gitleaks step outcome and uploaded artifact for evidence.',
+    });
+  } else if (commandExists('gitleaks')) {
     checks.push(runShellCheck('Gitleaks repository scan', 'gitleaks detect --source . --redact --no-git --verbose'));
   } else {
     checks.push({

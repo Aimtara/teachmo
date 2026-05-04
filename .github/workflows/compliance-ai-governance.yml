@@ -45,7 +45,7 @@ jobs:
 
       - name: Generate compliance report
         if: always()
-        run: npm run ops:compliance-report -- --output-dir artifacts/ops
+        run: npm run ops:compliance-report -- --output-dir artifacts/ops --skip-gitleaks
 
       - name: Upload compliance report
         if: always()
