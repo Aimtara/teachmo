@@ -6,7 +6,7 @@ test('calendar smoke: calendar renders and is keyboard reachable', async ({ page
   await page.addInitScript(() => {
     window.localStorage.setItem(
       'teachmo_e2e_session',
-      JSON.stringify({ role: 'parent', accessToken: 'e2e-parent-token', userId: 'e2e-parent' })
+      JSON.stringify({ role: 'parent', userId: 'e2e-parent' })
     );
   });
   await page.goto('/calendar');
