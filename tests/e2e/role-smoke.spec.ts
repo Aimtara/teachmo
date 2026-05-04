@@ -6,7 +6,7 @@ const roleRoutes = [
     role: 'parent',
     userId: 'user_parent_role_smoke',
     routes: ['/parent/dashboard', '/discover', '/messages', '/today'],
-    expected: /parent|dashboard|discover|message|today|teachmo/i,
+    expected: /parent|dashboard|discover|message|today|teachmo|protected moment|weekly brief|daily tip/i,
   },
   {
     role: 'teacher',
