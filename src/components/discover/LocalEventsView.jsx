@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { realEventSearch } from "@/api/functions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

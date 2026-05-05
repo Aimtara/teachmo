@@ -1,4 +1,3 @@
-import React from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

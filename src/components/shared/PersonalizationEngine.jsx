@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '@/api/entities';
 import { useChildrenList } from '@/domain/learners';
 import { InvokeLLM } from '@/api/integrations';
@@ -119,6 +119,7 @@ Generate recommendations that feel personally relevant and useful right now.`;
         break;
         
       case 'complexity':
+      {
         // Adapt complexity based on user behavior
         const avgEngagementTime = profile.behaviorPatterns.readArticle?.avgTime || 60;
         if (avgEngagementTime < 30) {
@@ -126,14 +127,17 @@ Generate recommendations that feel personally relevant and useful right now.`;
           return baseContent.split('.').slice(0, 2).join('.') + '.';
         }
         break;
+      }
         
       case 'timing':
+      {
         // Suggest optimal timing based on patterns
         const preferredTimes = profile.optimalTiming;
         if (preferredTimes?.morning) {
           return baseContent + '\n\nBest time to try: Morning hours work well for you!';
         }
         break;
+      }
     }
     
     return baseContent;

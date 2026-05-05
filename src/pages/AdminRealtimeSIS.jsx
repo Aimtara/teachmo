@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { getSISSyncConfig, runSISSyncNow, upsertSISSyncConfig } from '@/domains/admin/sisAdmin';
 import { createLogger } from '@/utils/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,10 +31,7 @@ export default function AdminRealtimeSIS() {
 
   const { data: configData, refetch } = useQuery(
     ['sisSyncConfig'],
-    async () => {
-      const query = `query GetSISSyncConfig { sis_sync_config { provider mode } sis_sync_jobs(order_by: {created_at: desc}, limit: 10) { id provider mode status created_at } }`;
-      return await graphqlRequest(query);
-    },
+    getSISSyncConfig,
     { refetchOnWindowFocus: false }
   );
 
@@ -49,8 +46,7 @@ export default function AdminRealtimeSIS() {
   const updateSync = async () => {
     setLoading(true);
     try {
-      const mutation = `mutation UpsertSISSyncConfig($provider: String!, $mode: String!) { insert_sis_sync_config_one(object: {provider: $provider, mode: $mode}, on_conflict: {constraint: sis_sync_config_pkey, update_columns: [mode]}) { provider mode } }`;
-      await graphqlRequest(mutation, { provider, mode });
+      await upsertSISSyncConfig(provider, mode);
       toast.success('Sync settings saved');
       await refetch();
     } catch (err) {
@@ -64,8 +60,7 @@ export default function AdminRealtimeSIS() {
   const runSync = async () => {
     setLoading(true);
     try {
-      const mutation = `mutation RunSISSync($provider: String!) { run_sis_sync(provider: $provider) { message } }`;
-      await graphqlRequest(mutation, { provider });
+      await runSISSyncNow(provider);
       toast.success('Sync job started');
       await refetch();
     } catch (err) {

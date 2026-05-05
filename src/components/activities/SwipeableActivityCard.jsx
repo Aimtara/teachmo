@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Check, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';

@@ -59,7 +59,11 @@ function evaluateCondition(condition, ctx) {
   const left = condition.path ? getPath(ctx, condition.path) : resolveValue(condition.left ?? condition.field, ctx);
   const right = resolveValue(condition.right ?? condition.value ?? condition.equals ?? condition.eq, ctx);
 
-  const op = operator || (condition.hasOwnProperty('equals') || condition.hasOwnProperty('eq') ? 'equals' : 'truthy');
+  const op = operator ||
+    (Object.prototype.hasOwnProperty.call(condition, 'equals') ||
+    Object.prototype.hasOwnProperty.call(condition, 'eq')
+      ? 'equals'
+      : 'truthy');
   switch (op) {
     case 'equals':
     case 'eq':

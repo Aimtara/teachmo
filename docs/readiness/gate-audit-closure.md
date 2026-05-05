@@ -31,7 +31,7 @@ This document tracks closure status for the remaining Gate 2, Gate 3, and Gate 4
 
 ## May 4 closure update
 
-- API-boundary exceptions were reduced **37 → 21** by extracting AI transparency, directory admin, partner incentives/submissions, execution board fallback, audit-log viewer, AI policy simulation, personalized discover, AI prompt library, school requests, system health, tenant domains, admin impersonation, and tenant/profile hook calls into domain modules.
+- API-boundary exceptions were reduced **37 → 0** by extracting AI transparency, directory admin, partner incentives/submissions, execution board fallback, audit-log viewer, AI policy simulation, personalized discover, AI prompt library, school requests, system health, tenant domains, admin impersonation, tenant/profile hooks, admin analytics, backup/recovery, compliance, notifications, observability, partner admin, and SIS admin calls into domain modules.
 - Browser evidence improved: `npm run test:a11y` now runs under Vitest and passes 22 checks; `npm run test:e2e` passes 7 browser smokes with 5 explicit credential/environment skips.
 - New live-proof templates were added for directory identity conflicts, office-hours verification, messaging/digest retry proof, assignments sync proof, and admin sync/dashboard validation.
 
@@ -60,4 +60,14 @@ This document tracks closure status for the remaining Gate 2, Gate 3, and Gate 4
 | E17 Assignments sync | Gate 3 proof reaches teacher assignment surfaces. | LMS/mock dry-run sync report and optional live sync evidence. |
 | E18/E20 Admin sync + dashboards | Gate 4 proof reaches analytics and integration-health surfaces. | Source-data reconciliation and sync-now troubleshooting evidence. |
 | E23 Command Center proof | Gate 4 proof reaches command-center route. | Live approval/escalation proof packet. |
+
+## May 5 closure sprint update
+
+| Gate item | Repository-side change | Automated evidence | Remaining live proof |
+| --- | --- | --- | --- |
+| E12/E13 CSV import and identity mapping | `sis-roster-import` now supports `previewOnly`/`dryRun`, returns identity decisions/conflicts, records preview-only metadata, and skips roster mutation in preview mode. | `npx jest --config jest.backend.config.cjs nhost/functions/__tests__/sis-roster-import.test.js`: PASS, 18 tests including dry-run identity preview. | Staging CSV/OneRoster-lite preview with exact ID, scoped email, relationship, duplicate, and conflict rows. |
+| E14 Messaging reliability | Added deterministic idempotency, retry classification, bounded backoff, and PII-safe delivery-attempt summary helpers; message telemetry no longer stores message preview text. | `npx vitest run src/domains/__tests__/messagingReliability.test.ts`: PASS. | Staging retry/backoff/idempotency evidence and scheduler/alert logs. |
+| E16 Office hours | Added reschedule helper and tests for cancellation/rebooking, timezone preservation, self-book denial, and conflict prevention. | `npx vitest run src/domains/__tests__/officeHours.test.ts`: PASS. | Feature remains scoped; live persistence, notifications, and real parent/teacher role proof required. |
+| E17 Assignments sync | Added dry-run validator with status/errors/duplicate counts for LMS/mock sync proof. | Covered by typecheck and domain import in full Vitest/typecheck runs. | LMS test tenant or approved mock dry-run evidence. |
+| E23 Command Center | Backend route now requires authenticated admin roles; frontend domain sends bearer/E2E tokens; non-admin denial is tested. | `npx jest --config jest.backend.config.cjs backend/__tests__/commandCenter.test.js`: PASS. | Live approval/escalation proof with audit/event screenshots. |
 

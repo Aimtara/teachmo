@@ -1,4 +1,3 @@
-import React from 'react';
 import { useUserData } from '@nhost/react';
 import EnhancedAIAssistant from '@/components/ai/EnhancedAIAssistant';
 import { Card } from '@/components/ui/card';

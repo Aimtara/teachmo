@@ -1,9 +1,8 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, CheckCircle, Calendar } from "lucide-react";
-import { format, isThisWeek, isThisMonth } from "date-fns";
+import { Sparkles, CheckCircle } from "lucide-react";
+import { isThisWeek, isThisMonth } from "date-fns";
 
 const categoryColors = {
   communication: "bg-blue-100 text-blue-800",

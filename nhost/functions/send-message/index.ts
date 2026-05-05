@@ -217,7 +217,6 @@ export default async (req: Request, res: Response) => {
       return res.status(429).json({ ok: false, error: 'rate_limited', window: rateCheck.window });
     }
 
-    const preview = messageBody.length > 240 ? `${messageBody.slice(0, 240)}…` : messageBody;
     const nowIso = new Date().toISOString();
 
     // Lightweight safety checks
@@ -292,7 +291,7 @@ export default async (req: Request, res: Response) => {
             entity_id: message.id,
             metadata: {
               thread_id: thread.id,
-              preview,
+              preview_redacted: true,
               flagged: Boolean(flaggedReason),
               flag_reason: flaggedReason || null,
               recipient_user_id: otherUserId || null,

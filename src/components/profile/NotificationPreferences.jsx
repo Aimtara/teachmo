@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -18,7 +18,6 @@ import {
   Calendar,
   Sparkles,
   Loader2,
-  Search,
   Tag // Added Tag icon
 } from 'lucide-react';
 import { motion } from 'framer-motion';

@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const UI_PREFIXES = ['src/pages/', 'src/components/', 'src/hooks/', 'src/app/', 'src/routes/'];
-const MAX_TEMPORARY_EXCEPTIONS = 5;
+const MAX_TEMPORARY_EXCEPTIONS = 0;
 const APPROVED_PREFIXES = [
   'src/pages/__tests__/',
   'src/components/**/__tests__/',
@@ -22,60 +22,7 @@ const APPROVED_PREFIXES = [
   'scripts/',
 ];
 
-const TEMPORARY_ALLOWLIST = [
-  {
-    pathPrefix: 'src/pages/Admin',
-    patterns: ['graphqlRequest', 'fetch'],
-    owner: 'Admin Platform',
-    targetRemoval: '2026-07-15',
-    reason:
-      'Admin surfaces need a larger GraphQL/service adapter migration; direct access is quarantined as launch-blocking follow-up.',
-  },
-  {
-    pathPrefix: 'src/pages/Partner',
-    patterns: ['fetch'],
-    owner: 'Partner Platform',
-    targetRemoval: '2026-07-15',
-    reason:
-      'Partner REST surfaces are isolated integration paths; service-adapter extraction is tracked before production scale.',
-  },
-  {
-    pathPrefix: 'src/components/admin/',
-    patterns: ['fetch'],
-    owner: 'Admin Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'Admin widgets require service extraction with admin smoke coverage before production scale.',
-  },
-  {
-    pathPrefix: 'src/components/ai/',
-    patterns: ['fetch'],
-    owner: 'AI Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'AI service calls require governance-aware service adapter extraction.',
-  },
-  {
-    path: 'src/pages/AITransparency.jsx',
-    patterns: ['graphqlRequest'],
-    owner: 'AI Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'AI transparency query requires AI governance domain extraction.',
-  },
-  {
-    path: 'src/pages/ExecutionBoard.jsx',
-    patterns: ['fetch'],
-    owner: 'Ops Platform',
-    targetRemoval: '2026-07-15',
-    reason: 'Execution board fallback fetch remains temporarily direct pending full ops domain migration.',
-  },
-  {
-    path: 'src/components/shared/ProtectedRoute.tsx',
-    patterns: ['permissionDeniedAudit'],
-    owner: 'Security Platform',
-    targetRemoval: '2026-07-15',
-    reason:
-      'Route guard is the only approved UI edge allowed to emit permission-denied telemetry; Hasura remains authoritative.',
-  },
-];
+const TEMPORARY_ALLOWLIST = [];
 
 const DISALLOWED_PATTERNS = [
   {

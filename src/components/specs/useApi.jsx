@@ -1,7 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useApi, useEntityCrud } from '../../hooks/useApi';
-import { server } from '../mocks/server';
-import { rest } from 'msw';
 
 // Mock entity for testing
 const MockEntity = {

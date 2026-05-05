@@ -1,4 +1,5 @@
 import { graphqlRequest } from '@/lib/graphql';
+import { domainJson, type ApiHeaders } from '@/domains/http';
 
 export function listNotificationCampaigns() {
   return graphqlRequest({
@@ -48,5 +49,33 @@ export function removeNotificationOptOut({ email, phone }) {
       }
     }`,
     variables: { email, phone },
+  });
+}
+
+export function listAdminAnnouncements(headers?: ApiHeaders) {
+  return domainJson('/admin/notifications/announcements', { headers });
+}
+
+export function getAdminNotificationMetrics(channel: string, headers?: ApiHeaders) {
+  return domainJson(`/admin/notifications/metrics?channel=${encodeURIComponent(channel)}`, { headers });
+}
+
+export function getTenantNotificationSettings(headers?: ApiHeaders) {
+  return domainJson('/tenants/settings', { headers });
+}
+
+export function createAdminAnnouncement(payload, headers?: ApiHeaders) {
+  return domainJson('/admin/notifications/announcements', {
+    method: 'POST',
+    headers,
+    json: payload,
+  });
+}
+
+export function updateTenantNotificationSettings(payload, headers?: ApiHeaders) {
+  return domainJson('/tenants/settings', {
+    method: 'PUT',
+    headers,
+    json: payload,
   });
 }

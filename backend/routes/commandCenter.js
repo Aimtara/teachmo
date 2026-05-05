@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { requireAdmin, requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -9,6 +10,9 @@ const DATA_PATH = path.resolve(process.cwd(), 'backend', 'data', 'commandCenter.
 
 const VALID_TYPES = ['RUNBOOK_CREATE', 'ESCALATE', 'ROLLBACK'];
 const VALID_STATUS = ['queued', 'approved', 'running', 'done', 'failed', 'canceled'];
+
+router.use(requireAuth);
+router.use(requireAdmin);
 
 function ensureStore() {
   try {

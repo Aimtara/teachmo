@@ -14,6 +14,9 @@ export function getAdminAIUsageSummary(headers: Record<string, string>) {
   return domainJson('/admin/ai/usage-summary', { headers });
 }
 
+export const getAnalyticsHeaders = adminAnalyticsHeaders;
+export const getAnalyticsAIUsageSummary = getAdminAIUsageSummary;
+
 export async function listAnalyticsRollups(where: Record<string, unknown>) {
   const data = await graphql(
     `query Rollups($where: analytics_event_rollups_daily_bool_exp!) {

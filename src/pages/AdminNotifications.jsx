@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
+import {
+  createAdminAnnouncement,
+  getAdminNotificationMetrics,
+  getTenantNotificationSettings,
+  listAdminAnnouncements,
+  updateTenantNotificationSettings,
+} from '@/domains/admin/notifications';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,15 +25,6 @@ const ROLE_OPTIONS = [
   { value: 'district_admin', label: 'District admins' },
   { value: 'system_admin', label: 'System admins' },
 ];
-
-async function fetchJson(url, opts = {}) {
-  const response = await fetch(url, opts);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Request failed');
-  }
-  return response.json();
-}
 
 function normalizeCsv(value) {
   return value
@@ -59,18 +56,20 @@ export default function AdminNotifications() {
 
   const announcementsQuery = useQuery({
     queryKey: ['admin_announcements'],
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/notifications/announcements`, { headers: headersQuery.data }),
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => listAdminAnnouncements(headersQuery.data),
   });
 
   const metricsQuery = useQuery({
     queryKey: ['admin_notification_metrics', channel],
-    queryFn: async () =>
-      fetchJson(`${API_BASE_URL}/admin/notifications/metrics?channel=${channel}`, { headers: headersQuery.data }),
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => getAdminNotificationMetrics(channel, headersQuery.data),
   });
 
   const tenantSettingsQuery = useQuery({
     queryKey: ['admin_notification_settings'],
-    queryFn: async () => fetchJson(`${API_BASE_URL}/tenants/settings`, { headers: headersQuery.data }),
+    enabled: Boolean(headersQuery.data),
+    queryFn: async () => getTenantNotificationSettings(headersQuery.data),
   });
 
   const notificationSettings = useMemo(() => {
@@ -103,11 +102,7 @@ export default function AdminNotifications() {
           school_ids: normalizeCsv(schoolIds),
         },
       };
-      return fetchJson(`${API_BASE_URL}/admin/notifications/announcements`, {
-        method: 'POST',
-        headers: headersQuery.data,
-        body: JSON.stringify(payload),
-      });
+      return createAdminAnnouncement(payload, headersQuery.data);
     },
     onSuccess: () => {
       toast({
@@ -131,17 +126,13 @@ export default function AdminNotifications() {
   const settingsMutation = useMutation({
     mutationFn: async (nextSettings) => {
       const current = tenantSettingsQuery.data?.settings || {};
-      return fetchJson(`${API_BASE_URL}/tenants/settings`, {
-        method: 'PUT',
-        headers: headersQuery.data,
-        body: JSON.stringify({
-          branding: current.branding || {},
-          settings: {
-            ...(current.settings || {}),
-            notifications: nextSettings,
-          },
-        }),
-      });
+      return updateTenantNotificationSettings({
+        branding: current.branding || {},
+        settings: {
+          ...(current.settings || {}),
+          notifications: nextSettings,
+        },
+      }, headersQuery.data);
     },
     onSuccess: () => {
       toast({

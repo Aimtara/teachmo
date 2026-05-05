@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { User } from '@/api/entities';
 import { Follow } from '@/api/entities';
-import { Pod } from '@/api/entities';
 import { Invitation } from '@/api/entities';
 import { Notification } from '@/api/entities';
 import { Loader2, Send } from 'lucide-react';

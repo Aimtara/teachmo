@@ -40,3 +40,17 @@ test('detectPiiLogging flags child data, auth headers, prompts, and vendor paylo
 
   assert.equal(findings.length, 4);
 });
+
+test('detectPiiLogging flags message body and preview telemetry', () => {
+  const findings = detectPiiLogging([
+    {
+      path: 'src/example.ts',
+      content: [
+        "logger.info('message', messageBody);",
+        "logger.info('preview', { preview });",
+      ].join('\n'),
+    },
+  ]);
+
+  assert.equal(findings.length, 2);
+});

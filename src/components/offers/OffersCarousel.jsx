@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, ExternalLink, Bookmark, Clock, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Clock } from 'lucide-react';
 import { PartnerOffer } from '@/api/entities';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isAfter, parseISO } from 'date-fns';

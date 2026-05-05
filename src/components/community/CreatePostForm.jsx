@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
-import { Post, Poll, Task, User } from '@/api/entities';
+import { Post, Poll, Task } from '@/api/entities';
 import { moderateContent } from '@/api/functions';
 import { useDebounce } from '@/components/shared/useDebounce';
 

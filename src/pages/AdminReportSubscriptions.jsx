@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import {
+  listScheduledReports,
+  subscribeToScheduledReport,
+  unsubscribeFromScheduledReport,
+} from '@/domains/admin/sisAdmin';
 import { createLogger } from '@/utils/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,14 +29,7 @@ export default function AdminReportSubscriptions() {
 
   const { data, refetch } = useQuery(
     ['scheduledReports'],
-    async () => {
-      const query = `query ScheduledReports {
-        scheduled_reports(order_by: {created_at: desc}) {
-          id name interval format metrics recipients { email }
-        }
-      }`;
-      return await graphqlRequest(query);
-    },
+    listScheduledReports,
     { refetchOnWindowFocus: false }
   );
 
@@ -43,12 +40,7 @@ export default function AdminReportSubscriptions() {
     }
     setSubscribing(true);
     try {
-      const mutation = `mutation Subscribe($reportId: uuid!, $email: String!) {
-        insert_scheduled_report_recipients_one(object: {report_id: $reportId, email: $email}, on_conflict: {constraint: scheduled_report_recipients_pkey, update_columns: []}) {
-          email
-        }
-      }`;
-      await graphqlRequest(mutation, { reportId, email });
+      await subscribeToScheduledReport(reportId, email);
       toast.success('User subscribed');
       setEmail('');
       await refetch();
@@ -62,10 +54,7 @@ export default function AdminReportSubscriptions() {
 
   const handleUnsubscribe = async (rId, userEmail) => {
     try {
-      const mutation = `mutation Unsubscribe($reportId: uuid!, $email: String!) {
-        delete_scheduled_report_recipients_by_pk(report_id: $reportId, email: $email) { email }
-      }`;
-      await graphqlRequest(mutation, { reportId: rId, email: userEmail });
+      await unsubscribeFromScheduledReport(rId, userEmail);
       toast.success('User unsubscribed');
       await refetch();
     } catch (err) {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { listPartnerFraudAlerts, resolvePartnerFraudAlert } from '@/domains/admin/partnerAdmin';
 import { Card, Table, Button, LoadingSpinner } from '@/components/ui';

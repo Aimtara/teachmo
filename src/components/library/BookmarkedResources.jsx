@@ -1,6 +1,4 @@
 
-import React from "react";
-import { motion } from "framer-motion";
 import { BookmarkCheck } from "lucide-react";
 import ResourceCard from "./ResourceCard";
 

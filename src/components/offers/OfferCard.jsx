@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { UserOfferSave, PartnerOffer } from '@/api/entities';
 import { User } from '@/api/entities';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Heart, Clock, ExternalLink, Building2, Calendar, MapPin } from 'lucide-react';
+import { Heart, Clock, ExternalLink, Building2, Calendar } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { format, isAfter, differenceInDays } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('offer-card');

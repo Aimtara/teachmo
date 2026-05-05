@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { LocalEvent, PartnerEvent } from '@/api/entities';
 import { useApi } from '@/components/hooks/useApi';
 import { Input } from '@/components/ui/input';

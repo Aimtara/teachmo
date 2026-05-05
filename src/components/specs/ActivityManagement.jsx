@@ -1,6 +1,5 @@
 
 /* global describe, test, expect, beforeEach, waitFor */
-import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithProviders, mockUser, mockChild, mockActivity, expectToastMessage } from './TestUtils';
 import UnifiedDiscover from '@/pages/UnifiedDiscover';

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { User } from '@/api/entities';
 
 const GlobalStateContext = createContext();
@@ -73,10 +73,11 @@ function globalReducer(state, action) {
           },
         },
       };
-    case 'CACHE_INVALIDATE':
+    case 'CACHE_INVALIDATE': {
       const newCache = { ...state.cache };
       delete newCache[action.payload];
       return { ...state, cache: newCache };
+    }
       
     // --- OFFLINE/SYNC ---
     case 'SET_ONLINE_STATUS':

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { UserConversation, UserMessage, User, Follow } from '@/api/entities';
+import { useState, useEffect } from 'react';
+import { UserConversation, User, Follow } from '@/api/entities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, MessageSquare, Users, Plus, UserPlus } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { Search, MessageSquare, Plus, UserPlus } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 export default function UserChatList({ currentUser, onSelectConversation, activeConversation }) {

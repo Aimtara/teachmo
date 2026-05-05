@@ -1,9 +1,8 @@
 
-import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Loader2, Wifi, WifiOff, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, WifiOff, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 

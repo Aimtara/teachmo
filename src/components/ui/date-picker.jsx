@@ -1,4 +1,3 @@
-import React from 'react';
 import { Calendar } from './calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { Button } from './button';

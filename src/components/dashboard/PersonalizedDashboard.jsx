@@ -1,9 +1,7 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Settings, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useDashboardPersonalization } from '@/components/shared/SmartDefaults';
 import { motion } from 'framer-motion';
 
@@ -72,7 +70,7 @@ export default function PersonalizedDashboard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <QuickActionBar user={user} children={children} />
+            <QuickActionBar user={user}>{children}</QuickActionBar>
           </motion.div>
 
           {/* Offers Carousel - Only in full mode */}
@@ -84,7 +82,7 @@ export default function PersonalizedDashboard({
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, delay: 0.2 }}
             >
-              <OffersCarousel userLocation={user?.location} children={children} />
+              <OffersCarousel userLocation={user?.location}>{children}</OffersCarousel>
             </motion.div>
           )}
         </div>
@@ -99,10 +97,11 @@ export default function PersonalizedDashboard({
             transition={{ duration: 0.3 }}
           >
             <PersonalizedInsights 
-              user={user} 
-              children={children} 
-              activities={activities} 
-            />
+              user={user}
+              activities={activities}
+            >
+              {children}
+            </PersonalizedInsights>
           </motion.div>
 
           {/* Emotional Check-in - Only in full mode */}

@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckSquare, Square, Calendar, CheckCircle, Trash2, BookmarkPlus, X } from "lucide-react";
+import { Calendar, CheckCircle, Trash2, BookmarkPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/use-toast";
-import { useUndoRedo } from "./UndoRedoSystem";
 
 export const useBulkSelection = (items = []) => {
   const [selectedItems, setSelectedItems] = useState(new Set());

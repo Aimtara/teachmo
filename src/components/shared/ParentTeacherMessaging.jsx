@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { User, UserMessage, UserConversation, Student, Course, TeacherClassAssignment, StudentParentLink, Enrollment } from "@/api/entities";
+import { useState, useEffect } from "react";
+import { User, UserMessage, UserConversation, Student, TeacherClassAssignment, StudentParentLink, Enrollment } from "@/api/entities";
 import * as MessagesAPI from "@/api/adapters/modules/messages";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { MessageSquare, Send, Plus, Search, Users, Clock, CheckCircle2, EyeOff, Eraser, Trash2, MoreVertical } from "lucide-react";
+import { MessageSquare, Send, Plus, Search, CheckCircle2, EyeOff, Eraser, Trash2, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, isToday, isYesterday } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";

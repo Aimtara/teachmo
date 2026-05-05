@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { ArrowRight, CheckCircle, UploadCloud } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';

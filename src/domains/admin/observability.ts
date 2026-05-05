@@ -29,3 +29,6 @@ export function runObservabilityAlerts(headers: AdminHeaders) {
 export function createObservabilityReport(payload: Record<string, unknown>, headers: AdminHeaders) {
   return domainJson('/admin/observability/reports', { method: 'POST', headers, json: payload });
 }
+
+export const getObservabilityAlerts = listObservabilityAlerts;
+export const getObservabilityReports = listObservabilityReports;
