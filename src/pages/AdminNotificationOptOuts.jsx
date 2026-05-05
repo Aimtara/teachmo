@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { listNotificationOptOuts, removeNotificationOptOut } from '@/domains/admin/notifications';
 import { createLogger } from '@/utils/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,21 +21,13 @@ export default function AdminNotificationOptOuts() {
   const [search, setSearch] = useState('');
   const { data, refetch } = useQuery(
     ['notificationOptOuts'],
-    async () => {
-      const query = `query OptOuts {
-        notification_opt_outs(order_by: {created_at: desc}) { email phone created_at }
-      }`;
-      return await graphqlRequest(query);
-    },
+    listNotificationOptOuts,
     { refetchOnWindowFocus: false }
   );
 
   const handleRemove = async (email, phone) => {
     try {
-      const mutation = `mutation RemoveOptOut($email: String, $phone: String) {
-        delete_notification_opt_outs(where: { _or: [{email: {_eq: $email}}, {phone: {_eq: $phone}}] }) { affected_rows }
-      }`;
-      await graphqlRequest(mutation, { email, phone });
+      await removeNotificationOptOut(email, phone);
       toast.success('User re-subscribed');
       await refetch();
     } catch (err) {

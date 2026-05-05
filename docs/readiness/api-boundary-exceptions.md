@@ -2,7 +2,7 @@
 
 Generated: 2026-05-04
 
-`npm run check:api-boundaries` currently passes with **17 documented temporary exceptions**, reduced from the May 2026 closure baseline of 37 by moving AI transparency, school directory admin, execution board fallback, partner incentives/submissions, audit-log viewer, AI policy simulation, personalized discover, AI prompt library, school requests, system health, tenant domains, admin impersonation, profile, tenant feature flag, tenant SSO, AI budget, AI cost forecast, AI governance, and AI review calls behind domain modules. The checker now ratchets the exception count at 17 and fails on any increase.
+`npm run check:api-boundaries` currently passes with **14 documented temporary exceptions**, reduced from the May 2026 closure baseline of 37 by moving AI transparency, school directory admin, execution board fallback, partner incentives/submissions, audit-log viewer, AI policy simulation, personalized discover, AI prompt library, school requests, system health, tenant domains, admin impersonation, profile, tenant feature flag, tenant SSO, AI budget, AI cost forecast, AI governance, AI review, admin dashboard, and notification metrics/opt-out calls behind domain modules. The checker now ratchets the exception count at 14 and fails on any increase.
 
 ## Policy
 
@@ -16,11 +16,10 @@ Generated: 2026-05-04
 | Risk | Area | Files/patterns | Owner placeholder | Target date placeholder | Planned replacement |
 | --- | --- | --- | --- | --- | --- |
 | High | Admin/ops | Remaining `src/pages/Admin*` raw `fetch`/`graphqlRequest` | Admin Platform | 2026-07-15 | Continue `src/domains/admin/**` service adapter extraction |
-| High | AI governance | Remaining admin AI pages (`AdminAIBudgetSettings`, `AdminAICostForecast`, `AdminAIGovernance`, `AdminAIReview`) | AI Platform | 2026-07-15 | `src/domains/ai/**` with governance telemetry |
 
 ## Evidence
 
-- `npm run check:api-boundaries` after reduction: pass, 17 temporary exceptions.
+- `npm run check:api-boundaries` after reduction: pass, 14 temporary exceptions.
 - `npm run typecheck`: pass.
 - `npm run test:smoke`: pass.
 - `npm run test -- --run`: pass, 35 files / 145 tests.

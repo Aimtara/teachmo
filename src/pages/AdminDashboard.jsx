@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 // import { bootstrapOrganization } from '@/domains/onboarding';
+import { getAdminDashboardMetrics } from '@/domains/admin/dashboard';
 import { createProfile, fetchUserProfile } from '@/domains/auth';
-import { graphqlRequest } from '@/lib/graphql';
 import { useTelemetry } from '@/utils/useTelemetry';
 import { logAuditEvent } from '@/api/functions';
 
@@ -14,32 +14,7 @@ export default function AdminDashboard() {
   const { log } = useTelemetry();
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['admin-dashboard-metrics'],
-    queryFn: async () => {
-      const query = `query AdminDashboardMetrics {
-        organizations_aggregate {
-          aggregate {
-            count
-          }
-        }
-        schools_aggregate {
-          aggregate {
-            count
-          }
-        }
-        profiles_aggregate {
-          aggregate {
-            count
-          }
-        }
-        classrooms_aggregate {
-          aggregate {
-            count
-          }
-        }
-      }`;
-
-      return graphqlRequest({ query });
-    },
+    queryFn: getAdminDashboardMetrics,
     staleTime: 1000 * 60 * 5
   });
 

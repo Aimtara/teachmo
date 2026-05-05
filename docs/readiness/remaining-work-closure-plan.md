@@ -154,7 +154,7 @@ continuing to keep live-environment tasks separate from automated claims.
 
 | Area | Before this pass | After May 4 pass | Evidence |
 | --- | ---: | ---: | --- |
-| API-boundary exceptions | 37 | 21 | `npm run check:api-boundaries`; ratchet cap now fails above 21. |
+| API-boundary exceptions | 37 | 14 | `npm run check:api-boundaries`; ratchet cap now fails above 14. |
 | Runtime high/critical vulnerabilities | 0 | 0 | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
 | Full raw audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are dev/optional PWA/workbox chain exceptions. |
 | Lint ratchet | 940 problems | 936 problems | Parser and `no-undef` remain 0; `@typescript-eslint/no-explicit-any` is down to 111. |
