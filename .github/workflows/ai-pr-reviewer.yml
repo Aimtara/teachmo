@@ -1,0 +1,24 @@
+name: AI PR Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ai_review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: AI PR review (advisory)
+        uses: coderabbitai/ai-pr-reviewer@latest
+        continue-on-error: true
+        with:
+          review_simple_changes: true
+          review_comment_lgtm: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
