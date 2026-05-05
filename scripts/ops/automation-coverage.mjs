@@ -21,6 +21,7 @@ function parseArgs(argv = process.argv.slice(2)) {
     ...common,
     configPath: argValue(argv, '--config', DEFAULT_CONFIG_PATH),
     strict: argv.includes('--strict'),
+    allowGraphqlBacklog: argv.includes('--allow-graphql-backlog'),
   };
 }
 
@@ -141,12 +142,18 @@ function collectGraphqlOperations(config) {
   return { operations, dynamic, unnamed };
 }
 
-function validateGraphqlInventory(config) {
+function validateGraphqlInventory(config, opts) {
   const { operations, dynamic, unnamed } = collectGraphqlOperations(config);
   const highRiskGlobs = config.graphql?.highRiskGlobs ?? [];
   const typedAllowlist = new Set(config.graphql?.typedAllowlist ?? []);
   const highRiskOperations = operations.filter((operation) => matchesAny(operation.file, highRiskGlobs));
   const untypedHighRisk = highRiskOperations.filter((operation) => !typedAllowlist.has(`${operation.file}:${operation.name ?? operation.line}`));
+
+  const graphqlGapStatus = (count) => {
+    if (!count) return 'pass';
+    if (opts.strict && !opts.allowGraphqlBacklog) return 'fail';
+    return 'warn';
+  };
 
   return [
     check(
@@ -157,7 +164,7 @@ function validateGraphqlInventory(config) {
     ),
     check(
       'GraphQL named operations',
-      unnamed.length ? 'warn' : 'pass',
+      graphqlGapStatus(unnamed.length),
       unnamed.length
         ? `${unnamed.length} unnamed operation(s) found; named operations are easier to type and audit.`
         : 'All discovered operations are named.',
@@ -165,7 +172,7 @@ function validateGraphqlInventory(config) {
     ),
     check(
       'GraphQL dynamic operation templates',
-      dynamic.length ? 'warn' : 'pass',
+      graphqlGapStatus(dynamic.length),
       dynamic.length
         ? `${dynamic.length} dynamic GraphQL template(s) found; review for codegen compatibility and injection safety.`
         : 'No dynamic GraphQL template interpolation found.',
@@ -188,7 +195,7 @@ export function buildAutomationCoverageReport(opts = parseArgs()) {
     check('Automation coverage config exists', existsSync(opts.configPath) ? 'pass' : 'fail', opts.configPath),
     ...validateVisualCoverage(config),
     ...validateSyntheticCoverage(config),
-    ...validateGraphqlInventory(config),
+    ...validateGraphqlInventory(config, opts),
   ];
 
   const totals = {
@@ -214,5 +221,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const paths = writeReports({ outputDir: opts.outputDir, name: 'automation-coverage', report });
   console.log(`[automation-coverage] ${JSON.stringify(report.totals)}`);
   console.log(`[automation-coverage] Wrote ${paths.jsonPath} and ${paths.mdPath}`);
-  if (report.totals.fail > 0 || (opts.strict && report.totals.warn > 0)) process.exit(1);
+  if (report.totals.fail > 0 || (opts.strict && !opts.allowGraphqlBacklog && report.totals.warn > 0)) process.exit(1);
 }

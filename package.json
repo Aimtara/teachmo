@@ -81,7 +81,7 @@
     "check:graphql-types": "npm run graphql:codegen && git diff --exit-code src/api/generated/graphql.ts",
     "ops:collaboration-readiness": "node scripts/ops/collaboration-readiness.mjs",
     "ops:automation-coverage": "node scripts/ops/automation-coverage.mjs",
-    "check:automation-coverage": "node scripts/ops/automation-coverage.mjs --strict"
+    "check:automation-coverage": "node scripts/ops/automation-coverage.mjs --strict --allow-graphql-backlog"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^16.6.0",

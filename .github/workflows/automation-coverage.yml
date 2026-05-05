@@ -10,7 +10,7 @@ on:
       - 'tests/e2e/**'
       - 'src/**/*.{ts,tsx,js,jsx}'
       - 'nhost/functions/**/*.{ts,js}'
-      - 'docs/testing/automation-coverage.md'
+      - 'docs/process/automation-coverage.md'
   push:
     branches: [main]
     paths:
@@ -21,7 +21,7 @@ on:
       - 'tests/e2e/**'
       - 'src/**/*.{ts,tsx,js,jsx}'
       - 'nhost/functions/**/*.{ts,js}'
-      - 'docs/testing/automation-coverage.md'
+      - 'docs/process/automation-coverage.md'
   schedule:
     - cron: '51 10 * * 3'
   workflow_dispatch:
@@ -57,12 +57,10 @@ jobs:
         run: python3 -m json.tool config/automation-coverage.json >/dev/null
 
       - name: Run automation coverage audit
-        env:
-          STRICT: ${{ inputs.strict && 'true' || 'false' }}
         run: |
           set -euo pipefail
           args=(--output-dir artifacts/automation-coverage)
-          if [ "${STRICT}" = "true" ]; then
+          if [ "${{ inputs.strict && 'true' || 'false' }}" = "true" ]; then
             args+=(--strict)
           fi
           npm run ops:automation-coverage -- "${args[@]}"

@@ -7,7 +7,7 @@ manifest and report generator.
 
 ```bash
 npm run ops:automation-coverage
-npm run check:automation-coverage
+npm run check:automation-coverage:strict
 ```
 
 Reports are written to `artifacts/ops/automation-coverage.{json,md}` by
@@ -26,8 +26,8 @@ Triggers:
 
 Pull request runs are advisory by default: missing high-risk visual/synthetic
 coverage fails, while GraphQL inventory findings are reported as warnings.
-Strict manual/scheduled runs fail on warnings so maintainers can use them as a
-backlog burndown gate.
+Manual runs can opt into strict mode, which fails on warnings so maintainers can
+use them as a backlog burndown gate.
 
 ## Manifest
 
@@ -89,7 +89,7 @@ burndown list instead of attempting to type every operation in one risky change.
 ## Strict mode
 
 ```bash
-npm run check:automation-coverage
+npm run check:automation-coverage:strict
 ```
 
 Strict mode exits nonzero when warnings remain. Enable it as a required check
