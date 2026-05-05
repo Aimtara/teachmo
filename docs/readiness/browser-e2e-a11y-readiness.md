@@ -7,9 +7,9 @@ Generated: 2026-05-05
 Browser QA is materially improved. `npm run test:a11y` now runs the a11y
 component/page checks under Vitest instead of the incompatible Jest/CommonJS
 runner and passes. After `npm ci`, Playwright browsers had to be reinstalled
-with `npx playwright install chromium`; `npm run test:e2e`
-now passes all automated smoke tests that do not require external credentials
-or a production service-worker environment. May 5 did not change browser UI behavior; rerun browser checks during final validation or staging evidence collection.
+with `npx playwright install chromium`; the May 5 final validation then passed
+with `23 passed / 6 skipped / 0 failed`. Gate 2/3/4 proof specs passed
+separately with `7 passed / 0 failed`.
 
 The skipped tests are intentional credential/environment gates:
 
@@ -26,7 +26,8 @@ The skipped tests are intentional credential/environment gates:
 | `npm run test:a11y` | PASS | 5 files / 22 tests under Vitest. Replaces the incompatible Jest CJS runner. |
 | `npm run test:e2e` | BLOCKED initially | Playwright browsers were missing. Error requested `npx playwright install`. |
 | `npx playwright install chromium` | PASS | Installed Chromium/headless shell into the local Playwright cache. |
-| `npm run test:e2e` after fixes | PASS / SKIPPED EXTERNAL | 7 passed, 5 skipped, 0 failed. |
+| `npm run test:e2e` after fixes | PASS / SKIPPED EXTERNAL | 23 passed, 6 skipped, 0 failed. |
+| `npm run e2e:gates` | PASS | 7 Gate 2/3/4 proof specs passed. |
 
 ## Playwright after browser install
 

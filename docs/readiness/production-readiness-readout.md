@@ -69,6 +69,9 @@ Repository-controlled readiness improved: full root high/critical npm audit find
 | `npm run check:api-boundaries` | PASS | 0 temporary exceptions. |
 | `npm run check:pii-logging` | PASS | 1096 files scanned after telemetry/check hardening. |
 | Targeted Gate/security tests | PASS | Script tests, office-hours/messaging reliability Vitest, SIS import Jest, command-center Jest. |
+| `npm run check:production` | PASS | Fast checks, lint ratchet, typecheck, full Vitest, build, and size ratchet pass after final commits. |
+| `npm run test:e2e` | PASS / skipped external | 23 passed, 6 skipped after installing Playwright Chromium and adding the `/teacher` compatibility alias. |
+| `npm run e2e:gates` | PASS | 7 Gate 2/3/4 route proof specs pass; live data assertions still require staging credentials. |
 
 ### Manual/live evidence still required
 
