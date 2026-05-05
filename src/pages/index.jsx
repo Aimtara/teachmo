@@ -103,6 +103,7 @@ export default function Pages() {
         ))}
 
         {/* Back-compat aliases (older URLs) */}
+        <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/classes" element={<Navigate to="/teacher-classes" replace />} />
         <Route path="/teacher/assignments" element={<Navigate to="/teacher-assignments" replace />} />
         <Route path="/teacher/messages" element={<Navigate to="/teacher-messages" replace />} />
