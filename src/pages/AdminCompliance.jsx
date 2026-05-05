@@ -1,22 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { API_BASE_URL } from '@/config/api';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useTenantScope } from '@/hooks/useTenantScope';
-import { nhost } from '@/lib/nhostClient';
-
-async function fetchJson(url, opts = {}) {
-  const response = await fetch(url, opts);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Request failed');
-  }
-  return response.json();
-}
+import {
+  complianceAdminHeaders,
+  createDsarExport,
+  deleteUserHard,
+  downloadDsarExportUrl,
+  getAIUsageForCompliance,
+  getDsarExports,
+  getRetentionPolicy,
+} from '@/domains/admin/compliance';
 
 export default function AdminCompliance() {
   const { data: scope } = useTenantScope();
@@ -29,41 +27,30 @@ export default function AdminCompliance() {
 
   const headersQuery = useQuery({
     queryKey: ['compliance_token'],
-    queryFn: async () => {
-      const token = await nhost.auth.getAccessToken();
-      return {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
-    },
+    queryFn: complianceAdminHeaders,
   });
 
   const retentionQuery = useQuery({
     queryKey: ['retention_policy', scope?.districtId, scope?.schoolId],
     enabled: Boolean(scope?.districtId),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/retention-policy`, { headers: headersQuery.data }),
+    queryFn: async () => getRetentionPolicy(headersQuery.data),
   });
 
   const dsarListQuery = useQuery({
     queryKey: ['dsar_exports', scope?.districtId, scope?.schoolId],
     enabled: Boolean(scope?.districtId),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/dsar-exports`, { headers: headersQuery.data }),
+    queryFn: async () => getDsarExports(headersQuery.data),
   });
 
   const aiUsageQuery = useQuery({
     queryKey: ['ai-usage-compliance', scope?.districtId, scope?.schoolId],
     enabled: Boolean(scope?.districtId && headersQuery.data),
-    queryFn: async () =>
-      fetchJson(`${API_BASE_URL}/admin/ai/usage?limit=20`, { headers: headersQuery.data }),
+    queryFn: async () => getAIUsageForCompliance(headersQuery.data, 20),
   });
 
   const dsarMutation = useMutation({
     mutationFn: async () => {
-      return fetchJson(`${API_BASE_URL}/admin/dsar-exports`, {
-        method: 'POST',
-        headers: headersQuery.data,
-        body: JSON.stringify({ userId: dsarUserId, reason: dsarReason }),
-      });
+      return createDsarExport({ userId: dsarUserId, reason: dsarReason }, headersQuery.data);
     },
     onSuccess: (data) => {
       toast({
@@ -85,11 +72,7 @@ export default function AdminCompliance() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      return fetchJson(`${API_BASE_URL}/admin/users/${deleteUserId}/hard-delete`, {
-        method: 'POST',
-        headers: headersQuery.data,
-        body: JSON.stringify({ reason: deleteReason }),
-      });
+      return deleteUserHard(deleteUserId, { reason: deleteReason }, headersQuery.data);
     },
     onSuccess: () => {
       toast({
@@ -187,7 +170,7 @@ export default function AdminCompliance() {
                           <Button
                             size="sm"
                             variant="secondary"
-                            onClick={() => window.open(`${API_BASE_URL}/admin/dsar-exports/${row.id}/download`, '_blank')}
+                            onClick={() => window.open(downloadDsarExportUrl(row.id), '_blank')}
                           >
                             Download
                           </Button>
