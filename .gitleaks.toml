@@ -10,3 +10,8 @@ paths = [
   '''\.env\.example''',
   '''backend/\.env\.example''',
 ]
+
+regexes = [
+  '''legal/privacy/AI governance''',
+  '''legal/privacy/AI approval''',
+]

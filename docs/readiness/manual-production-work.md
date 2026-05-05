@@ -51,7 +51,7 @@ The repository now includes alias templates requested by the final readiness pac
 - `docs/readiness/evidence/legal-privacy-review-template.md`
 - `docs/readiness/evidence/ai-governance-review-template.md`
 
-These templates do not mark live work complete. They provide repeatable evidence capture for staging/prod credentials, legal/privacy/AI signoff, and Gate 2-4 proof.
+These templates do not mark live work complete. They provide repeatable evidence capture for staging/prod credentials, legal/privacy/AI approval, and Gate 2-4 proof.
 
 ## Automation support added May 4, 2026
 

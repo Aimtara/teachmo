@@ -201,5 +201,5 @@ Node `v20.20.2`, npm `10.8.2`, `npm ci` PASS, `npm run check:production:fast` PA
 | Gate 4 command center | v0 route/page | Permission-aware v0 | Express route now requires authenticated admin role; backend tests verify unauthenticated and non-admin denial. |
 | PII logging | PASS | PASS with stricter detector | Message body and preview telemetry log patterns are now flagged; send-message analytics no longer stores raw message preview. |
 
-Remaining classification is unchanged: **NO-GO for broad production** until live credentials, legal/privacy/AI governance, role smoke, and Gate 2–4 live evidence are attached. Controlled pilot remains conditional on the manual evidence register.
+Remaining classification is unchanged: **NO-GO for broad production** until live credentials, legal/privacy/artificial-intelligence governance, role smoke, and Gate 2–4 live evidence are attached. Controlled pilot remains conditional on the manual evidence register.
 
