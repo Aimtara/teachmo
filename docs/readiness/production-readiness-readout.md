@@ -7,7 +7,7 @@ Latest closure validation commit: `57a109a` plus final docs commit
 
 **GO for controlled pilot only after manual environment verification is completed. NO-GO for broad production launch today.**
 
-Repository-controlled gates are materially stronger: runtime audit is clean, production aggregates pass, browser smoke/a11y automation runs, API-boundary exceptions are down to 21, and bundle/TS/API/lint ratchets block regression. Broad production still depends on live Nhost/Hasura/Sentry/storage/DNS/OAuth/legal/role-smoke evidence and human signoff that cannot be completed from this VM.
+Repository-controlled gates are materially stronger: runtime audit is clean, production aggregates pass, browser smoke/a11y automation runs, temporary API-boundary exceptions are closed at 0, and bundle/TS/API/lint ratchets block regression. Broad production still depends on live Nhost/Hasura/Sentry/storage/DNS/OAuth/legal/role-smoke evidence and human signoff that cannot be completed from this VM.
 
 ## Executive summary
 
@@ -15,7 +15,7 @@ This closure:
 
 - Added operational automation workflows for dependency/security scans, visual regression, PR previews, schema/metadata validation, environment verification, secret rotation approvals, role smoke and Gate proofs, backup/restore and rollback drills, synthetic monitoring, compliance scanning, and AI governance reports.
 - Added dry-run-first operational scripts that emit redacted JSON/Markdown reports and require protected GitHub Environment approvals before high-risk live actions such as production secret rotation, backup/restore, rollback, or alert test execution.
-- Moved thirteen high-value direct UI backend calls behind domain adapters across discover, AI prompts, admin school requests/system health/tenant domains/users, and legacy tenant/profile hooks, reducing temporary API-boundary exceptions from 37 to 21 and adding a hard exception-count ratchet.
+- Moved the remaining direct UI backend calls behind domain adapters across AI admin, admin dashboard/analytics/backup/compliance/notifications/observability, partner admin, and SIS/reporting surfaces, reducing temporary API-boundary exceptions from 37 to 0 and adding a zero-exception ratchet.
 - Repaired browser QA posture: `npm run test:a11y` now runs under Vitest and passes; Playwright now passes 7 executable smoke tests with 5 explicitly skipped credential/environment tests.
 - Fixed login page axe blockers by adding a main landmark and accessible submit-button contrast.
 - Hardened E2E auth coverage so launch-gate route tests run with explicit local/test bypass flags, while production/staging bypass flags remain forbidden.
@@ -23,7 +23,7 @@ This closure:
 - Tightened bundle policy to 596 kB total brotli, 23 kB app shell, and 214 kB largest chunk.
 - Added manual evidence templates for directory identity conflict review, office-hours live verification, messaging/digest retry proof, assignments sync proof, and admin sync/dashboard validation.
 
-The main remaining blockers are live operations/compliance evidence and 21 still-owned API-boundary exceptions, mostly broader admin/AI surfaces that need sequenced service-adapter migration.
+The main remaining blockers are live operations/compliance evidence plus legacy lint/type debt controlled by ratchets. Temporary UI API-boundary exceptions are now closed.
 
 ## Remaining work snapshot
 
@@ -154,7 +154,7 @@ Highest-priority manual work remains:
 | --- | --- | --- | --- | --- |
 | Critical | Live Nhost/Hasura/RBAC settings may differ from repo-safe config. | Complete MPW-001 through MPW-005 and MPW-024. | Platform/Security | TBD |
 | Critical | Previously exposed OAuth secret may still be valid. | Complete MPW-023 rotation proof. | Security/Auth | TBD |
-| High | 21 API-boundary exceptions remain. | Continue adapter extraction under checker cap. | Admin/AI Platform | 2026-07-15 |
+| Medium | Legacy lint/type debt remains under ratchets. | Continue typed migration and hook-refresh cleanup in focused batches. | Frontend Platform | 2026-07-31 |
 | High | Browser E2E skips still require credentials/prod-like SW setup. | Run skipped specs in staging with credentials; attach evidence. | QA/Release | TBD |
 | High | Gate 2/3/4 live proof incomplete. | Use new evidence templates for E10–E23. | Product/Platform | TBD |
 | Medium | Full lint remains red. | Continue ratcheted cleanup; parser/no-undef remain blocked at 0. | Frontend Platform | 2026-06-30 |

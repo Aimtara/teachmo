@@ -1,7 +1,16 @@
 import { API_BASE_URL } from '@/config/api';
 import { domainJson } from '@/domains/http';
+import { nhost } from '@/lib/nhostClient';
 
 export type AuthHeaders = Record<string, string>;
+
+export async function complianceAdminHeaders(): Promise<AuthHeaders> {
+  const token = await nhost.auth.getAccessToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 export function getRetentionPolicy(headers: AuthHeaders) {
   return domainJson('/admin/retention-policy', { headers });
@@ -34,3 +43,8 @@ export function hardDeleteUser(userId: string, payload: { reason: string }, head
 export function dsarExportDownloadUrl(id: string) {
   return `${API_BASE_URL}/admin/dsar-exports/${encodeURIComponent(id)}/download`;
 }
+
+export const getDsarExports = listDsarExports;
+export const getAIUsageForCompliance = listAIUsageForCompliance;
+export const deleteUserHard = hardDeleteUser;
+export const downloadDsarExportUrl = dsarExportDownloadUrl;
