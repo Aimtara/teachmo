@@ -156,7 +156,7 @@
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^15.5.1",
     "react-leaflet": "^4.2.1",
-    "react-leaflet-markercluster": "^3.0.0-rc1",
+    "react-leaflet-markercluster": "^4.2.1",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.7",
     "react-router-dom": "^7.13.0",
