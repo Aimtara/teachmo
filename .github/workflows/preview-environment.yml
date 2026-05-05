@@ -43,6 +43,16 @@ jobs:
           VITE_ENABLE_INTERNAL_ROUTES: "true"
         run: npm run build:ci
 
+      - name: Preview bundle summary
+        run: |
+          {
+            echo "## Preview artifact"
+            echo
+            echo "- Frontend bundle built with internal routes enabled."
+            echo "- Artifact: \`preview-dist\`"
+            echo "- Retention: 7 days"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Detect configured preview provider
         id: provider
         env:
@@ -108,11 +118,13 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           set -euo pipefail
-          url=$(vercel deploy --token "$VERCEL_TOKEN" --yes)
+          vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
+          url=$(vercel deploy --prebuilt --token "$VERCEL_TOKEN" --yes)
           {
             echo "## Vercel preview"
             echo
-            echo "$url"
+            echo "- Preview URL: $url"
+            echo "- Review this URL for non-technical QA before merge."
           } >> "$GITHUB_STEP_SUMMARY"
 
   netlify-preview:

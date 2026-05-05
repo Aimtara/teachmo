@@ -68,10 +68,18 @@ Renovate is configured to automerge only low-risk devDependency patch updates
 after required checks pass. Runtime dependencies, major updates, lockfile-only
 changes that affect runtime packages, and security updates require human review.
 
-Before enabling Renovate platform automerge, verify the required status-check
-names in `renovate.json` match the check names reported by GitHub Actions for
-the current branch protection rules. If check names drift, prefer disabling
-automerge over widening the automerge rule.
+Renovate platform automerge is intentionally scoped to devDependency patch
+updates. The configured required status checks use the job-level names GitHub
+reports for the current workflows:
+
+- `build`
+- `npm audit policy`
+- `GitHub dependency review`
+- `schema-metadata`
+
+If check names drift, prefer disabling automerge over widening the automerge
+rule. Runtime dependencies, major updates, security updates, and
+auth/Nhost/Express/React/Vite-sensitive changes stay human-reviewed.
 
 ## Required branch protection checks
 
@@ -86,6 +94,8 @@ green run:
 - `CodeQL / Analyze JavaScript and TypeScript`
 - `Container and filesystem security / Trivy filesystem scan`
 - `Container and filesystem security / Trivy image scan`
+- `Visual regression / storybook`
+- `Synthetic Monitoring / synthetic`
 
 Stage advisory-to-blocking rollout deliberately:
 

@@ -28,24 +28,22 @@ The authoritative schema lives in SQL migrations and metadata YAML.
 
 ## Typed query and mutation generation
 
-We recommend adopting GraphQL Code Generator for type‑safe operations:
+GraphQL Code Generator is configured in `codegen.yml` and writes shared schema
+and operation types to `src/api/generated/graphql.ts`.
 
-1. Install the tooling:
-   ```bash
-   npm install -D @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations
-   ```
-2. Add a `codegen.yml`:
-   ```yaml
-   schema: ${HASURA_GRAPHQL_URL}
-   documents:
-     - src/**/*.{ts,tsx,js,jsx}
-     - nhost/functions/**/*.{ts,js}
-   generates:
-     src/api/generated/graphql.ts:
-       plugins:
-         - typescript
-         - typescript-operations
-   ```
-3. Run `npx graphql-codegen` after changing queries or the schema.
+Required environment:
 
-This ensures shared types for GraphQL responses and domain models stay aligned.
+- `HASURA_GRAPHQL_ENDPOINT` preferred, or `HASURA_GRAPHQL_URL` as a fallback.
+- `HASURA_GRAPHQL_ADMIN_SECRET` or an equivalent read-only introspection secret.
+
+Commands:
+
+```bash
+npm run graphql:codegen
+npm run check:graphql-types
+```
+
+`check:graphql-types` regenerates the file and fails if the committed generated
+types are stale. CI skips live generation on untrusted pull requests without
+schema secrets, but scheduled/protected schema checks can fail closed when live
+type generation is required.
