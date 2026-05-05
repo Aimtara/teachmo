@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { createLogger } from '@/utils/logger';
 import { getSISDataRecords, updateSISDataRecord } from '@/domains/admin/sisAdmin';

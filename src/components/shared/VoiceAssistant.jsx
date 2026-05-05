@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,11 +7,7 @@ import {
   MicOff, 
   Volume2, 
   VolumeX, 
-  Settings, 
   MessageSquare,
-  Calendar,
-  Lightbulb,
-  User,
   Heart
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -312,6 +308,7 @@ export default function VoiceAssistant({
   const handleQuery = async (queryType) => {
     switch (queryType) {
       case 'todayActivities':
+      {
         const activities = await Activity.filter({ 
           status: 'planned',
           completion_date: new Date().toISOString().split('T')[0]
@@ -319,6 +316,7 @@ export default function VoiceAssistant({
         return activities.length > 0 
           ? `You have ${activities.length} activities planned for today: ${activities.map(a => a.title).join(', ')}`
           : "You don't have any activities planned for today.";
+      }
           
       case 'points':
         return `You have ${user?.points || 0} points.`;
@@ -333,12 +331,14 @@ export default function VoiceAssistant({
         return `You have ${childProfiles.length} ${childProfiles.length === 1 ? 'child' : 'children'}: ${childProfiles.map(c => `${c.name}, age ${c.age}`).join(', ')}.`;
         
       case 'nextEvent':
+      {
         const events = await CalendarEvent.filter({
           start_time: { $gte: new Date().toISOString() }
         }, 'start_time', 1);
         return events.length > 0 
           ? `Your next event is "${events[0].title}" scheduled for ${new Date(events[0].start_time).toLocaleDateString()}.`
           : "You don't have any upcoming events.";
+      }
           
       case 'tip':
         return await generateParentingTip();
@@ -348,7 +348,7 @@ export default function VoiceAssistant({
     }
   };
 
-  const handleCreate = async (createType, originalText) => {
+  const handleCreate = async (createType) => {
     switch (createType) {
       case 'activity':
         navigate(createPageUrl('Activities'));
@@ -370,12 +370,14 @@ export default function VoiceAssistant({
   const handleComplete = async (completeType) => {
     switch (completeType) {
       case 'activity':
+      {
         const plannedActivities = await Activity.filter({ status: 'planned' });
         if (plannedActivities.length === 0) {
           return "You don't have any activities to complete.";
         }
         // For simplicity, we'll just mention the process
         return `You have ${plannedActivities.length} planned activities. Please specify which one you'd like to mark as complete, or use the app to select it.`;
+      }
         
       default:
         return "I'm not sure what you want to complete.";

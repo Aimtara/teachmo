@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function ShortsCard({ id, topic, thumbnail_url, duration_s, onOpen }) {
   return (

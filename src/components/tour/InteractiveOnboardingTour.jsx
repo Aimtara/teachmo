@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { X, ArrowRight, ArrowLeft, Check, Target, Users, Calendar, Search, Plus, Bot } from 'lucide-react';
-import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 
 const TourStep = ({ step, totalSteps, title, description, icon: Icon, action, onNext, onPrev, onSkip, onComplete, highlight }) => {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Calendar, Clock, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import {

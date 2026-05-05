@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Landmark, Sprout, Music, BookOpen, Palette, Drama, FlaskConical, Plane, Dumbbell, Sparkles } from 'lucide-react';
 

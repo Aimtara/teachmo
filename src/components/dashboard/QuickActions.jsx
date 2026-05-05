@@ -1,9 +1,7 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Plus, Sparkles, Compass, BookHeart, UserPlus } from 'lucide-react';
+import { Sparkles, Compass, BookHeart, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const actions = (hasChildren, hasCompletedActivity) => [

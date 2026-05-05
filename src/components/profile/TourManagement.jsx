@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { User } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';

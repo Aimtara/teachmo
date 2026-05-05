@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,14 +12,10 @@ import {
   Volume2,
   VolumeX,
   BookOpen,
-  Calendar,
   Users,
   Heart,
   Lightbulb,
   AlertTriangle,
-  Bookmark,
-  Share2,
-  MoreHorizontal,
   X, // New import
   Loader2, // New import
   Search // New import

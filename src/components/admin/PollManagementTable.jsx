@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Poll, PollVote } from '@/api/entities';
+import { useState } from 'react';
+import { Poll } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

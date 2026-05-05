@@ -1,11 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageSquare, Repeat, MoreHorizontal, Send, Flag, UserMinus } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDistanceToNow } from 'date-fns';
-import { User, Kudo, Comment } from '@/api/entities';
+import { Kudo, Comment } from '@/api/entities';
 import LazyImage from '../shared/LazyImage';
 
 // New imports from the outline

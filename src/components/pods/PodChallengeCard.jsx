@@ -1,7 +1,5 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Trophy } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function PodChallengeCard({ challenge }) {

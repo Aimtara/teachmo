@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Task, User } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { CheckCircle, X, Clock, User as UserIcon, MapPin, Calendar } from 'lucide-react';
+import { CheckCircle, X, User as UserIcon, MapPin, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function TaskManagementTable({ tasks, onTaskUpdate, currentUser }) {

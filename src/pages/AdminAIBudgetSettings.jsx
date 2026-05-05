@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { getAIBudgetSettings, updateAIBudgetSettings } from '@/domains/admin/aiBudget';
 import { Card, Input, Select, Button, LoadingSpinner } from '@/components/ui';

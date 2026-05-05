@@ -1,7 +1,6 @@
-import React from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare, Calendar, Search, Bot } from "lucide-react";
+import { Plus, MessageSquare, Calendar, Bot } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 

@@ -1,9 +1,9 @@
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { ShepherdTour, ShepherdTourContext } from 'react-shepherd';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User } from '@/api/entities';
-import { X, ArrowRight, Zap, Check, SkipForward } from 'lucide-react';
+import { X, ArrowRight, Zap } from 'lucide-react';
 import 'shepherd.js/dist/css/shepherd.css';
 import { useToast } from "@/components/ui/use-toast";
 

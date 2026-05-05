@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import ShortsRail from '@/components/shorts/ShortsRail';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Search, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export default function ShortsDiscoverTab({ initialQuery = '', appliedFilters = {}, onFiltersChange }) {
   const [searchTerm, setSearchTerm] = useState(initialQuery);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -7,12 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { 
   Eye, 
-  Type, 
   Contrast, 
   Volume2, 
-  Keyboard, 
-  MousePointer,
-  Palette,
+  Keyboard,
   Settings
 } from 'lucide-react';
 

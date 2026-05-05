@@ -1,8 +1,7 @@
 
-import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UserPlus, UserCheck, MessageSquare, ShieldPlus, Phone } from 'lucide-react';
+import { UserPlus, UserCheck, MessageSquare, ShieldPlus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,

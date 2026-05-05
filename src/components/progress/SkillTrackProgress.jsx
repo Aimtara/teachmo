@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,6 @@ import {
   Plus
 } from 'lucide-react';
 import { ChildSkillTrack } from '@/api/entities';
-import { Activity } from '@/api/entities';
 import { motion, AnimatePresence } from 'framer-motion';
 import SkillTrackSelector from '../onboarding/SkillTrackSelector';
 

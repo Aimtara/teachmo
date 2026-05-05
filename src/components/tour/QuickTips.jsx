@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -139,9 +139,10 @@ export default function QuickTips({ currentPage }) {
     const today = now.toDateString();
     
     switch (tip.trigger) {
-      case 'no_mood_checkin_today':
+      case 'no_mood_checkin_today': {
         const lastCheckin = userData.last_mood_checkin;
         return !lastCheckin || new Date(lastCheckin).toDateString() !== today;
+      }
       
       case 'no_activities_completed':
         return !userData.activities_completed || userData.activities_completed === 0;

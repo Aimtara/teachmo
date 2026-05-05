@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { listPartners, listPartnerAnalytics } from '@/domains/admin/partnerAdmin';
 import { Card, Table, Select, Input, LoadingSpinner } from '@/components/ui';

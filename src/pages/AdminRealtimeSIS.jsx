@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { getSISSyncConfig, runSISSyncNow, upsertSISSyncConfig } from '@/domains/admin/sisAdmin';

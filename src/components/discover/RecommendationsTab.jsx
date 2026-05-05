@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Activity, LibraryResource } from '@/api/entities';
 import { useApi } from '@/components/hooks/useApi';
 import { ListLoadingSkeleton, ErrorState, EmptyState } from '@/components/shared/LoadingStates';

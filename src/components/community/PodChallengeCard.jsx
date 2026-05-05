@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, Clock, Target } from 'lucide-react';
 import { formatDistanceToNow, isPast } from 'date-fns';
-import { Post, Kudo, Activity, PodChallenge, PodMember } from '@/api/entities'; // Assuming Activity is trackable
+import { Post, Kudo, PodMember } from '@/api/entities'; // Assuming Activity is trackable
 
 export default function PodChallengeCard({ challenge }) {
   const [progress, setProgress] = useState(0);
@@ -21,12 +21,13 @@ export default function PodChallengeCard({ challenge }) {
         // This is a simplified client-side progress fetch. 
         // In a real-world scenario, a dedicated backend function would be more efficient.
         switch(challenge.goal_type) {
-          case 'posts':
+          case 'posts': {
             // This is an approximation. A proper implementation would filter by date on the backend.
             const posts = await Post.filter({ pod_id: challenge.pod_id });
             count = posts.length;
             break;
-          case 'kudos':
+          }
+          case 'kudos': {
              const podPosts = await Post.filter({ pod_id: challenge.pod_id });
              const postIds = podPosts.map(p => p.id);
              if(postIds.length > 0) {
@@ -35,6 +36,7 @@ export default function PodChallengeCard({ challenge }) {
                  count = kudos.length;
              }
             break;
+          }
           case 'activities':
             // This assumes activities can be linked to a pod or its members, which isn't in the current schema.
             // This part is a placeholder for future logic.

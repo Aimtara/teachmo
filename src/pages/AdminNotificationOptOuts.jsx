@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { listNotificationOptOuts, removeNotificationOptOut } from '@/domains/admin/notifications';

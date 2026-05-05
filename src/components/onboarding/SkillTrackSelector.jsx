@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,7 +16,6 @@ import {
   DollarSign, 
   Heart,
   CheckCircle2,
-  Star,
   Loader2
 } from 'lucide-react';
 import { SkillTrack, ChildSkillTrack } from '@/api/entities';

@@ -1,13 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, Loader2, X, Clock, User, FileText, Calendar, MessageSquare, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useApi } from '@/components/hooks/useApi';
-import { User as UserEntity, Activity, ParentingTip, CalendarEvent, UserMessage } from '@/api/entities';
+import { Activity, ParentingTip, CalendarEvent, UserMessage } from '@/api/entities';
 import { useDebounce } from './useDebounce';
 import { createLogger } from '@/utils/logger';
 

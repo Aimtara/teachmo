@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Clock, Package, Target, Star, CheckCircle, Play, RotateCcw, Share2, Bookmark, BookmarkCheck, CalendarPlus, Heart, Sparkles, Edit, ShoppingCart, ExternalLink, Loader2 } from "lucide-react";
+import { X, Clock, Package, Target, Star, CheckCircle, Play, RotateCcw, Share2, Bookmark, BookmarkCheck, CalendarPlus, Heart, Sparkles, Edit, ShoppingCart, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import EventModal from "../calendar/EventModal";

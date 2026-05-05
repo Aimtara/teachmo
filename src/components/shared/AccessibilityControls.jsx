@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useApi } from '@/components/hooks/useApi';
 import { AccessibilityPreference } from '@/api/entities';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Sun, Moon, Contrast, Text, CircleDot } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function AccessibilityControls({ userId }) {

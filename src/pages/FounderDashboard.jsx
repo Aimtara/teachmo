@@ -1,4 +1,3 @@
-import React from 'react';
 import { getGovernanceEvents } from '@/governance/events';
 import { MomentContract } from '@/governance/momentContract';
 import {

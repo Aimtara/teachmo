@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import { createContext, useContext, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
 const NotificationContext = createContext(null);

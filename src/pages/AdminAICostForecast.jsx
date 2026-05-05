@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, Table, LoadingSpinner } from '@/components/ui';
 import { getAICostForecast } from '@/domains/admin/aiBudget';

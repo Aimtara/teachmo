@@ -1,4 +1,3 @@
-import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Card, CardContent } from "@/components/ui/card";
 import { Lightbulb, MapPin, GripVertical } from 'lucide-react';

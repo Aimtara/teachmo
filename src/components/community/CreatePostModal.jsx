@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Upload, Image, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { Upload, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { Post } from '@/api/entities';
 import { moderateContent } from '@/api/functions';
 import { useToast } from '@/components/ui/use-toast';

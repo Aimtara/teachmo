@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { getSisRoleMappings, updateSisRoleMapping } from '@/domains/admin/sisAdmin';
 import { Card, Table, Select, LoadingSpinner } from '@/components/ui';
