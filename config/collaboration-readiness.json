@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": 1,
+  "defaultBranch": "main",
+  "ownerPlaceholders": [
+    "^@Aimtara/(frontend-platform|backend-platform|data-platform|security-platform|devops-platform|release-readiness|ai-governance|teachmo-maintainers)$"
+  ],
+  "requiredWorkflows": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/launch-gates.yml",
+    ".github/workflows/dependency-security.yml",
+    ".github/workflows/schema-and-metadata.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/container-security.yml",
+    ".github/workflows/visual-regression.yml",
+    ".github/workflows/preview-environment.yml",
+    ".github/workflows/synthetic-monitoring.yml"
+  ],
+  "requiredChecks": [
+    "build",
+    "launch-gates",
+    "npm audit policy",
+    "GitHub dependency review",
+    "schema-metadata",
+    "Analyze JavaScript and TypeScript",
+    "Trivy filesystem scan",
+    "Trivy image scan",
+    "storybook",
+    "synthetic"
+  ],
+  "renovate": {
+    "devPatchRequiredStatusChecks": [
+      "build",
+      "npm audit policy",
+      "GitHub dependency review",
+      "schema-metadata"
+    ],
+    "sensitivePackages": [
+      "/^@nhost//",
+      "jose",
+      "passport",
+      "passport-openidconnect",
+      "@node-saml/passport-saml"
+    ]
+  },
+  "secretGroups": [
+    {
+      "id": "preview-vercel",
+      "label": "Vercel preview deployments",
+      "required": ["VERCEL_TOKEN", "VERCEL_ORG_ID", "VERCEL_PROJECT_ID"],
+      "capability": "preview"
+    },
+    {
+      "id": "preview-netlify",
+      "label": "Netlify preview deployments",
+      "required": ["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"],
+      "capability": "preview"
+    },
+    {
+      "id": "visual-chromatic",
+      "label": "Chromatic visual regression",
+      "required": ["CHROMATIC_PROJECT_TOKEN"],
+      "capability": "visual"
+    },
+    {
+      "id": "synthetic-target",
+      "label": "Synthetic monitoring target URLs",
+      "required": ["SYNTHETIC_BASE_URL", "SYNTHETIC_API_URL"],
+      "capability": "synthetics"
+    },
+    {
+      "id": "synthetic-parent",
+      "label": "Synthetic parent account",
+      "required": ["SYNTHETIC_PARENT_EMAIL", "SYNTHETIC_PARENT_PASSWORD"],
+      "capability": "synthetics"
+    },
+    {
+      "id": "synthetic-teacher",
+      "label": "Synthetic teacher account",
+      "required": ["SYNTHETIC_TEACHER_EMAIL", "SYNTHETIC_TEACHER_PASSWORD"],
+      "capability": "synthetics"
+    },
+    {
+      "id": "synthetic-admin",
+      "label": "Synthetic admin account",
+      "required": ["SYNTHETIC_ADMIN_EMAIL", "SYNTHETIC_ADMIN_PASSWORD"],
+      "capability": "synthetics"
+    },
+    {
+      "id": "graphql-codegen",
+      "label": "Live GraphQL type generation",
+      "anyOf": ["HASURA_GRAPHQL_ENDPOINT", "HASURA_GRAPHQL_URL"],
+      "required": ["HASURA_GRAPHQL_ADMIN_SECRET"],
+      "capability": "graphql"
+    },
+    {
+      "id": "hasura-smoke",
+      "label": "Hasura permission smoke",
+      "required": ["HASURA_GRAPHQL_ENDPOINT", "TEST_JWT_TEACHER", "TEST_JWT_DISTRICT_ADMIN"],
+      "capability": "hasura"
+    }
+  ]
+}

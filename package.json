@@ -78,7 +78,8 @@
     "issues:project-validate": "node scripts/validate-project-config.mjs",
     "test:scripts": "node --test scripts/check-api-boundaries.test.mjs scripts/check-audit.test.mjs scripts/check-production-auth-safety.test.mjs scripts/check-secret-hygiene.test.mjs scripts/check-nhost-config-safety.test.mjs scripts/check-ts-ratchet.test.mjs scripts/check-hasura-readiness.test.mjs scripts/check-pii-logging.test.mjs",
     "graphql:codegen": "graphql-codegen --config codegen.yml",
-    "check:graphql-types": "npm run graphql:codegen && git diff --exit-code src/api/generated/graphql.ts"
+    "check:graphql-types": "npm run graphql:codegen && git diff --exit-code src/api/generated/graphql.ts",
+    "ops:collaboration-readiness": "node scripts/ops/collaboration-readiness.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^16.6.0",
