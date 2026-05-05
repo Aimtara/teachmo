@@ -2,12 +2,11 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { graphql } from '@/lib/graphql';
 import { useTenantScope } from '@/hooks/useTenantScope';
+import { getAnalyticsAIUsageSummary, getAnalyticsHeaders } from '@/domains/admin/analytics';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { API_BASE_URL } from '@/config/api';
-import { nhost } from '@/lib/nhostClient';
 
 function toDateOnly(isoString) {
   if (!isoString) return null;
@@ -26,7 +25,7 @@ function downloadText(filename, text, mime = 'text/plain') {
 
 function csvEscape(value) {
   const s = String(value ?? '');
-  if (/[\n\r,\"]/g.test(s)) return `"${s.replaceAll('"', '""')}"`;
+  if (/[\n\r,"]/g.test(s)) return `"${s.replaceAll('"', '""')}"`;
   return s;
 }
 
@@ -44,23 +43,13 @@ export default function AdminAnalytics() {
 
   const headersQuery = useQuery({
     queryKey: ['analytics-ai-token'],
-    queryFn: async () => {
-      const token = await nhost.auth.getAccessToken();
-      return {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
-    },
+    queryFn: getAnalyticsHeaders,
   });
 
   const aiUsageQuery = useQuery({
     queryKey: ['analytics-ai-usage-summary'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/admin/ai/usage-summary`, { headers: headersQuery.data });
-      if (!response.ok) throw new Error('Failed to load AI usage summary');
-      return response.json();
-    },
+    queryFn: async () => getAnalyticsAIUsageSummary(headersQuery.data),
   });
 
   const rollupWhere = useMemo(() => {

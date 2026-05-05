@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { listBackupJobs, restoreBackupJob, runBackupJob } from '@/domains/admin/backupRecovery';
 import { Card, Table, Button, LoadingSpinner, Select } from '@/components/ui';
 import { toast } from 'sonner';
 
@@ -16,29 +16,12 @@ export default function AdminBackupRecovery() {
   // Load existing backups
   const { data: backups = [], isLoading, refetch } = useQuery(
     ['backups'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query BackupJobs {
-          backup_jobs(order_by: {created_at: desc}) {
-            id
-            environment
-            status
-            created_at
-          }
-        }`,
-      });
-      return res?.backup_jobs ?? [];
-    },
+    listBackupJobs,
   );
 
   const runBackup = useMutation(
     async () => {
-      await graphqlRequest({
-        query: `mutation RunBackup($env: String!) {
-          admin_run_backup(environment: $env)
-        }`,
-        variables: { env },
-      });
+      await runBackupJob(env);
     },
     {
       onSuccess: () => {
@@ -51,12 +34,7 @@ export default function AdminBackupRecovery() {
 
   const restoreBackup = useMutation(
     async (id) => {
-      await graphqlRequest({
-        query: `mutation RestoreBackup($id: uuid!) {
-          admin_restore_backup(id: $id)
-        }`,
-        variables: { id },
-      });
+      await restoreBackupJob(id);
     },
     {
       onSuccess: () => {
