@@ -2,6 +2,7 @@
 import request from 'supertest';
 import express from 'express';
 import { SignJWT } from 'jose';
+import rateLimit from 'express-rate-limit';
 import commandCenterRouter from '../routes/commandCenter.js';
 import { attachAuthContext } from '../middleware/auth.js';
 
@@ -31,6 +32,7 @@ describe('Backend module import compatibility', () => {
 function makeCommandCenterApp() {
   const app = express();
   app.use(express.json());
+  app.use(rateLimit({ windowMs: 60_000, limit: 100 }));
   app.use(attachAuthContext);
   app.use('/api/command-center', commandCenterRouter);
   return app;

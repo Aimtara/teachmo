@@ -9,6 +9,8 @@ paths = [
   '''docs/readiness/evidence/.*template\.md''',
   '''\.env\.example''',
   '''backend/\.env\.example''',
+  '''docs/readiness/manual-production-work\.md''',
+  '''docs/readiness/remaining-work-closure-plan\.md''',
 ]
 
 regexes = [
