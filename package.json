@@ -76,7 +76,12 @@
     "issues:go-live": "node scripts/go-live-issue-automation.mjs",
     "issues:smoke-activity": "node scripts/smoke-issue-activity.mjs",
     "issues:project-validate": "node scripts/validate-project-config.mjs",
-    "test:scripts": "node --test scripts/check-api-boundaries.test.mjs scripts/check-audit.test.mjs scripts/check-production-auth-safety.test.mjs scripts/check-secret-hygiene.test.mjs scripts/check-nhost-config-safety.test.mjs scripts/check-ts-ratchet.test.mjs scripts/check-hasura-readiness.test.mjs scripts/check-pii-logging.test.mjs"
+    "test:scripts": "node --test scripts/check-api-boundaries.test.mjs scripts/check-audit.test.mjs scripts/check-production-auth-safety.test.mjs scripts/check-secret-hygiene.test.mjs scripts/check-nhost-config-safety.test.mjs scripts/check-ts-ratchet.test.mjs scripts/check-hasura-readiness.test.mjs scripts/check-pii-logging.test.mjs",
+    "graphql:codegen": "graphql-codegen --config codegen.yml",
+    "check:graphql-types": "npm run graphql:codegen && git diff --exit-code src/api/generated/graphql.ts",
+    "ops:collaboration-readiness": "node scripts/ops/collaboration-readiness.mjs",
+    "ops:automation-coverage": "node scripts/ops/automation-coverage.mjs",
+    "check:automation-coverage": "node scripts/ops/automation-coverage.mjs --strict --allow-graphql-backlog"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^16.6.0",
@@ -177,6 +182,9 @@
     "@babel/preset-typescript": "^7.28.5",
     "@eslint/js": "^9.39.4",
     "@flydotio/dockerfile": "^0.7.10",
+    "@graphql-codegen/cli": "^5.0.7",
+    "@graphql-codegen/typescript": "^6.0.0",
+    "@graphql-codegen/typescript-operations": "^6.0.0",
     "@playwright/test": "^1.57.0",
     "@sentry/vite-plugin": "^2.22.4",
     "@size-limit/file": "^12.1.0",

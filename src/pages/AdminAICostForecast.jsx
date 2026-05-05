@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
 import { Card, Table, LoadingSpinner } from '@/components/ui';
+import { getAICostForecast } from '@/domains/admin/aiBudget';
 
 /**
  * AdminAICostForecast provides a simple forecast of AI usage and cost for the
@@ -13,21 +13,7 @@ import { Card, Table, LoadingSpinner } from '@/components/ui';
 export default function AdminAICostForecast() {
   const { data, isLoading } = useQuery(
     ['aiCostForecast'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query AICostForecast {
-          ai_usage_forecast {
-            period_start
-            period_end
-            projected_tokens
-            projected_cost
-            budget_remaining
-            budget_limit
-          }
-        }`,
-      });
-      return res?.ai_usage_forecast ?? null;
-    },
+    getAICostForecast,
   );
 
   if (isLoading || !data) return <LoadingSpinner />;

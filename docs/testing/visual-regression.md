@@ -15,7 +15,6 @@ Workflow: `.github/workflows/visual-regression.yml`
 Triggers:
 
 - pull requests,
-- pushes to `main`,
 - manual `workflow_dispatch`.
 
 Artifacts:
@@ -30,6 +29,10 @@ Artifacts:
 3. Mark the `visual-regression` workflow as a required PR check once the token
    is configured.
 4. Keep core UI surfaces covered by stories under `src/**/*.stories.*`.
+
+Manual dispatch supports `require_chromatic=true` so maintainers can fail closed
+after the project token is expected. Pull requests remain advisory when the token
+is absent so external setup does not block unrelated work before rollout.
 
 ## Approval policy
 
@@ -52,14 +55,20 @@ review. Do not commit the generated Storybook bundle.
 
 ## Current coverage
 
-The repository already includes stories for core UI primitives and admin
-analytics components:
+The repository includes stories for core UI primitives, admin analytics
+components, and the first launch-critical collaboration surfaces:
 
 - `src/components/ui/button.stories.jsx`
 - `src/components/ui/card.stories.jsx`
 - `src/components/ui/tag.stories.jsx`
 - `src/components/admin/analytics/*.stories.jsx`
 - `src/components/analytics/*.stories.jsx`
+- `src/pages/Login.stories.jsx`
+- `src/components/teacher/AssignmentsView.stories.jsx`
+- `src/components/messaging/MessageThread.stories.tsx`
+- `src/components/calendar/CalendarView.stories.jsx`
 
 New UI components introduced for launch-critical flows should add Storybook
-stories in the same change set.
+stories in the same change set. Remaining high-value coverage targets are full
+role dashboards, directory/import review flows, and AI assistant/governance
+surfaces with mocked providers.

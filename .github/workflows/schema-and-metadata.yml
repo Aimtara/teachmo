@@ -28,6 +28,8 @@ on:
         description: 'Require HASURA_GRAPHQL_URL/HASURA_GRAPHQL_ADMIN_SECRET and run live GraphQL codegen'
         type: boolean
         default: false
+  schedule:
+    - cron: '12 9 * * *'
 
 permissions:
   contents: read
@@ -112,33 +114,29 @@ jobs:
           NODE
 
       - name: Validate metadata files
-        run: npm run check:schema-metadata -- --metadata-only --output artifacts/schema-metadata.json --markdown artifacts/schema-metadata.md
+        run: npm run check:schema-metadata -- --output-dir artifacts/schema-metadata
 
-      - name: Run migrations
-        working-directory: backend
-        continue-on-error: true
-        run: node migrate.js
-
-      - name: Validate migrated database and metadata
-        run: npm run check:schema-metadata -- --database-url "$DATABASE_URL" --output artifacts/schema-metadata-db.json --markdown artifacts/schema-metadata-db.md
+      - name: Validate migrations against disposable database
+        run: npm run check:schema-metadata -- --validate-db --database-url "$DATABASE_URL" --output-dir artifacts/schema-metadata-db
 
       - name: GraphQL type generation guard
         env:
+          HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT || secrets.HASURA_GRAPHQL_URL }}
           HASURA_GRAPHQL_URL: ${{ secrets.HASURA_GRAPHQL_URL }}
           HASURA_GRAPHQL_ADMIN_SECRET: ${{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}
+          HASURA_GRAPHQL_ADMIN_SECRET_HEADER: ${{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}
           REQUIRE_LIVE_CODEGEN: ${{ inputs.require_live_codegen || github.event_name == 'schedule' }}
         run: |
           set -euo pipefail
-          if [ -z "${HASURA_GRAPHQL_URL:-}" ] || [ -z "${HASURA_GRAPHQL_ADMIN_SECRET:-}" ]; then
+          if [ -z "${HASURA_GRAPHQL_ENDPOINT:-}" ] || [ -z "${HASURA_GRAPHQL_ADMIN_SECRET:-}" ]; then
             if [ "${REQUIRE_LIVE_CODEGEN:-false}" = "true" ]; then
-              echo "Live GraphQL codegen was required but HASURA_GRAPHQL_URL/HASURA_GRAPHQL_ADMIN_SECRET are missing."
+              echo "Live GraphQL codegen was required but HASURA_GRAPHQL_ENDPOINT/HASURA_GRAPHQL_ADMIN_SECRET are missing."
               exit 1
             fi
-            echo "::notice::Skipping live GraphQL codegen because Hasura secrets are not configured for this context."
+            echo "::notice::Skipping live GraphQL codegen because Hasura schema secrets are not configured for this context."
             exit 0
           fi
-          npm run graphql:codegen
-          git diff --exit-code src/api/generated/graphql.ts
+          npm run check:graphql-types
 
       - name: Upload schema reports
         if: always()

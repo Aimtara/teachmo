@@ -1,20 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
+import { decideAIReviewItem, listAIReviewQueue } from '@/domains/ai/governanceAdmin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-
-async function fetchJson(url, opts = {}) {
-  const response = await fetch(url, opts);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Request failed');
-  }
-  return response.json();
-}
 
 export default function AdminAIReview() {
   const headersQuery = useQuery({
@@ -31,16 +22,12 @@ export default function AdminAIReview() {
   const queueQuery = useQuery({
     queryKey: ['ai-review-queue'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/review-queue`, { headers: headersQuery.data }),
+    queryFn: async () => listAIReviewQueue(headersQuery.data),
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, status, reason, notes }) => {
-      return fetchJson(`${API_BASE_URL}/admin/ai/review-queue/${id}/decision`, {
-        method: 'POST',
-        headers: headersQuery.data,
-        body: JSON.stringify({ status, reason, notes }),
-      });
+      return decideAIReviewItem(id, { status, reason, notes }, headersQuery.data);
     },
     onSuccess: () => queueQuery.refetch(),
   });

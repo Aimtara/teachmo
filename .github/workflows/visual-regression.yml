@@ -3,6 +3,11 @@ name: Visual regression
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      require_chromatic:
+        description: Fail if CHROMATIC_PROJECT_TOKEN is not configured
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -42,7 +47,7 @@ jobs:
 
       - name: Chromatic visual regression
         if: ${{ secrets.CHROMATIC_PROJECT_TOKEN != '' }}
-        uses: chromaui/action@latest
+        uses: chromaui/action@v11
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           storybookBuildDir: storybook-static
@@ -61,3 +66,9 @@ jobs:
             echo "- Chromatic upload: skipped because CHROMATIC_PROJECT_TOKEN is not configured"
             echo "- Required action: add the token and make this check required before broad production launch"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require Chromatic setup
+        if: ${{ inputs.require_chromatic && secrets.CHROMATIC_PROJECT_TOKEN == '' }}
+        run: |
+          echo "::error::Chromatic was required, but CHROMATIC_PROJECT_TOKEN is not configured."
+          exit 1

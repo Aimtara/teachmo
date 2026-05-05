@@ -34,8 +34,10 @@
       "automergeType": "pr",
       "platformAutomerge": true,
       "requiredStatusChecks": [
-        "CI / build",
-        "dependency-security / npm-audit-policy"
+        "build",
+        "npm audit policy",
+        "GitHub dependency review",
+        "schema-metadata"
       ],
       "labels": ["dependencies", "dev-dependencies", "automerge-candidate"]
     },

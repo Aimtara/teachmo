@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { getAIBudgetSettings, updateAIBudgetSettings } from '@/domains/admin/aiBudget';
 import { Card, Input, Select, Button, LoadingSpinner } from '@/components/ui';
 import { toast } from 'sonner';
 
@@ -17,22 +17,7 @@ export default function AdminAIBudgetSettings() {
     data: settings,
     isLoading,
     refetch,
-  } = useQuery(
-    ['aiBudgetSettings'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query AIBudgetSettings {
-          ai_tenant_budgets(limit: 1) {
-            id
-            monthly_limit_usd
-            alert_threshold
-            fallback_model
-          }
-        }`,
-      });
-      return res?.ai_tenant_budgets?.[0] ?? null;
-    },
-  );
+  } = useQuery(['aiBudgetSettings'], getAIBudgetSettings);
 
   const [monthlyLimit, setMonthlyLimit] = useState('');
   const [threshold, setThreshold] = useState('');
@@ -46,14 +31,7 @@ export default function AdminAIBudgetSettings() {
         threshold: threshold !== '' ? parseFloat(threshold) : settings.alert_threshold,
         model: fallbackModel || settings.fallback_model,
       };
-      await graphqlRequest({
-        query: `mutation UpdateAIBudgetSettings($limit: numeric!, $threshold: numeric!, $model: String!) {
-          update_ai_tenant_budgets(where: {}, _set: { monthly_limit_usd: $limit, alert_threshold: $threshold, fallback_model: $model }) {
-            affected_rows
-          }
-        }`,
-        variables,
-      });
+      await updateAIBudgetSettings(variables);
     },
     {
       onSuccess: () => {
