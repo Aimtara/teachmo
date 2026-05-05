@@ -1,0 +1,137 @@
+name: Collaboration readiness
+
+on:
+  pull_request:
+    paths:
+      - '.github/CODEOWNERS'
+      - '.github/workflows/**'
+      - 'config/collaboration-readiness.json'
+      - 'docs/process/**'
+      - 'renovate.json'
+      - 'scripts/ops/collaboration-readiness.mjs'
+      - 'scripts/ops/reporting.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/CODEOWNERS'
+      - '.github/workflows/**'
+      - 'config/collaboration-readiness.json'
+      - 'docs/process/**'
+      - 'renovate.json'
+      - 'scripts/ops/collaboration-readiness.mjs'
+      - 'scripts/ops/reporting.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+  schedule:
+    - cron: '41 9 * * *'
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: 'Fail on missing required external setup and placeholder CODEOWNERS'
+        type: boolean
+        default: false
+      require_preview:
+        description: 'Require at least one preview provider secret group'
+        type: boolean
+        default: false
+      require_visual:
+        description: 'Require Chromatic visual regression token'
+        type: boolean
+        default: false
+      require_synthetics:
+        description: 'Require synthetic monitor target and account secrets'
+        type: boolean
+        default: false
+      check_github:
+        description: 'Attempt read-only GitHub branch protection and code scanning checks'
+        type: boolean
+        default: true
+
+permissions:
+  actions: read
+  contents: read
+  security-events: read
+
+concurrency:
+  group: collaboration-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run collaboration readiness audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          SYNTHETIC_BASE_URL: ${{ secrets.SYNTHETIC_BASE_URL }}
+          SYNTHETIC_API_URL: ${{ secrets.SYNTHETIC_API_URL }}
+          SYNTHETIC_PARENT_EMAIL: ${{ secrets.SYNTHETIC_PARENT_EMAIL }}
+          SYNTHETIC_PARENT_PASSWORD: ${{ secrets.SYNTHETIC_PARENT_PASSWORD }}
+          SYNTHETIC_TEACHER_EMAIL: ${{ secrets.SYNTHETIC_TEACHER_EMAIL }}
+          SYNTHETIC_TEACHER_PASSWORD: ${{ secrets.SYNTHETIC_TEACHER_PASSWORD }}
+          SYNTHETIC_ADMIN_EMAIL: ${{ secrets.SYNTHETIC_ADMIN_EMAIL }}
+          SYNTHETIC_ADMIN_PASSWORD: ${{ secrets.SYNTHETIC_ADMIN_PASSWORD }}
+          HASURA_GRAPHQL_ENDPOINT: ${{ secrets.HASURA_GRAPHQL_ENDPOINT }}
+          HASURA_GRAPHQL_URL: ${{ secrets.HASURA_GRAPHQL_URL }}
+          HASURA_GRAPHQL_ADMIN_SECRET: ${{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}
+          TEST_JWT_TEACHER: ${{ secrets.TEST_JWT_TEACHER }}
+          TEST_JWT_DISTRICT_ADMIN: ${{ secrets.TEST_JWT_DISTRICT_ADMIN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--output-dir artifacts/ops)
+
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            args+=(--check-github)
+          fi
+          if [ "${{ inputs.strict || false }}" = "true" ]; then
+            args+=(--strict)
+          fi
+          if [ "${{ inputs.require_preview || false }}" = "true" ]; then
+            args+=(--require-preview)
+          fi
+          if [ "${{ inputs.require_visual || false }}" = "true" ]; then
+            args+=(--require-visual)
+          fi
+          if [ "${{ inputs.require_synthetics || false }}" = "true" ]; then
+            args+=(--require-synthetics)
+          fi
+          if [ "${{ inputs.check_github || false }}" = "true" ]; then
+            args+=(--check-github)
+          fi
+
+          npm run ops:collaboration-readiness -- "${args[@]}"
+
+      - name: Publish readiness summary
+        if: always()
+        run: |
+          if [ -f artifacts/ops/collaboration-readiness.md ]; then
+            cat artifacts/ops/collaboration-readiness.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Collaboration readiness report was not generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: collaboration-readiness
+          path: artifacts/ops/
