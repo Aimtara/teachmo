@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@/config/api';
+import { nhost } from '@/lib/nhostClient';
 
 export const ORCHESTRATOR_TYPES = {
   RUNBOOK_CREATE: 'RUNBOOK_CREATE',
@@ -31,10 +32,32 @@ type CancelActionOptions = {
 
 type ActionRef = string | { id?: string } | null | undefined;
 
+const E2E_SESSION_KEY = 'teachmo_e2e_session';
+
+function getE2EAccessToken() {
+  if (typeof window === 'undefined') return '';
+  try {
+    const raw = window.localStorage.getItem(E2E_SESSION_KEY);
+    if (!raw) return '';
+    const parsed = JSON.parse(raw) as { accessToken?: string };
+    return parsed.accessToken ? String(parsed.accessToken) : '';
+  } catch {
+    return '';
+  }
+}
+
+async function commandCenterHeaders() {
+  const token = getE2EAccessToken() || (await nhost.auth.getAccessToken());
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 async function http(path: string, { method = 'GET', body }: HttpOptions = {}) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: await commandCenterHeaders(),
     body: body ? JSON.stringify(body) : undefined,
   });
 

@@ -37,6 +37,22 @@ Every item in this register must produce an evidence packet before it can be mar
 | MPW-030 | Assignments | High | Assignments sync live/dry-run proof | Requires LMS test tenant or approved mock | Run dry-run assignment sync, validate status/errors, then execute live staging sync if credentials exist. | LMS test credentials, teacher admin | TBD | TBD | `docs/readiness/evidence/assignments-sync-live-proof-template.md` | [ ] manual |
 | MPW-031 | Admin analytics | High | Admin sync and dashboard validation proof | Requires staging event/source data | Trigger sync-now/troubleshooting flows and reconcile adoption/delivery/sync dashboard counts to source events. | Admin test user, staging data access | TBD | TBD | `docs/readiness/evidence/admin-sync-dashboard-validation-template.md` | [ ] manual |
 
+## May 5 repository closure update
+
+The repository now includes alias templates requested by the final readiness packet while preserving the earlier May 4 templates:
+
+- `docs/readiness/evidence/gate-2-directory-import-identity-proof-template.md`
+- `docs/readiness/evidence/gate-3-messaging-digest-assignments-office-hours-proof-template.md`
+- `docs/readiness/evidence/gate-4-admin-analytics-command-center-proof-template.md`
+- `docs/readiness/evidence/nhost-live-config-verification-template.md`
+- `docs/readiness/evidence/hasura-rbac-live-verification-template.md`
+- `docs/readiness/evidence/real-role-smoke-test-template.md`
+- `docs/readiness/evidence/storage-permissions-template.md`
+- `docs/readiness/evidence/legal-privacy-review-template.md`
+- `docs/readiness/evidence/ai-governance-review-template.md`
+
+These templates do not mark live work complete. They provide repeatable evidence capture for staging/prod credentials, legal/privacy/AI signoff, and Gate 2-4 proof.
+
 ## Automation support added May 4, 2026
 
 Repository automation now shortens evidence collection for MPW items while

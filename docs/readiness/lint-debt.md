@@ -2,6 +2,8 @@
 
 Generated: 2026-05-03
 
+Updated: 2026-05-05. The closure sprint did not increase the lint ratchet: `npm run check:lint-ratchet` still reports 517 total problems with parser and `no-undef` at 0. The new Gate/security code avoids adding explicit `any` debt in TypeScript helpers.
+
 ## Current status
 
 `npm run lint` remains red and is formally ratcheted. Full green was not safe in

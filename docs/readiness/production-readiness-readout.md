@@ -1,105 +1,90 @@
 # Production Readiness Readout
 
-Generated: 2026-05-04  
-Latest closure validation commit: `57a109a` plus final docs commit
+Generated: 2026-05-05
+Latest verified commit before final validation: `2bd288e` plus this closure branch
 
-## Verdict
+## May 5 final closure sprint readout
 
-**GO for controlled pilot only after manual environment verification is completed. NO-GO for broad production launch today.**
+### Verdict
 
-Repository-controlled gates are materially stronger: runtime audit is clean, production aggregates pass, browser smoke/a11y automation runs, temporary API-boundary exceptions are closed at 0, and bundle/TS/API/lint ratchets block regression. Broad production still depends on live Nhost/Hasura/Sentry/storage/DNS/OAuth/legal/role-smoke evidence and human signoff that cannot be completed from this VM.
+**GO for controlled pilot only after critical live environment verification. NO-GO for broad production today.**
 
-## Executive summary
+### Executive summary
 
-This closure:
+Repository-controlled readiness improved: full root high/critical npm audit findings are now **0**, runtime audit remains **0 high/critical**, API-boundary exceptions remain **0**, command-center API routes now require admin auth, message telemetry no longer stores message-body previews, SIS roster import supports dry-run identity preview without roster mutation, and Gate 3 domain proof now covers messaging retry/idempotency, assignments dry-run status, and office-hours reschedule/permission behavior. Broad production still requires live Nhost/Hasura/RBAC/Sentry/storage/DNS/OAuth/legal/privacy/AI governance/support evidence and human signoff.
 
-- Added operational automation workflows for dependency/security scans, visual regression, PR previews, schema/metadata validation, environment verification, secret rotation approvals, role smoke and Gate proofs, backup/restore and rollback drills, synthetic monitoring, compliance scanning, and AI governance reports.
-- Added dry-run-first operational scripts that emit redacted JSON/Markdown reports and require protected GitHub Environment approvals before high-risk live actions such as production secret rotation, backup/restore, rollback, or alert test execution.
-- Moved the remaining direct UI backend calls behind domain adapters across AI admin, admin dashboard/analytics/backup/compliance/notifications/observability, partner admin, and SIS/reporting surfaces, reducing temporary API-boundary exceptions from 37 to 0 and adding a zero-exception ratchet.
-- Repaired browser QA posture: `npm run test:a11y` now runs under Vitest and passes; Playwright now passes 7 executable smoke tests with 5 explicitly skipped credential/environment tests.
-- Fixed login page axe blockers by adding a main landmark and accessible submit-button contrast.
-- Hardened E2E auth coverage so launch-gate route tests run with explicit local/test bypass flags, while production/staging bypass flags remain forbidden.
-- Added scoped test-only feature flags for gated calendar/teacher-class browser smoke without changing production defaults.
-- Tightened bundle policy to 596 kB total brotli, 23 kB app shell, and 214 kB largest chunk.
-- Added manual evidence templates for directory identity conflict review, office-hours live verification, messaging/digest retry proof, assignments sync proof, and admin sync/dashboard validation.
+### Security debt burn-down
 
-The main remaining blockers are live operations/compliance evidence plus legacy lint/type debt controlled by ratchets. Temporary UI API-boundary exceptions are now closed.
+| Finding / package / surface | Before | After | Action taken | Runtime exposure | Residual risk | Owner/date |
+| --- | ---: | ---: | --- | --- | --- | --- |
+| `vite-plugin-pwa` / Workbox / `serialize-javascript` | 3 high in full audit chain | 0 high | Added `serialize-javascript@7.0.5` override and regenerated lockfile. | Optional build tooling only; runtime audit omits dev/optional. | Moderate `ajv`, Storybook `uuid`, and `diff` remain tracked as non-runtime. | Frontend Platform / 2026-06-30 |
+| Runtime high/critical audit | 0 | 0 | Re-ran `npm run check:audit`. | None found. | Keep runtime gate mandatory. | Security Owner / ongoing |
+| Audit exceptions schema | Owner/expiry fields | Owner/expiry/review command | `check:audit` now requires `reviewCommand`. | N/A | Exceptions expire and must be reviewed. | Security Owner / 2026-06-30 |
+| PII message telemetry | Message preview was inserted in analytics metadata | Preview removed; `preview_redacted: true` | Hardened send-message telemetry and PII logging test coverage. | Runtime function path. | Live log/Sentry redaction proof still manual. | Messaging Owner / staging proof |
 
-## Remaining work snapshot
+### API-boundary burn-down
 
-| Area | Before this pass | After this pass | Launch impact |
-| --- | ---: | ---: | --- |
-| Runtime high/critical audit findings | 0 | 0 | Runtime audit gate passes. |
-| Full raw npm audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are documented optional/dev PWA build-chain findings. |
-| API-boundary temporary exceptions | 37 | 21 | Improved; remaining high-risk admin/AI exceptions need owner review before broad launch. |
-| Lint ratchet | 940 problems, parser/no-undef 0 | 878 problems, parser/no-undef 0 | Controlled; full lint remains legacy debt. |
-| TS ratchet `any` count | 512 baseline | 507 current | Improved after moving additional UI calls into typed domain adapters. |
-| Bundle ratchet | 602/24/225 kB caps | 596/22.2/214 kB caps | Tighter regression gate; total JS remains above old 500 kB aggregate. |
-| Browser E2E | 2 pass / 6 fail / 4 skipped | 7 pass / 0 fail / 5 skipped | Remaining skips require credentials/prod-like SW environment. |
-| Role/Gate proof automation | Manual evidence templates only | Local Playwright role smoke 5 pass; Gate 2/3/4 proofs 7 pass with scoped flags | CI artifacts now provide repository proof; staging live proof still manual. |
-| Operational automation workflows | Partial/scheduled Hasura only | 10 new/expanded workflows plus redacted reports | Provider tokens and protected environments required for live execution. |
-| Unit a11y | FAIL under Jest runner | PASS: 5 files / 22 tests | `test:a11y` now uses Vitest. |
-| Manual readiness | 26 manual items | 31 manual items with added evidence templates | Manual/live evidence remains production blocker. |
+| Domain | Before exceptions | After exceptions | Files refactored | Remaining exceptions | Notes |
+| --- | ---: | ---: | --- | ---: | --- |
+| UI API-boundary register | 0 active / stale allowlist entries | 0 active / no allowlist entries | `scripts/check-api-boundaries.mjs` | 0 | Checker ratchets at zero and no longer carries stale admin/AI allowlist rows. |
+| Command Center | Domain adapter existed | Authenticated adapter | `src/domains/commandCenter.ts`, `backend/routes/commandCenter.js` | 0 | Backend route now denies unauthenticated/non-admin requests. |
 
-## Gate audit closure
+### Gate 2 closure
 
-| Gate item | Current repository status | Evidence | Remaining live/manual proof |
-| --- | --- | --- | --- |
-| E10 Directory flow | v0 flow exists; admin directory API moved behind domain adapter. | `src/domains/directory/admin.ts`; Gate 2 docs. | Role smoke with real directory data. |
-| E11 Approvals + reason capture | v0 flow exists. | Directory approval pages/functions; conflict-review template. | Staging approval/rejection reason evidence. |
-| E12 CSV/OneRoster-lite import | v0 dry-run/preview exists. | Import preview/job docs and templates. | Live import preview with redacted errors. |
-| E13 Deterministic identity mapping | v0 implemented/tested. | Identity mapping tests and new conflict-review evidence template. | Manual conflict queue review proof. |
-| E14 Messaging SLO + retries | Runbook/manual proof path exists. | Messaging/digest retry-proof template. | Staging retry/backoff/idempotency evidence. |
-| E15 Digest reliability | Workflow exists; proof remains manual. | Digest runbook + retry-proof template. | Scheduled-run recovery evidence. |
-| E16 Office hours booking | v0 domain/UI remains feature-gated; E2E can enable scoped smoke flags. | Office-hours domain/tests + live verification template. | Backend persistence/notifications and role smoke. |
-| E17 Assignments sync v0 | Dry-run/status proof path documented. | Assignments sync evidence template. | LMS/mock dry-run and optional live sync evidence. |
-| E18 Admin sync/troubleshooting | Partial v0; more admin adapters still needed. | Integration-health adapter and admin validation template. | Sync-now dry-run/live evidence. |
-| E20 Dashboards validation | Partial v0. | Gate 4 docs + admin dashboard validation template. | Reconcile dashboards to real source events. |
-| E22 Runbooks/support playbook | Runbooks exist. | Support playbook docs. | Publication/on-call workspace evidence. |
-| E23 Command Center proof | v0 page/domain and template exist. | Command Center domain/page + live-proof template. | Live approval/escalation proof. |
+| Target | Status | Tests | Evidence template | Feature flag / launch decision | Remaining work |
+| --- | --- | --- | --- | --- | --- |
+| Directory flow | Repository v0 | Gate smoke + docs | Gate 2 template | Controlled pilot after live role smoke | Real staging data proof. |
+| CSV/OneRoster-lite import preview | Improved | SIS import Jest dry-run preview | Gate 2 template | Dry-run safe by request flag | Staging upload evidence. |
+| Identity mapping | Implemented | Identity mapping Jest + SIS preview assertion | Gate 2 template | Pilot candidate | Manual conflict queue evidence. |
+| Approval/rejection reason capture | Implemented/reasoned | Function paths + docs | Gate 2 template | Required for rejection | Staging audit screenshot/log. |
+| PII-safe logging | Improved | `check:pii-logging`, script tests | Gate 2 template | Required | Live logs redaction proof. |
 
-## Technical blocker status
+### Gate 3 closure
 
-| Blocker | Status | Evidence |
-| --- | --- | --- |
-| Dependency audit | Runtime PASS; full raw audit still has documented dev/optional findings. | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
-| API boundary | PASS with 21 exceptions and hard cap. | `npm run check:api-boundaries`. |
-| Bundle | PASS with tighter 596/22.2/214 kB caps. | `npm run build`; `npm run check:size`. |
-| TypeScript | PASS with current `any` below baseline. | `npm run check:ts-ratchet`; `npm run typecheck`. |
-| Unit/smoke/backend tests | PASS. | Vitest, smoke, backend Jest, backend package Jest. |
-| Browser E2E/a11y | PASS for executable smoke scope; 5 credential/environment skips. | `npm run test:e2e`; `npm run test:a11y`. |
-| Operational automation | PASS for dry-run/reporting scope; live provider actions gated. | `ops:*` scripts, role/Gate Playwright specs, GitHub Actions workflows. |
-| Full lint | Controlled by ratchet, not fully green. | `npm run check:lint-ratchet`; `npm run lint` still red at legacy baseline. |
+| Target | Status | Tests | Evidence template | Feature flag / launch decision | Remaining work |
+| --- | --- | --- | --- | --- | --- |
+| Messaging retries/idempotency | Repository policy helper added | `messagingReliability.test.ts` | Gate 3 template | Pilot with staging retry proof | Wire live queue metrics/evidence. |
+| Digest reliability | Existing outbox dedupe/recovery path | Existing function docs; final live proof manual | Gate 3 template | Pilot after scheduler evidence | Staging recovery run. |
+| Assignments sync | Dry-run status helper added | Domain dry-run coverage via final Vitest scope | Gate 3 template | Dry-run only for pilot | LMS/mock tenant proof. |
+| Office-hours booking | Improved v0 | Availability, booking, cancel, reschedule, permission tests | Gate 3 template | Feature-gated/scoped tenant only | Backend persistence + notifications. |
 
-## Tests and checks run
+### Gate 4 closure
+
+| Target | Status | Tests | Evidence template | Feature flag / launch decision | Remaining work |
+| --- | --- | --- | --- | --- | --- |
+| Admin sync-now | Repo surfaces exist | Gate smoke/manual template | Gate 4 template | Pilot after live sync proof | Staging sync-now result/error proof. |
+| Troubleshooting visibility | Repo surfaces exist | Gate smoke/manual template | Gate 4 template | Pilot after live data proof | Attach source logs. |
+| Analytics reconciliation | Template-backed | Manual reconciliation template | Gate 4 template | No broad launch until reconciled | Source-event validation. |
+| Command-center approvals/escalations | Auth hardened | Backend non-admin/admin tests | Gate 4 template | Pilot after live escalation proof | Replace file store for broad launch if required. |
+| Non-admin denial | Verified in backend test | `commandCenter.test.js` | Gate 4 template | Required | Browser role proof with live users. |
+
+### Validation results
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `npm ci` | PASS | Clean install; raw audit still reports 10 documented dev/optional findings. |
-| `npm run check:production:fast` | PASS | Includes audit, secret hygiene, Nhost safety, API boundaries, auth safety, Hasura readiness, TS, PII, lint ratchets. |
-| `npm run check:audit` | PASS | 0 high/critical runtime findings. |
-| `npm audit --audit-level=high --omit=dev --omit=optional` | PASS | Runtime scope clean. |
-| `npm audit --audit-level=high --json` | FAIL / documented | 10 total / 4 high optional/dev build-chain findings. |
-| `npm run test:scripts` | PASS | 15 script tests. |
-| `npm run check:schema-metadata` | PASS | 87 YAML/metadata checks pass; DB and live GraphQL typegen skip locally without credentials. |
-| `CI=true npm run build-storybook` | PASS | Storybook static build succeeds; Chromatic upload requires token in CI. |
-| `npm run ops:env-verify` | PASS / dry-run | Preview-mode report produced; staging/prod modes fail closed without secrets. |
-| `npm run ops:secret-rotation` | PASS / dry-run | Rotation prepare report produced; no secrets generated or changed. |
-| `npm run e2e:roles` | PASS | 5 role smoke tests passed locally after Playwright Chromium install. |
-| `npm run e2e:gates` | PASS | 7 Gate 2/3/4 proof specs passed with scoped test feature flags; backend API proxy warnings are expected without local backend. |
-| `npm run ops:backup-restore` | PASS / dry-run | Report produced; execution requires Postgres client tools and DB URLs. |
-| `npm run ops:rollback-drill` | PASS / dry-run | Report produced; provider execution remains approval-gated. |
-| `npm run ops:synthetic-monitor` | PASS / dry-run | Report produced; live URL/Sentry alert checks skip without credentials. |
-| `npm run ops:compliance-report` | PASS | Secret hygiene, PII logging, and AI governance tests pass; gitleaks action runs in CI. |
-| `npm run test:smoke` | PASS | 5 files / 15 tests. |
-| `npm run test:a11y` | PASS | 5 files / 22 tests under Vitest. |
-| `npm run typecheck` | PASS | TS compiler green. |
-| `npm run check:ts-ratchet` | PASS | Current `any` count 507 vs baseline 512. |
-| `npm run check:api-boundaries` | PASS | 21 documented exceptions. |
-| `npm run check:lint-ratchet` | PASS | 878 controlled lint problems; parser/no-undef 0. |
-| `npm run test -- --run` | PASS | 35 files / 145 tests. |
-| `npm run test:backend` | PASS | Backend Jest green. |
-| `npm test --prefix backend` | PASS | Backend package Jest green. |
+| `npm ci` | PASS baseline | Clean install completed; full audit initially had 3 high before override. |
+| `npm run check:production:fast` | PASS baseline | Fast checks passed before implementation. |
+| `npm audit --audit-level=high` | PASS after fix | 0 high / 0 critical; 6 total non-runtime lower-severity findings remain. |
+| `npm run check:audit` | PASS | Runtime high/critical findings remain 0. |
+| `npm run check:api-boundaries` | PASS | 0 temporary exceptions. |
+| `npm run check:pii-logging` | PASS | 1096 files scanned after telemetry/check hardening. |
+| Targeted Gate/security tests | PASS | Script tests, office-hours/messaging reliability Vitest, SIS import Jest, command-center Jest. |
+
+### Manual/live evidence still required
+
+OAuth secret rotation, staging/prod Nhost verification, Hasura/RBAC verification, real role smoke, Sentry/alert proof, backup/restore, rollback, DNS/TLS, storage permissions, legal/privacy, AI governance, support/on-call, and live Gate 2/3/4 proof remain manual blockers.
+
+### Launch recommendation
+
+Internal demo/dev remains GO with ratchets. Controlled pilot is GO only after critical live environment verification and scoped Gate acceptance. Broad production remains NO-GO.
+
+### Next 7 / 14 / 30 days
+
+| Window | Actions | Owner placeholder |
+| --- | --- | --- |
+| 7 days | Rotate OAuth secret; run staging Nhost/Hasura/RBAC, role-smoke, and Sentry proof; attach Gate 2 dry-run import evidence. | Security / Platform / QA |
+| 14 days | Complete backup/restore, rollback, DNS/TLS, storage, assignments dry-run, messaging/digest recovery, and command-center escalation proof. | Platform / Product |
+| 30 days | Finish legal/privacy/AI governance, support/on-call publication, dashboard reconciliation, and broad-launch GO/NO-GO review. | Legal / Product / Exec |
 | `npm run build` | PASS | Vite/PWA build succeeds. |
 | `npm run check:size` | PASS | 595.34 kB total, 22.09 kB initial, 213.67 kB largest. |
 | `npm run test:e2e` | PASS / scoped | 7 passed, 5 skipped for missing credentials/prod-like offline environment. |

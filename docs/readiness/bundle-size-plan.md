@@ -1,6 +1,6 @@
 # Bundle Size Plan
 
-Generated: 2026-05-04
+Generated: 2026-05-05
 
 ## Current status
 
@@ -14,6 +14,7 @@ Generated: 2026-05-04
 | May 4 follow-up total JS ratchet measurement | 595.75 kB brotlied |
 | May 4 follow-up app-shell initial entry | 22.09 kB brotlied |
 | May 4 final largest chunk | 221.03 kB brotlied |
+| May 5 validation | Pending final build after security/Gate closure edits |
 
 The old `size-limit` entry measured every built JavaScript asset matching
 `dist/assets/**/*.js`, so it was a total-JS budget rather than a direct
@@ -62,6 +63,10 @@ Completed:
 Remaining follow-up: deeper vendor decomposition of `vendor-misc` into more
 meaningful package-level chunks and product review of whether to continue
 reducing aggregate lazy-loaded JS toward 500 kB.
+
+May 5 closure note: source changes are small domain/backend/security edits and
+do not intentionally add heavy UI dependencies. Final `npm run build` and
+`npm run check:size` remain the authoritative bundle evidence for this branch.
 
 ## Owner/date placeholders
 

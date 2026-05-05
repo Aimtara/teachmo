@@ -1,6 +1,6 @@
 # Browser E2E and A11y Readiness
 
-Generated: 2026-05-04
+Generated: 2026-05-05
 
 ## Current status
 
@@ -9,7 +9,7 @@ component/page checks under Vitest instead of the incompatible Jest/CommonJS
 runner and passes. After `npm ci`, Playwright browsers had to be reinstalled
 with `npx playwright install chromium`; `npm run test:e2e`
 now passes all automated smoke tests that do not require external credentials
-or a production service-worker environment: **7 passed / 5 skipped / 0 failed**.
+or a production service-worker environment. May 5 did not change browser UI behavior; rerun browser checks during final validation or staging evidence collection.
 
 The skipped tests are intentional credential/environment gates:
 

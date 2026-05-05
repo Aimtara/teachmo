@@ -21,6 +21,7 @@ const validConfig = {
       mitigation: 'Compensating WAF rule and endpoint-level validation are active.',
       owner: 'Security Owner',
       expires: '2099-01-01',
+      reviewCommand: 'npm run check:audit',
     },
   ],
 };

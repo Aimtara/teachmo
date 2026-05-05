@@ -1,6 +1,6 @@
 # Dependency Security Burn-down
 
-Generated: 2026-05-03
+Generated: 2026-05-05
 
 ## Summary
 
@@ -10,14 +10,14 @@ Dependency security is now governed by a launch audit gate:
 - Scope: production runtime dependencies only (`npm audit --omit=dev --omit=optional --audit-level=high --json`)
 - Policy: fail on any high/critical production runtime advisory that is not documented in `config/audit-exceptions.json`.
 
-The full raw audit still reports dev/optional build-tool advisories, primarily from Storybook and the PWA/workbox build chain. Those are documented below and remain non-runtime follow-up items; they do not block the production runtime audit gate.
+The May 5 closure removed the remaining high full-audit finding by overriding the optional Workbox terser chain to `serialize-javascript@7.0.5`. Full raw audit still reports moderate/low dev/optional findings in Storybook, Workbox `ajv`, and `@flydotio/dockerfile`; those are documented below and remain non-runtime follow-up items.
 
 ## Before vs after
 
 | Metric | Baseline | After Phase 2 |
 | --- | ---: | ---: |
-| Full `npm audit --audit-level=high` total vulnerabilities | 25 | 10 |
-| Full audit high vulnerabilities | 12 | 4 |
+| Full `npm audit --audit-level=high` total vulnerabilities | 25 | 6 |
+| Full audit high vulnerabilities | 12 | 0 |
 | Full audit moderate vulnerabilities | 11 | 4 |
 | Full audit low vulnerabilities | 2 | 2 |
 | Runtime audit high/critical vulnerabilities | 12 high in raw install | 0 |
@@ -36,12 +36,13 @@ The full raw audit still reports dev/optional build-tool advisories, primarily f
 | `@xmldom/xmldom`, `path-to-regexp`, `picomatch`, `brace-expansion`, `lodash` | Added root npm overrides to patched/current packages where upstream ranges lagged audit advisories. | Runtime audit now passes with zero high/critical findings. |
 | Backend package | Removed `lodash`, upgraded `nodemon`, ran `npm update`. | `cd backend && npm audit --audit-level=high` passes. |
 | Nhost functions package | Upgraded `nodemailer`, applied `npm audit fix`. | `cd nhost/functions && npm audit --audit-level=high` passes. |
+| `vite-plugin-pwa` / `workbox-build` / `@rollup/plugin-terser` / `serialize-javascript` | Added root override to `serialize-javascript@7.0.5`. | Full raw root audit now has zero high/critical findings. |
 
 ## Remaining documented non-runtime advisories
 
 | Package / chain | Severity | Exposure | Reason not blocking launch | Owner placeholder | Target / expiration |
 | --- | --- | --- | --- | --- | --- |
-| `vite-plugin-pwa` / `workbox-build` / `@rollup/plugin-terser` / `serialize-javascript` | High in full raw audit | Optional build-time PWA generation chain; not installed in production runtime audit scope. | npm audit recommends `vite-plugin-pwa@0.19.8`, a downgrade from current 1.2.0. Current build and PWA generation pass; downgrade would be higher functional risk than documenting the build-only exposure. | Frontend Platform | 2026-06-30 |
+| `vite-plugin-pwa` / `workbox-build` / `ajv` | Moderate in full raw audit | Optional build-time PWA generation chain; not installed in production runtime audit scope. | High `serialize-javascript` exposure is patched by override; remaining `ajv` finding requires upstream Workbox patch or risky build-chain downgrade. | Frontend Platform | 2026-06-30 |
 | Storybook 8 `@storybook/addon-essentials` / `@storybook/addon-actions` / nested `uuid` | Moderate in full raw audit | Dev-only Storybook tooling; not production runtime. | npm audit recommends a major downgrade path that is incompatible with current Storybook 8 setup. Runtime audit excludes dev dependencies. | Frontend Platform | 2026-06-30 |
 | `@flydotio/dockerfile` / `diff` | Low in full raw audit | Dev/release tooling only. | Low severity and non-runtime; track with regular dev-tool updates. | DevOps Platform | 2026-06-30 |
 | `ajv` under workbox | Moderate in full raw audit | Optional build-time PWA generation chain. | Covered by PWA build-chain exception above. | Frontend Platform | 2026-06-30 |
@@ -60,6 +61,17 @@ The full raw audit still reports dev/optional build-tool advisories, primarily f
 | `npm run test:smoke` | PASS |
 | `npm run build && npm run check:size` | PASS |
 
+## May 5 security closure update
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm audit --audit-level=high` | PASS | Full raw audit is 6 total: 0 high, 0 critical, 4 moderate, 2 low. |
+| `npm run check:audit` | PASS | Production runtime scope remains 0 high/critical. |
+| `npm run check:secret-hygiene` | PASS | Secret scanner remains green after dependency/config changes. |
+| `npm run check:pii-logging` | PASS | Message body/preview logging is covered by the checker and tests. |
+
+Audit exceptions now require `reviewCommand` in addition to package, advisory list, severity, exposure, reason, mitigation, owner, and expiry.
+
 ## May 4 final verification
 
 The final closure run re-verified dependency posture after API-boundary and
@@ -68,7 +80,7 @@ ratchet changes:
 | Command | Result | Notes |
 | --- | --- | --- |
 | `npm run check:audit` | PASS | Production runtime scope has 0 high/critical findings. |
-| `npm audit --audit-level=high` | FAIL / documented | Full raw audit still reports 10 total findings: 2 low, 4 moderate, 4 high. The high findings remain the optional/dev PWA Workbox/`serialize-javascript` chain already documented in `config/audit-exceptions.json`. |
+| `npm audit --audit-level=high` | PASS after May 5 override | Full raw audit high/critical findings are 0; 6 lower-severity non-runtime findings remain documented. |
 | `npm run check:secret-hygiene` | PASS | No new tracked secret patterns detected. |
 | `npm run check:nhost-config-safety` | PASS | Safe repo Nhost config remains enforced. |
 
