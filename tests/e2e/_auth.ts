@@ -13,9 +13,10 @@ export async function login(page: Page) {
 
 export async function loginWithCredentials(
   page: Page,
-  { email, password }: { email: string; password: string }
+  { email, password }: { email: string; password: string },
+  options: { requireSuccess?: boolean } = {},
 ) {
-  if (!email || !password) return;
+  if (!email || !password) return false;
 
   const candidates = ['/login', '/auth/login', '/sign-in'];
   for (const path of candidates) {
@@ -31,7 +32,7 @@ export async function loginWithCredentials(
   const passInput = page
     .locator('input[type="password"], input[name="password"]')
     .first();
-  if ((await emailInput.count()) === 0 || (await passInput.count()) === 0) return;
+  if ((await emailInput.count()) === 0 || (await passInput.count()) === 0) return false;
 
   await emailInput.fill(email);
   await passInput.fill(password);
@@ -41,4 +42,13 @@ export async function loginWithCredentials(
     .first();
   if ((await submit.count()) > 0) await submit.click();
   await page.waitForTimeout(1500);
+
+  if (options.requireSuccess) {
+    const stillOnLogin = /\/(login|auth\/login|sign-in)(?:[/?#]|$)/i.test(page.url());
+    if (stillOnLogin) {
+      throw new Error('Synthetic credential login did not leave the login page.');
+    }
+  }
+
+  return true;
 }
