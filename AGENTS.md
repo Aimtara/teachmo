@@ -34,7 +34,7 @@ Migration `20260124_ops_consolidate_and_timeline.sql` has a pre-existing duplica
 - **Vitest (frontend)**: `npx vitest run` (163 suites pass; some pre-existing failures)
 - **Jest (backend)**: `npx jest --config jest.backend.config.cjs` (30 suites, 186 tests all pass)
 - **Backend-specific tests**: `cd backend && npm test`
-- **E2E**: `npx playwright test` (requires running app + Playwright browsers installed)
+- **E2E**: `npx playwright test` (Playwright browsers installed by the update script; 22 pass, 5 skipped; uses a dedicated Vite server on port 5174 with feature flags enabled)
 
 ### Environment variables
 
