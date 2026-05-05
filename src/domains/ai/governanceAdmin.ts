@@ -24,6 +24,8 @@ export function getAIPromptLibrary(headers: AuthHeaders) {
   return domainJson('/admin/ai/prompts', { headers });
 }
 
+export const getAIPromptsAdmin = getAIPromptLibrary;
+
 export function getAIBudget(headers: AuthHeaders) {
   return domainJson('/admin/ai/budget', { headers });
 }
@@ -93,3 +95,7 @@ export function decideAIReviewQueueItem(
     json: payload,
   });
 }
+
+export const listAIReviewQueue = getAIReviewQueue;
+export const decideAIReviewItem = decideAIReviewQueueItem;
+export const getAIGovernanceAuditExportUrl = aiGovernanceAuditExportUrl;

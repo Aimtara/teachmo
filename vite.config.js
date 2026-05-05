@@ -117,6 +117,9 @@ export default defineConfig({
           ) {
             return 'vendor-content';
           }
+          if (id.includes('/node_modules/@graphql-tools/') || id.includes('/node_modules/graphql')) {
+            return 'vendor-graphql-tools';
+          }
           return 'vendor-misc';
         }
       }

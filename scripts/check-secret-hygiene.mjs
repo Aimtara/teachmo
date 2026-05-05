@@ -39,6 +39,11 @@ const ALLOWLIST = [
     reason: 'Workflow references GitHub secret names, not secret values.',
   },
   {
+    file: '.github/workflows/collaboration-readiness.yml',
+    pattern: /HASURA_GRAPHQL_ADMIN_SECRET/,
+    reason: 'Workflow references GitHub secret names, not secret values.',
+  },
+  {
     file: '.github/workflows/secret-rotation.yml',
     pattern: /NHOST_ADMIN_SECRET/,
     reason: 'Workflow references GitHub secret names, not secret values.',
