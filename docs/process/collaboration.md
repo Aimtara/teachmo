@@ -110,14 +110,32 @@ green run:
 - `Container and filesystem security / Trivy image scan`
 - `Visual regression / storybook`
 - `Synthetic Monitoring / synthetic`
+- `Automation Coverage / automation-coverage`
 
 Stage advisory-to-blocking rollout deliberately:
 
 1. Require CI, launch-gates, dependency-security, and schema/metadata first.
 2. Add CodeQL and Trivy after the initial SARIF baseline is triaged.
 3. Add visual-regression after Chromatic baseline snapshots are approved.
-4. Require CODEOWNER review only after placeholder owner handles have been
+4. Add automation-coverage once the GraphQL dynamic-operation backlog is triaged.
+5. Require CODEOWNER review only after placeholder owner handles have been
    replaced with valid GitHub users/teams.
+
+## Automation coverage and GraphQL inventory
+
+Workflow: `.github/workflows/automation-coverage.yml`
+
+Command:
+
+```bash
+npm run ops:automation-coverage
+```
+
+The audit checks that launch-critical visual surfaces have Storybook stories,
+synthetic monitoring still covers required role journeys/routes, and inline
+GraphQL operations are inventoried for generated-type migration. See
+`docs/process/automation-coverage.md` for the policy manifest and strict-mode
+rollout.
 
 ## Optional AI review bot
 
