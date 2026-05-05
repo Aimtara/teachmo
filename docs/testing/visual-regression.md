@@ -15,7 +15,6 @@ Workflow: `.github/workflows/visual-regression.yml`
 Triggers:
 
 - pull requests,
-- pushes to `main`,
 - manual `workflow_dispatch`.
 
 Artifacts:
@@ -30,6 +29,10 @@ Artifacts:
 3. Mark the `visual-regression` workflow as a required PR check once the token
    is configured.
 4. Keep core UI surfaces covered by stories under `src/**/*.stories.*`.
+
+Manual dispatch supports `require_chromatic=true` so maintainers can fail closed
+after the project token is expected. Pull requests remain advisory when the token
+is absent so external setup does not block unrelated work before rollout.
 
 ## Approval policy
 

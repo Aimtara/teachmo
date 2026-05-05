@@ -24,6 +24,16 @@ operations changes.
 Owner handles are placeholders and should be replaced with actual GitHub teams
 before CODEOWNERS is enforced in branch protection.
 
+Run the collaboration readiness audit to track owner placeholders, workflow
+presence, external secrets, and branch-protection visibility:
+
+```bash
+npm run ops:collaboration-readiness
+```
+
+See `docs/process/collaboration-readiness.md` for strict mode and workflow
+usage.
+
 ## Preview environments
 
 Workflow: `.github/workflows/preview-environment.yml`
@@ -49,6 +59,10 @@ Behavior:
 The repository cannot create provider projects or tokens automatically. A human
 with provider-admin access must configure the chosen platform and repository
 secrets.
+
+Manual preview dispatch supports `require_provider: true` once provider secrets
+are expected. In that mode, missing Vercel/Netlify configuration fails the
+workflow instead of only uploading a build artifact.
 
 ## Required evidence by change type
 

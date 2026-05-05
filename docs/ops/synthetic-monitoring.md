@@ -56,6 +56,10 @@ runs the same Playwright suite, and records a redacted JSON/Markdown report in
 Manual dispatch can set `verify_alerts=true`. The report then fails if alerting
 credentials are missing, allowing maintainers to verify Sentry/Slack/PagerDuty
 routing without changing the browser test suite.
+
+Manual dispatch also supports `require_credentials`. Keep it enabled for
+staging/production evidence. Disable it only for local/advisory route
+reachability checks that intentionally allow mock sessions.
 # Synthetic Monitoring and Alert Routing
 
 Generated: 2026-05-04
