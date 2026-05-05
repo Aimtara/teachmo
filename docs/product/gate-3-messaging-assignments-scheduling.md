@@ -1,15 +1,15 @@
 # Gate 3 — Messaging / Assignments / Scheduling
 
-Generated: 2026-05-03
+Generated: 2026-05-05
 
 ## Status
 
 | Item | Current state | Launch classification | Evidence |
 | --- | --- | --- | --- |
-| E14 Messaging SLO + retries | Partially implemented through existing notification queue and messaging surfaces; retry/SLO proof remains docs/manual. | Controlled pilot only with monitoring evidence. | `docs/runbooks/observability-and-slos.md`; backend notification tests. |
-| E15 Digest reliability | Existing weekly brief/digest workflows remain; duplicate prevention and recovery require live scheduled-run evidence. | Pilot blocker until scheduler evidence is attached. | `.github/workflows/send_digests.yml`, weekly brief code paths. |
-| E16 Office hours booking | **Implemented v0 in-repo** with deterministic domain helpers and UI for availability blocks, slot booking, conflict prevention, cancellation, timezone-safe ISO timestamps, and local audit event hook. Persistence remains adapter-backed/local pending live backend tables. | Pilot candidate if feature is enabled and backend persistence is wired; broad launch needs live role smoke. | `src/domains/officeHours.ts`, `src/components/calendar/OfficeHours.jsx`, `src/domains/__tests__/officeHours.test.ts`. |
-| E17 Assignments sync v0 | Teacher assignments/backend route exist; external LMS sync remains dry-run/manual-live proof. | Pilot candidate for mock/dry-run only. | `src/domains/assignments.ts`, `backend/routes/assignments.js`. |
+| E14 Messaging SLO + retries | Repository policy helpers now cover idempotency keys, retry classification, bounded backoff, max attempts, and PII-safe delivery metadata. | Controlled pilot only with monitoring evidence. | `src/domains/messagingReliability.ts`; `src/domains/__tests__/messagingReliability.test.ts`; `docs/runbooks/observability-and-slos.md`. |
+| E15 Digest reliability | Existing daily digest outbox uses conflict-free queueing/recovery; scheduled-run proof remains live/manual. | Pilot blocker until scheduler evidence is attached. | `nhost/functions/send-daily-digests/index.ts`, `.github/workflows/send_digests.yml`, weekly brief code paths. |
+| E16 Office hours booking | **Implemented v0 in-repo** with deterministic domain helpers and UI for availability blocks, slot booking, conflict prevention, cancellation, reschedule, timezone-safe ISO timestamps, and local audit event hook. Persistence remains adapter-backed/local pending live backend tables. | Pilot candidate if feature is enabled and backend persistence is wired; broad launch needs live role smoke. | `src/domains/officeHours.ts`, `src/components/calendar/OfficeHours.jsx`, `src/domains/__tests__/officeHours.test.ts`. |
+| E17 Assignments sync v0 | Teacher assignments/backend route exist; dry-run helper validates missing IDs/titles/course IDs and duplicates without LMS credentials. | Pilot candidate for mock/dry-run only. | `src/domains/assignments.ts`, `backend/routes/assignments.js`. |
 
 ## E16 v0 behavior
 
@@ -24,6 +24,9 @@ Generated: 2026-05-03
 
 - Browser smoke now exercises gated teacher classes through scoped E2E-only
   feature flags without enabling the feature by default for production.
+- May 5 targeted tests added repository proof for messaging retry/idempotency,
+  office-hours reschedule/permission/timezone behavior, and assignments dry-run
+  validation helpers.
 - Manual proof templates were added for office-hours live verification,
   messaging/digest retry recovery, and assignments sync dry-run/live LMS proof.
 - `npm run test:e2e` now passes the browser smoke subset that can run without

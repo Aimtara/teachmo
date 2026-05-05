@@ -1,6 +1,6 @@
 # Gate 4 — Analytics / Admin Closure
 
-Generated: 2026-05-03
+Generated: 2026-05-05
 
 ## Status
 
@@ -8,10 +8,10 @@ Gate 4 is **pilot-ready with manual live-proof requirements**. Repository-side a
 
 | Item | Current state | Evidence | Launch classification |
 | --- | --- | --- | --- |
-| E18 Admin sync now + troubleshooting | Partial v0. `AdminIntegrationHealth` now uses `src/domains/integrations/rosterHealth.ts`; additional admin/direct fetch surfaces were reduced in the May 4 adapter pass. `AdminSISSync` still needs larger GraphQL adapter migration. | `npm run check:api-boundaries`: exceptions reduced 37 → 30 in the May 4 pass. | Controlled pilot with mock/dry-run; live integration evidence required. |
-| E20 Adoption/delivery/sync dashboards | Partial v0. Admin analytics exists but still has a direct API-boundary exception and needs data-contract validation against staging events. | `docs/readiness/api-boundary-exceptions.md`; `docs/readiness/evidence/admin-sync-dashboard-validation-template.md`; browser smoke now passes for enabled smoke scope. | Pilot blocker until dashboard data is validated with real events. |
+| E18 Admin sync now + troubleshooting | Partial v0. `AdminIntegrationHealth` uses `src/domains/integrations/rosterHealth.ts`; command-center API now requires authenticated admin roles. `AdminSISSync` remains a live sync-proof follow-up. | `npm run check:api-boundaries`: 0 temporary exceptions; `npx jest --config jest.backend.config.cjs backend/__tests__/commandCenter.test.js`: PASS. | Controlled pilot with mock/dry-run; live integration evidence required. |
+| E20 Adoption/delivery/sync dashboards | Partial v0. Admin analytics data access is behind domain modules and no longer an API-boundary exception; staging event reconciliation is still manual. | `docs/readiness/api-boundary-exceptions.md`; `docs/readiness/evidence/admin-sync-dashboard-validation-template.md`; browser smoke covers the route. | Pilot blocker until dashboard data is validated with real events. |
 | E22 Runbooks + support playbook | Improved. Support playbook added with escalation matrix, incident classes, SLAs, and customer/district templates. | `docs/runbooks/support-playbook.md`. | Manual publication evidence required. |
-| E23 Command Center approvals/escalations | Partial v0. Command Center page/domain supports approve/execute/cancel/audit view; live proof template now exists. | `src/pages/AdminCommandCenter.jsx`, `src/domains/commandCenter.ts`, `docs/readiness/evidence/command-center-live-proof-template.md`. | Manual live-proof blocker for broad launch. |
+| E23 Command Center approvals/escalations | Partial v0. Command Center page/domain supports approve/execute/cancel/audit view; backend API now denies unauthenticated/non-admin callers and the domain adapter sends bearer auth. | `src/pages/AdminCommandCenter.jsx`, `src/domains/commandCenter.ts`, `backend/__tests__/commandCenter.test.js`, `docs/readiness/evidence/command-center-live-proof-template.md`. | Manual live-proof blocker for broad launch. |
 
 ## Required live proof
 

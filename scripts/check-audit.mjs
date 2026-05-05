@@ -11,6 +11,7 @@ const REQUIRED_EXCEPTION_FIELDS = [
   'mitigation',
   'owner',
   'expires',
+  'reviewCommand',
 ];
 
 const HIGH_SEVERITIES = new Set(['high', 'critical']);
@@ -51,6 +52,10 @@ export function validateAuditExceptions(exceptionsConfig, { today = new Date().t
       if (typeof entry?.[textField] === 'string' && entry[textField].trim().length < 20) {
         failures.push(`${label} field "${textField}" must include a meaningful justification.`);
       }
+    }
+
+    if (typeof entry?.reviewCommand === 'string' && entry.reviewCommand.trim().length < 10) {
+      failures.push(`${label} field "reviewCommand" must include the command used to re-check the exception.`);
     }
   }
 

@@ -29,8 +29,9 @@ ENV NODE_ENV=production
 ENV PORT=4173
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 4173
 CMD ["sh", "-c", "npx vite preview --host 0.0.0.0 --port ${PORT}"]

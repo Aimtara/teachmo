@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { hasuraRequest } from './lib/hasura.js';
 import { parse } from 'csv-parse/sync';
+import { mapDirectoryIdentities } from './_shared/directory/identityMapping.js';
 
 const allowedRoles = new Set(['school_admin', 'district_admin', 'admin', 'system_admin']);
 const ROSTER_ROLE_MAP = {
@@ -54,6 +55,37 @@ function resolveExternalId(record, keys) {
 
 function stableChecksum(payload) {
   return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+function normalizeSourceRow({ rosterType, record, organizationId, schoolId }) {
+  const externalId = resolveExternalId(record, getRosterConfig(rosterType)?.idKeys ?? []);
+  return {
+    sourceSystem: 'oneroster',
+    districtId: organizationId,
+    schoolId,
+    externalId,
+    sourceSystemId: record.sourcedId || record.sourceSystemId || externalId,
+    email: record.email || record.emailAddress || null,
+    firstName: record.first_name || record.givenName || record.firstName || null,
+    lastName: record.last_name || record.familyName || record.lastName || null,
+    dateOfBirth: record.dateOfBirth || record.dob || null,
+    role: ROSTER_ROLE_MAP[rosterType] || rosterType,
+    guardianExternalId: record.guardianSourcedId || record.guardian_external_id || record.guardianExternalId || null,
+    studentExternalId: record.studentSourcedId || record.student_external_id || record.studentExternalId || record.userSourcedId || null,
+  };
+}
+
+function buildIdentityPreview({ rawRecords, rosterType, organizationId, schoolId, existingRecords = [], allowScopedEmailMatch = false }) {
+  const incomingRows = rawRecords
+    .filter((record) => ['students', 'teachers'].includes(rosterType) || record.guardianExternalId || record.guardianSourcedId)
+    .map((record) => normalizeSourceRow({ rosterType, record, organizationId, schoolId }));
+  return mapDirectoryIdentities({
+    schoolId,
+    districtId: organizationId,
+    existingRecords,
+    incomingRows,
+    allowScopedEmailMatch,
+  });
 }
 
 async function createImportJob(userId, organizationId, rosterType, metadata = {}) {
@@ -214,6 +246,10 @@ export default async function sisRosterImport(req, res) {
       rosterType = 'students',
       fileName,
       fileSize,
+      previewOnly = false,
+      dryRun = false,
+      existingIdentityRecords = [],
+      allowScopedEmailMatch = false,
     } = req.body ?? {};
 
     const rawRecords = Array.isArray(records) ? records : parseCsv(String(csvText ?? ''));
@@ -251,6 +287,14 @@ export default async function sisRosterImport(req, res) {
     const validObjects = [];
     let skippedCount = 0;
     const errors = [];
+    const identityPreview = buildIdentityPreview({
+      rawRecords,
+      rosterType,
+      organizationId,
+      schoolId,
+      existingRecords: Array.isArray(existingIdentityRecords) ? existingIdentityRecords : [],
+      allowScopedEmailMatch: Boolean(allowScopedEmailMatch),
+    });
 
     rawRecords.forEach((record, idx) => {
       const lineNumber = record.__lineNumber ?? idx + 2;
@@ -327,7 +371,7 @@ export default async function sisRosterImport(req, res) {
     });
 
     let inserted = 0;
-    if (validObjects.length) {
+    if (validObjects.length && !previewOnly && !dryRun) {
       try {
         inserted = await insertSisRosters(validObjects);
       } catch (err) {
@@ -344,6 +388,12 @@ export default async function sisRosterImport(req, res) {
       record_count: rawRecords.length,
       inserted_count: inserted,
       skipped_count: skippedCount,
+      preview_only: Boolean(previewOnly || dryRun),
+      identity_decision_counts: identityPreview.decisions.reduce((acc, decision) => {
+        acc[decision.action] = (acc[decision.action] || 0) + 1;
+        return acc;
+      }, {}),
+      identity_conflict_count: identityPreview.conflicts.length,
       errors: errors.slice(0, 50),
       storage_table: 'sis_rosters',
       role_mapping: ROSTER_ROLE_MAP[rosterType] || null,
@@ -368,6 +418,13 @@ export default async function sisRosterImport(req, res) {
       inserted,
       skipped: skippedCount,
       jobId,
+      dryRun: Boolean(previewOnly || dryRun),
+      preview: {
+        valid: validObjects.length,
+        invalid: skippedCount,
+        identityDecisions: identityPreview.decisions,
+        conflicts: identityPreview.conflicts,
+      },
       warnings: errors.slice(0, 5),
       roleMapping: ROSTER_ROLE_MAP[rosterType] || null,
     });

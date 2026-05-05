@@ -240,6 +240,7 @@
     "lodash": "npm:lodash-es@latest",
     "@xmldom/xmldom": "latest",
     "path-to-regexp": "latest",
-    "picomatch": "latest"
+    "picomatch": "latest",
+    "serialize-javascript": "7.0.5"
   }
 }

@@ -73,6 +73,7 @@ jobs:
 
       - name: Build frontend (for stable CI serving)
         env:
+          NODE_ENV: production
           VITE_E2E_BYPASS_AUTH: "true"
           VITE_DISABLE_DEV_ROUTE_BYPASS: "false"
           VITE_ENABLE_DEV_ROUTE_BYPASS: "true"
@@ -86,6 +87,7 @@ jobs:
 
       - name: Check bundle size
         env:
+          NODE_ENV: production
           VITE_E2E_BYPASS_AUTH: "true"
           VITE_DISABLE_DEV_ROUTE_BYPASS: "false"
           VITE_ENABLE_DEV_ROUTE_BYPASS: "true"

@@ -8,12 +8,13 @@
     {
       "package": "vite-plugin-pwa",
       "advisories": ["workbox-build", "@rollup/plugin-terser", "serialize-javascript"],
-      "severity": "high",
+      "severity": "moderate",
       "exposure": "optional build-time PWA service-worker generation only; not installed in production runtime audit",
-      "reason": "Current latest vite-plugin-pwa pulls Workbox 7.x, which npm audit flags via serialize-javascript. Audit's suggested fix is a downgrade to vite-plugin-pwa 0.19.8, which would reintroduce older PWA behavior and major-version breakage risk. The dependency is optional and excluded from the production runtime audit gate while upstream publishes a patched chain.",
-      "mitigation": "PWA generation is exercised by build tests; no untrusted user input is passed to Workbox serialization; production runtime audit omits optional/dev dependencies.",
+      "reason": "The high serialize-javascript finding is patched by the root override to 7.0.5. Workbox still carries moderate ajv audit findings in optional build tooling; forcing npm's suggested downgrade would be higher functional risk than tracking the build-only exposure.",
+      "mitigation": "PWA generation is exercised by build tests; no untrusted user input is passed to Workbox validation; production runtime audit omits optional/dev dependencies.",
       "owner": "Frontend Platform Owner",
-      "expires": "2026-06-30"
+      "expires": "2026-06-30",
+      "reviewCommand": "npm audit --audit-level=high"
     },
     {
       "package": "@storybook/addon-essentials",
@@ -23,7 +24,8 @@
       "reason": "Latest Storybook major is incompatible with the current Vite 6/React toolchain without a larger Storybook migration. Not production runtime exposed.",
       "mitigation": "Storybook is not part of production build or runtime audit; revisit with Storybook/Vite major upgrade.",
       "owner": "Frontend Platform Owner",
-      "expires": "2026-07-31"
+      "expires": "2026-07-31",
+      "reviewCommand": "npm audit --audit-level=high"
     },
     {
       "package": "@flydotio/dockerfile",
@@ -33,7 +35,8 @@
       "reason": "Audit's fix points to a package downgrade. Not production runtime exposed.",
       "mitigation": "Excluded from production runtime audit; monitor upstream.",
       "owner": "DevOps Platform Owner",
-      "expires": "2026-07-31"
+      "expires": "2026-07-31",
+      "reviewCommand": "npm audit --audit-level=high"
     }
   ]
 }
