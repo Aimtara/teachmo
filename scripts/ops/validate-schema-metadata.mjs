@@ -98,6 +98,28 @@ function runCommand(name, command, args, env = {}) {
   };
 }
 
+function runSql(name, databaseUrl, sql, { captureScalar = false } = {}) {
+  const script = `
+    import pg from 'pg';
+    const client = new pg.Client({ connectionString: process.env.SQL_CHECK_DATABASE_URL });
+    await client.connect();
+    try {
+      const result = await client.query(process.env.SQL_CHECK_QUERY);
+      if (process.env.SQL_CHECK_CAPTURE_SCALAR === 'true') {
+        console.log(result.rows?.[0] ? Object.values(result.rows[0])[0] : '');
+      }
+    } finally {
+      await client.end();
+    }
+  `;
+
+  return runCommand(name, 'node', ['--input-type=module', '-e', script], {
+    SQL_CHECK_DATABASE_URL: databaseUrl,
+    SQL_CHECK_QUERY: sql,
+    SQL_CHECK_CAPTURE_SCALAR: captureScalar ? 'true' : 'false',
+  });
+}
+
 function buildSkipSql(skipMigrations) {
   if (skipMigrations.size === 0) return '';
   const values = [...skipMigrations]
@@ -130,13 +152,13 @@ function bootstrapAuthSchema(databaseUrl) {
     );
   `;
 
-  return runCommand('Bootstrap local Nhost auth schema', 'psql', [databaseUrl, '-v', 'ON_ERROR_STOP=1', '-c', sql]);
+  return runSql('Bootstrap local Nhost auth schema', databaseUrl, sql);
 }
 
 function markSkippedMigrations(databaseUrl, skipMigrations) {
   const sql = buildSkipSql(skipMigrations);
   if (!sql) return { name: 'Mark known skipped migrations', status: 'skip', details: 'No skipped migrations configured.' };
-  return runCommand('Mark known skipped migrations', 'psql', [databaseUrl, '-v', 'ON_ERROR_STOP=1', '-c', sql]);
+  return runSql('Mark known skipped migrations', databaseUrl, sql);
 }
 
 function validateDatabase(opts) {
@@ -155,13 +177,12 @@ function validateDatabase(opts) {
       DATABASE_URL: opts.databaseUrl,
       REQUIRE_NHOST_BASE_SCHEMA: 'true',
     }),
-    runCommand('Verify public schema tables exist', 'psql', [
+    runSql(
+      'Verify public schema tables exist',
       opts.databaseUrl,
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-tAc',
       "select count(*)::int from information_schema.tables where table_schema = 'public'",
-    ]),
+      { captureScalar: true },
+    ),
   ];
 
   return checks;
@@ -172,11 +193,22 @@ function validateGraphqlTypeGeneration() {
     return [{ name: 'GraphQL type generation config', status: 'skip', details: 'codegen.yml is not configured; see docs/ci/schema-and-metadata.md.' }];
   }
 
-  if (!process.env.HASURA_GRAPHQL_ENDPOINT && !process.env.HASURA_GRAPHQL_URL) {
+  const endpoint =
+    process.env.HASURA_GRAPHQL_ENDPOINT ||
+    process.env.HASURA_GRAPHQL_URL ||
+    process.env.HASURA_GRAPHQL_SCHEMA_URL;
+
+  if (!endpoint) {
     return [{ name: 'GraphQL type generation', status: 'skip', details: 'HASURA_GRAPHQL_ENDPOINT/HASURA_GRAPHQL_URL not configured for this context.' }];
   }
 
-  return [runCommand('GraphQL type generation', 'npm', ['run', 'graphql:codegen'])];
+  return [
+    runCommand('GraphQL type generation', 'npm', ['run', 'graphql:codegen'], {
+      HASURA_GRAPHQL_ENDPOINT: endpoint,
+      HASURA_GRAPHQL_URL: endpoint,
+      HASURA_GRAPHQL_SCHEMA_URL: endpoint,
+    }),
+  ];
 }
 
 export function buildSchemaMetadataReport(opts = parseArgs()) {
