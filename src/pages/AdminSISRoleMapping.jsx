@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { getSisRoleMappings, updateSisRoleMapping } from '@/domains/admin/sisAdmin';
 import { Card, Table, Select, LoadingSpinner } from '@/components/ui';
 import { toast } from 'sonner';
 
@@ -21,32 +21,12 @@ export default function AdminSISRoleMapping() {
     refetch,
   } = useQuery(
     ['sisRoleMappings'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query SISRoleMappings {
-          sis_role_mappings(order_by: {sis_role: asc}) {
-            id
-            sis_role
-            app_role
-          }
-        }`,
-      });
-      return res?.sis_role_mappings ?? [];
-    },
+    getSisRoleMappings,
   );
 
   // Mutation to update a role mapping
   const updateMapping = useMutation(
-    async ({ id, app_role }) => {
-      await graphqlRequest({
-        query: `mutation UpdateSISRoleMapping($id: uuid!, $app_role: String!) {
-          update_sis_role_mappings_by_pk(pk_columns: { id: $id }, _set: { app_role: $app_role }) {
-            id
-          }
-        }`,
-        variables: { id, app_role },
-      });
-    },
+    ({ id, app_role }) => updateSisRoleMapping(id, app_role),
     {
       onSuccess: () => {
         toast.success('Mapping updated');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { graphqlRequest } from '@/lib/graphql';
 import { createLogger } from '@/utils/logger';
+import { getSISDataRecords, updateSISDataRecord } from '@/domains/admin/sisAdmin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,9 +33,8 @@ export default function AdminSISDataManager() {
 
   const fetchRecords = async (tableName) => {
     try {
-      const cols = SIS_TABLES.find((t) => t.name === tableName).columns.join(', ');
-      const query = `query GetRecords { ${tableName}(limit: 20) { ${cols} } }`;
-      const res = await graphqlRequest(query);
+      const tableConfig = SIS_TABLES.find((t) => t.name === tableName);
+      const res = await getSISDataRecords(tableName, tableConfig.columns);
       setRecords(res[tableName]);
     } catch (err) {
       logger.error('Failed to fetch records', err);
@@ -59,10 +58,7 @@ export default function AdminSISDataManager() {
       columns.forEach((col) => {
         if (col !== 'id') updates[col] = selectedRecord[col];
       });
-      const mutation = `mutation UpdateRecord($id: uuid!, $data: ${table}_set_input!) {
-        update_${table}_by_pk(pk_columns: {id: $id}, _set: $data) { id }
-      }`;
-      await graphqlRequest(mutation, { id: selectedRecord.id, data: updates });
+      await updateSISDataRecord(table, selectedRecord.id, updates);
       toast.success('Record updated');
       setIsOpen(false);
       await fetchRecords(table);

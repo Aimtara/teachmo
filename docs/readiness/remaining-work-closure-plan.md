@@ -5,7 +5,7 @@ Baseline commit: `dad6ee8`
 
 ## Current verdict
 
-Teachmo remains a **controlled pilot candidate only after manual environment evidence is completed**. Automated gates are stronger than the historic baseline, but the repository still has ratcheted lint debt, documented dev/optional dependency audit findings, 17 temporary API-boundary exceptions, and live-environment readiness tasks that cannot be truthfully completed from local code alone.
+Teachmo remains a **controlled pilot candidate only after manual environment evidence is completed**. Automated gates are stronger than the historic baseline, but the repository still has ratcheted lint debt, documented dev/optional dependency audit findings, zero temporary API-boundary exceptions, and live-environment readiness tasks that cannot be truthfully completed from local code alone.
 
 ## Phase 1 baseline
 
@@ -35,7 +35,7 @@ Teachmo remains a **controlled pilot candidate only after manual environment evi
 | --- | --- | --- | --- |
 | Dependency security | 12 high audit vulnerabilities | Fix safe chains; add `check:audit`; document expiring exceptions only where upstream/breaking risk blocks safe fix. | Broad launch blocker if unreviewed high findings remain. |
 | Lint | 1,006 ratcheted problems | Eliminate parser and `no-undef` where feasible; reduce unused vars; tighten ratchet. | Controlled by ratchet; full green preferred. |
-| API boundaries | 40 temporary exceptions; reduced to 37 after the first closure, then 21 after the May 4 refresh, then 17 after AI/admin adapter extraction. | Continue extracting remaining admin analytics/notification/observability/partner/SIS calls behind adapters. | Broad launch blocker if high-risk direct UI calls remain unowned. |
+| API boundaries | 40 temporary exceptions; reduced to 37 after the first closure, 21 after the May 4 refresh, and 0 after completing admin analytics/notification/observability/partner/SIS adapter extraction. | Maintain zero temporary exceptions. | Regression blocker if any direct UI backend call returns. |
 | Bundle | 601.28 kB total brotli | Reduce safely and enforce hybrid app-shell/per-chunk/total ratchet. | Requires owner approval if old 500 kB aggregate is not used. |
 | Manual readiness | 26 manual items | Convert to executable evidence templates and launch decision matrix. | Broad launch blocker until live evidence exists. |
 | Browser QA | Not rerun at phase 1 | Run Playwright/Jest a11y if feasible; document blockers. | Required before broad launch; recommended before pilot. |
@@ -154,7 +154,7 @@ continuing to keep live-environment tasks separate from automated claims.
 
 | Area | Before this pass | After May 4 pass | Evidence |
 | --- | ---: | ---: | --- |
-| API-boundary exceptions | 37 | 14 | `npm run check:api-boundaries`; ratchet cap now fails above 14. |
+| API-boundary exceptions | 37 | 0 | `npm run check:api-boundaries`; ratchet cap now fails above 0. |
 | Runtime high/critical vulnerabilities | 0 | 0 | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
 | Full raw audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are dev/optional PWA/workbox chain exceptions. |
 | Lint ratchet | 940 problems | 936 problems | Parser and `no-undef` remain 0; `@typescript-eslint/no-explicit-any` is down to 111. |
