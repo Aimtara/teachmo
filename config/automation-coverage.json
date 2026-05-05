@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": 1,
+  "visualSurfaces": [
+    {
+      "id": "login",
+      "label": "Login and auth entry",
+      "requiredStories": ["src/pages/Login.stories.jsx"],
+      "risk": "high"
+    },
+    {
+      "id": "assignments",
+      "label": "Teacher assignments",
+      "requiredStories": ["src/components/teacher/AssignmentsView.stories.jsx"],
+      "risk": "high"
+    },
+    {
+      "id": "messaging",
+      "label": "Messaging thread",
+      "requiredStories": ["src/components/messaging/MessageThread.stories.tsx"],
+      "risk": "high"
+    },
+    {
+      "id": "calendar",
+      "label": "Calendar and office hours",
+      "requiredStories": ["src/components/calendar/CalendarView.stories.jsx"],
+      "risk": "medium"
+    },
+    {
+      "id": "admin-analytics",
+      "label": "Admin analytics",
+      "requiredStories": [
+        "src/components/admin/analytics/MetricCards.stories.jsx",
+        "src/components/admin/analytics/ReportBuilder.stories.jsx"
+      ],
+      "risk": "medium"
+    }
+  ],
+  "syntheticJourneys": [
+    {
+      "id": "public-entry",
+      "label": "Public landing and login",
+      "spec": "tests/e2e/synthetic-monitor.spec.ts",
+      "testGlobs": ["tests/e2e/synthetic-monitor.spec.ts"],
+      "requiredPaths": ["/", "/login"],
+      "risk": "high"
+    },
+    {
+      "id": "parent-ai",
+      "label": "Parent AI/discovery route",
+      "spec": "tests/e2e/synthetic-monitor.spec.ts",
+      "testGlobs": ["tests/e2e/synthetic-monitor.spec.ts"],
+      "requiredPaths": ["/discover", "/ai-assistant"],
+      "requiredEnvMarkers": ["PARENT"],
+      "risk": "high"
+    },
+    {
+      "id": "teacher-assignments",
+      "label": "Teacher dashboard and assignments",
+      "spec": "tests/e2e/synthetic-monitor.spec.ts",
+      "testGlobs": ["tests/e2e/synthetic-monitor.spec.ts"],
+      "requiredPaths": ["/teacher", "/teacher/assignments"],
+      "requiredEnvMarkers": ["TEACHER"],
+      "risk": "high"
+    },
+    {
+      "id": "admin-health",
+      "label": "Admin integration health and analytics",
+      "spec": "tests/e2e/synthetic-monitor.spec.ts",
+      "testGlobs": ["tests/e2e/synthetic-monitor.spec.ts"],
+      "requiredPaths": ["/admin/integration-health", "/admin/analytics"],
+      "requiredEnvMarkers": ["ADMIN"],
+      "risk": "high"
+    },
+    {
+      "id": "backend-health",
+      "label": "Backend synthetic health endpoint",
+      "spec": "tests/e2e/synthetic-monitor.spec.ts",
+      "testGlobs": ["tests/e2e/synthetic-monitor.spec.ts"],
+      "requiredPaths": ["/api/healthz"],
+      "requiredEnvMarkers": ["SYNTHETIC_API_URL"],
+      "risk": "medium"
+    }
+  ],
+  "graphql": {
+    "scanGlobs": [
+      "src/**/*.{ts,tsx,js,jsx}",
+      "nhost/functions/**/*.{ts,js}"
+    ],
+    "highRiskPathPatterns": [
+      "src/pages/Admin",
+      "src/utils/audit",
+      "nhost/functions",
+      "src/api",
+      "src/domains"
+    ],
+    "generatedTypesPath": "src/api/generated/graphql.ts",
+    "allowedDynamicOperationFiles": [
+      "src/pages/AdminSISDataManager.jsx"
+    ]
+  }
+}

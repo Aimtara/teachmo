@@ -1,0 +1,81 @@
+name: Automation coverage
+
+on:
+  pull_request:
+    paths:
+      - 'config/automation-coverage.json'
+      - 'scripts/ops/automation-coverage.mjs'
+      - '.github/workflows/automation-coverage.yml'
+      - 'src/**/*.stories.*'
+      - 'tests/e2e/**'
+      - 'src/**/*.{ts,tsx,js,jsx}'
+      - 'nhost/functions/**/*.{ts,js}'
+      - 'docs/process/automation-coverage.md'
+  push:
+    branches: [main]
+    paths:
+      - 'config/automation-coverage.json'
+      - 'scripts/ops/automation-coverage.mjs'
+      - '.github/workflows/automation-coverage.yml'
+      - 'src/**/*.stories.*'
+      - 'tests/e2e/**'
+      - 'src/**/*.{ts,tsx,js,jsx}'
+      - 'nhost/functions/**/*.{ts,js}'
+      - 'docs/process/automation-coverage.md'
+  schedule:
+    - cron: '51 10 * * 3'
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: Fail on warnings as well as failures
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: coverage inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Validate automation coverage policy
+        run: python3 -m json.tool config/automation-coverage.json >/dev/null
+
+      - name: Run automation coverage audit
+        run: |
+          set -euo pipefail
+          args=(--output-dir artifacts/automation-coverage)
+          if [ "${{ inputs.strict && 'true' || 'false' }}" = "true" ]; then
+            args+=(--strict)
+          fi
+          npm run ops:automation-coverage -- "${args[@]}"
+
+      - name: Write summary
+        if: always()
+        run: |
+          if [ -f artifacts/automation-coverage/automation-coverage.md ]; then
+            cat artifacts/automation-coverage/automation-coverage.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Automation coverage report was not generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automation-coverage
+          path: artifacts/automation-coverage/

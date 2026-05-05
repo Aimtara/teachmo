@@ -11,6 +11,7 @@
 /src/components/ @Aimtara/frontend-platform
 /src/hooks/ @Aimtara/frontend-platform
 /src/config/ @Aimtara/frontend-platform @Aimtara/security-platform
+/src/api/generated/ @Aimtara/frontend-platform @Aimtara/data-platform
 
 # Backend APIs, auth, tenancy, and migrations.
 /backend/routes/ @Aimtara/backend-platform
@@ -30,6 +31,8 @@
 /scripts/ @Aimtara/devops-platform
 /scripts/ops/ @Aimtara/devops-platform @Aimtara/security-platform
 /renovate.json @Aimtara/devops-platform @Aimtara/security-platform
+/Dockerfile @Aimtara/devops-platform @Aimtara/security-platform
+/backend/Dockerfile @Aimtara/backend-platform @Aimtara/security-platform
 
 # Compliance, security, readiness, and runbooks.
 /docs/readiness/ @Aimtara/release-readiness @Aimtara/security-platform
@@ -37,6 +40,7 @@
 /docs/ops/ @Aimtara/devops-platform @Aimtara/security-platform
 /docs/ci/ @Aimtara/devops-platform @Aimtara/data-platform
 /docs/security* @Aimtara/security-platform
+/docs/security/ @Aimtara/security-platform
 /docs/SECURITY.md @Aimtara/security-platform
 /docs/ai* @Aimtara/ai-governance
 /docs/adr/0007-ai-provider-strategy-safety-boundaries.md @Aimtara/ai-governance @Aimtara/security-platform

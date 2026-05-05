@@ -1,0 +1,97 @@
+name: Container and filesystem security
+
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - 'backend/Dockerfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+      - '.github/workflows/container-security.yml'
+      - '.trivyignore'
+  push:
+    branches: [main]
+  schedule:
+    - cron: '42 10 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-filesystem:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan repository filesystem
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-filesystem.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+      - name: Upload filesystem SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-filesystem.sarif
+          category: trivy-filesystem
+
+  trivy-images:
+    name: Trivy image scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: frontend
+            dockerfile: Dockerfile
+            context: .
+            image: teachmo-frontend:${{ github.sha }}
+            build_args: |
+              VITE_NHOST_BACKEND_URL=https://preview.invalid
+              VITE_NHOST_SUBDOMAIN=preview
+              VITE_NHOST_REGION=local
+          - name: backend
+            dockerfile: backend/Dockerfile
+            context: backend
+            image: teachmo-backend:${{ github.sha }}
+            build_args: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          tags: ${{ matrix.image }}
+          load: true
+          push: false
+          build-args: ${{ matrix.build_args }}
+
+      - name: Scan image
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ matrix.image }}
+          format: sarif
+          output: trivy-${{ matrix.name }}-image.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+      - name: Upload image SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.name }}-image.sarif
+          category: trivy-${{ matrix.name }}-image

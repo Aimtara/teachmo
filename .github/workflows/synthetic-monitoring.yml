@@ -18,6 +18,10 @@ on:
         description: Trigger Sentry/alert verification
         type: boolean
         default: false
+      require_credentials:
+        description: Fail if synthetic user credentials are missing
+        type: boolean
+        default: true
   schedule:
     - cron: '*/15 * * * *'
 
@@ -57,17 +61,31 @@ jobs:
           PLAYWRIGHT_WEB_SERVER: "false"
           PLAYWRIGHT_BASE_URL: ${{ steps.targets.outputs.base_url }}
           SYNTHETIC_API_URL: ${{ steps.targets.outputs.api_url }}
+          SYNTHETIC_REAL_LOGIN: ${{ (github.event_name == 'schedule' || inputs.require_credentials) && 'true' || 'false' }}
           SYNTHETIC_PARENT_EMAIL: ${{ secrets.SYNTHETIC_PARENT_EMAIL }}
           SYNTHETIC_PARENT_PASSWORD: ${{ secrets.SYNTHETIC_PARENT_PASSWORD }}
           SYNTHETIC_TEACHER_EMAIL: ${{ secrets.SYNTHETIC_TEACHER_EMAIL }}
           SYNTHETIC_TEACHER_PASSWORD: ${{ secrets.SYNTHETIC_TEACHER_PASSWORD }}
+          SYNTHETIC_ADMIN_EMAIL: ${{ secrets.SYNTHETIC_ADMIN_EMAIL }}
+          SYNTHETIC_ADMIN_PASSWORD: ${{ secrets.SYNTHETIC_ADMIN_PASSWORD }}
         run: npm run e2e:synthetic
       - name: Verify Sentry/alert routing
         env:
           SYNTHETIC_BASE_URL: ${{ steps.targets.outputs.base_url }}
+          PLAYWRIGHT_BASE_URL: ${{ steps.targets.outputs.base_url }}
           SYNTHETIC_API_URL: ${{ steps.targets.outputs.api_url }}
+          SYNTHETIC_API_BASE_URL: ${{ steps.targets.outputs.api_url }}
+          SYNTHETIC_EXECUTE: "true"
+          SYNTHETIC_REAL_LOGIN: ${{ (github.event_name == 'schedule' || inputs.require_credentials) && 'true' || 'false' }}
+          SYNTHETIC_PARENT_EMAIL: ${{ secrets.SYNTHETIC_PARENT_EMAIL }}
+          SYNTHETIC_PARENT_PASSWORD: ${{ secrets.SYNTHETIC_PARENT_PASSWORD }}
+          SYNTHETIC_TEACHER_EMAIL: ${{ secrets.SYNTHETIC_TEACHER_EMAIL }}
+          SYNTHETIC_TEACHER_PASSWORD: ${{ secrets.SYNTHETIC_TEACHER_PASSWORD }}
+          SYNTHETIC_ADMIN_EMAIL: ${{ secrets.SYNTHETIC_ADMIN_EMAIL }}
+          SYNTHETIC_ADMIN_PASSWORD: ${{ secrets.SYNTHETIC_ADMIN_PASSWORD }}
           SYNTHETIC_VERIFY_ALERTS: ${{ github.event.inputs.verify_alerts && 'true' || 'false' }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}

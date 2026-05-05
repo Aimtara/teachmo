@@ -17,11 +17,22 @@ operations changes.
 | `backend/**` | Express APIs, migrations, RBAC/auth, tenancy, logging |
 | `nhost/**` | Nhost migrations, Hasura metadata, storage/auth settings |
 | `scripts/**`, `.github/workflows/**`, `renovate.json` | CI/automation safety and failure behavior |
+| `Dockerfile`, `backend/Dockerfile`, `docs/security/**` | Container/runtime vulnerability scanning and remediation |
 | `docs/readiness/**`, `docs/runbooks/**`, `docs/ops/**` | Evidence, runbooks, release/ops process |
 | `backend/ai/**`, `backend/middleware/*Governance*`, `docs/ai*` | AI governance, redaction, policy evaluation |
 
 Owner handles are placeholders and should be replaced with actual GitHub teams
 before CODEOWNERS is enforced in branch protection.
+
+Run the collaboration readiness audit to track owner placeholders, workflow
+presence, external secrets, and branch-protection visibility:
+
+```bash
+npm run ops:collaboration-readiness
+```
+
+See `docs/process/collaboration-readiness.md` for strict mode and workflow
+usage.
 
 ## Preview environments
 
@@ -49,6 +60,10 @@ The repository cannot create provider projects or tokens automatically. A human
 with provider-admin access must configure the chosen platform and repository
 secrets.
 
+Manual preview dispatch supports `require_provider: true` once provider secrets
+are expected. In that mode, missing Vercel/Netlify configuration fails the
+workflow instead of only uploading a build artifact.
+
 ## Required evidence by change type
 
 | Change type | Required evidence |
@@ -66,6 +81,61 @@ secrets.
 Renovate is configured to automerge only low-risk devDependency patch updates
 after required checks pass. Runtime dependencies, major updates, lockfile-only
 changes that affect runtime packages, and security updates require human review.
+
+Renovate platform automerge is intentionally scoped to devDependency patch
+updates. The configured required status checks use the job-level names GitHub
+reports for the current workflows:
+
+- `build`
+- `npm audit policy`
+- `GitHub dependency review`
+- `schema-metadata`
+
+If check names drift, prefer disabling automerge over widening the automerge
+rule. Runtime dependencies, major updates, security updates, and
+auth/Nhost/Express/React/Vite-sensitive changes stay human-reviewed.
+
+## Required branch protection checks
+
+Recommended required checks once each workflow has produced at least one stable
+green run:
+
+- `CI / build`
+- `launch-gates / launch-gates`
+- `Dependency and security automation / npm audit policy`
+- `Dependency and security automation / GitHub dependency review`
+- `Schema and Metadata Validation / schema-metadata`
+- `CodeQL / Analyze JavaScript and TypeScript`
+- `Container and filesystem security / Trivy filesystem scan`
+- `Container and filesystem security / Trivy image scan`
+- `Visual regression / storybook`
+- `Synthetic Monitoring / synthetic`
+- `Automation Coverage / automation-coverage`
+
+Stage advisory-to-blocking rollout deliberately:
+
+1. Require CI, launch-gates, dependency-security, and schema/metadata first.
+2. Add CodeQL and Trivy after the initial SARIF baseline is triaged.
+3. Add visual-regression after Chromatic baseline snapshots are approved.
+4. Add automation-coverage once the GraphQL dynamic-operation backlog is triaged.
+5. Require CODEOWNER review only after placeholder owner handles have been
+   replaced with valid GitHub users/teams.
+
+## Automation coverage and GraphQL inventory
+
+Workflow: `.github/workflows/automation-coverage.yml`
+
+Command:
+
+```bash
+npm run ops:automation-coverage
+```
+
+The audit checks that launch-critical visual surfaces have Storybook stories,
+synthetic monitoring still covers required role journeys/routes, and inline
+GraphQL operations are inventoried for generated-type migration. See
+`docs/process/automation-coverage.md` for the policy manifest and strict-mode
+rollout.
 
 ## Optional AI review bot
 

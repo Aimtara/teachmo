@@ -10,12 +10,21 @@ function argValue(argv, name, fallback = null) {
 
 function parseArgs(argv = process.argv.slice(2)) {
   const common = parseCommonArgs(argv);
+  const target = argValue(argv, '--target', process.env.SYNTHETIC_TARGET || 'staging');
   return {
     ...common,
-    target: argValue(argv, '--target', process.env.SYNTHETIC_TARGET || 'staging'),
+    target,
     baseUrl: argValue(argv, '--base-url', process.env.PLAYWRIGHT_BASE_URL || process.env.SYNTHETIC_BASE_URL),
-    apiBaseUrl: argValue(argv, '--api-base-url', process.env.SYNTHETIC_API_BASE_URL),
+    apiBaseUrl: argValue(
+      argv,
+      '--api-base-url',
+      process.env.SYNTHETIC_API_BASE_URL || process.env.SYNTHETIC_API_URL,
+    ),
     execute: argv.includes('--execute') || process.env.SYNTHETIC_EXECUTE === 'true',
+    requireRealLogin:
+      argv.includes('--require-real-login') ||
+      process.env.SYNTHETIC_REAL_LOGIN === 'true' ||
+      ['staging', 'production'].includes(target),
     verifyAlerts: argv.includes('--verify-alerts') || process.env.SYNTHETIC_VERIFY_ALERTS === 'true',
   };
 }
@@ -61,7 +70,10 @@ function runPlaywright(opts) {
         ...process.env,
         PLAYWRIGHT_BASE_URL: opts.baseUrl,
         PLAYWRIGHT_WEB_SERVER: process.env.PLAYWRIGHT_WEB_SERVER || 'false',
-        SYNTHETIC_REQUIRED: 'true',
+        SYNTHETIC_API_URL: opts.apiBaseUrl || process.env.SYNTHETIC_API_URL || '',
+        SYNTHETIC_TARGET: opts.target,
+        SYNTHETIC_REQUIRED: opts.requireRealLogin ? 'true' : 'false',
+        SYNTHETIC_REAL_LOGIN: opts.requireRealLogin ? 'true' : 'false',
       },
       maxBuffer: 20 * 1024 * 1024,
     });
@@ -110,6 +122,13 @@ export async function buildSyntheticReport(opts = parseArgs()) {
       name: 'Synthetic target classified',
       status: ['staging', 'production', 'local'].includes(opts.target) ? 'pass' : 'fail',
       details: `target=${opts.target}; production uses dedicated synthetic test accounts.`,
+    },
+    {
+      name: 'Synthetic login mode',
+      status: opts.requireRealLogin ? 'pass' : 'warn',
+      details: opts.requireRealLogin
+        ? 'Real synthetic credentials are required for this run.'
+        : 'Mock sessions are allowed for local/non-protected validation only.',
     },
     await checkUrl('Frontend reachability', opts.baseUrl),
     await checkUrl('Backend health endpoint', opts.apiBaseUrl ? `${opts.apiBaseUrl.replace(/\/$/, '')}/api/healthz` : null),
