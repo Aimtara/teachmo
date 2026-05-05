@@ -7,9 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { API_BASE_URL } from '@/config/api';
 import { useTenant } from '@/contexts/TenantContext';
 import { nhost } from '@/lib/nhostClient';
+import {
+  createObservabilityAlert,
+  createObservabilityReport,
+  getObservabilityAlerts,
+  getObservabilityReports,
+  getObservabilitySummary,
+  runObservabilityAlerts,
+} from '@/domains/admin/observability';
 
 const METRIC_OPTIONS = [
   { value: 'api_error_rate', label: 'API error rate' },
@@ -72,36 +79,23 @@ export default function AdminObservability() {
     queryKey: ['observability-summary', range, headersQuery.data],
     enabled: Boolean(headersQuery.data),
     queryFn: async () => {
-      const params = new URLSearchParams({
-        start: `${range.start}T00:00:00.000Z`,
-        end: `${range.end}T23:59:59.999Z`,
-      });
-      const response = await fetch(`${API_BASE_URL}/admin/observability/summary?${params.toString()}`, {
-        headers: headersQuery.data,
-      });
-      if (!response.ok) throw new Error('Failed to load observability summary');
-      return response.json();
+      return getObservabilitySummary(
+        { start: `${range.start}T00:00:00.000Z`, end: `${range.end}T23:59:59.999Z` },
+        headersQuery.data,
+      );
     },
   });
 
   const alertsQuery = useQuery({
     queryKey: ['observability-alerts', headersQuery.data],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/admin/observability/alerts`, { headers: headersQuery.data });
-      if (!response.ok) throw new Error('Failed to load alerts');
-      return response.json();
-    },
+    queryFn: async () => getObservabilityAlerts(headersQuery.data),
   });
 
   const reportsQuery = useQuery({
     queryKey: ['observability-reports', headersQuery.data],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/admin/observability/reports`, { headers: headersQuery.data });
-      if (!response.ok) throw new Error('Failed to load reports');
-      return response.json();
-    },
+    queryFn: async () => getObservabilityReports(headersQuery.data),
   });
 
   const apiSummary = summaryQuery.data?.api?.summary || {};
@@ -132,34 +126,21 @@ export default function AdminObservability() {
       threshold: alertForm.threshold ? Number(alertForm.threshold) : null,
       windowMinutes: alertForm.windowMinutes ? Number(alertForm.windowMinutes) : 60,
     };
-    const response = await fetch(`${API_BASE_URL}/admin/observability/alerts`, {
-      method: 'POST',
-      headers: headersQuery.data,
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) throw new Error('Failed to create alert');
+    await createObservabilityAlert(payload, headersQuery.data);
     setAlertForm((prev) => ({ ...prev, name: '' }));
     await queryClient.invalidateQueries({ queryKey: ['observability-alerts'] });
   };
 
   const runAlerts = async () => {
     if (!headersQuery.data) return;
-    await fetch(`${API_BASE_URL}/admin/observability/alerts/run`, {
-      method: 'POST',
-      headers: headersQuery.data,
-    });
+    await runObservabilityAlerts(headersQuery.data);
     await queryClient.invalidateQueries({ queryKey: ['observability-alerts'] });
   };
 
   const submitReport = async (event) => {
     event.preventDefault();
     if (!headersQuery.data) return;
-    const response = await fetch(`${API_BASE_URL}/admin/observability/reports`, {
-      method: 'POST',
-      headers: headersQuery.data,
-      body: JSON.stringify(reportForm),
-    });
-    if (!response.ok) throw new Error('Failed to create report');
+    await createObservabilityReport(reportForm, headersQuery.data);
     setReportForm((prev) => ({ ...prev, name: '' }));
     await queryClient.invalidateQueries({ queryKey: ['observability-reports'] });
   };

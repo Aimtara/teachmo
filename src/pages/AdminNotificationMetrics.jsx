@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { getNotificationCampaignMetrics, listNotificationCampaigns } from '@/domains/admin/notifications';
 import { Card, Table, Select, LoadingSpinner } from '@/components/ui';
 
 /**
@@ -16,17 +16,7 @@ export default function AdminNotificationMetrics() {
   // Fetch all campaigns to populate selector
   const { data: campaigns = [] } = useQuery(
     ['notificationCampaigns'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query NotificationCampaigns {
-          notification_campaigns(order_by: {created_at: desc}) {
-            id
-            name
-          }
-        }`,
-      });
-      return res?.notification_campaigns ?? [];
-    },
+    listNotificationCampaigns,
   );
 
   // Fetch metrics for the selected campaign
@@ -37,21 +27,7 @@ export default function AdminNotificationMetrics() {
     ['notificationMetrics', campaignId],
     async () => {
       if (!campaignId) return null;
-      const res = await graphqlRequest({
-        query: `query NotificationMetrics($id: uuid!) {
-          notification_campaign_metrics_by_pk(id: $id) {
-            id
-            sent
-            delivered
-            opened
-            clicked
-            bounces
-            unsubscribed
-          }
-        }`,
-        variables: { id: campaignId },
-      });
-      return res?.notification_campaign_metrics_by_pk ?? null;
+      return getNotificationCampaignMetrics(campaignId);
     },
     { enabled: !!campaignId },
   );

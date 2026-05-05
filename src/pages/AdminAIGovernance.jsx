@@ -8,23 +8,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { API_BASE_URL } from '@/config/api';
 import { nhost } from '@/lib/nhostClient';
+import {
+  getAIBudget,
+  getAIGovernanceBlockedReasons,
+  getAIGovernanceOutcomes,
+  getAIGovernanceSkillUsage,
+  getAIGovernanceSummary,
+  getAIGovernanceAuditExportUrl,
+  getAIModelPolicy,
+  getAIPromptsAdmin,
+  getAIReviewQueue,
+  getAIUsageSummary,
+  updateAIBudget,
+  updateAIModelPolicy,
+} from '@/domains/ai/governanceAdmin';
 import AIGovernanceOverviewCards from '@/components/admin/ai/AIGovernanceOverviewCards';
 import AIGovernanceOutcomeList from '@/components/admin/ai/AIGovernanceOutcomeList';
 import AIGovernanceBlockedReasons from '@/components/admin/ai/AIGovernanceBlockedReasons';
 import AIGovernanceSkillUsage from '@/components/admin/ai/AIGovernanceSkillUsage';
 import AIGovernanceFilters from '@/components/admin/ai/AIGovernanceFilters';
 import AIPolicySimulationPanel from '@/components/admin/ai/AIPolicySimulationPanel';
-
-async function fetchJson(url, opts = {}) {
-  const response = await fetch(url, opts);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Request failed');
-  }
-  return response.json();
-}
 
 function formatMoney(value) {
   const n = Number(value || 0);
@@ -70,31 +74,31 @@ export default function AdminAIGovernance() {
   const usageSummaryQuery = useQuery({
     queryKey: ['ai-usage-summary'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/usage-summary`, { headers: headersQuery.data }),
+    queryFn: async () => getAIUsageSummary(headersQuery.data),
   });
 
   const reviewQueueQuery = useQuery({
     queryKey: ['ai-review-queue-admin'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/review-queue`, { headers: headersQuery.data }),
+    queryFn: async () => getAIReviewQueue(headersQuery.data),
   });
 
   const promptLibraryQuery = useQuery({
     queryKey: ['ai-prompt-library-admin'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/prompts`, { headers: headersQuery.data }),
+    queryFn: async () => getAIPromptsAdmin(headersQuery.data),
   });
 
   const budgetQuery = useQuery({
     queryKey: ['ai-budget-admin'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/budget`, { headers: headersQuery.data }),
+    queryFn: async () => getAIBudget(headersQuery.data),
   });
 
   const modelPolicyQuery = useQuery({
     queryKey: ['ai-model-policy-admin'],
     enabled: Boolean(headersQuery.data),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/model-policy`, { headers: headersQuery.data }),
+    queryFn: async () => getAIModelPolicy(headersQuery.data),
   });
 
   const [windowDays, setWindowDays] = useState(30);
@@ -102,25 +106,25 @@ export default function AdminAIGovernance() {
   const governanceSummaryQuery = useQuery({
     queryKey: ['ai-governance-summary', organizationId, schoolId, windowDays],
     enabled: Boolean(headersQuery.data && organizationId),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/governance-summary?days=${windowDays}`, { headers: headersQuery.data }),
+    queryFn: async () => getAIGovernanceSummary(windowDays, headersQuery.data),
   });
 
   const governanceOutcomesQuery = useQuery({
     queryKey: ['ai-governance-outcomes', organizationId, schoolId, windowDays],
     enabled: Boolean(headersQuery.data && organizationId),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/governance-outcomes?days=${windowDays}`, { headers: headersQuery.data }),
+    queryFn: async () => getAIGovernanceOutcomes(windowDays, headersQuery.data),
   });
 
   const blockedReasonsQuery = useQuery({
     queryKey: ['ai-governance-blocked-reasons', organizationId, schoolId, windowDays],
     enabled: Boolean(headersQuery.data && organizationId),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/governance-blocked-reasons?days=${windowDays}`, { headers: headersQuery.data }),
+    queryFn: async () => getAIGovernanceBlockedReasons(windowDays, headersQuery.data),
   });
 
   const skillUsageQuery = useQuery({
     queryKey: ['ai-governance-skill-usage', organizationId, schoolId, windowDays],
     enabled: Boolean(headersQuery.data && organizationId),
-    queryFn: async () => fetchJson(`${API_BASE_URL}/admin/ai/governance-skill-usage?days=${windowDays}`, { headers: headersQuery.data }),
+    queryFn: async () => getAIGovernanceSkillUsage(windowDays, headersQuery.data),
   });
 
   const [budgetForm, setBudgetForm] = useState({ monthlyLimitUsd: '', fallbackPolicy: 'block' });
@@ -154,24 +158,21 @@ export default function AdminAIGovernance() {
 
   const budgetMutation = useMutation({
     mutationFn: async () => {
-      return fetchJson(`${API_BASE_URL}/admin/ai/budget`, {
-        method: 'PUT',
-        headers: headersQuery.data,
-        body: JSON.stringify({
+      return updateAIBudget(
+        {
           monthlyLimitUsd: budgetForm.monthlyLimitUsd ? Number(budgetForm.monthlyLimitUsd) : null,
           fallbackPolicy: budgetForm.fallbackPolicy,
-        }),
-      });
+        },
+        headersQuery.data,
+      );
     },
     onSuccess: () => budgetQuery.refetch(),
   });
 
   const modelPolicyMutation = useMutation({
     mutationFn: async () => {
-      return fetchJson(`${API_BASE_URL}/admin/ai/model-policy`, {
-        method: 'PUT',
-        headers: headersQuery.data,
-        body: JSON.stringify({
+      return updateAIModelPolicy(
+        {
           defaultModel: modelForm.defaultModel,
           fallbackModel: modelForm.fallbackModel,
           allowedModels: modelForm.allowedModels
@@ -182,8 +183,9 @@ export default function AdminAIGovernance() {
             .split(',')
             .map((s) => s.trim())
             .filter(Boolean),
-        }),
-      });
+        },
+        headersQuery.data,
+      );
     },
     onSuccess: () => modelPolicyQuery.refetch(),
   });
@@ -293,16 +295,16 @@ export default function AdminAIGovernance() {
             </div>
             <div className="flex gap-2">
               <Button asChild>
-                <a href={`${API_BASE_URL}/admin/ai/governance-audit-export?days=${windowDays}`} target="_blank" rel="noreferrer">Export JSON</a>
+                <a href={getAIGovernanceAuditExportUrl(windowDays)} target="_blank" rel="noreferrer">Export JSON</a>
               </Button>
               <Button variant="outline" asChild>
-                <a href={`${API_BASE_URL}/admin/ai/governance-audit-export?days=${windowDays}&format=csv`} target="_blank" rel="noreferrer">Export CSV</a>
+                <a href={getAIGovernanceAuditExportUrl(windowDays, 'csv')} target="_blank" rel="noreferrer">Export CSV</a>
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <AIPolicySimulationPanel headers={headersQuery.data} apiBaseUrl={API_BASE_URL} />
+        <AIPolicySimulationPanel headers={headersQuery.data} />
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card>

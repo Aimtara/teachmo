@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const UI_PREFIXES = ['src/pages/', 'src/components/', 'src/hooks/', 'src/app/', 'src/routes/'];
-const MAX_TEMPORARY_EXCEPTIONS = 21;
+const MAX_TEMPORARY_EXCEPTIONS = 0;
 const APPROVED_PREFIXES = [
   'src/pages/__tests__/',
   'src/components/**/__tests__/',

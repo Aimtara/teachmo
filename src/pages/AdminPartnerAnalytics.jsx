@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { listPartners, listPartnerAnalytics } from '@/domains/admin/partnerAdmin';
 import { Card, Table, Select, Input, LoadingSpinner } from '@/components/ui';
 
 /**
@@ -18,35 +18,13 @@ export default function AdminPartnerAnalytics() {
   // Fetch list of partners for the drop‑down selector
   const { data: partners = [] } = useQuery(
     ['partners'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query Partners {
-          partners(order_by: {name: asc}) { id name }
-        }`,
-      });
-      return res?.partners ?? [];
-    },
+    listPartners,
   );
 
   // Fetch partner analytics given a partner ID and date range
   const { data: metrics = [], isLoading } = useQuery(
     ['partnerAnalytics', partnerId, startDate, endDate],
-    async () => {
-      if (!partnerId || !startDate || !endDate) return [];
-      const res = await graphqlRequest({
-        query: `query PartnerAnalytics($partnerId: uuid!, $start: date!, $end: date!) {
-          partner_analytics(where: {partner_id: {_eq: $partnerId}, date: {_gte: $start, _lte: $end}}, order_by: {date: asc}) {
-            date
-            impressions
-            clicks
-            conversions
-            revenue
-          }
-        }`,
-        variables: { partnerId, start: startDate, end: endDate },
-      });
-      return res?.partner_analytics ?? [];
-    },
+    () => listPartnerAnalytics({ partnerId, startDate, endDate }),
   );
 
   const handlePartnerChange = (e) => setPartnerId(e.target.value);

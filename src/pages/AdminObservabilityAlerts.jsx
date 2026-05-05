@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
 import { createLogger } from '@/utils/logger';
+import { getAlertSettings, saveAlertSettings, sendTestAlert } from '@/domains/admin/observabilityAlerts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,12 +17,7 @@ export default function AdminObservabilityAlerts() {
 
   const { data, refetch } = useQuery(
     ['alertSettings'],
-    async () => {
-      const query = `query AlertSettings {
-        observability_alert_settings(limit: 1) { email slack_webhook pagerduty_key }
-      }`;
-      return await graphqlRequest(query);
-    },
+    getAlertSettings,
     { refetchOnWindowFocus: false }
   );
 
@@ -38,10 +33,7 @@ export default function AdminObservabilityAlerts() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const mutation = `mutation UpsertAlertSettings($email: String, $slack: String, $pd: String) {
-        insert_observability_alert_settings_one(object: { email: $email, slack_webhook: $slack, pagerduty_key: $pd }, on_conflict: {constraint: observability_alert_settings_pkey, update_columns: [email, slack_webhook, pagerduty_key]}) { email }
-      }`;
-      await graphqlRequest(mutation, { email: email || null, slack: slackWebhook || null, pd: pagerDutyKey || null });
+      await saveAlertSettings({ email: email || null, slackWebhook: slackWebhook || null, pagerDutyKey: pagerDutyKey || null });
       toast.success('Alert settings saved');
       await refetch();
     } catch (err) {
@@ -55,7 +47,7 @@ export default function AdminObservabilityAlerts() {
   const handleTest = async () => {
     setLoading(true);
     try {
-      await graphqlRequest('mutation { send_test_alert { message } }');
+      await sendTestAlert();
       toast.success('Test alert sent');
     } catch (err) {
       logger.error('Test alert failed', err);

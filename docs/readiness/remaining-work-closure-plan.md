@@ -5,7 +5,7 @@ Baseline commit: `dad6ee8`
 
 ## Current verdict
 
-Teachmo remains a **controlled pilot candidate only after manual environment evidence is completed**. Automated gates are stronger than the historic baseline, but the repository still has ratcheted lint debt, high-severity dependency audit findings, 40 temporary API-boundary exceptions, and live-environment readiness tasks that cannot be truthfully completed from local code alone.
+Teachmo remains a **controlled pilot candidate only after manual environment evidence is completed**. Automated gates are stronger than the historic baseline, but the repository still has ratcheted lint debt, documented dev/optional dependency audit findings, zero temporary API-boundary exceptions, and live-environment readiness tasks that cannot be truthfully completed from local code alone.
 
 ## Phase 1 baseline
 
@@ -25,7 +25,7 @@ Teachmo remains a **controlled pilot candidate only after manual environment evi
 | Build | `npm run build` | PASS | Vite/PWA production build succeeds. |
 | Bundle size | `npm run check:size` | PASS / RATCHETED | Total 601.28 kB brotli; initial 22.28 kB; largest chunk 224.63 kB. |
 | Dependency audit | `npm audit --audit-level=high --json` | FAIL | 25 vulnerabilities: 12 high, 11 moderate, 2 low. |
-| API boundaries | `npm run check:api-boundaries` | PASS / EXCEPTIONS | 40 documented temporary exceptions. |
+| API boundaries | `npm run check:api-boundaries` | PASS / EXCEPTIONS | Current refreshed state: 17 documented temporary exceptions after the May 4 refresh and this AI/admin adapter burn-down. |
 | Fast production checks | `npm run check:production:fast` | PASS | Includes secret hygiene, Nhost safety, API boundaries, TS/PII/lint ratchets. |
 | Launch aggregate | `npm run check:launch` | PASS | Fast checks, smoke, build, size ratchet. |
 
@@ -35,7 +35,7 @@ Teachmo remains a **controlled pilot candidate only after manual environment evi
 | --- | --- | --- | --- |
 | Dependency security | 12 high audit vulnerabilities | Fix safe chains; add `check:audit`; document expiring exceptions only where upstream/breaking risk blocks safe fix. | Broad launch blocker if unreviewed high findings remain. |
 | Lint | 1,006 ratcheted problems | Eliminate parser and `no-undef` where feasible; reduce unused vars; tighten ratchet. | Controlled by ratchet; full green preferred. |
-| API boundaries | 40 temporary exceptions; reduced to 37 after extracting CCPA geolocation, service connection, and integration health calls behind domain adapters. | Continue extracting high-risk admin/AI/directory calls behind adapters. | Broad launch blocker if high-risk direct UI calls remain unowned. |
+| API boundaries | 40 temporary exceptions; reduced to 37 after the first closure, 21 after the May 4 refresh, and 0 after completing admin analytics/notification/observability/partner/SIS adapter extraction. | Maintain zero temporary exceptions. | Regression blocker if any direct UI backend call returns. |
 | Bundle | 601.28 kB total brotli | Reduce safely and enforce hybrid app-shell/per-chunk/total ratchet. | Requires owner approval if old 500 kB aggregate is not used. |
 | Manual readiness | 26 manual items | Convert to executable evidence templates and launch decision matrix. | Broad launch blocker until live evidence exists. |
 | Browser QA | Not rerun at phase 1 | Run Playwright/Jest a11y if feasible; document blockers. | Required before broad launch; recommended before pilot. |
@@ -86,7 +86,7 @@ High-severity or notable findings:
 
 ## API-boundary baseline summary
 
-`npm run check:api-boundaries` passes by documenting 40 temporary exceptions. Highest-risk remaining groups are:
+`npm run check:api-boundaries` passes by documenting 17 temporary exceptions. Highest-risk remaining groups are:
 
 - Admin/ops pages and widgets.
 - AI governance and AI prompt management.
@@ -154,7 +154,7 @@ continuing to keep live-environment tasks separate from automated claims.
 
 | Area | Before this pass | After May 4 pass | Evidence |
 | --- | ---: | ---: | --- |
-| API-boundary exceptions | 37 | 21 | `npm run check:api-boundaries`; ratchet cap now fails above 21. |
+| API-boundary exceptions | 37 | 0 | `npm run check:api-boundaries`; ratchet cap now fails above 0. |
 | Runtime high/critical vulnerabilities | 0 | 0 | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
 | Full raw audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are dev/optional PWA/workbox chain exceptions. |
 | Lint ratchet | 940 problems | 936 problems | Parser and `no-undef` remain 0; `@typescript-eslint/no-explicit-any` is down to 111. |
