@@ -1,6 +1,10 @@
 import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import {
+  connectPartnerPayoutProvider,
+  disconnectPartnerPayoutProvider,
+  getPartnerPayoutInfo,
+} from '@/domains/admin/partnerAdmin';
 import { Card, Table, Button, LoadingSpinner } from '@/components/ui';
 import { toast } from 'sonner';
 
@@ -19,39 +23,12 @@ export default function AdminPartnerPayouts() {
     refetch,
   } = useQuery(
     ['partnerPayoutInfo'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query PartnerPayoutInfo {
-          partner_payout_info {
-            connected
-            account_email
-          }
-          partner_payouts(order_by: {created_at: desc}) {
-            id
-            amount
-            currency
-            status
-            created_at
-          }
-        }`,
-      });
-      return {
-        connected: res?.partner_payout_info?.connected ?? false,
-        account_email: res?.partner_payout_info?.account_email ?? null,
-        history: res?.partner_payouts ?? [],
-      };
-    },
+    getPartnerPayoutInfo,
   );
 
   // Mutation to connect payout provider (e.g. Stripe)
   const connect = useMutation(
-    async () => {
-      await graphqlRequest({
-        query: `mutation ConnectPayoutProvider {
-          partner_connect_payout
-        }`,
-      });
-    },
+    connectPartnerPayoutProvider,
     {
       onSuccess: () => {
         toast.success('Payout provider connected');
@@ -63,13 +40,7 @@ export default function AdminPartnerPayouts() {
 
   // Mutation to disconnect payout provider
   const disconnect = useMutation(
-    async () => {
-      await graphqlRequest({
-        query: `mutation DisconnectPayoutProvider {
-          partner_disconnect_payout
-        }`,
-      });
-    },
+    disconnectPartnerPayoutProvider,
     {
       onSuccess: () => {
         toast.success('Disconnected');

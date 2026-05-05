@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import {
+  createPartnerReferralCode,
+  listPartnerReferralCodes,
+  togglePartnerReferralCode,
+} from '@/domains/admin/partnerAdmin';
 import { Card, Table, Input, Button, LoadingSpinner } from '@/components/ui';
 import { toast } from 'sonner';
 
@@ -21,35 +25,14 @@ export default function AdminPartnerReferrals() {
     refetch,
   } = useQuery(
     ['partnerReferralCodes'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query PartnerReferralCodes {
-          partner_referral_codes(order_by: {created_at: desc}) {
-            id
-            code
-            value
-            expires_at
-            used_count
-            active
-          }
-        }`,
-      });
-      return res?.partner_referral_codes ?? [];
-    },
+    listPartnerReferralCodes,
   );
 
   // Mutation to create a new referral code
   const createCode = useMutation(
     async () => {
       if (!newCode || !value) throw new Error('Missing fields');
-      await graphqlRequest({
-        query: `mutation CreateReferralCode($code: String!, $value: numeric!, $expiresAt: timestamptz) {
-          insert_partner_referral_codes_one(object: { code: $code, value: $value, expires_at: $expiresAt }) {
-            id
-          }
-        }`,
-        variables: { code: newCode, value: parseFloat(value), expiresAt: expiresAt || null },
-      });
+      await createPartnerReferralCode({ code: newCode, value: parseFloat(value), expiresAt: expiresAt || null });
     },
     {
       onSuccess: () => {
@@ -66,14 +49,7 @@ export default function AdminPartnerReferrals() {
   // Mutation to toggle active state
   const toggleActive = useMutation(
     async ({ id, active }) => {
-      await graphqlRequest({
-        query: `mutation ToggleReferralCode($id: uuid!, $active: Boolean!) {
-          update_partner_referral_codes_by_pk(pk_columns: {id: $id}, _set: {active: $active}) {
-            id
-          }
-        }`,
-        variables: { id, active },
-      });
+      await togglePartnerReferralCode({ id, active });
     },
     {
       onSuccess: () => {

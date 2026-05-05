@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { graphqlRequest } from '@/lib/graphql';
+import { listPartnerFraudAlerts, resolvePartnerFraudAlert } from '@/domains/admin/partnerAdmin';
 import { Card, Table, Button, LoadingSpinner } from '@/components/ui';
 import { toast } from 'sonner';
 
@@ -18,34 +18,11 @@ export default function AdminPartnerFraudMonitor() {
     refetch,
   } = useQuery(
     ['partnerFraudAlerts'],
-    async () => {
-      const res = await graphqlRequest({
-        query: `query PartnerFraudAlerts {
-          partner_fraud_alerts(order_by: {created_at: desc}) {
-            id
-            partner_id
-            type
-            description
-            created_at
-            resolved
-          }
-        }`,
-      });
-      return res?.partner_fraud_alerts ?? [];
-    },
+    listPartnerFraudAlerts,
   );
 
   const resolveAlert = useMutation(
-    async (id) => {
-      await graphqlRequest({
-        query: `mutation ResolveAlert($id: uuid!) {
-          update_partner_fraud_alerts_by_pk(pk_columns: {id: $id}, _set: {resolved: true}) {
-            id
-          }
-        }`,
-        variables: { id },
-      });
-    },
+    resolvePartnerFraudAlert,
     {
       onSuccess: () => {
         toast.success('Marked alert as resolved');
