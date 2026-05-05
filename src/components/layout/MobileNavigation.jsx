@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Plus, Search, Menu, X, Calendar, Bot, MessageSquare, Bell, BookOpen, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMobileNavigation, PUBLIC_PAGES } from '@/config/navigation';
 

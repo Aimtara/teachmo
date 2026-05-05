@@ -1,4 +1,3 @@
-import React from "react";
 import ProtectedRoute from "@/components/shared/ProtectedRoute";
 import { Card, CardContent } from "@/components/ui/card";
 import { Construction, Users } from "lucide-react";

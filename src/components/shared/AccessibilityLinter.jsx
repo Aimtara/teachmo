@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, Code, FileText } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Code } from 'lucide-react';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('accessibility-linter');

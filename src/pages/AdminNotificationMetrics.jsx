@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getNotificationCampaignMetrics, listNotificationCampaigns } from '@/domains/admin/notifications';
 import { Card, Table, Select, LoadingSpinner } from '@/components/ui';

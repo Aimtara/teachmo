@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { UserPlus, Users, Shield, Phone, Mail, Loader2, CheckCircle, X } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { UserPlus, Users, Shield, Phone, Loader2, CheckCircle, X } from 'lucide-react';
 import { User } from '@/api/entities';
 import { Follow } from '@/api/entities';
 import { ContactImport } from '@/api/entities';

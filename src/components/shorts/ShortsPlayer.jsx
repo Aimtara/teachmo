@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const formatTime = (s) => {
   const mm = Math.floor(s / 60).toString().padStart(2, '0');

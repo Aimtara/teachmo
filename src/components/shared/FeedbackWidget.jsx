@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquarePlus, X, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

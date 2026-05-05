@@ -12,12 +12,11 @@ import {
   X, 
   ArrowRight, 
   ArrowLeft,
-  Lightbulb,
   Star,
   Trophy,
   Gift
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';

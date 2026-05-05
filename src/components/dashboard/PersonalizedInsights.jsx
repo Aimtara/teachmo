@@ -1,12 +1,11 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit, TrendingUp, Target, Clock, ArrowRight, Sparkles, Heart, Coffee, CheckCircle2, Calendar } from "lucide-react";
+import { BrainCircuit, Target, Clock, Sparkles, Heart, Coffee, CheckCircle2, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InvokeLLM } from "@/api/integrations";
-import { format, subDays } from "date-fns";
 import { Activity } from "@/api/entities";
 import { generateWarmOpener, getAdaptiveResponse, FALLBACK_RESPONSES } from "../shared/TeachmoTone";
 import { useToast } from "@/components/ui/use-toast";

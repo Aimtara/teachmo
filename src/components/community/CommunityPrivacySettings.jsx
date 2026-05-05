@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CommunityVisibility, User } from '@/api/entities';
+import { useState, useEffect } from 'react';
+import { CommunityVisibility } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';

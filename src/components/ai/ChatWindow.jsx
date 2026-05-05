@@ -1,10 +1,10 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Send, Bot, User as UserIcon, Sparkles, Loader2, ArrowLeft, Lightbulb } from 'lucide-react';
+import { Send, Bot, User as UserIcon, Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { InvokeLLM } from '@/api/integrations';

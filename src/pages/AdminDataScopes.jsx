@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useUserData } from '@nhost/react';
 import { DataScopesAPI } from '@/api/adapters';
 import { Button } from '@/components/ui/button';

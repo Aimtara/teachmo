@@ -1,4 +1,3 @@
-import React from 'react';
 
 // Simple provider that just passes children through
 // This maintains compatibility while removing React Query dependency

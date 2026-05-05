@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { CalendarEvent, Activity } from '@/api/entities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Lightbulb, CalendarPlus } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, addDays, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 
 export default function SchedulingAssistant({ user, children, onSchedule }) {
   const [suggestions, setSuggestions] = useState([]);

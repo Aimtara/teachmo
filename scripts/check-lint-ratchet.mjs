@@ -1,11 +1,11 @@
 import { spawnSync } from 'node:child_process';
 
 const baseline = {
-  errors: 732,
+  errors: 372,
   warnings: 145,
-  totalProblems: 877,
+  totalProblems: 517,
   rules: {
-    'no-unused-vars': 583,
+    'no-unused-vars': 240,
     'react-hooks/exhaustive-deps': 82,
     'react-refresh/only-export-components': 63,
     '@typescript-eslint/no-explicit-any': 111,
@@ -13,13 +13,13 @@ const baseline = {
     'no-undef': 0,
     'no-redeclare': 7,
     '@typescript-eslint/no-unused-vars': 1,
-    'no-case-declarations': 10,
+    'no-case-declarations': 0,
     'react/display-name': 5,
     'react-hooks/rules-of-hooks': 5,
-    'react/no-children-prop': 4,
-    'no-prototype-builtins': 2,
+    'react/no-children-prop': 0,
+    'no-prototype-builtins': 0,
     'no-unsafe-finally': 2,
-    'react/jsx-no-undef': 1,
+    'react/jsx-no-undef': 0,
     'react/no-unknown-property': 1,
     'no-useless-escape': 0,
   },

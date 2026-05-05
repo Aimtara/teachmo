@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { format, isToday, isSameDay } from 'date-fns';
 import { Loader2, Calendar as CalendarIcon, Sun, Sparkles, MapPin, Clock } from 'lucide-react';

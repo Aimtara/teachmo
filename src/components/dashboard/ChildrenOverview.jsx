@@ -1,12 +1,11 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Users, Plus, Calendar, Heart } from "lucide-react";
+import { Users, Plus, Heart } from "lucide-react";
 import { motion } from "framer-motion";
-import { format, differenceInYears } from "date-fns";
+import { format } from "date-fns";
 
 export default function ChildrenOverview({ children }) {
   return (

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { UserOfferSave, PartnerOffer, Partner } from '@/api/entities';
 import { User } from '@/api/entities';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';

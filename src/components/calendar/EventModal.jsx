@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { CalendarEvent, Activity } from "@/api/entities"; // Added Activity
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, Clock, Tag, User, Save, Trash2, Link as LinkIcon, AlertTriangle } from "lucide-react";
@@ -7,8 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { createLogger } from "@/utils/logger";

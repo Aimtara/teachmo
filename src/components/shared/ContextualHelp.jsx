@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  HelpCircle, 
   X, 
   Lightbulb, 
-  ArrowRight, 
-  Clock,
+  ArrowRight,
   CheckCircle
 } from "lucide-react";
 import { User } from "@/api/entities";

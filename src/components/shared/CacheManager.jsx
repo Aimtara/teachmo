@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGlobalState, useGlobalActions } from './GlobalStateManager';
 import { createLogger } from '@/utils/logger';
 

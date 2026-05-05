@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -20,11 +20,9 @@ import {
 import { 
   Users, 
   MessageSquare, 
-  BookOpen, 
-  Calendar,
+  BookOpen,
   TrendingUp,
-  Download,
-  Filter
+  Download
 } from 'lucide-react';
 import { getAdvancedAnalytics } from '@/api/functions';
 

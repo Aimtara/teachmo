@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Post, Comment, Like, User } from '@/api/entities';
 import PostCard from "./PostCard";
 import CreatePostForm from "./CreatePostForm";

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { JournalEntry, Child } from '@/api/entities';
+import { useState, useEffect } from 'react';
+import { JournalEntry } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Save, Smile, Tag, User, Loader2, Sparkles, X, Plus } from 'lucide-react';
 import VoiceInput from '../shared/VoiceInput';
 import { format } from 'date-fns';

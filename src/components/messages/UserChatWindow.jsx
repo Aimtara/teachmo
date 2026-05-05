@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { UserMessage, UserConversation, Activity, LocalEvent } from '@/api/entities';
+import { useState, useEffect } from 'react';
+import { UserMessage, UserConversation, Activity } from '@/api/entities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { 
   Send, 
   Loader2, 
@@ -13,7 +12,6 @@ import {
   Calendar,
   Lightbulb,
   MoreVertical,
-  Image as ImageIcon,
   MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

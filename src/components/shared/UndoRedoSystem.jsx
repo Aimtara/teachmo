@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Undo2, Redo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";

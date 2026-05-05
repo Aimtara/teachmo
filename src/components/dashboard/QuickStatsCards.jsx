@@ -1,7 +1,6 @@
 
-import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Lightbulb, TrendingUp, Heart, Target } from "lucide-react"; // Added Target icon
+import { Users, Lightbulb, Heart, Target } from "lucide-react"; // Added Target icon
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";

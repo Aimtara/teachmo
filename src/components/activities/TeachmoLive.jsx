@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Wand2, Loader2, MessageSquareQuote, CheckSquare, Target, Lightbulb, Heart } from 'lucide-react';
 import { InvokeLLM } from '@/api/integrations';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateWarmOpener, getAdaptiveResponse, FALLBACK_RESPONSES, DISTRESS_RESPONSES } from '../shared/TeachmoTone';
+import { generateWarmOpener, FALLBACK_RESPONSES } from '../shared/TeachmoTone';
 import { User } from '@/api/entities';
 
 export default function TeachmoLive() {

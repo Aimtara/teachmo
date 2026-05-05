@@ -1,8 +1,7 @@
-import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Code, Book, GitPullRequest, Palette } from 'lucide-react';
+import { Book, GitPullRequest, Palette } from 'lucide-react';
 
 const ReadmeContent = () => (
   <div className="prose prose-sm max-w-none">

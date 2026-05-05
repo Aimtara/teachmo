@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { listBackupJobs, restoreBackupJob, runBackupJob } from '@/domains/admin/backupRecovery';
 import { Card, Table, Button, LoadingSpinner, Select } from '@/components/ui';

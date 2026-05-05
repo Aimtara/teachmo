@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,9 @@ export default function DailyTipModal({ tips, children, isLoading, onClose }) {
           className="relative w-full max-w-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <DailyTipCarousel tips={tips} children={children} isLoading={isLoading} />
+          <DailyTipCarousel tips={tips} isLoading={isLoading}>
+            {children}
+          </DailyTipCarousel>
           
           <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2">
              <Button

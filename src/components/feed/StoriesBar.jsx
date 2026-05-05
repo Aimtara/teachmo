@@ -1,7 +1,5 @@
-import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, Camera } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 export default function StoriesBar({ user }) {
   const mockStories = [
