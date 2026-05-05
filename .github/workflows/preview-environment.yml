@@ -10,6 +10,10 @@ on:
         type: choice
         options: [auto, vercel, netlify]
         default: auto
+      require_provider:
+        description: Fail if no preview provider secrets are configured
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -51,6 +55,7 @@ jobs:
             echo "- Frontend bundle built with internal routes enabled."
             echo "- Artifact: \`preview-dist\`"
             echo "- Retention: 7 days"
+            echo "- Provider strict mode: ${{ inputs.require_provider && 'required' || 'advisory' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Detect configured preview provider
@@ -98,6 +103,12 @@ jobs:
 
           See `docs/process/collaboration.md` for setup and review rules.
           MD
+
+      - name: Require preview provider
+        if: ${{ inputs.require_provider && steps.provider.outputs.has_vercel != 'true' && steps.provider.outputs.has_netlify != 'true' }}
+        run: |
+          echo "::error::Preview provider was required, but neither Vercel nor Netlify secrets are configured."
+          exit 1
 
   vercel-preview:
     name: Publish Vercel preview
