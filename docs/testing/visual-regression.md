@@ -52,14 +52,20 @@ review. Do not commit the generated Storybook bundle.
 
 ## Current coverage
 
-The repository already includes stories for core UI primitives and admin
-analytics components:
+The repository includes stories for core UI primitives, admin analytics
+components, and the first launch-critical collaboration surfaces:
 
 - `src/components/ui/button.stories.jsx`
 - `src/components/ui/card.stories.jsx`
 - `src/components/ui/tag.stories.jsx`
 - `src/components/admin/analytics/*.stories.jsx`
 - `src/components/analytics/*.stories.jsx`
+- `src/pages/Login.stories.jsx`
+- `src/components/teacher/AssignmentsView.stories.jsx`
+- `src/components/messaging/MessageThread.stories.tsx`
+- `src/components/calendar/CalendarView.stories.jsx`
 
 New UI components introduced for launch-critical flows should add Storybook
-stories in the same change set.
+stories in the same change set. Remaining high-value coverage targets are full
+role dashboards, directory/import review flows, and AI assistant/governance
+surfaces with mocked providers.
