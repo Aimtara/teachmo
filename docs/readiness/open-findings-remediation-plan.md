@@ -23,7 +23,7 @@ security controls.
 | --- | --- | --- | --- |
 | API-boundary exceptions | 30 temporary exceptions, hard-ratcheted by `npm run check:api-boundaries` | 0 temporary exceptions, or only explicitly approved server-only/security exceptions | `npm run check:api-boundaries` |
 | Full lint | `npm run check:lint-ratchet` passes; full lint remains red at 940 controlled problems | `npm run lint` exits 0; ratchet baseline lowered to 0 | `npm run lint` and `npm run check:lint-ratchet` |
-| Raw npm audit | Runtime high/critical audit clean; full raw audit has 10 findings / 4 high in dev/optional chains | Full `npm audit --audit-level=high` clean, or time-boxed exception approved by Security/Platform | `npm run check:audit` plus raw audit review |
+| Raw npm audit | Runtime high/critical audit clean; full raw audit has 6 lower-severity dev/optional findings and 0 high/critical after the May 5 override | Keep full high audit clean; resolve or renew lower-severity exceptions by expiry | `npm run check:audit` plus raw audit review |
 | Manual/live evidence | 31 manual work items open | Critical/high items completed with attached evidence and reviewer signoff | Manual work register and evidence templates |
 
 ## Workstream A — Eliminate the 30 API-boundary exceptions

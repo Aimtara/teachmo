@@ -45,7 +45,7 @@ Baseline commands were run from a clean dependency install on 2026-05-04.
 | Production-fast repository safety | `npm run check:production:fast` | PASS | Keep as required CI gate. |
 | Runtime audit policy | `scripts/check-audit.mjs`, `config/audit-exceptions.json` | PASS | Strengthen exception validation and artifact reporting. |
 | Nhost config safety | `npm run check:nhost-config-safety` | PASS | Reuse in environment verification and protected CI. |
-| API boundary ratchet | `npm run check:api-boundaries` | PASS with 21 exceptions | Preserve cap; document exceptions and owner deadlines. |
+| API boundary ratchet | `npm run check:api-boundaries` | PASS with 0 exceptions | Preserve zero-exception cap; document any future exception with owner/deadline before changing the checker. |
 | Lint ratchet | `npm run check:lint-ratchet` | PASS | Preserve ratchet while raw lint debt burns down. |
 | TS ratchet/typecheck | `npm run check:ts-ratchet`, `npm run typecheck` | PASS | Preserve in CI and final readiness checks. |
 | Bundle size | `npm run build && npm run check:size` | PASS | Preserve in CI and visual/preview workflows. |

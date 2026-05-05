@@ -4,6 +4,7 @@ import {
   createAvailabilityBlock,
   listOfficeHourSlots,
   resetOfficeHoursStoreForTests,
+  rescheduleOfficeHourBooking,
 } from '../officeHours';
 
 describe('office hours domain', () => {
@@ -54,5 +55,47 @@ describe('office hours domain', () => {
 
     const [released] = await listOfficeHourSlots('teacher-1');
     expect(released.status).toBe('open');
+  });
+
+  it('reschedules by cancelling the original booking and reserving the new slot', async () => {
+    const block = await createAvailabilityBlock({
+      teacherId: 'teacher-1',
+      startsAt: '2026-05-04T15:00:00Z',
+      endsAt: '2026-05-04T16:00:00Z',
+      slotMinutes: 30,
+      timezone: 'UTC',
+    });
+    const [firstSlot, secondSlot] = block.slots;
+    const original = await bookOfficeHourSlot({ slotId: firstSlot.id, requesterId: 'parent-1' });
+
+    const rescheduled = await rescheduleOfficeHourBooking(original.id, {
+      blockId: secondSlot.id,
+      slotId: secondSlot.id,
+      reason: 'Parent schedule changed',
+    });
+
+    expect(rescheduled.status).toBe('confirmed');
+    expect(rescheduled.auditEvent).toBe('office_hours.booking.rescheduled');
+    const slots = await listOfficeHourSlots('teacher-1');
+    expect(slots.find((slot) => slot.id === firstSlot.id)?.status).toBe('open');
+    expect(slots.find((slot) => slot.id === secondSlot.id)?.status).toBe('booked');
+  });
+
+  it('rejects teacher self-booking and preserves timezone metadata', async () => {
+    const block = await createAvailabilityBlock({
+      teacherId: 'teacher-1',
+      startsAt: '2026-05-04T15:00:00-04:00',
+      endsAt: '2026-05-04T15:30:00-04:00',
+      timezone: 'America/New_York',
+    });
+
+    expect(block.timezone).toBe('America/New_York');
+    expect(() =>
+      bookOfficeHourSlot({
+        slotId: block.slots[0].id,
+        requesterId: 'teacher-1',
+        requesterRole: 'teacher',
+      }),
+    ).toThrow('Requester is not allowed to book office hours.');
   });
 });

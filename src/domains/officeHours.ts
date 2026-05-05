@@ -41,6 +41,7 @@ export type OfficeHoursBooking = {
   timezone: string;
   status: 'confirmed' | 'cancelled';
   auditEvent: string;
+  rescheduledFromId?: string;
 };
 
 const officeHoursStore = {
@@ -168,6 +169,42 @@ export function cancelOfficeHourBooking(bookingId: string, actorId: string) {
   const cancelled = cancelOfficeHoursBooking(officeHoursStore.bookings[index], actorId);
   officeHoursStore.bookings[index] = cancelled;
   return cancelled;
+}
+
+export function rescheduleOfficeHourBooking(
+  input:
+    | string
+    | { bookingId: string; newSlotId: string; actorId: string; reason?: string | null; studentId?: string | null }
+    | (Omit<BookingRequest, 'requesterId' | 'requesterRole'> & { bookingId: string }),
+  request?: Omit<BookingRequest, 'requesterId' | 'requesterRole'>,
+) {
+  const bookingId = typeof input === 'string' ? input : input.bookingId;
+  const rescheduleRequest = typeof input === 'string' ? request : input;
+  const slotId =
+    rescheduleRequest && 'newSlotId' in rescheduleRequest
+      ? rescheduleRequest.newSlotId
+      : rescheduleRequest?.slotId;
+  const existingIndex = officeHoursStore.bookings.findIndex((booking) => booking.id === bookingId);
+  if (existingIndex < 0) throw new Error('booking_not_found');
+  if (!slotId) throw new Error('slot_unavailable');
+
+  const existing = officeHoursStore.bookings[existingIndex];
+  officeHoursStore.bookings[existingIndex] = cancelOfficeHoursBooking(existing, existing.requesterId);
+  const next = bookOfficeHourSlot({
+    slotId,
+    requesterId: existing.requesterId,
+    requesterRole: existing.requesterRole,
+    studentId: rescheduleRequest?.studentId ?? existing.studentId,
+    reason: rescheduleRequest?.reason ?? 'reschedule',
+  });
+  const rescheduled = {
+    ...next,
+    id: `${next.id}_rescheduled_${Date.now()}`,
+    rescheduledFromId: bookingId,
+    auditEvent: 'office_hours.booking.rescheduled',
+  };
+  officeHoursStore.bookings[officeHoursStore.bookings.length - 1] = rescheduled;
+  return rescheduled;
 }
 
 export function resetOfficeHoursStoreForTests() {

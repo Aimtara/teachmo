@@ -123,7 +123,7 @@ Phase 2 materially reduced audit exposure without removing product functionality
 
 | Metric | Before | After | Notes |
 | --- | ---: | ---: | --- |
-| Root full npm audit findings | 25 total / 12 high | 10 total / 4 high | Remaining full-audit highs are dev/optional build-time chains documented in `config/audit-exceptions.json`. |
+| Root full npm audit findings | 25 total / 12 high | 6 total / 0 high | Remaining findings are lower-severity dev/optional chains documented in `config/audit-exceptions.json`. |
 | Root launch/runtime audit findings | 25 total / 12 high | 0 high/critical | `npm run check:audit` audits production runtime scope (`--omit=dev --omit=optional`) and passed. |
 | Backend package audit | 7 findings after lodash removal | 0 | `cd backend && npm audit --audit-level=high` passed after backend dependency updates. |
 | Nhost functions audit | 2 findings after nodemailer update | 0 | `cd nhost/functions && npm audit fix && npm audit --audit-level=high` passed. |
@@ -156,7 +156,7 @@ continuing to keep live-environment tasks separate from automated claims.
 | --- | ---: | ---: | --- |
 | API-boundary exceptions | 37 | 0 | `npm run check:api-boundaries`; ratchet cap now fails above 0. |
 | Runtime high/critical vulnerabilities | 0 | 0 | `npm run check:audit`; `npm audit --audit-level=high --omit=dev --omit=optional`. |
-| Full raw audit findings | 10 total / 4 high | 10 total / 4 high | Remaining highs are dev/optional PWA/workbox chain exceptions. |
+| Full raw audit findings | 10 total / 4 high | 6 total / 0 high | `serialize-javascript@7.0.5` override removes the PWA/workbox high chain; remaining findings are lower severity. |
 | Lint ratchet | 940 problems | 936 problems | Parser and `no-undef` remain 0; `@typescript-eslint/no-explicit-any` is down to 111. |
 | TypeScript `any` count | 512 baseline | 507 | Domain extractions improved typed surface while adding TS adapter files. |
 | Bundle size ratchet | 602/24/225 kB | 596/23/214 kB | Current build: 595.09 kB total, 22.50 kB initial, 213.67 kB largest chunk. |
@@ -185,4 +185,21 @@ Additional work completed:
 | Broad production | NO-GO | Critical/high manual evidence remains incomplete: live Nhost/Hasura/Sentry/storage/DNS/OAuth/legal/support/backup/rollback/role-smoke and Gate 2/3/4 live proofs. |
 | Controlled pilot | CONDITIONAL | Automated gates are materially stronger and browser smoke is green; pilot still requires OAuth rotation plus staging Nhost/Hasura/Sentry, role smoke, backup/rollback, and scoped Gate 2/3/4 acceptance. |
 | Internal demo/dev | GO with ratchets | Automated launch/production checks, browser smoke, and a11y command pass with documented manual caveats. |
+
+## May 5 closure sprint refresh
+
+Verified baseline at `2bd288e` on branch `cursor/security-gates-closure-e013`:
+Node `v20.20.2`, npm `10.8.2`, `npm ci` PASS, `npm run check:production:fast` PASS, and API-boundary exceptions remain **0**.
+
+| Area | May 4 state | Verified May 5 state | Action |
+| --- | ---: | ---: | --- |
+| Full root audit | 9 total / 3 high after install | 6 total / 0 high / 0 critical | Added a targeted `serialize-javascript@7.0.5` override for the optional PWA Workbox chain and validated full high audit. |
+| Runtime audit | 0 high/critical | 0 high/critical | `npm run check:audit` still passes. |
+| API-boundary exceptions | 0 | 0 | Removed stale checker allowlist so docs and ratchet match. |
+| Gate 2 import proof | v0 | Stronger v0 | SIS import now supports dry-run identity preview with no roster mutation; Jest covers exact match, scoped email, guardian relationship, conflict/manual review, invalid row, and duplicate row paths through the identity mapper/import preview. |
+| Gate 3 reliability | Docs/manual proof path | Stronger repository proof | Added messaging retry/backoff/idempotency policy tests, assignments dry-run validation, and office-hours reschedule/permission/timezone coverage. |
+| Gate 4 command center | v0 route/page | Permission-aware v0 | Express route now requires authenticated admin role; backend tests verify unauthenticated and non-admin denial. |
+| PII logging | PASS | PASS with stricter detector | Message body and preview telemetry log patterns are now flagged; send-message analytics no longer stores raw message preview. |
+
+Remaining classification is unchanged: **NO-GO for broad production** until live credentials, legal/privacy/artificial-intelligence governance, role smoke, and Gate 2–4 live evidence are attached. Controlled pilot remains conditional on the manual evidence register.
 

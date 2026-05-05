@@ -12,6 +12,7 @@ actions:
 
 # Hasura Configuration
 hasura:
+  version: v2.48.10-ce
   settings:
     # CRITICAL: Set to "false" for production to prevent data leaks
     hasura_graphql_dev_mode: "false"
@@ -26,3 +27,11 @@ schedule:
   - name: generate_weekly_briefs
     cron: "0 6 * * 1" # Monday 6AM UTC
     action: /generate-weekly-briefs
+
+# Use explicitly cached modern versions
+postgres:
+  version: 14.20-20251217-1
+auth:
+  version: 0.49.1
+storage:
+  version: 0.13.0

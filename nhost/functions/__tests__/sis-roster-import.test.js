@@ -420,6 +420,71 @@ student-2,Bob,Johnson,5`,
         })
       );
     });
+
+    test('supports dry-run identity preview without mutating roster rows', async () => {
+      hasuraRequest
+        .mockResolvedValueOnce({ insert_sis_import_jobs_one: { id: 'job-preview' } })
+        .mockResolvedValueOnce({ update_sis_import_jobs_by_pk: { id: 'job-preview' } });
+
+      req.body = {
+        rosterType: 'students',
+        dryRun: true,
+        allowScopedEmailMatch: true,
+        existingIdentityRecords: [
+          {
+            stableId: 'person-external',
+            sourceSystem: 'oneroster',
+            schoolId: 'school-789',
+            externalId: 'student-1',
+          },
+          {
+            stableId: 'person-email',
+            schoolId: 'school-789',
+            email: 'guardian@example.com',
+          },
+          {
+            stableId: 'person-low-confidence',
+            schoolId: 'school-789',
+            firstName: 'Sam',
+            lastName: 'Learner',
+            dateOfBirth: '2015-01-02',
+          },
+        ],
+        records: [
+          { sourcedId: 'student-1', first_name: 'Exact', last_name: 'Match' },
+          { sourcedId: 'student-2', first_name: 'Email', last_name: 'Match', email: 'guardian@example.com' },
+          { sourcedId: 'student-3', first_name: 'Sam', last_name: 'Learner', dateOfBirth: '2015-01-02' },
+          { sourcedId: 'student-3', first_name: 'Duplicate', last_name: 'Learner' },
+        ],
+      };
+
+      await sisRosterImport(req, res);
+
+      expect(hasuraRequest).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.stringContaining('mutation InsertRosters'),
+        })
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      const response = res.json.mock.calls[0][0];
+      expect(response.dryRun).toBe(true);
+      expect(response.inserted).toBe(0);
+      expect(response.preview.identityDecisions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ action: 'match', reason: 'exact_external_id', stableId: 'person-external' }),
+          expect.objectContaining({ action: 'match', reason: 'school_scoped_email', stableId: 'person-email' }),
+          expect.objectContaining({ action: 'manual_review' }),
+        ])
+      );
+      expect(response.preview.conflicts.length).toBeGreaterThanOrEqual(1);
+      const updateCall = hasuraRequest.mock.calls.find((call) =>
+        call[0].query.includes('mutation UpdateJob')
+      );
+      expect(updateCall[0].variables.changes.metadata).toMatchObject({
+        preview_only: true,
+        identity_conflict_count: expect.any(Number),
+      });
+    });
   });
 
   describe('resolveExternalId with multiple key options', () => {

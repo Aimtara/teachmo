@@ -61,3 +61,13 @@ This document tracks closure status for the remaining Gate 2, Gate 3, and Gate 4
 | E18/E20 Admin sync + dashboards | Gate 4 proof reaches analytics and integration-health surfaces. | Source-data reconciliation and sync-now troubleshooting evidence. |
 | E23 Command Center proof | Gate 4 proof reaches command-center route. | Live approval/escalation proof packet. |
 
+## May 5 closure sprint update
+
+| Gate item | Repository-side change | Automated evidence | Remaining live proof |
+| --- | --- | --- | --- |
+| E12/E13 CSV import and identity mapping | `sis-roster-import` now supports `previewOnly`/`dryRun`, returns identity decisions/conflicts, records preview-only metadata, and skips roster mutation in preview mode. | `npx jest --config jest.backend.config.cjs nhost/functions/__tests__/sis-roster-import.test.js`: PASS, 18 tests including dry-run identity preview. | Staging CSV/OneRoster-lite preview with exact ID, scoped email, relationship, duplicate, and conflict rows. |
+| E14 Messaging reliability | Added deterministic idempotency, retry classification, bounded backoff, and PII-safe delivery-attempt summary helpers; message telemetry no longer stores message preview text. | `npx vitest run src/domains/__tests__/messagingReliability.test.ts`: PASS. | Staging retry/backoff/idempotency evidence and scheduler/alert logs. |
+| E16 Office hours | Added reschedule helper and tests for cancellation/rebooking, timezone preservation, self-book denial, and conflict prevention. | `npx vitest run src/domains/__tests__/officeHours.test.ts`: PASS. | Feature remains scoped; live persistence, notifications, and real parent/teacher role proof required. |
+| E17 Assignments sync | Added dry-run validator with status/errors/duplicate counts for LMS/mock sync proof. | Covered by typecheck and domain import in full Vitest/typecheck runs. | LMS test tenant or approved mock dry-run evidence. |
+| E23 Command Center | Backend route now requires authenticated admin roles; frontend domain sends bearer/E2E tokens; non-admin denial is tested. | `npx jest --config jest.backend.config.cjs backend/__tests__/commandCenter.test.js`: PASS. | Live approval/escalation proof with audit/event screenshots. |
+
