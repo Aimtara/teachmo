@@ -17,6 +17,7 @@ operations changes.
 | `backend/**` | Express APIs, migrations, RBAC/auth, tenancy, logging |
 | `nhost/**` | Nhost migrations, Hasura metadata, storage/auth settings |
 | `scripts/**`, `.github/workflows/**`, `renovate.json` | CI/automation safety and failure behavior |
+| `Dockerfile`, `backend/Dockerfile`, `docs/security/**` | Container/runtime vulnerability scanning and remediation |
 | `docs/readiness/**`, `docs/runbooks/**`, `docs/ops/**` | Evidence, runbooks, release/ops process |
 | `backend/ai/**`, `backend/middleware/*Governance*`, `docs/ai*` | AI governance, redaction, policy evaluation |
 
@@ -66,6 +67,33 @@ secrets.
 Renovate is configured to automerge only low-risk devDependency patch updates
 after required checks pass. Runtime dependencies, major updates, lockfile-only
 changes that affect runtime packages, and security updates require human review.
+
+Before enabling Renovate platform automerge, verify the required status-check
+names in `renovate.json` match the check names reported by GitHub Actions for
+the current branch protection rules. If check names drift, prefer disabling
+automerge over widening the automerge rule.
+
+## Required branch protection checks
+
+Recommended required checks once each workflow has produced at least one stable
+green run:
+
+- `CI / build`
+- `launch-gates / launch-gates`
+- `Dependency and security automation / npm audit policy`
+- `Dependency and security automation / GitHub dependency review`
+- `Schema and Metadata Validation / schema-metadata`
+- `CodeQL / Analyze JavaScript and TypeScript`
+- `Container and filesystem security / Trivy filesystem scan`
+- `Container and filesystem security / Trivy image scan`
+
+Stage advisory-to-blocking rollout deliberately:
+
+1. Require CI, launch-gates, dependency-security, and schema/metadata first.
+2. Add CodeQL and Trivy after the initial SARIF baseline is triaged.
+3. Add visual-regression after Chromatic baseline snapshots are approved.
+4. Require CODEOWNER review only after placeholder owner handles have been
+   replaced with valid GitHub users/teams.
 
 ## Optional AI review bot
 

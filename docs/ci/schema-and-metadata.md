@@ -26,10 +26,14 @@ The workflow:
    - `CREATE SCHEMA IF NOT EXISTS auth`
    - minimal `auth.users` table
 3. Installs root and backend dependencies.
-4. Runs `npm run check:schema-metadata`.
-5. Runs `node backend/migrate.js` against the disposable DB.
+4. Runs `npm run check:schema-metadata` for metadata/YAML registry checks.
+5. Runs `npm run check:schema-metadata -- --validate-db --database-url "$DATABASE_URL"`
+   so the validation script owns the disposable DB bootstrap, the documented
+   known migration skip, and the migration execution.
 6. Uploads JSON and Markdown validation reports.
-7. Checks GraphQL codegen configuration.
+7. Runs `npm run check:graphql-types` when live Hasura schema credentials are
+   available, or fails closed on scheduled/manual protected runs that explicitly
+   require live code generation.
 
 ## Repository validation
 
@@ -61,6 +65,8 @@ Reports:
 
 - `artifacts/schema-metadata/schema-metadata.json`
 - `artifacts/schema-metadata/schema-metadata.md`
+- `artifacts/schema-metadata-db/schema-metadata.json`
+- `artifacts/schema-metadata-db/schema-metadata.md`
 
 ## Migration gotchas
 
@@ -100,8 +106,8 @@ npm run check:graphql-types
 
 `codegen.yml` requires:
 
-- `HASURA_GRAPHQL_SCHEMA_URL`
-- `HASURA_GRAPHQL_ADMIN_SECRET` or equivalent read-only schema access token
+- `HASURA_GRAPHQL_ENDPOINT` or `HASURA_GRAPHQL_URL`
+- `HASURA_GRAPHQL_ADMIN_SECRET` or an equivalent read-only schema access token
 
 Pull requests without these secrets validate the config file only. Protected
 staging/production runs must provide the endpoint and token; generated files
@@ -112,7 +118,8 @@ pass.
 
 | Secret | Purpose | Required where |
 | --- | --- | --- |
-| `HASURA_GRAPHQL_SCHEMA_URL` | Schema introspection endpoint | protected schema/typegen runs |
+| `HASURA_GRAPHQL_ENDPOINT` | Preferred schema introspection endpoint | protected schema/typegen runs |
+| `HASURA_GRAPHQL_URL` | Backward-compatible schema introspection endpoint fallback | protected schema/typegen runs |
 | `HASURA_GRAPHQL_ADMIN_SECRET` | Schema introspection secret | protected schema/typegen runs |
 | `DATABASE_URL` | Optional remote staging DB validation | manual staging dispatch |
 
