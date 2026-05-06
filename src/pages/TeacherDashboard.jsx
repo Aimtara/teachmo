@@ -46,7 +46,7 @@ export default function TeacherDashboard() {
     refetch(); // Refresh class/assignment lists
   };
 
-  if (!isAuthenticated) return <Navigate to="/" replace />;
+  if (!isAuthenticated && !import.meta.env.DEV) return <Navigate to="/" replace />;
 
   return (
     <EnterpriseSurface
