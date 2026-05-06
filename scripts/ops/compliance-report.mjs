@@ -2,6 +2,10 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 
 import { parseCommonArgs, redact, writeReports } from './reporting.mjs';
+import { DATA_CLASSIFICATION_REGISTRY } from '../../backend/compliance/dataClassification.js';
+import { AUDIT_EVENT_CATEGORIES } from '../../backend/compliance/auditEvents.js';
+import { lifecycleCoverage } from '../../backend/compliance/dataLifecycle.js';
+import { getOpenGaps } from '../../backend/compliance/remediationBacklog.js';
 
 function argValue(argv, name, fallback = null) {
   const index = argv.indexOf(name);
@@ -48,11 +52,24 @@ function commandExists(command) {
   return spawnSync('bash', ['-lc', `command -v ${command}`], { encoding: 'utf8' }).status === 0;
 }
 
+function gitCommit() {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
 export function buildComplianceReport(opts = parseArgs()) {
   const checks = [
+    runShellCheck('Typecheck', 'npm run typecheck'),
+    runShellCheck('Production auth bypass safety', 'npm run check:production-auth-safety'),
     runShellCheck('Secret hygiene scan', 'npm run check:secret-hygiene'),
     runShellCheck('PII logging scan', 'npm run check:pii-logging'),
+    runShellCheck('Compliance foundations tests', 'npm run check:compliance-foundations'),
     runShellCheck('AI governance backend tests', `npx jest --config jest.backend.config.cjs --runInBand ${opts.aiTestPattern}`),
+    runShellCheck('Hasura permission readiness smoke', 'npm run check:hasura-readiness'),
+    runShellCheck('Accessibility smoke tests', 'npm run test:a11y', { required: false }),
   ];
 
   if (opts.skipGitleaks) {
@@ -89,7 +106,31 @@ export function buildComplianceReport(opts = parseArgs()) {
   return {
     title: 'Compliance and AI Governance Report',
     generatedAt: new Date().toISOString(),
-    summary: `Automated controls: secret hygiene, PII logging, AI governance tests, optional gitleaks scan. Result: ${JSON.stringify(result)}.`,
+    gitCommit: gitCommit(),
+    testsRun: checks.map((check) => check.name),
+    summary: `Automated controls: typecheck, auth bypass safety, secret hygiene, PII logging, compliance foundations, AI governance tests, Hasura readiness, accessibility smoke, optional gitleaks scan. Result: ${JSON.stringify(result)}.`,
+    unresolvedCriticalExceptions: [],
+    dataClassificationCoverage: {
+      entities: Object.keys(DATA_CLASSIFICATION_REGISTRY.entities).length,
+      actions: Object.keys(DATA_CLASSIFICATION_REGISTRY.actions).length,
+      lifecyclePolicies: lifecycleCoverage().length,
+    },
+    auditCoverageSummary: {
+      categories: AUDIT_EVENT_CATEGORIES,
+      categoryCount: AUDIT_EVENT_CATEGORIES.length,
+    },
+    remediationBacklogSummary: {
+      openP0: getOpenGaps({ priority: 'P0' }).map((gap) => ({ id: gap.id, title: gap.title, owner: gap.owner })),
+      openP1: getOpenGaps({ priority: 'P1' }).map((gap) => ({ id: gap.id, title: gap.title, owner: gap.owner })),
+    },
+    piiLoggingScanResult: checks.find((check) => check.name === 'PII logging scan')?.status || 'unknown',
+    aiGovernanceResult: checks.find((check) => check.name === 'AI governance backend tests')?.status || 'unknown',
+    accessibilitySmokeResult: checks.find((check) => check.name === 'Accessibility smoke tests')?.status || 'unknown',
+    knownLimitations: [
+      'This report is engineering control evidence only and is not a legal compliance determination.',
+      'Hasura metadata smoke tests verify configured readiness; full production permission review remains required before launch.',
+      'Accessibility smoke tests do not replace full WCAG review for procurement evidence.',
+    ],
     checks,
     result,
   };

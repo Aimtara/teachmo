@@ -27,6 +27,16 @@ export const FEATURES = {
   ENTERPRISE_MODE: false,
   FEATURE_I18N: false,
 
+  GAMIFICATION: false,
+  LEADERBOARDS: false,
+  RANKINGS: false,
+  CHALLENGES: false,
+  ASSIGNMENT_SYNC: false,
+  AI_SENSITIVE_RECOMMENDATIONS: false,
+  ADMIN_ANALYTICS_SENSITIVE: false,
+  SAFESPACE_EMERGENCY_NOTIFIER: false,
+  LTI_DEEP_INTEGRATIONS: false,
+
   // Keep anything “imported but not verified” OFF by default.
 } as const;
 

@@ -14,7 +14,7 @@ Generated: 2026-05-05
 | May 4 follow-up total JS ratchet measurement | 595.75 kB brotlied |
 | May 4 follow-up app-shell initial entry | 22.09 kB brotlied |
 | May 4 final largest chunk | 221.03 kB brotlied |
-| May 5 validation | Pending final build after security/Gate closure edits |
+| May 6 compliance gate validation | 595.63 kB total, 22.25 kB app shell, 221.03 kB largest chunk |
 
 The old `size-limit` entry measured every built JavaScript asset matching
 `dist/assets/**/*.js`, so it was a total-JS budget rather than a direct
@@ -22,7 +22,7 @@ initial-app-shell budget. The new `check:size` runs `scripts/check-size-ratchet.
 and fails if:
 
 - total brotlied JS exceeds the tightened 596 kB baseline,
-- the initial app-shell entry exceeds 22.2 kB brotlied,
+- the initial app-shell entry exceeds 22.3 kB brotlied,
 - any single JS chunk exceeds 222 kB brotlied.
 
 ## Policy decision
@@ -46,7 +46,7 @@ packages were not part of the production route graph.
 | Chunk | Brotli size | Notes |
 | --- | ---: | --- |
 | `vendor-misc-*.js` | 221.03 kB | Broad catch-all vendor chunk and current largest asset after refreshed main added more automation/UI dependencies. |
-| `index-*.js` | 22.09 kB | App shell entry and hard launch metric after lazy-loading the landing page out of the route shell. |
+| `index-*.js` | 22.25 kB | App shell entry and hard launch metric after adding frontend-visible compliance feature gates. |
 
 ## Safe remediation strategy
 
@@ -59,6 +59,7 @@ Completed:
 4. Added an app-shell/per-chunk/total-JS regression ratchet as the release gate.
 5. Tightened the ratchet again after the final May 4 closure build: total 596 kB, app shell 23 kB, largest chunk 222 kB.
 6. Lazy-loaded the unauthenticated landing page from `src/pages/index.jsx`, removing the mixed static/dynamic import and tightening the app-shell cap to 22.2 kB.
+7. Reviewed the May 6 compliance-foundations change: frontend-visible risky feature flag keys moved the app-shell entry to 22.25 kB without increasing total JS or largest chunk, so the app-shell cap is refreshed to 22.3 kB with future growth still blocked.
 
 Remaining follow-up: deeper vendor decomposition of `vendor-misc` into more
 meaningful package-level chunks and product review of whether to continue

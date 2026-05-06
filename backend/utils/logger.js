@@ -1,4 +1,6 @@
 /* eslint-env node */
+import { redactPII } from '../compliance/redaction.js';
+
 const LOG_LEVELS = ['error', 'warn', 'info', 'debug'];
 
 const normalizeLevel = (level) => {
@@ -19,7 +21,7 @@ export const createLogger = (namespace = 'backend') => {
 
   const logWithLevel = (level, method) => (...args) => {
     if (!shouldLog(level)) return;
-    console[method](prefix, ...args);
+    console[method](prefix, ...args.map((arg) => redactPII(arg)));
   };
 
   return {
