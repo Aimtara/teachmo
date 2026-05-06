@@ -15,12 +15,16 @@
 - Avoid directive phrasing ("remember to", "make sure") in AI outputs.
 - Provide clear loading and offline states.
 - Prioritize accessibility: keyboard navigation, labels, and focus states.
+- Use `src/design/tokens.ts` and the enterprise CSS variables for command-center/admin UI; do not hard-code Teachmo brand colors in components.
+- Enterprise components must support light, dark, and high-contrast modes, reduced motion, visible focus rings, ARIA labels, and keyboard operation.
+- Document reusable admin primitives in Storybook and include motion/accessibility notes when adding new dashboard, table, badge, or overlay patterns.
 
 ## Testing expectations
 
 - Unit tests for new business logic (LLM prompts, date logic, data transforms).
 - E2E coverage for role‑based routing and admin flows.
 - Add test IDs for complex flows instead of brittle selectors.
+- For enterprise UI work, add focused component tests plus a Playwright smoke covering theme switching, command palette behavior, and role-adaptive content.
 
 
 ## AI governance guardrails
