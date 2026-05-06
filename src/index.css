@@ -117,6 +117,17 @@ button:focus-visible {
     --teachmo-cream: #FAFAFA;
     --teachmo-warm-white: #FAFAFA;
     --teachmo-slate: #2F3437;
+    --enterprise-bg: #FAFAFA;
+    --enterprise-surface: #FFFFFF;
+    --enterprise-foreground: #2F3437;
+    --enterprise-muted: #65717B;
+    --enterprise-border: #DCE3EA;
+    --enterprise-primary: #2451FF;
+    --enterprise-success: #2DBF6E;
+    --enterprise-warning: #FFC857;
+    --enterprise-danger: #FF6B6B;
+    --enterprise-shadow: 0 20px 60px rgba(47, 52, 55, 0.12);
+    --enterprise-focus: #2451FF;
   }
   .theme-partner {
     --background: 0 0% 100%;
@@ -168,6 +179,49 @@ button:focus-visible {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --enterprise-bg: #0D1117;
+    --enterprise-surface: #161B22;
+    --enterprise-foreground: #F8FAFC;
+    --enterprise-muted: #A7B1BA;
+    --enterprise-border: #2A343F;
+    --enterprise-primary: #7F9BFF;
+    --enterprise-success: #6DE09F;
+    --enterprise-warning: #FFD77A;
+    --enterprise-danger: #FF8B8B;
+    --enterprise-shadow: 0 20px 70px rgba(0, 0, 0, 0.45);
+    --enterprise-focus: #FFD77A;
+  }
+  .tm-high-contrast {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 226 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 42 100% 50%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 12%;
+    --accent: 42 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 358 78% 47%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 42 100% 50%;
+    --enterprise-bg: #FFFFFF;
+    --enterprise-surface: #FFFFFF;
+    --enterprise-foreground: #000000;
+    --enterprise-muted: #1F1F1F;
+    --enterprise-border: #000000;
+    --enterprise-primary: #003CFF;
+    --enterprise-success: #008A4B;
+    --enterprise-warning: #FFB000;
+    --enterprise-danger: #D71920;
+    --enterprise-shadow: 0 0 0 2px #000000;
+    --enterprise-focus: #FFB000;
   }
 }
 
@@ -179,5 +233,26 @@ button:focus-visible {
   }
   body {
     @apply bg-background text-foreground font-sans;
+  }
+  .enterprise-motion {
+    transition:
+      background-color 180ms cubic-bezier(0.2, 0, 0, 1),
+      border-color 180ms cubic-bezier(0.2, 0, 0, 1),
+      box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .enterprise-focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+  .enterprise-focus:focus-visible {
+    outline-color: var(--enterprise-focus);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--enterprise-focus) 24%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .enterprise-motion {
+      transition: none;
+      transform: none !important;
+    }
   }
 }
