@@ -47,12 +47,6 @@ export default function AdminModerationQueue() {
       title="Trust and safety queue"
       description="Moderators get batch-ready reports, AI moderation context, propagation targets, and clear audit-safe decisions."
       badges={['Batch actions', 'AI moderation', 'Propagates <1m', 'Audit trail']}
-      metrics={[
-        { label: 'Visible reports', value: String(reports.length), badge: statusFilter, trend: 'flat' },
-        { label: 'Batch actions', value: 'Ready', badge: 'Queue', trend: 'up' },
-        { label: 'Propagation SLA', value: '<1m', badge: 'Safety', trend: 'up' },
-        { label: 'AI context', value: 'On', badge: 'Assistive', trend: 'flat' }
-      ]}
     >
       <EnterpriseFilterBar searchLabel="Search reports, reporters, reasons, or actions" filters={['Open', 'Triaged', 'Resolved', 'Dismissed', 'High severity']} />
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

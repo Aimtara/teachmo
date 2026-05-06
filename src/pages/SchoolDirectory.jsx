@@ -43,12 +43,6 @@ export default function SchoolDirectory() {
       title="School directory"
       description="Families and staff can search school contacts, understand privacy scope, and request messaging access through approval-safe workflows."
       badges={['Search', 'Privacy scope', 'Approval requests', 'Data export ready']}
-      metrics={[
-        { label: 'Visibility', value: 'Scoped', badge: 'Privacy', trend: 'flat' },
-        { label: 'Requests', value: status ? 'Sent' : 'Ready', badge: 'Approval', trend: 'up' },
-        { label: 'Search modes', value: '4', badge: 'Filters', trend: 'flat' },
-        { label: 'Compliance', value: 'Exportable', badge: 'DSAR', trend: 'up' }
-      ]}
       aside={
         <EnterprisePanel title="Directory controls" description="Privacy-first search and approval patterns.">
           <EnterpriseWorkflowList

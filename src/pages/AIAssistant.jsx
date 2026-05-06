@@ -15,12 +15,6 @@ export default function AIAssistant() {
       title="Ask, act, and understand"
       description="The AI assistant, quick actions, voice entry, explainability, and privacy posture now live together in one calm command surface."
       badges={['Answers target <3s', 'Explainability panel', 'Personalization opt-out']}
-      metrics={[
-        { label: 'Response budget', value: '<3s', badge: 'Live', trend: 'up' },
-        { label: 'Quick actions', value: '6', badge: 'Role-aware', trend: 'flat' },
-        { label: 'Privacy controls', value: 'Visible', badge: 'Opt-out', trend: 'up' },
-        { label: 'Explainability', value: 'On', badge: 'Audited', trend: 'flat' }
-      ]}
       aside={
         <>
           <EnterprisePanel title="Quick actions" description="Common AI workflows are one click away.">

@@ -157,12 +157,6 @@ const parentSteps: OnboardingStep[] = [
       title="Welcome to Teachmo"
       description="Choose a path to start a progressive wizard with autosave, contextual AI guidance, localization-ready copy, and role-specific next steps."
       badges={['Saved progress', 'AI tips', 'Parent', 'Teacher', 'Partner', 'Admin']}
-      metrics={[
-        { label: 'Wizard paths', value: '5', badge: 'Role-aware', trend: 'up' },
-        { label: 'Completion target', value: '+15%', badge: 'Goal', trend: 'up' },
-        { label: 'Resume state', value: 'On', badge: 'Autosave', trend: 'flat' },
-        { label: 'Guidance', value: 'AI', badge: 'Contextual', trend: 'up' }
-      ]}
       aside={
         <EnterprisePanel title="AI setup guide" description="Users see only the next useful setup action.">
           <EnterpriseWorkflowList
