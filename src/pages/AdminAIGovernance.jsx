@@ -217,10 +217,10 @@ export default function AdminAIGovernance() {
         description="Incident review, policy simulation, audit exports, prompt governance, usage controls, and public transparency all operate from one command-center surface."
         badges={['Incident runbooks', 'Policy simulation', 'Audit logs', 'Privacy controls']}
         metrics={[
-          { label: 'Pending reviews', value: String(pendingCount), badge: 'Queue', trend: 'flat', description: 'Flagged AI and SafeSpace items route to human review.' },
-          { label: 'Logged requests', value: String(usageTotals?.calls ?? 0), badge: 'Traceable', trend: 'up', description: 'Usage and automated actions remain exportable.' },
-          { label: 'Active prompts', value: String(promptCount), badge: 'Versioned', trend: 'flat', description: 'Prompt templates carry approvals and rollout metadata.' },
-          { label: 'Simulation', value: 'Live', badge: 'Guardrail', trend: 'up', description: 'Policy tests run before district rollout.' }
+          { label: 'Pending reviews', value: String(pendingCount), badge: 'Queue', trend: 'flat' },
+          { label: 'Logged requests', value: String(usageTotals?.calls ?? 0), badge: 'Traceable', trend: 'up' },
+          { label: 'Active prompts', value: String(promptCount), badge: 'Versioned', trend: 'flat' },
+          { label: 'Simulation', value: 'Live', badge: 'Guardrail', trend: 'up' }
         ]}
       >
 

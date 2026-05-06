@@ -26,10 +26,10 @@ export default function Settings() {
       description="Profile, security, notification, personalization, and privacy controls are grouped into task-based tabs with instant theme changes."
       badges={['WCAG 2.2 AA', 'FERPA/COPPA privacy', 'Reduced-motion safe']}
       metrics={[
-        { label: 'Security posture', value: 'Strong', badge: 'SSO ready', trend: 'up', description: 'MFA, sessions, and connected identities in one place.' },
-        { label: 'Privacy state', value: 'Opt-in', badge: 'Clear', trend: 'flat', description: 'AI personalization and data export controls stay visible.' },
-        { label: 'Theme latency', value: 'Instant', badge: 'Live', trend: 'up', description: 'Theme changes apply without a reload.' },
-        { label: 'Channels', value: '5', badge: 'Tuned', trend: 'flat', description: 'Digest, urgent, teacher, SMS, and email preferences.' }
+        { label: 'Security posture', value: 'Strong', badge: 'SSO ready', trend: 'up' },
+        { label: 'Privacy state', value: 'Opt-in', badge: 'Clear', trend: 'flat' },
+        { label: 'Theme latency', value: 'Instant', badge: 'Live', trend: 'up' },
+        { label: 'Channels', value: '5', badge: 'Tuned', trend: 'flat' }
       ]}
     >
       <EnterprisePanel title="Settings tabs" description="Keyboard-friendly tab buttons keep account controls discoverable.">
@@ -94,18 +94,18 @@ export default function Settings() {
       <EnterprisePanel title="Privacy workflow" description="Every sensitive control links to consent, export, and audit behavior.">
         <EnterpriseWorkflowList
           items={[
-            { label: 'AI personalization', description: 'Parents and staff can opt out without losing core assistant access.', status: 'Opt-out available', tone: 'success' },
-            { label: 'Directory visibility', description: 'School directory sharing uses role-aware visibility and guardian consent.', status: 'Scoped', tone: 'info' },
-            { label: 'Data export', description: 'Compliance export requests include family, message, and recommendation data.', status: 'DSAR ready', tone: 'success' }
+            { label: 'AI personalization', status: 'Opt-out available', tone: 'success' },
+            { label: 'Directory visibility', status: 'Scoped', tone: 'info' },
+            { label: 'Data export', status: 'DSAR ready', tone: 'success' }
           ]}
         />
       </EnterprisePanel>
 
       <EnterpriseComplianceStrip
         items={[
-          { label: 'FERPA/COPPA language', description: 'Privacy controls are written for guardians and district administrators.' },
-          { label: 'Accessible focus states', description: 'All interactive controls use the enterprise focus token.' },
-          { label: 'No third-party additions', description: 'Theme and privacy controls use existing platform capabilities.' }
+          { label: 'FERPA/COPPA language' },
+          { label: 'Accessible focus states' },
+          { label: 'No third-party additions' }
         ]}
       />
     </EnterpriseSurface>

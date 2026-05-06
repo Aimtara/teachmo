@@ -32,10 +32,10 @@ export const CommandCenter: Story = {
     description: 'A high-density role surface using enterprise tokens, accessible focus states, and reduced-motion-safe interactions.',
     badges: ['WCAG AA', 'Dark mode', 'High contrast', 'Role-aware'],
     metrics: [
-      { label: 'Open messages', value: '7', badge: 'Needs reply', trend: 'down', description: 'Families waiting on teacher responses.' },
-      { label: 'Office hours', value: '4', badge: 'Pending', trend: 'flat', description: 'Requests ready for scheduling.' },
-      { label: 'Digest drafts', value: '3', badge: 'AI assist', trend: 'up', description: 'Weekly briefs awaiting review.' },
-      { label: 'Class health', value: '82%', badge: 'Stable', trend: 'flat', description: 'Average engagement score.' }
+      { label: 'Open messages', value: '7', badge: 'Needs reply', trend: 'down' },
+      { label: 'Office hours', value: '4', badge: 'Pending', trend: 'flat' },
+      { label: 'Digest drafts', value: '3', badge: 'AI assist', trend: 'up' },
+      { label: 'Class health', value: '82%', badge: 'Stable', trend: 'flat' }
     ],
     children: (
       <>
@@ -44,8 +44,8 @@ export const CommandCenter: Story = {
           <EnterprisePanel title="Workflow list" description="Queue items keep status and next action visible.">
             <EnterpriseWorkflowList
               items={[
-                { label: 'Avery Chen family', description: 'Reply requested about tomorrow pickup.', status: 'Needs reply', tone: 'warning' },
-                { label: 'Science digest', description: 'Weekly update is ready for review.', status: 'AI draft', tone: 'success' }
+                { label: 'Avery Chen family', status: 'Needs reply', tone: 'warning' },
+                { label: 'Science digest', status: 'AI draft', tone: 'success' }
               ]}
             />
           </EnterprisePanel>
@@ -61,9 +61,9 @@ export const CommandCenter: Story = {
         </div>
         <EnterpriseComplianceStrip
           items={[
-            { label: 'Privacy', description: 'Sensitive context stays scoped to the user role.' },
-            { label: 'Accessibility', description: 'Interactive states use shared focus tokens.' },
-            { label: 'Performance', description: 'Reusable sections support lazy route bundles.' }
+            { label: 'Privacy' },
+            { label: 'Accessibility' },
+            { label: 'Performance' }
           ]}
         />
       </>

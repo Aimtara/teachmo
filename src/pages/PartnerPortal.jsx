@@ -36,28 +36,28 @@ export default function PartnerPortal() {
       description="Partners get a SaaS-style CMS for program submissions, assets, approval status, analytics, incentives, and compliance documents."
       badges={['Program CMS', 'Asset uploads', 'Analytics', 'Compliance tracking']}
       metrics={[
-        { label: 'Active submissions', value: '12', badge: 'In review', trend: 'flat', description: 'Programs and resources in the approval queue.' },
-        { label: 'Approved content', value: '8', badge: 'Published', trend: 'up', description: 'Approved offers ready for Discover and Explore.' },
-        { label: 'Reach', value: '2.4k', badge: 'Families', trend: 'up', description: 'Partner analytics highlight adoption and engagement.' },
-        { label: 'Compliance', value: '92%', badge: 'Tracked', trend: 'up', description: 'Documents and contracts stay attached to each partner.' }
+        { label: 'Active submissions', value: '12', badge: 'In review', trend: 'flat' },
+        { label: 'Approved content', value: '8', badge: 'Published', trend: 'up' },
+        { label: 'Reach', value: '2.4k', badge: 'Families', trend: 'up' },
+        { label: 'Compliance', value: '92%', badge: 'Tracked', trend: 'up' }
       ]}
       aside={
         <>
           <EnterprisePanel title="CMS workflow" description="Submissions map to admin approvals and public Explore inventory.">
             <EnterpriseWorkflowList
               items={[
-                { label: 'Draft program', description: 'Add copy, age range, tags, and accessibility notes.', status: 'Draft', tone: 'neutral' },
-                { label: 'Upload assets', description: 'Images, PDFs, and compliance documents stay versioned.', status: 'Assets', tone: 'info' },
-                { label: 'Admin review', description: 'Pending actions appear in command-center approval queues.', status: 'Queued', tone: 'warning' },
-                { label: 'Publish to Explore', description: 'Approved content appears with partner and privacy labels.', status: 'Live', tone: 'success' }
+                { label: 'Draft program', status: 'Draft', tone: 'neutral' },
+                { label: 'Upload assets', status: 'Assets', tone: 'info' },
+                { label: 'Admin review', status: 'Queued', tone: 'warning' },
+                { label: 'Publish to Explore', status: 'Live', tone: 'success' }
               ]}
             />
           </EnterprisePanel>
           <EnterpriseComplianceStrip
             items={[
-              { label: 'Public registration separated', description: 'The partner CMS is distinct from the public registration route.' },
-              { label: 'Contracts visible', description: 'Compliance and incentive status are first-class workspace items.' },
-              { label: 'Audit-friendly approvals', description: 'Every content state maps to review history.' }
+              { label: 'Public registration separated' },
+              { label: 'Contracts visible' },
+              { label: 'Audit-friendly approvals' }
             ]}
           />
         </>
@@ -67,9 +67,9 @@ export default function PartnerPortal() {
         <EnterprisePanel title="Analytics and compliance" description="Operational widgets stay dense for B2B partner users.">
           <EnterpriseWorkflowList
             items={[
-              { label: 'Engagement rate', description: 'Families saved or joined 38% of published programs.', status: '38%', tone: 'success' },
-              { label: 'Incentives earned', description: 'Eligible incentives are ready for monthly reconciliation.', status: '$1.2k', tone: 'info' },
-              { label: 'Contract renewal', description: 'Insurance certificate expires in 21 days.', status: 'Action', tone: 'warning' }
+              { label: 'Engagement rate', status: '38%', tone: 'success' },
+              { label: 'Incentives earned', status: '$1.2k', tone: 'info' },
+              { label: 'Contract renewal', status: 'Action', tone: 'warning' }
             ]}
           />
         </EnterprisePanel>

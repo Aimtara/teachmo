@@ -40,10 +40,10 @@ export function TodayOrchestrator() {
         description="Today keeps the default parent experience constrained to a weekly brief, one primary action, and a next-up summary."
         badges={['Three-card rule', 'Weekly brief', 'One primary action', 'Reduced cognitive load']}
         metrics={[
-          { label: 'Primary cards', value: '3', badge: 'Limit', trend: 'down', description: 'The default view never asks families to scan more than three cards.' },
-          { label: 'Current moment', value: moment.replace('_', ' '), badge: 'Adaptive', trend: 'flat', description: 'The intervention adapts to the family moment contract.' },
-          { label: 'Weekly brief', value: isMonday ? 'Pinned' : 'Available', badge: 'Snapshot', trend: 'flat', description: 'Families can orient before taking action.' },
-          { label: 'Explore', value: 'Unified', badge: 'Calm', trend: 'up', description: 'Activities, events, and library content stay consolidated.' }
+          { label: 'Primary cards', value: '3', badge: 'Limit', trend: 'down' },
+          { label: 'Current moment', value: moment.replace('_', ' '), badge: 'Adaptive', trend: 'flat' },
+          { label: 'Weekly brief', value: isMonday ? 'Pinned' : 'Available', badge: 'Snapshot', trend: 'flat' },
+          { label: 'Explore', value: 'Unified', badge: 'Calm', trend: 'up' }
         ]}
       >
         <section className="grid gap-4 lg:grid-cols-3" aria-label="Today three-card view">
@@ -56,9 +56,9 @@ export function TodayOrchestrator() {
           <EnterprisePanel title="Next up" description="One summary replaces scattered activity, event, and message cards.">
             <EnterpriseWorkflowList
               items={[
-                { label: 'Explore recommendation', description: 'AI-filtered activity matched to age and school context.', status: 'Saved', tone: 'success' },
-                { label: 'Teacher message', description: 'Draft reply available with privacy-safe summary.', status: 'Optional', tone: 'info' },
-                { label: 'Upcoming event', description: 'Calendar conflict checks before the family commits.', status: 'Tomorrow', tone: 'warning' }
+                { label: 'Explore recommendation', status: 'Saved', tone: 'success' },
+                { label: 'Teacher message', status: 'Optional', tone: 'info' },
+                { label: 'Upcoming event', status: 'Tomorrow', tone: 'warning' }
               ]}
             />
           </EnterprisePanel>

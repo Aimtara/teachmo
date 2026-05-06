@@ -55,10 +55,10 @@ export default function TeacherDashboard() {
       description="The teacher dashboard is now an action-oriented triage board for open messages, office hours requests, pending digests, classroom health, and roster sync status."
       badges={['Smart queues', 'Class heatmap', 'AI nudges', 'Roster sync']}
       metrics={[
-        { label: 'Classrooms', value: String(classrooms.length), badge: 'Synced', trend: 'flat', description: 'Imported classes appear in the triage workspace.' },
-        { label: 'Active assignments', value: String(assignments.length), badge: 'Review', trend: 'up', description: 'Assignments are ranked beside classroom health.' },
-        { label: 'Upcoming events', value: String(events.length), badge: 'Scheduled', trend: 'flat', description: 'Calendar items stay visible for daily planning.' },
-        { label: 'Open queues', value: '3', badge: 'Smart', trend: 'down', description: 'Messages, office hours, and weekly digests are grouped by next action.' }
+        { label: 'Classrooms', value: String(classrooms.length), badge: 'Synced', trend: 'flat' },
+        { label: 'Active assignments', value: String(assignments.length), badge: 'Review', trend: 'up' },
+        { label: 'Upcoming events', value: String(events.length), badge: 'Scheduled', trend: 'flat' },
+        { label: 'Open queues', value: '3', badge: 'Smart', trend: 'down' }
       ]}
     >
       <EnterpriseFilterBar searchLabel="Search students, classes, assignments, or families" filters={['Needs reply', 'Office hours', 'Missing work', 'Digest drafts', 'AI nudge']} />
@@ -93,9 +93,9 @@ export default function TeacherDashboard() {
           <EnterprisePanel title="Smart queues" description="Daily teacher work is grouped by urgency rather than by feature area.">
             <EnterpriseWorkflowList
               items={[
-                { label: 'Open parent messages', description: 'Families waiting on replies or translation support.', status: '7 open', tone: 'warning' },
-                { label: 'Office hours requests', description: 'Requests ready to drag into calendar availability.', status: '4 pending', tone: 'info' },
-                { label: 'Pending weekly digests', description: 'AI-drafted family updates awaiting review.', status: '3 drafts', tone: 'success' }
+                { label: 'Open parent messages', status: '7 open', tone: 'warning' },
+                { label: 'Office hours requests', status: '4 pending', tone: 'info' },
+                { label: 'Pending weekly digests', status: '3 drafts', tone: 'success' }
               ]}
             />
           </EnterprisePanel>

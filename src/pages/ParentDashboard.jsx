@@ -130,17 +130,17 @@ export default function ParentDashboard() {
       description="The parent dashboard follows the three-card rule: weekly brief, today actions, and one consolidated next-up card."
       badges={['Three-card maximum', 'Weekly family brief', 'Unified Explore', 'Calm mode']}
       metrics={[
-        { label: 'Default cards', value: '3', badge: 'Enforced', trend: 'down', description: 'The dashboard never exceeds three cards in the primary view.' },
-        { label: 'Queued actions', value: String(actions.length), badge: 'Relevant', trend: 'flat', description: 'Only the most timely family actions are visible.' },
-        { label: 'Next up', value: String(nextUpItems.length), badge: 'Curated', trend: 'up', description: 'Events, activities, and messages are consolidated.' },
-        { label: 'Weekly brief', value: brief ? 'Ready' : 'Generate', badge: 'Pinned', trend: 'flat', description: 'The weekly snapshot stays at the top of the experience.' }
+        { label: 'Default cards', value: '3', badge: 'Enforced', trend: 'down' },
+        { label: 'Queued actions', value: String(actions.length), badge: 'Relevant', trend: 'flat' },
+        { label: 'Next up', value: String(nextUpItems.length), badge: 'Curated', trend: 'up' },
+        { label: 'Weekly brief', value: brief ? 'Ready' : 'Generate', badge: 'Pinned', trend: 'flat' }
       ]}
       aside={
         <EnterpriseComplianceStrip
           items={[
-            { label: 'Cognitive load guardrail', description: 'Primary view stays calm by limiting visible cards.' },
-            { label: 'Privacy-safe summaries', description: 'Messages and recommendations avoid exposing sensitive details.' },
-            { label: 'Unified Explore path', description: 'Activities, events, and library content roll into one Explore journey.' }
+            { label: 'Cognitive load guardrail' },
+            { label: 'Privacy-safe summaries' },
+            { label: 'Unified Explore path' }
           ]}
         />
       }

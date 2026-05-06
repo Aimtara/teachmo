@@ -158,19 +158,19 @@ const parentSteps: OnboardingStep[] = [
       description="Choose a path to start a progressive wizard with autosave, contextual AI guidance, localization-ready copy, and role-specific next steps."
       badges={['Saved progress', 'AI tips', 'Parent', 'Teacher', 'Partner', 'Admin']}
       metrics={[
-        { label: 'Wizard paths', value: '5', badge: 'Role-aware', trend: 'up', description: 'General, parent, teacher, partner, and admin setup patterns share one system.' },
-        { label: 'Completion target', value: '+15%', badge: 'Goal', trend: 'up', description: 'Progressive disclosure reduces onboarding drop-off.' },
-        { label: 'Resume state', value: 'On', badge: 'Autosave', trend: 'flat', description: 'Intent is saved locally until setup completes.' },
-        { label: 'Guidance', value: 'AI', badge: 'Contextual', trend: 'up', description: 'Inline tips explain each role path.' }
+        { label: 'Wizard paths', value: '5', badge: 'Role-aware', trend: 'up' },
+        { label: 'Completion target', value: '+15%', badge: 'Goal', trend: 'up' },
+        { label: 'Resume state', value: 'On', badge: 'Autosave', trend: 'flat' },
+        { label: 'Guidance', value: 'AI', badge: 'Contextual', trend: 'up' }
       ]}
       aside={
         <EnterprisePanel title="AI setup guide" description="Users see only the next useful setup action.">
           <EnterpriseWorkflowList
             items={[
-              { label: 'Parents', description: 'Link children, privacy preferences, school context, and Today cards.', status: 'Calm', tone: 'success' },
-              { label: 'Teachers', description: 'Import rosters, connect Google Classroom, and prepare triage queues.', status: 'Triage', tone: 'info' },
-              { label: 'Partners', description: 'Register organization details before entering the CMS workspace.', status: 'CMS', tone: 'warning' },
-              { label: 'Admins', description: 'Configure district, SSO, integrations, governance, and audit policy.', status: 'Command', tone: 'danger' }
+              { label: 'Parents', status: 'Calm', tone: 'success' },
+              { label: 'Teachers', status: 'Triage', tone: 'info' },
+              { label: 'Partners', status: 'CMS', tone: 'warning' },
+              { label: 'Admins', status: 'Command', tone: 'danger' }
             ]}
           />
         </EnterprisePanel>

@@ -48,10 +48,10 @@ export default function AdminModerationQueue() {
       description="Moderators get batch-ready reports, AI moderation context, propagation targets, and clear audit-safe decisions."
       badges={['Batch actions', 'AI moderation', 'Propagates <1m', 'Audit trail']}
       metrics={[
-        { label: 'Visible reports', value: String(reports.length), badge: statusFilter, trend: 'flat', description: 'Reports match the selected moderation state.' },
-        { label: 'Batch actions', value: 'Ready', badge: 'Queue', trend: 'up', description: 'Triage, resolve, dismiss, and close-thread patterns share one action row.' },
-        { label: 'Propagation SLA', value: '<1m', badge: 'Safety', trend: 'up', description: 'Resolved actions are designed to update community and messaging quickly.' },
-        { label: 'AI context', value: 'On', badge: 'Assistive', trend: 'flat', description: 'AI suggestions support but do not replace human moderation.' }
+        { label: 'Visible reports', value: String(reports.length), badge: statusFilter, trend: 'flat' },
+        { label: 'Batch actions', value: 'Ready', badge: 'Queue', trend: 'up' },
+        { label: 'Propagation SLA', value: '<1m', badge: 'Safety', trend: 'up' },
+        { label: 'AI context', value: 'On', badge: 'Assistive', trend: 'flat' }
       ]}
     >
       <EnterpriseFilterBar searchLabel="Search reports, reporters, reasons, or actions" filters={['Open', 'Triaged', 'Resolved', 'Dismissed', 'High severity']} />

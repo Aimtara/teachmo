@@ -44,18 +44,18 @@ export default function SchoolDirectory() {
       description="Families and staff can search school contacts, understand privacy scope, and request messaging access through approval-safe workflows."
       badges={['Search', 'Privacy scope', 'Approval requests', 'Data export ready']}
       metrics={[
-        { label: 'Visibility', value: 'Scoped', badge: 'Privacy', trend: 'flat', description: 'Directory access respects role, school, and consent boundaries.' },
-        { label: 'Requests', value: status ? 'Sent' : 'Ready', badge: 'Approval', trend: 'up', description: 'Messaging access remains explicit and auditable.' },
-        { label: 'Search modes', value: '4', badge: 'Filters', trend: 'flat', description: 'Role, school, grade, and program filters share one surface.' },
-        { label: 'Compliance', value: 'Exportable', badge: 'DSAR', trend: 'up', description: 'Directory data supports privacy and export workflows.' }
+        { label: 'Visibility', value: 'Scoped', badge: 'Privacy', trend: 'flat' },
+        { label: 'Requests', value: status ? 'Sent' : 'Ready', badge: 'Approval', trend: 'up' },
+        { label: 'Search modes', value: '4', badge: 'Filters', trend: 'flat' },
+        { label: 'Compliance', value: 'Exportable', badge: 'DSAR', trend: 'up' }
       ]}
       aside={
         <EnterprisePanel title="Directory controls" description="Privacy-first search and approval patterns.">
           <EnterpriseWorkflowList
             items={[
-              { label: 'Role filter', description: 'Find teachers, staff, counselors, and program partners.', status: 'Filter', tone: 'info' },
-              { label: 'Guardian consent', description: 'Private contact details stay hidden until approved.', status: 'Required', tone: 'warning' },
-              { label: 'Data export', description: 'Families can request directory-related data in settings.', status: 'Ready', tone: 'success' }
+              { label: 'Role filter', status: 'Filter', tone: 'info' },
+              { label: 'Guardian consent', status: 'Required', tone: 'warning' },
+              { label: 'Data export', status: 'Ready', tone: 'success' }
             ]}
           />
         </EnterprisePanel>

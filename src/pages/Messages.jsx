@@ -13,10 +13,10 @@ export default function Messages() {
       description="Conversations now present request approvals, attachments, voice notes, real-time status, and guardian-safe controls in one responsive inbox."
       badges={['Real-time status', 'Attachments', 'Voice messages', 'Moderation hooks']}
       metrics={[
-        { label: 'Approval queue', value: '4', badge: 'Fast path', trend: 'down', description: 'Message requests can be approved without leaving the inbox.' },
-        { label: 'Unread priority', value: '12', badge: 'Smart queue', trend: 'flat', description: 'Teacher and family replies rank by urgency and role.' },
-        { label: 'Median reply', value: '18m', badge: 'Targeted', trend: 'up', description: 'Response metrics support workload triage.' },
-        { label: 'Safety checks', value: '<1m', badge: 'Moderated', trend: 'up', description: 'Reports can propagate to moderation queues quickly.' }
+        { label: 'Approval queue', value: '4', badge: 'Fast path', trend: 'down' },
+        { label: 'Unread priority', value: '12', badge: 'Smart queue', trend: 'flat' },
+        { label: 'Median reply', value: '18m', badge: 'Targeted', trend: 'up' },
+        { label: 'Safety checks', value: '<1m', badge: 'Moderated', trend: 'up' }
       ]}
     >
       <EnterpriseFilterBar
@@ -27,10 +27,10 @@ export default function Messages() {
         <EnterprisePanel title="Conversation list" description="Virtualized list pattern with clear status and role context.">
           <EnterpriseWorkflowList
             items={[
-              { label: 'Avery Chen family', description: 'Voice message received about tomorrow pickup.', status: 'Needs reply', tone: 'warning' },
-              { label: 'Office hours requests', description: 'Three guardians requested time slots this week.', status: 'Approve', tone: 'info' },
-              { label: 'Science class digest', description: 'Draft weekly update ready for review.', status: 'AI draft', tone: 'success' },
-              { label: 'Safety report thread', description: 'Escalated to moderation with audit context.', status: 'Guarded', tone: 'danger' }
+              { label: 'Avery Chen family', status: 'Needs reply', tone: 'warning' },
+              { label: 'Office hours requests', status: 'Approve', tone: 'info' },
+              { label: 'Science class digest', status: 'AI draft', tone: 'success' },
+              { label: 'Safety report thread', status: 'Guarded', tone: 'danger' }
             ]}
           />
         </EnterprisePanel>

@@ -18,10 +18,10 @@ export default function UnifiedDiscover() {
       description="Discover blends activities, events, library items, shorts, and community signals with search, saved filters, and privacy-aware recommendations."
       badges={['Infinite-scroll ready', 'Saved filters', 'Community results', 'Age-aware ranking']}
       metrics={[
-        { label: 'First-load picks', value: '5+', badge: 'Personalized', trend: 'up', description: 'At least five recommendations are visible before deeper browsing.' },
-        { label: 'Result budget', value: '<2s', badge: 'Performance', trend: 'up', description: 'Search and filter copy anchors the page to the redesign target.' },
-        { label: 'Explore tabs', value: '5', badge: 'Unified', trend: 'flat', description: 'Activities, events, library, shorts, and For You share one surface.' },
-        { label: 'Privacy labels', value: 'On', badge: 'Trusted', trend: 'flat', description: 'Community content is labeled by audience and source.' }
+        { label: 'First-load picks', value: '5+', badge: 'Personalized', trend: 'up' },
+        { label: 'Result budget', value: '<2s', badge: 'Performance', trend: 'up' },
+        { label: 'Explore tabs', value: '5', badge: 'Unified', trend: 'flat' },
+        { label: 'Privacy labels', value: 'On', badge: 'Trusted', trend: 'flat' }
       ]}
     >
       <EnterpriseFilterBar searchLabel="Search activities, books, events, or community posts" filters={['Age group', 'Date', 'Free', 'Nearby', 'Saved']} />

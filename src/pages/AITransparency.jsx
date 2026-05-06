@@ -22,27 +22,27 @@ export default function AITransparency() {
       description="Infographics, plain-language policy briefs, audit posture, and governance contacts explain how Teachmo uses AI responsibly."
       badges={['Public', 'Explainable AI', 'Human review', 'FERPA/COPPA']}
       metrics={[
-        { label: 'Human review', value: 'Always', badge: 'Guardrail', trend: 'flat', description: 'High-impact AI actions route through people.' },
-        { label: 'Policy briefs', value: String((docsQuery.data ?? []).length), badge: 'Published', trend: 'up', description: 'Tenant and platform policy docs are listed here.' },
-        { label: 'Data minimization', value: 'On', badge: 'Privacy', trend: 'flat', description: 'The page explains what context is used and why.' },
-        { label: 'Auditability', value: 'Traceable', badge: 'Trust', trend: 'up', description: 'Automated actions are logged for review.' }
+        { label: 'Human review', value: 'Always', badge: 'Guardrail', trend: 'flat' },
+        { label: 'Policy briefs', value: String((docsQuery.data ?? []).length), badge: 'Published', trend: 'up' },
+        { label: 'Data minimization', value: 'On', badge: 'Privacy', trend: 'flat' },
+        { label: 'Auditability', value: 'Traceable', badge: 'Trust', trend: 'up' }
       ]}
       aside={
         <>
           <EnterprisePanel title="How AI is governed" description="A readable flow replaces dense policy language.">
             <EnterpriseWorkflowList
               items={[
-                { label: 'Request', description: 'User asks a role-aware assistant question.', status: 'Scoped', tone: 'info' },
-                { label: 'Policy check', description: 'Prompt and response are checked against district guardrails.', status: 'Simulated', tone: 'success' },
-                { label: 'Human escalation', description: 'Sensitive outcomes route to review queues and incident runbooks.', status: 'Guarded', tone: 'warning' }
+                { label: 'Request', status: 'Scoped', tone: 'info' },
+                { label: 'Policy check', status: 'Simulated', tone: 'success' },
+                { label: 'Human escalation', status: 'Guarded', tone: 'warning' }
               ]}
             />
           </EnterprisePanel>
           <EnterpriseComplianceStrip
             items={[
-              { label: 'Guardian-friendly copy', description: 'Policies are written for families and school teams.' },
-              { label: 'No hidden personalization', description: 'Users can opt out in settings.' },
-              { label: 'Audit contact visible', description: 'Governance team contact is easy to find.' }
+              { label: 'Guardian-friendly copy' },
+              { label: 'No hidden personalization' },
+              { label: 'Audit contact visible' }
             ]}
           />
         </>

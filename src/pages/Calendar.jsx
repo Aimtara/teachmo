@@ -63,18 +63,18 @@ export default function Calendar() {
       description="Calendar keeps the existing month view while introducing the redesign contract for drag-and-drop scheduling, multiple views, approvals, and real-time updates."
       badges={['Drag-and-drop pattern', 'Month/week/day modes', 'Approval flows', 'Live sync']}
       metrics={[
-        { label: 'Loaded events', value: String(calendarEvents.length), badge: 'Synced', trend: 'flat', description: 'Events are normalized for shared calendar components.' },
-        { label: 'Scheduling modes', value: '3', badge: 'Planned', trend: 'up', description: 'Month, week, and day modes share the same command surface.' },
-        { label: 'Approvals', value: 'Quick', badge: 'Teacher-ready', trend: 'up', description: 'Requests can move from messages to calendar without context loss.' },
-        { label: 'Performance', value: 'Virtualized', badge: 'Budgeted', trend: 'flat', description: 'Dense event lists are ready for virtualization.' }
+        { label: 'Loaded events', value: String(calendarEvents.length), badge: 'Synced', trend: 'flat' },
+        { label: 'Scheduling modes', value: '3', badge: 'Planned', trend: 'up' },
+        { label: 'Approvals', value: 'Quick', badge: 'Teacher-ready', trend: 'up' },
+        { label: 'Performance', value: 'Virtualized', badge: 'Budgeted', trend: 'flat' }
       ]}
       aside={
         <EnterprisePanel title="Scheduling queues" description="Drag targets and approvals are described beside the calendar.">
           <EnterpriseWorkflowList
             items={[
-              { label: 'Office hours requests', description: 'Drag pending requests onto available blocks.', status: '4 pending', tone: 'warning' },
-              { label: 'Family conference slots', description: 'Conflict checks run before publishing.', status: 'Ready', tone: 'success' },
-              { label: 'Sync health', description: 'Google Classroom and SIS updates stay visible.', status: 'Live', tone: 'info' }
+              { label: 'Office hours requests', status: '4 pending', tone: 'warning' },
+              { label: 'Family conference slots', status: 'Ready', tone: 'success' },
+              { label: 'Sync health', status: 'Live', tone: 'info' }
             ]}
           />
         </EnterprisePanel>

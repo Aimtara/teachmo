@@ -92,18 +92,18 @@ export default function AdminIntegrationHealth() {
       description="District IT can configure integrations, reconcile data conflicts, inspect dead-letter events, and retry failed roster or LMS syncs."
       badges={['Self-serve integrations', 'Data reconciliation', 'Dead-letter queue', 'Retry runbooks']}
       metrics={[
-        { label: 'Active alerts', value: String(alerts.length), badge: 'Live', trend: alerts.length ? 'down' : 'flat', description: 'Roster alerts feed the remediation queue.' },
-        { label: 'Selected run', value: selectedRun?.status || 'None', badge: 'Diagnostic', trend: 'flat', description: 'Run-level details stay attached to alerts.' },
-        { label: 'Retry action', value: selectedAlert?.runId ? 'Ready' : 'Select', badge: 'Runbook', trend: 'up', description: 'Failed syncs can be restarted from the hub.' },
-        { label: 'Conflict tools', value: 'Mapped', badge: 'Reconcile', trend: 'up', description: 'CSV and SIS conflicts use the same workspace pattern.' }
+        { label: 'Active alerts', value: String(alerts.length), badge: 'Live', trend: alerts.length ? 'down' : 'flat' },
+        { label: 'Selected run', value: selectedRun?.status || 'None', badge: 'Diagnostic', trend: 'flat' },
+        { label: 'Retry action', value: selectedAlert?.runId ? 'Ready' : 'Select', badge: 'Runbook', trend: 'up' },
+        { label: 'Conflict tools', value: 'Mapped', badge: 'Reconcile', trend: 'up' }
       ]}
       aside={
         <EnterprisePanel title="Data operations lanes" description="Readable technical queues for district IT.">
           <EnterpriseWorkflowList
             items={[
-              { label: 'Self-serve setup', description: 'OneRoster, Clever, ClassLink, Google Classroom, and CSV imports.', status: 'Configure', tone: 'info' },
-              { label: 'Reconciliation', description: 'Map orphaned students, duplicate guardians, and stale classes.', status: 'Resolve', tone: 'warning' },
-              { label: 'Dead-letter queue', description: 'Dropped notifications and failed API calls support one-click retry.', status: 'Retry', tone: 'danger' }
+              { label: 'Self-serve setup', status: 'Configure', tone: 'info' },
+              { label: 'Reconciliation', status: 'Resolve', tone: 'warning' },
+              { label: 'Dead-letter queue', status: 'Retry', tone: 'danger' }
             ]}
           />
         </EnterprisePanel>
