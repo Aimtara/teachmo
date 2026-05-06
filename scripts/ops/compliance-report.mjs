@@ -5,6 +5,7 @@ import { parseCommonArgs, redact, writeReports } from './reporting.mjs';
 import { DATA_CLASSIFICATION_REGISTRY } from '../../backend/compliance/dataClassification.js';
 import { AUDIT_EVENT_CATEGORIES } from '../../backend/compliance/auditEvents.js';
 import { lifecycleCoverage } from '../../backend/compliance/dataLifecycle.js';
+import { getOpenGaps } from '../../backend/compliance/remediationBacklog.js';
 
 function argValue(argv, name, fallback = null) {
   const index = argv.indexOf(name);
@@ -117,6 +118,10 @@ export function buildComplianceReport(opts = parseArgs()) {
     auditCoverageSummary: {
       categories: AUDIT_EVENT_CATEGORIES,
       categoryCount: AUDIT_EVENT_CATEGORIES.length,
+    },
+    remediationBacklogSummary: {
+      openP0: getOpenGaps({ priority: 'P0' }).map((gap) => ({ id: gap.id, title: gap.title, owner: gap.owner })),
+      openP1: getOpenGaps({ priority: 'P1' }).map((gap) => ({ id: gap.id, title: gap.title, owner: gap.owner })),
     },
     piiLoggingScanResult: checks.find((check) => check.name === 'PII logging scan')?.status || 'unknown',
     aiGovernanceResult: checks.find((check) => check.name === 'AI governance backend tests')?.status || 'unknown',

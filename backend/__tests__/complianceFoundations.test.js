@@ -48,6 +48,12 @@ import {
   transitionDirectoryRequest,
   updateIncident,
 } from '../compliance/pilotScaffolds.js';
+import {
+  GAP_BACKLOG,
+  assertGapBacklogComplete,
+  getCriticalRemediationPlan,
+  getOpenGaps,
+} from '../compliance/remediationBacklog.js';
 
 const actor = {
   id: 'guardian-1',
@@ -378,5 +384,23 @@ describe('Risky feature gates', () => {
       expect(flag.requiredGates.length).toBeGreaterThan(0);
       expect(flag.environmentOverrides).toEqual({});
     }
+  });
+});
+
+describe('Remaining gap remediation backlog', () => {
+  test('tracks open gaps with owners, solutions, evidence, and acceptance criteria', () => {
+    expect(assertGapBacklogComplete()).toBe(true);
+    expect(GAP_BACKLOG.length).toBeGreaterThanOrEqual(10);
+
+    const p0Plan = getCriticalRemediationPlan();
+    expect(p0Plan.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['GAP-001', 'GAP-002', 'GAP-003', 'GAP-004', 'GAP-005', 'GAP-007', 'GAP-010']),
+    );
+    p0Plan.forEach((gap) => {
+      expect(gap.recommendation).toBeTruthy();
+      expect(gap.implementationSteps.length).toBeGreaterThan(0);
+      expect(gap.acceptanceCriteria.length).toBeGreaterThan(0);
+    });
+    expect(getOpenGaps({ priority: 'P1' }).some((gap) => gap.id === 'GAP-012')).toBe(true);
   });
 });

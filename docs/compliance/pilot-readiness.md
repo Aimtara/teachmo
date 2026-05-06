@@ -41,3 +41,10 @@ reviewed, and operated with production evidence.
 - Accessibility smoke and WCAG review evidence.
 - Incident response workflow evidence.
 - Security scans, auth bypass checks, and secret scanning results.
+
+## Remaining remediation backlog
+
+Detailed open gaps, recommendations, implementation steps, acceptance criteria,
+owners, and evidence expectations are tracked in
+`backend/compliance/remediationBacklog.js` and summarized in
+`docs/compliance/remaining-gaps-and-remediation.md`.
