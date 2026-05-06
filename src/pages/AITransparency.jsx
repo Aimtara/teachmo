@@ -2,6 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { listAIPolicyDocs } from '@/domains/ai/transparency';
+import {
+  EnterpriseComplianceStrip,
+  EnterprisePanel,
+  EnterpriseSurface,
+  EnterpriseWorkflowList
+} from '@/components/enterprise';
 
 export default function AITransparency() {
   const docsQuery = useQuery({
@@ -10,24 +16,48 @@ export default function AITransparency() {
   });
 
   return (
-    <main id="main-content" className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
-        <header className="space-y-3">
-          <h1 className="text-3xl font-semibold text-slate-900">AI Transparency</h1>
-          <p className="text-sm text-slate-600">
-            Learn how Teachmo uses AI responsibly. These transparency briefs explain our data flow, ethics, and
-            human-in-the-loop safeguards.
-          </p>
+    <EnterpriseSurface
+      eyebrow="Public transparency"
+      title="AI transparency"
+      description="Infographics, plain-language policy briefs, audit posture, and governance contacts explain how Teachmo uses AI responsibly."
+      badges={['Public', 'Explainable AI', 'Human review', 'FERPA/COPPA']}
+      metrics={[
+        { label: 'Human review', value: 'Always', badge: 'Guardrail', trend: 'flat', description: 'High-impact AI actions route through people.' },
+        { label: 'Policy briefs', value: String((docsQuery.data ?? []).length), badge: 'Published', trend: 'up', description: 'Tenant and platform policy docs are listed here.' },
+        { label: 'Data minimization', value: 'On', badge: 'Privacy', trend: 'flat', description: 'The page explains what context is used and why.' },
+        { label: 'Auditability', value: 'Traceable', badge: 'Trust', trend: 'up', description: 'Automated actions are logged for review.' }
+      ]}
+      aside={
+        <>
+          <EnterprisePanel title="How AI is governed" description="A readable flow replaces dense policy language.">
+            <EnterpriseWorkflowList
+              items={[
+                { label: 'Request', description: 'User asks a role-aware assistant question.', status: 'Scoped', tone: 'info' },
+                { label: 'Policy check', description: 'Prompt and response are checked against district guardrails.', status: 'Simulated', tone: 'success' },
+                { label: 'Human escalation', description: 'Sensitive outcomes route to review queues and incident runbooks.', status: 'Guarded', tone: 'warning' }
+              ]}
+            />
+          </EnterprisePanel>
+          <EnterpriseComplianceStrip
+            items={[
+              { label: 'Guardian-friendly copy', description: 'Policies are written for families and school teams.' },
+              { label: 'No hidden personalization', description: 'Users can opt out in settings.' },
+              { label: 'Audit contact visible', description: 'Governance team contact is easy to find.' }
+            ]}
+          />
+        </>
+      }
+    >
+      <EnterprisePanel title="Transparency documents" description="Published policy briefs and references remain available.">
+          <div className="mb-4">
           <a
             href="mailto:ai-governance@teachmo.com"
             className="inline-flex text-sm font-medium text-blue-700 hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             Contact the AI governance team
           </a>
-        </header>
-
+        </div>
         <section className="grid gap-6">
-          <h2 className="sr-only">Transparency documents</h2>
           {(docsQuery.data ?? []).length === 0 ? (
             <Card>
               <CardContent className="py-8 text-sm text-slate-600">
@@ -64,7 +94,7 @@ export default function AITransparency() {
             ))
           )}
         </section>
-      </div>
-    </main>
+      </EnterprisePanel>
+    </EnterpriseSurface>
   );
 }

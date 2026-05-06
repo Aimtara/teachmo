@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Card, Button, Input, Select, Textarea } from '@/components/ui';
 import { createPartnerSubmission } from '@/domains/submissions';
+import {
+  EnterpriseComplianceStrip,
+  EnterprisePanel,
+  EnterpriseSurface,
+  EnterpriseWorkflowList
+} from '@/components/enterprise';
 
 export default function PartnerPortal() {
   const [submission, setSubmission] = useState({ title: '', type: 'activity', content: '' });
@@ -24,26 +30,52 @@ export default function PartnerPortal() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <header className="mb-8 border-b pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">Partner Portal</h1>
-        <p className="text-gray-600">Submit and manage your educational content.</p>
-      </header>
+    <EnterpriseSurface
+      eyebrow="Partner CMS"
+      title="Partner workspace"
+      description="Partners get a SaaS-style CMS for program submissions, assets, approval status, analytics, incentives, and compliance documents."
+      badges={['Program CMS', 'Asset uploads', 'Analytics', 'Compliance tracking']}
+      metrics={[
+        { label: 'Active submissions', value: '12', badge: 'In review', trend: 'flat', description: 'Programs and resources in the approval queue.' },
+        { label: 'Approved content', value: '8', badge: 'Published', trend: 'up', description: 'Approved offers ready for Discover and Explore.' },
+        { label: 'Reach', value: '2.4k', badge: 'Families', trend: 'up', description: 'Partner analytics highlight adoption and engagement.' },
+        { label: 'Compliance', value: '92%', badge: 'Tracked', trend: 'up', description: 'Documents and contracts stay attached to each partner.' }
+      ]}
+      aside={
+        <>
+          <EnterprisePanel title="CMS workflow" description="Submissions map to admin approvals and public Explore inventory.">
+            <EnterpriseWorkflowList
+              items={[
+                { label: 'Draft program', description: 'Add copy, age range, tags, and accessibility notes.', status: 'Draft', tone: 'neutral' },
+                { label: 'Upload assets', description: 'Images, PDFs, and compliance documents stay versioned.', status: 'Assets', tone: 'info' },
+                { label: 'Admin review', description: 'Pending actions appear in command-center approval queues.', status: 'Queued', tone: 'warning' },
+                { label: 'Publish to Explore', description: 'Approved content appears with partner and privacy labels.', status: 'Live', tone: 'success' }
+              ]}
+            />
+          </EnterprisePanel>
+          <EnterpriseComplianceStrip
+            items={[
+              { label: 'Public registration separated', description: 'The partner CMS is distinct from the public registration route.' },
+              { label: 'Contracts visible', description: 'Compliance and incentive status are first-class workspace items.' },
+              { label: 'Audit-friendly approvals', description: 'Every content state maps to review history.' }
+            ]}
+          />
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr]">
+        <EnterprisePanel title="Analytics and compliance" description="Operational widgets stay dense for B2B partner users.">
+          <EnterpriseWorkflowList
+            items={[
+              { label: 'Engagement rate', description: 'Families saved or joined 38% of published programs.', status: '38%', tone: 'success' },
+              { label: 'Incentives earned', description: 'Eligible incentives are ready for monthly reconciliation.', status: '$1.2k', tone: 'info' },
+              { label: 'Contract renewal', description: 'Insurance certificate expires in 21 days.', status: 'Action', tone: 'warning' }
+            ]}
+          />
+        </EnterprisePanel>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-4">
-          <Card className="p-4 bg-blue-50 border-blue-200">
-            <h3 className="font-semibold text-blue-900">Active Submissions</h3>
-            <p className="text-2xl font-bold text-blue-700">12</p>
-          </Card>
-          <Card className="p-4 bg-green-50 border-green-200">
-            <h3 className="font-semibold text-green-900">Approved</h3>
-            <p className="text-2xl font-bold text-green-700">8</p>
-          </Card>
-        </div>
-
-        <div className="md:col-span-2">
-          <Card className="p-6">
+        <EnterprisePanel title="New content submission" description="Existing submission API remains wired into the redesigned CMS workspace.">
+          <Card className="p-6 border-[var(--enterprise-border)]">
             <h2 className="text-xl font-semibold mb-4">New Content Submission</h2>
             {status === 'success' && (
               <div className="mb-4 p-3 bg-green-100 text-green-800 rounded">
@@ -95,8 +127,8 @@ export default function PartnerPortal() {
               </div>
             </form>
           </Card>
-        </div>
+        </EnterprisePanel>
       </div>
-    </div>
+    </EnterpriseSurface>
   );
 }

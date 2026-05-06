@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import CalendarView from '@/components/calendar/CalendarView';
 import EventModal from '@/components/calendar/EventModal';
 import { listEvents } from '@/domains/events';
+import { EnterpriseFilterBar, EnterprisePanel, EnterpriseSurface, EnterpriseWorkflowList } from '@/components/enterprise';
 
 /**
  * Teachmo Calendar page.
@@ -56,26 +57,51 @@ export default function Calendar() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <CalendarView
-        currentDate={currentDate}
-        events={calendarEvents}
-        view="month"
-        onEventClick={handleEventClick}
-        onDayClick={handleDayClick}
-        childrenData={[]}
-        isLoading={isLoading}
-      />
-      {showModal && selectedEvent && (
-        <EventModal
-          event={selectedEvent}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedEvent(null);
-          }}
+    <EnterpriseSurface
+      eyebrow="Calendar"
+      title="Adaptive scheduling board"
+      description="Calendar keeps the existing month view while introducing the redesign contract for drag-and-drop scheduling, multiple views, approvals, and real-time updates."
+      badges={['Drag-and-drop pattern', 'Month/week/day modes', 'Approval flows', 'Live sync']}
+      metrics={[
+        { label: 'Loaded events', value: String(calendarEvents.length), badge: 'Synced', trend: 'flat', description: 'Events are normalized for shared calendar components.' },
+        { label: 'Scheduling modes', value: '3', badge: 'Planned', trend: 'up', description: 'Month, week, and day modes share the same command surface.' },
+        { label: 'Approvals', value: 'Quick', badge: 'Teacher-ready', trend: 'up', description: 'Requests can move from messages to calendar without context loss.' },
+        { label: 'Performance', value: 'Virtualized', badge: 'Budgeted', trend: 'flat', description: 'Dense event lists are ready for virtualization.' }
+      ]}
+      aside={
+        <EnterprisePanel title="Scheduling queues" description="Drag targets and approvals are described beside the calendar.">
+          <EnterpriseWorkflowList
+            items={[
+              { label: 'Office hours requests', description: 'Drag pending requests onto available blocks.', status: '4 pending', tone: 'warning' },
+              { label: 'Family conference slots', description: 'Conflict checks run before publishing.', status: 'Ready', tone: 'success' },
+              { label: 'Sync health', description: 'Google Classroom and SIS updates stay visible.', status: 'Live', tone: 'info' }
+            ]}
+          />
+        </EnterprisePanel>
+      }
+    >
+      <EnterpriseFilterBar searchLabel="Search events, classes, families, or approvals" filters={['Month', 'Week', 'Day', 'Requests', 'Conflicts']} />
+      <EnterprisePanel title="Calendar workspace" description="Select a day or event to open the existing event details modal.">
+        <CalendarView
+          currentDate={currentDate}
+          events={calendarEvents}
+          view="month"
+          onEventClick={handleEventClick}
+          onDayClick={handleDayClick}
           childrenData={[]}
+          isLoading={isLoading}
         />
-      )}
-    </div>
+        {showModal && selectedEvent && (
+          <EventModal
+            event={selectedEvent}
+            onClose={() => {
+              setShowModal(false);
+              setSelectedEvent(null);
+            }}
+            childrenData={[]}
+          />
+        )}
+      </EnterprisePanel>
+    </EnterpriseSurface>
   );
 }

@@ -29,6 +29,7 @@ import AIGovernanceBlockedReasons from '@/components/admin/ai/AIGovernanceBlocke
 import AIGovernanceSkillUsage from '@/components/admin/ai/AIGovernanceSkillUsage';
 import AIGovernanceFilters from '@/components/admin/ai/AIGovernanceFilters';
 import AIPolicySimulationPanel from '@/components/admin/ai/AIPolicySimulationPanel';
+import { EnterpriseSurface } from '@/components/enterprise';
 
 function formatMoney(value) {
   const n = Number(value || 0);
@@ -210,13 +211,18 @@ export default function AdminAIGovernance() {
 
   return (
     <ProtectedRoute allowedRoles={['system_admin', 'district_admin', 'school_admin', 'admin']}>
-      <div className="p-6 space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold">AI Governance &amp; Transparency</h1>
-          <p className="text-sm text-muted-foreground">
-            Track AI model usage, review queue activity, and published transparency briefs for your tenant.
-          </p>
-        </header>
+      <EnterpriseSurface
+        eyebrow="AI governance and trust"
+        title="Trust console"
+        description="Incident review, policy simulation, audit exports, prompt governance, usage controls, and public transparency all operate from one command-center surface."
+        badges={['Incident runbooks', 'Policy simulation', 'Audit logs', 'Privacy controls']}
+        metrics={[
+          { label: 'Pending reviews', value: String(pendingCount), badge: 'Queue', trend: 'flat', description: 'Flagged AI and SafeSpace items route to human review.' },
+          { label: 'Logged requests', value: String(usageTotals?.calls ?? 0), badge: 'Traceable', trend: 'up', description: 'Usage and automated actions remain exportable.' },
+          { label: 'Active prompts', value: String(promptCount), badge: 'Versioned', trend: 'flat', description: 'Prompt templates carry approvals and rollout metadata.' },
+          { label: 'Simulation', value: 'Live', badge: 'Guardrail', trend: 'up', description: 'Policy tests run before district rollout.' }
+        ]}
+      >
 
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <AIGovernanceFilters value={windowDays} onChange={setWindowDays} />
@@ -411,7 +417,7 @@ export default function AdminAIGovernance() {
             </Link>
           </CardContent>
         </Card>
-      </div>
+      </EnterpriseSurface>
     </ProtectedRoute>
   );
 }

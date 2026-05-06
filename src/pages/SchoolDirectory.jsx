@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { EnterpriseFilterBar, EnterprisePanel, EnterpriseSurface, EnterpriseWorkflowList } from '@/components/enterprise';
 
 export default function SchoolDirectory() {
   const user = useUserData();
@@ -37,10 +38,31 @@ export default function SchoolDirectory() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-semibold text-gray-900">School Directory</h1>
-      <p className="text-sm text-gray-600">Request permission to message a teacher or staff member directly from the directory.</p>
-
+    <EnterpriseSurface
+      eyebrow="Directory"
+      title="School directory"
+      description="Families and staff can search school contacts, understand privacy scope, and request messaging access through approval-safe workflows."
+      badges={['Search', 'Privacy scope', 'Approval requests', 'Data export ready']}
+      metrics={[
+        { label: 'Visibility', value: 'Scoped', badge: 'Privacy', trend: 'flat', description: 'Directory access respects role, school, and consent boundaries.' },
+        { label: 'Requests', value: status ? 'Sent' : 'Ready', badge: 'Approval', trend: 'up', description: 'Messaging access remains explicit and auditable.' },
+        { label: 'Search modes', value: '4', badge: 'Filters', trend: 'flat', description: 'Role, school, grade, and program filters share one surface.' },
+        { label: 'Compliance', value: 'Exportable', badge: 'DSAR', trend: 'up', description: 'Directory data supports privacy and export workflows.' }
+      ]}
+      aside={
+        <EnterprisePanel title="Directory controls" description="Privacy-first search and approval patterns.">
+          <EnterpriseWorkflowList
+            items={[
+              { label: 'Role filter', description: 'Find teachers, staff, counselors, and program partners.', status: 'Filter', tone: 'info' },
+              { label: 'Guardian consent', description: 'Private contact details stay hidden until approved.', status: 'Required', tone: 'warning' },
+              { label: 'Data export', description: 'Families can request directory-related data in settings.', status: 'Ready', tone: 'success' }
+            ]}
+          />
+        </EnterprisePanel>
+      }
+    >
+      <EnterpriseFilterBar searchLabel="Search school, teacher, staff, grade, or program" filters={['Teachers', 'Staff', 'Programs', 'My school', 'Privacy-safe']} />
+      <EnterprisePanel title="Message access request" description="Request permission to message a teacher or staff member directly from the directory.">
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <form onSubmit={submitRequest} className="space-y-3">
           <div className="grid gap-3 md:grid-cols-2">
@@ -85,6 +107,7 @@ export default function SchoolDirectory() {
           </div>
         </form>
       </div>
-    </div>
+      </EnterprisePanel>
+    </EnterpriseSurface>
   );
 }

@@ -7,10 +7,10 @@ import {
 import { FeatureRegistry } from '@/governance/featureRegistry';
 import { getPilotReadinessSnapshot } from '@/governance/pilotSnapshot';
 import { getGovernanceSummary } from '@/governance/driftSummary';
+import { EnterprisePanel, EnterpriseSurface } from '@/components/enterprise';
 
 /**
- * A minimal dashboard for founders to inspect governance state.
- * This page is intentionally simple and unstyled to discourage frequent use.
+ * Internal command panel for inspecting governance, launch gates, and experiments.
  */
 export default function FounderDashboard() {
   const events = getGovernanceEvents();
@@ -21,15 +21,28 @@ export default function FounderDashboard() {
   const driftSummary = getGovernanceSummary();
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold mb-4">Founder Control Panel</h1>
+    <EnterpriseSurface
+      eyebrow="Internal tools"
+      title="Founder command panel"
+      description="Internal diagnostics are styled as a secure command center with launch gates, experiment registry, governance drift, and audit-friendly event inspection."
+      badges={['Internal only', 'Audit logging', 'Launch gates', 'Experiment controls']}
+      metrics={[
+        { label: 'Launch gates', value: String(Object.keys(gates).length), badge: 'Tracked', trend: 'flat', description: 'Every launch gate stays visible for pilot decisions.' },
+        { label: 'Features', value: String(FeatureRegistry.length), badge: 'Registry', trend: 'up', description: 'Experiments and moments are reviewable.' },
+        { label: 'Governance events', value: String(events.length), badge: 'Audit', trend: 'flat', description: 'Recent internal events remain inspectable.' },
+        { label: 'Drift events', value: String(driftSummary.total), badge: 'Signal', trend: 'flat', description: 'Governance drift totals surface as KPIs.' }
+      ]}
+    >
+      <EnterprisePanel title="Moment Contract" description="The internal moment rules that govern parent surfaces.">
       <section aria-labelledby="moment-contract-heading" className="mb-6">
         <h2 id="moment-contract-heading" className="text-lg font-medium mb-2">Moment Contract</h2>
         <pre className="text-xs bg-gray-100 p-2 rounded">
           {JSON.stringify(MomentContract, null, 2)}
         </pre>
       </section>
+      </EnterprisePanel>
       {/* Launch Gates Section */}
+      <EnterprisePanel title="Launch Gates" description="Pilot readiness gates and status.">
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-2">Launch Gates</h2>
         <table className="text-xs w-full border-collapse">
@@ -55,7 +68,9 @@ export default function FounderDashboard() {
           </tbody>
         </table>
       </section>
+      </EnterprisePanel>
       {/* Feature Registry Section */}
+      <EnterprisePanel title="Feature Registry" description="Internal experiment and surface inventory.">
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-2">Feature Registry</h2>
         <table className="text-xs w-full border-collapse">
@@ -81,7 +96,9 @@ export default function FounderDashboard() {
           </tbody>
         </table>
       </section>
+      </EnterprisePanel>
       {/* Pilot Readiness Snapshot */}
+      <EnterprisePanel title="Pilot Readiness Snapshot" description="Current launch dimensions for staged rollout.">
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-2">Pilot Readiness Snapshot</h2>
         <table className="text-xs w-full border-collapse">
@@ -111,10 +128,12 @@ export default function FounderDashboard() {
           </tbody>
         </table>
       </section>
+      </EnterprisePanel>
       <section aria-labelledby="governance-events-heading">
         <h2 id="governance-events-heading" className="text-lg font-medium mb-2">Recent Governance Events</h2>
       </section>
       {/* Governance Drift Summary */}
+      <EnterprisePanel title="Governance Drift Summary" description="Drift counts by internal event type.">
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-2">Governance Drift Summary</h2>
         <p className="text-sm mb-2">
@@ -128,7 +147,9 @@ export default function FounderDashboard() {
           ))}
         </ul>
       </section>
+      </EnterprisePanel>
       {/* Recent Governance Events */}
+      <EnterprisePanel title="Recent Governance Events" description="Audit-friendly event stream for internal debugging.">
       <section>
         <h2 className="text-lg font-medium mb-2">Recent Governance Events</h2>
         {events.length === 0 ? (
@@ -143,6 +164,7 @@ export default function FounderDashboard() {
           </ul>
         )}
       </section>
-    </div>
+      </EnterprisePanel>
+    </EnterpriseSurface>
   );
 }

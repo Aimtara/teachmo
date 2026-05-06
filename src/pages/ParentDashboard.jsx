@@ -7,6 +7,12 @@ import { useTenantScope } from '@/hooks/useTenantScope';
 import WeeklyFamilyBriefCard from '@/components/dashboard/WeeklyFamilyBriefCard';
 import TodayActionsCard from '@/components/dashboard/TodayActionsCard';
 import {
+  EnterpriseComplianceStrip,
+  EnterprisePanel,
+  EnterpriseSurface,
+  EnterpriseWorkflowList
+} from '@/components/enterprise';
+import {
   completeAction,
   dismissAction,
   getLatestWeeklyBrief,
@@ -96,64 +102,71 @@ export default function ParentDashboard() {
     }
   };
 
+  const nextUpItems = [
+    ...events.slice(0, 2).map((event) => ({
+      label: event.title,
+      description: new Date(event.starts_at).toLocaleString(),
+      status: 'Event',
+      tone: 'info'
+    })),
+    ...activities.slice(0, 2).map((activity) => ({
+      label: activity.title,
+      description: `${activity.subject} · ${activity.grade_level}`,
+      status: 'Explore',
+      tone: 'success'
+    })),
+    ...threads.slice(0, 1).map((thread) => ({
+      label: thread.subject || 'Conversation',
+      description: thread.messages?.[0]?.content || 'Open the thread for details.',
+      status: 'Message',
+      tone: 'warning'
+    }))
+  ].slice(0, 3);
+
   return (
-    <div className="p-6 space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold">Parent dashboard</h1>
-        <p className="text-gray-600">Keep up with events, activities, and conversations.</p>
-      </header>
-
-      <section className="grid md:grid-cols-3 gap-4">
-        <WeeklyFamilyBriefCard brief={brief} onGenerate={generateBrief} loading={briefLoading} />
-
-        <TodayActionsCard
-          items={actions}
-          onComplete={onComplete}
-          onDismiss={onDismiss}
-          loading={actionsLoading}
+    <EnterpriseSurface
+      eyebrow="Parent Today"
+      title="Family day, simplified"
+      description="The parent dashboard follows the three-card rule: weekly brief, today actions, and one consolidated next-up card."
+      badges={['Three-card maximum', 'Weekly family brief', 'Unified Explore', 'Calm mode']}
+      metrics={[
+        { label: 'Default cards', value: '3', badge: 'Enforced', trend: 'down', description: 'The dashboard never exceeds three cards in the primary view.' },
+        { label: 'Queued actions', value: String(actions.length), badge: 'Relevant', trend: 'flat', description: 'Only the most timely family actions are visible.' },
+        { label: 'Next up', value: String(nextUpItems.length), badge: 'Curated', trend: 'up', description: 'Events, activities, and messages are consolidated.' },
+        { label: 'Weekly brief', value: brief ? 'Ready' : 'Generate', badge: 'Pinned', trend: 'flat', description: 'The weekly snapshot stays at the top of the experience.' }
+      ]}
+      aside={
+        <EnterpriseComplianceStrip
+          items={[
+            { label: 'Cognitive load guardrail', description: 'Primary view stays calm by limiting visible cards.' },
+            { label: 'Privacy-safe summaries', description: 'Messages and recommendations avoid exposing sensitive details.' },
+            { label: 'Unified Explore path', description: 'Activities, events, and library content roll into one Explore journey.' }
+          ]}
         />
+      }
+    >
+      <section className="grid gap-4 lg:grid-cols-3" aria-label="Parent Today three-card view">
+        <EnterprisePanel title="Weekly family brief" description="Persistent snapshot for the week.">
+          <WeeklyFamilyBriefCard brief={brief} onGenerate={generateBrief} loading={briefLoading} />
+        </EnterprisePanel>
 
-        <div className="bg-white shadow rounded p-4">
-          <h2 className="font-medium mb-2">Upcoming events</h2>
-          <ul className="space-y-2 text-sm">
-            {events.map((event) => (
-              <li key={event.id} className="border-b pb-2 last:border-0">
-                <p className="font-semibold">{event.title}</p>
-                <p className="text-gray-500">{new Date(event.starts_at).toLocaleString()}</p>
-              </li>
-            ))}
-            {events.length === 0 && <p className="text-gray-500">No events scheduled.</p>}
-          </ul>
-        </div>
+        <EnterprisePanel title="Today actions" description="The highest-priority family tasks only.">
+          <TodayActionsCard
+            items={actions}
+            onComplete={onComplete}
+            onDismiss={onDismiss}
+            loading={actionsLoading}
+          />
+        </EnterprisePanel>
 
-        <div className="bg-white shadow rounded p-4">
-          <h2 className="font-medium mb-2">Activities & library</h2>
-          <ul className="space-y-2 text-sm">
-            {activities.map((activity) => (
-              <li key={activity.id} className="border-b pb-2 last:border-0">
-                <p className="font-semibold">{activity.title}</p>
-                <p className="text-gray-500">{activity.subject} · {activity.grade_level}</p>
-              </li>
-            ))}
-            {activities.length === 0 && <p className="text-gray-500">Browse curated activities once your library is loaded.</p>}
-          </ul>
-        </div>
-
-        <div className="bg-white shadow rounded p-4">
-          <h2 className="font-medium mb-2">Messages</h2>
-          <ul className="space-y-2 text-sm">
-            {threads.map((thread) => (
-              <li key={thread.id} className="border-b pb-2 last:border-0">
-                <p className="font-semibold">{thread.subject || 'Conversation'}</p>
-                {thread.messages?.[0] && (
-                  <p className="text-gray-500 truncate">{thread.messages[0].content}</p>
-                )}
-              </li>
-            ))}
-            {threads.length === 0 && <p className="text-gray-500">Start a message thread from the Messages section.</p>}
-          </ul>
-        </div>
+        <EnterprisePanel title="Next up" description="Events, messages, and activities are consolidated into one card.">
+          {nextUpItems.length > 0 ? (
+            <EnterpriseWorkflowList items={nextUpItems} />
+          ) : (
+            <p className="text-sm text-[var(--enterprise-muted)]">No events, activities, or message threads need attention.</p>
+          )}
+        </EnterprisePanel>
       </section>
-    </div>
+    </EnterpriseSurface>
   );
 }

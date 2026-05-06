@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getRosterRun, listRosterAlerts, retryRosterRun } from '@/domains/integrations/rosterHealth';
+import { EnterprisePanel, EnterpriseSurface, EnterpriseWorkflowList } from '@/components/enterprise';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -85,11 +86,29 @@ export default function AdminIntegrationHealth() {
   }, [selectedAlert, loadRun]);
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Integration Sync Health</h1>
-        <p className="text-sm text-gray-600">Monitor SIS/LMS sync alerts, diagnostics, and remediation actions.</p>
-      </header>
+    <EnterpriseSurface
+      eyebrow="Integration and data health"
+      title="Roster sync operations hub"
+      description="District IT can configure integrations, reconcile data conflicts, inspect dead-letter events, and retry failed roster or LMS syncs."
+      badges={['Self-serve integrations', 'Data reconciliation', 'Dead-letter queue', 'Retry runbooks']}
+      metrics={[
+        { label: 'Active alerts', value: String(alerts.length), badge: 'Live', trend: alerts.length ? 'down' : 'flat', description: 'Roster alerts feed the remediation queue.' },
+        { label: 'Selected run', value: selectedRun?.status || 'None', badge: 'Diagnostic', trend: 'flat', description: 'Run-level details stay attached to alerts.' },
+        { label: 'Retry action', value: selectedAlert?.runId ? 'Ready' : 'Select', badge: 'Runbook', trend: 'up', description: 'Failed syncs can be restarted from the hub.' },
+        { label: 'Conflict tools', value: 'Mapped', badge: 'Reconcile', trend: 'up', description: 'CSV and SIS conflicts use the same workspace pattern.' }
+      ]}
+      aside={
+        <EnterprisePanel title="Data operations lanes" description="Readable technical queues for district IT.">
+          <EnterpriseWorkflowList
+            items={[
+              { label: 'Self-serve setup', description: 'OneRoster, Clever, ClassLink, Google Classroom, and CSV imports.', status: 'Configure', tone: 'info' },
+              { label: 'Reconciliation', description: 'Map orphaned students, duplicate guardians, and stale classes.', status: 'Resolve', tone: 'warning' },
+              { label: 'Dead-letter queue', description: 'Dropped notifications and failed API calls support one-click retry.', status: 'Retry', tone: 'danger' }
+            ]}
+          />
+        </EnterprisePanel>
+      }
+    >
 
       {error && <div className="bg-red-50 text-red-700 border border-red-200 p-3 rounded">{error}</div>}
       {success && <div className="bg-green-50 text-green-700 border border-green-200 p-3 rounded">{success}</div>}
@@ -190,6 +209,6 @@ export default function AdminIntegrationHealth() {
           )}
         </section>
       </div>
-    </div>
+    </EnterpriseSurface>
   );
 }
