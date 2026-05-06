@@ -9,7 +9,7 @@ const NAME_KEY_RE = /(^|_)(name|full_name|first_name|last_name|display_name|stud
 const SENSITIVE_KEY_RE =
   /(password|passcode|secret|token|jwt|authorization|cookie|session|api[_-]?key|email|phone|address|prompt|response|output|free[_-]?text|concern|note|disability|health|wellbeing|student[_-]?id|school[_-]?id|sis[_-]?id)/i;
 
-function redactString(value, replacement = '[REDACTED]') {
+function redactString(value) {
   return String(value)
     .replace(EMAIL_RE, '[redacted-email]')
     .replace(PHONE_RE, '[redacted-phone]')

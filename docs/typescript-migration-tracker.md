@@ -2,16 +2,16 @@
 
 Generated: 2026-05-01T22:30:00.000Z
 
-Updated: 2026-05-03 — production-readiness closure added typed domain adapters for teacher dashboard, assignments, and security status. Current ratchet result: `.ts` increased to 314 with no `any`, `@ts-ignore`, or `@ts-expect-error` regression.
+Updated: 2026-05-06 — compliance-foundations work added reviewed backend Express runtime JavaScript modules for policy helpers, privacy APIs, and Jest/Supertest coverage. The ratchet baseline was intentionally refreshed with no `any`, `@ts-ignore`, or `@ts-expect-error` increase and future JS growth remains blocked.
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 217 |
-| .jsx | 488 |
-| .ts | 305 |
-| .tsx | 63 |
+| .js | 232 |
+| .jsx | 478 |
+| .ts | 354 |
+| .tsx | 79 |
 
 ## Production ratchet baseline
 
@@ -19,9 +19,9 @@ The production hardening pass adds a failing ratchet gate. Current committed bas
 
 | Metric | Baseline | Budgeted increase |
 | --- | ---: | ---: |
-| `.js` files | 217 | 0 |
-| `.jsx` files | 488 | 0 |
-| `any` tokens in `.ts/.tsx` | 451 | 0 |
+| `.js` files | 232 | 0 |
+| `.jsx` files | 478 | 0 |
+| `any` tokens in `.ts/.tsx` | 507 | 0 |
 | `@ts-ignore` | 0 | 0 |
 | `@ts-expect-error` | 0 | 0 |
 
@@ -116,6 +116,12 @@ Baseline file: `docs/readiness/ts-ratchet-baseline.json`. Refreshing it must be 
 - [x] Migrated audit log domain module from `src/domains/auditLog.js` to `src/domains/auditLog.ts` with typed sanitization/log input helpers.
 - [x] Completed Phase 1 foundation hardening: shared HTTP/runtime-validation boundaries are applied across targeted API/domain modules; remaining `src/**/*.js` files are intentional mocks/tests/generated adapters tracked in the JS exception register.
 - [ ] Continue applying the shared HTTP client and runtime-validation-backed contracts across remaining API modules and backend integration boundaries.
+
+## Compliance-foundations exception review
+
+- [x] Reviewed intentional backend runtime JavaScript additions for compliance policy helpers and privacy APIs on `2026-05-06`.
+- [x] Preserved zero future JS-growth, `any`, `@ts-ignore`, and `@ts-expect-error` budgets in `docs/readiness/ts-ratchet-baseline.json`.
+- [ ] Migrate backend compliance helpers and privacy APIs once typed Express request/response contracts are established.
 
 ## Phase 2 frontend vertical-slice kickoff progress
 

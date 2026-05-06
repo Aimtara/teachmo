@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-05-05T12:50:00.000Z",
-  "commit": "88cf993",
+  "generatedAt": "2026-05-06T17:05:00.000Z",
+  "commit": "be7d18d",
   "counts": {
-    "js": 219,
+    "js": 232,
     "jsx": 478,
-    "ts": 345,
+    "ts": 354,
     "tsx": 79,
     "any": 507,
     "tsIgnore": 0,
@@ -17,13 +17,19 @@
     "allowTsIgnoreIncrease": 0,
     "allowTsExpectErrorIncrease": 0
   },
-  "notes": "Updated after the May 5 repository refresh and API-boundary adapter burn-down. JSX/TS/TSX counts reflect upstream Storybook/E2E/docs-related additions plus new domain adapters; explicit any decreased from the previous closure baseline and future JS/any growth remains blocked.",
+  "notes": "Updated after the May 6 compliance-foundations branch added backend Express runtime policy modules and privacy API tests. Future JS/any growth remains blocked.",
   "exceptions": [
     {
       "reason": "Repository refresh added UI story/E2E surfaces while adapter burn-down added typed domain modules. This refreshed baseline records the reviewed file-count increase while preserving no parser/no-undef lint debt and lowering explicit `any` from 512 to 507.",
       "owner": "TypeScript Migration Owner",
       "targetDate": "2026-07-31",
       "followUp": "Replace broad admin/domain `any` usage with explicit API contracts after pilot gate validation."
+    },
+    {
+      "reason": "Compliance-foundations branch added backend Express runtime JavaScript modules for data classification, access policy, consent, redaction, audit, data lifecycle, AI governance, remediation backlog, route policy manifest, privacy routes, and Jest/Supertest coverage. These are intentional backend runtime exceptions until backend route contracts are migrated together.",
+      "owner": "Backend Platform",
+      "targetDate": "2026-09-30",
+      "followUp": "Migrate backend compliance helpers and privacy APIs after typed Express request/response contracts are established."
     }
   ]
 }

@@ -20,8 +20,6 @@ const SENSITIVE_KEY_RE =
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 const PHONE_RE = /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/;
 const SSN_RE = /\b\d{3}-\d{2}-\d{4}\b/;
-const EMAIL_RE_GLOBAL = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
-const PHONE_RE_GLOBAL = /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g;
 const SSN_RE_GLOBAL = /\b\d{3}-\d{2}-\d{4}\b/g;
 const LONG_TOKEN_RE = /[A-Za-z0-9+/_=-]{32,}/;
 
