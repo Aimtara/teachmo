@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Command, Mic, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EnterpriseBadge } from './EnterpriseBadge';
 
@@ -78,7 +77,7 @@ export function EnterpriseCommandPalette({ commands = [], onCommand, roleLabel =
         aria-label="Open command palette with Ctrl+K"
       >
         <span className="flex items-center gap-3 text-[var(--enterprise-muted)]">
-          <Search className="h-4 w-4" aria-hidden="true" />
+          <span aria-hidden="true">/</span>
           Search, navigate, or ask ambient AI
         </span>
         <span className="rounded-lg border border-[var(--enterprise-border)] px-2 py-1 text-xs text-[var(--enterprise-muted)]">
@@ -95,7 +94,7 @@ export function EnterpriseCommandPalette({ commands = [], onCommand, roleLabel =
             aria-label="Global command palette"
           >
             <div className="flex items-center gap-3 border-b border-[var(--enterprise-border)] p-4">
-              <Command className="h-5 w-5 text-[var(--enterprise-primary)]" aria-hidden="true" />
+              <span className="font-mono text-[var(--enterprise-primary)]" aria-hidden="true">cmd</span>
               <input
                 ref={inputRef}
                 value={query}
@@ -105,15 +104,15 @@ export function EnterpriseCommandPalette({ commands = [], onCommand, roleLabel =
                 aria-label="Search commands"
               />
               <button className="enterprise-focus rounded-lg p-2" type="button" onClick={startVoiceCommand} aria-label="Start voice command">
-                <Mic className="h-4 w-4" aria-hidden="true" />
+                <span aria-hidden="true">mic</span>
               </button>
               <button className="enterprise-focus rounded-lg p-2" type="button" onClick={() => setOpen(false)} aria-label="Close command palette">
-                <X className="h-4 w-4" aria-hidden="true" />
+                <span aria-hidden="true">x</span>
               </button>
             </div>
 
             <div className="flex items-center gap-2 border-b border-[var(--enterprise-border)] px-4 py-3 text-sm text-[var(--enterprise-muted)]">
-              <Bot className="h-4 w-4" aria-hidden="true" />
+              <span aria-hidden="true">AI</span>
               Ambient AI stays quiet until critical approvals, security, or adoption risk appears.
               <EnterpriseBadge variant="info">Role aware</EnterpriseBadge>
             </div>

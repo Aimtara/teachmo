@@ -15,6 +15,10 @@ const DiscoverRoute = () => (
 // Vite can statically replace flags in production bundles as well as dev.
 const ENABLE_INTERNAL_ROUTES =
   import.meta.env.DEV || envFlag('VITE_ENABLE_INTERNAL_ROUTES', { defaultValue: false, env: import.meta.env });
+const INCLUDE_INTERNAL_ROUTE_COMPONENTS =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_INTERNAL_ROUTES === 'true';
+
+const InternalRouteDisabled = () => <Navigate to="/" replace />;
 
 function isRouteBypassEnabled() {
   const appEnv = getAppEnv(import.meta.env);
@@ -347,7 +351,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'AdminCommandCenter',
     path: '/admin/command-center',
-    Component: lazy(() => import('@/pages/AdminCommandCenter')),
+    Component: INCLUDE_INTERNAL_ROUTE_COMPONENTS ? lazy(() => import('@/pages/AdminCommandCenter')) : InternalRouteDisabled,
     requiresAuth: true,
     allowedRoles: ['system_admin'],
     requiredScopes: ['system:manage'],
@@ -367,7 +371,7 @@ export const ROUTE_DEFINITIONS = [
   {
     name: 'CommandCenter',
     path: '/internal/command-center',
-    Component: lazy(() => import('@/pages/CommandCenter')),
+    Component: INCLUDE_INTERNAL_ROUTE_COMPONENTS ? lazy(() => import('@/pages/CommandCenter')) : InternalRouteDisabled,
     requiresAuth: true,
     allowedRoles: ['system_admin'],
     requiredScopes: ['system:manage'],

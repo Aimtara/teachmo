@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Save, Search, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EnterpriseBadge } from './EnterpriseBadge';
 
@@ -132,7 +131,7 @@ export function EnterpriseDataTable({
       <div className="flex flex-col gap-3 border-b border-[var(--enterprise-border)] p-4 lg:flex-row lg:items-center lg:justify-between">
         <label className="relative flex-1 text-sm">
           <span className="sr-only">Search rows</span>
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--enterprise-muted)]" aria-hidden="true" />
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--enterprise-muted)]" aria-hidden="true">/</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -143,7 +142,7 @@ export function EnterpriseDataTable({
         <div className="flex flex-wrap items-center gap-2">
           <details className="relative">
             <summary className="enterprise-focus enterprise-motion flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--enterprise-border)] px-3 py-2 text-sm text-[var(--enterprise-foreground)] hover:-translate-y-0.5">
-              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              <span aria-hidden="true">[ ]</span>
               Columns
             </summary>
             <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-[var(--enterprise-border)] bg-[var(--enterprise-surface)] p-3 shadow-[var(--enterprise-shadow)]">
@@ -167,12 +166,11 @@ export function EnterpriseDataTable({
             aria-label="Saved view name"
           />
           <button className="enterprise-focus enterprise-motion rounded-xl border border-[var(--enterprise-border)] px-3 py-2 text-sm hover:-translate-y-0.5" onClick={saveView}>
-            <Save className="mr-1 inline h-4 w-4" aria-hidden="true" />
+            <span className="mr-1" aria-hidden="true">+</span>
             Save
           </button>
           <button className="enterprise-focus enterprise-motion rounded-xl border border-[var(--enterprise-border)] px-3 py-2 text-sm hover:-translate-y-0.5" onClick={exportCsv}>
-            <Download className="mr-1 inline h-4 w-4" aria-hidden="true" />
-            CSV
+            Export CSV
           </button>
         </div>
       </div>

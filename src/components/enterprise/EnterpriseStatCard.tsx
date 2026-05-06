@@ -1,11 +1,10 @@
-import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EnterpriseBadge } from './EnterpriseBadge';
 
 const trendIcons = {
-  up: ArrowUpRight,
-  down: ArrowDownRight,
-  flat: Minus
+  up: '+',
+  down: '-',
+  flat: '='
 };
 
 const trendVariant = {
@@ -23,7 +22,7 @@ export function EnterpriseStatCard({
   description,
   className
 }) {
-  const TrendIcon = trendIcons[trend] ?? Minus;
+  const trendIcon = trendIcons[trend] ?? '=';
 
   return (
     <article
@@ -42,7 +41,7 @@ export function EnterpriseStatCard({
           {value}
         </p>
         <EnterpriseBadge variant={trendVariant[trend] ?? 'neutral'} aria-label={`Trend ${trend}`}>
-          <TrendIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          <span aria-hidden="true">{trendIcon}</span>
           {trend}
         </EnterpriseBadge>
       </div>

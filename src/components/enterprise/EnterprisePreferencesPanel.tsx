@@ -1,4 +1,3 @@
-import { Bell, Home, Palette } from 'lucide-react';
 import { enterpriseRoles } from '@/design/tokens';
 
 const themes = [
@@ -22,7 +21,7 @@ export function EnterprisePreferencesPanel({ preferences, setPreference }) {
             Role, density, landing page, and notification settings persist locally.
           </p>
         </div>
-        <Palette className="h-5 w-5 text-[var(--enterprise-primary)]" aria-hidden="true" />
+        <span className="text-sm font-semibold text-[var(--enterprise-primary)]" aria-hidden="true">Theme</span>
       </div>
 
       <div className="mt-4 grid gap-3">
@@ -69,7 +68,6 @@ export function EnterprisePreferencesPanel({ preferences, setPreference }) {
         </label>
 
         <label className="text-sm font-medium text-[var(--enterprise-foreground)]">
-          <Home className="mr-1 inline h-4 w-4" aria-hidden="true" />
           Landing page
           <input
             className="enterprise-focus mt-1 w-full rounded-xl border border-[var(--enterprise-border)] bg-transparent px-3 py-2"
@@ -79,7 +77,6 @@ export function EnterprisePreferencesPanel({ preferences, setPreference }) {
         </label>
 
         <label className="text-sm font-medium text-[var(--enterprise-foreground)]">
-          <Bell className="mr-1 inline h-4 w-4" aria-hidden="true" />
           Notifications
           <select
             className="enterprise-focus mt-1 w-full rounded-xl border border-[var(--enterprise-border)] bg-transparent px-3 py-2"

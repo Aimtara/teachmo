@@ -1,30 +1,18 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  BarChart3,
-  Bot,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Gauge,
-  LockKeyhole,
-  Search,
-  Settings,
-  ShieldCheck
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { enterpriseRoles } from '@/design/tokens';
 import { EnterpriseBadge } from './EnterpriseBadge';
 import { EnterpriseCommandPalette } from './EnterpriseCommandPalette';
 
 const navItems = [
-  { label: 'Overview', href: '/admin', icon: Gauge },
-  { label: 'Command Center', href: '/admin/command-center', icon: Search },
-  { label: 'Audit Logs', href: '/admin/audit-logs', icon: FileText },
-  { label: 'SSO Policy', href: '/admin/sso', icon: LockKeyhole },
-  { label: 'AI Governance', href: '/admin/ai-governance', icon: Bot },
-  { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { label: 'Settings', href: '/admin/tenant-settings', icon: Settings }
+  { label: 'Overview', href: '/admin', mark: 'OV' },
+  { label: 'Command Center', href: '/admin/command-center', mark: 'CC' },
+  { label: 'Audit Logs', href: '/admin/audit-logs', mark: 'AU' },
+  { label: 'SSO Policy', href: '/admin/sso', mark: 'SS' },
+  { label: 'AI Governance', href: '/admin/ai-governance', mark: 'AI' },
+  { label: 'Analytics', href: '/admin/analytics', mark: 'AN' },
+  { label: 'Settings', href: '/admin/tenant-settings', mark: 'SE' }
 ];
 
 export function EnterpriseShell({
@@ -53,12 +41,11 @@ export function EnterpriseShell({
               onClick={() => setCollapsed((value) => !value)}
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              <span aria-hidden="true">{collapsed ? '>' : '<'}</span>
             </button>
           </div>
           <nav className="mt-8 space-y-2">
             {navItems.map((item) => {
-              const Icon = item.icon;
               const active = item.label === 'Command Center';
               return (
                 <Link
@@ -71,7 +58,9 @@ export function EnterpriseShell({
                       : 'text-[var(--enterprise-muted)] hover:bg-[color-mix(in_srgb,var(--enterprise-primary)_8%,transparent)] hover:text-[var(--enterprise-foreground)]'
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-current text-[10px]" aria-hidden="true">
+                    {item.mark}
+                  </span>
                   <span className={cn(collapsed && 'sr-only')}>{item.label}</span>
                 </Link>
               );
@@ -94,7 +83,6 @@ export function EnterpriseShell({
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
                   <EnterpriseBadge variant="success">
-                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                     WCAG AA tokens
                   </EnterpriseBadge>
                 </div>
