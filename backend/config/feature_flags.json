@@ -10,9 +10,12 @@
     {
       "key": "COMMUNITY",
       "description": "Enable community forums and peer collaboration features.",
-      "defaultEnabled": true,
+      "defaultEnabled": false,
       "owner": "product",
-      "testMatrix": ["community_default_on"]
+      "reason": "Disabled until student/community content consent, moderation, audit, retention, and export gates are complete.",
+      "requiredGates": ["guardian_relationships", "media_or_community_display_consent", "pii_redaction", "audit_logging"],
+      "environmentOverrides": {},
+      "testMatrix": ["community_flagged_off"]
     },
     {
       "key": "CALENDAR",
@@ -26,6 +29,9 @@
       "description": "Enable in-app messaging.",
       "defaultEnabled": false,
       "owner": "product",
+      "reason": "Disabled until relationship, tenant, consent, delivery, redaction, and audit gates are complete.",
+      "requiredGates": ["guardian_relationships", "messaging_consent", "tenant_isolation", "pii_redaction", "audit_logging"],
+      "environmentOverrides": {},
       "testMatrix": ["messaging_flagged_off"]
     },
     {
@@ -33,6 +39,9 @@
       "description": "Enable office hours availability and booking v0.",
       "defaultEnabled": false,
       "owner": "learning",
+      "reason": "Disabled until school scope, messaging consent, calendar privacy, and audit gates are complete.",
+      "requiredGates": ["school_scope", "messaging_consent", "calendar_privacy", "audit_logging"],
+      "environmentOverrides": {},
       "testMatrix": ["office_hours_flagged_off"]
     },
     {
@@ -40,6 +49,9 @@
       "description": "Expose the AI assistant surfaces in the UI.",
       "defaultEnabled": false,
       "owner": "ai",
+      "reason": "Disabled until AI consent, advisory-only output, human review, trace redaction, and audit gates are complete.",
+      "requiredGates": ["ai_assistance_consent", "final_decision_block", "human_review", "ai_trace_redaction", "audit_logging"],
+      "environmentOverrides": {},
       "testMatrix": ["ai_assistant_flagged_off"]
     },
     {
@@ -54,6 +66,9 @@
       "description": "Enable teacher assignment management.",
       "defaultEnabled": false,
       "owner": "learning",
+      "reason": "Disabled until class/student scope and education-record lifecycle gates are complete.",
+      "requiredGates": ["class_scope", "student_scope", "data_lifecycle", "audit_logging"],
+      "environmentOverrides": {},
       "testMatrix": ["teacher_assignments_flagged_off"]
     },
     {
@@ -61,6 +76,9 @@
       "description": "Enable teacher messaging tools.",
       "defaultEnabled": false,
       "owner": "learning",
+      "reason": "Disabled until parent/teacher relationship, consent, delivery, redaction, and audit gates are complete.",
+      "requiredGates": ["guardian_relationships", "messaging_consent", "delivery_queue", "pii_redaction", "audit_logging"],
+      "environmentOverrides": {},
       "testMatrix": ["teacher_messages_flagged_off"]
     },
     {
@@ -68,6 +86,9 @@
       "description": "Expose partner portal navigation and workflows.",
       "defaultEnabled": false,
       "owner": "partnerships",
+      "reason": "Disabled until subprocessor, advertising/sale prohibition, tenant, and audit gates are complete.",
+      "requiredGates": ["subprocessor_review", "no_student_data_sale", "tenant_isolation", "audit_logging"],
+      "environmentOverrides": {},
       "testMatrix": ["partner_portal_flagged_off"]
     },
     {
@@ -139,6 +160,96 @@
       "defaultEnabled": false,
       "owner": "platform",
       "testMatrix": ["i18n_flagged_off"]
+    },
+    {
+      "key": "GAMIFICATION",
+      "description": "Enable points, badges, and achievement loops involving students.",
+      "defaultEnabled": false,
+      "owner": "product",
+      "reason": "Disabled until student profiling, consent, accessibility, and analytics gates are complete.",
+      "requiredGates": ["data_classification", "child_data_consent", "optional_analytics_consent", "accessibility_smoke"],
+      "environmentOverrides": {},
+      "testMatrix": ["gamification_flagged_off"]
+    },
+    {
+      "key": "LEADERBOARDS",
+      "description": "Enable comparative student leaderboards.",
+      "defaultEnabled": false,
+      "owner": "product-security",
+      "reason": "Disabled because ranking students is high-stakes and requires AI/student privacy review.",
+      "requiredGates": ["ai_high_stakes_review", "student_data_minimization", "school_authorization"],
+      "environmentOverrides": {},
+      "testMatrix": ["leaderboards_flagged_off"]
+    },
+    {
+      "key": "RANKINGS",
+      "description": "Enable student, class, or school rankings.",
+      "defaultEnabled": false,
+      "owner": "product-security",
+      "reason": "Disabled until ranking use cases pass high-stakes AI and education-record review.",
+      "requiredGates": ["ai_high_stakes_review", "human_review", "audit_logging"],
+      "environmentOverrides": {},
+      "testMatrix": ["rankings_flagged_off"]
+    },
+    {
+      "key": "CHALLENGES",
+      "description": "Enable public or class-wide student challenges.",
+      "defaultEnabled": false,
+      "owner": "product",
+      "reason": "Disabled until child participation, community display, and accessibility gates are complete.",
+      "requiredGates": ["guardian_relationships", "media_or_community_display_consent", "moderation", "accessibility_smoke"],
+      "environmentOverrides": {},
+      "testMatrix": ["challenges_flagged_off"]
+    },
+    {
+      "key": "ASSIGNMENT_SYNC",
+      "description": "Enable external assignment sync from LMS/SIS systems.",
+      "defaultEnabled": false,
+      "owner": "integrations",
+      "reason": "Disabled until tenant isolation, roster mapping, deletion/export, and subprocessor gates are complete.",
+      "requiredGates": ["tenant_isolation", "roster_review", "data_lifecycle", "subprocessor_review"],
+      "environmentOverrides": {},
+      "testMatrix": ["assignment_sync_flagged_off"]
+    },
+    {
+      "key": "AI_SENSITIVE_RECOMMENDATIONS",
+      "description": "Enable AI recommendations that may affect students.",
+      "defaultEnabled": false,
+      "owner": "ai",
+      "reason": "Disabled until advisory-only labels, human review, consent, redaction, and audit gates are complete.",
+      "requiredGates": ["ai_assistance_consent", "human_review", "final_decision_block", "ai_trace_redaction"],
+      "environmentOverrides": {},
+      "testMatrix": ["ai_sensitive_recommendations_flagged_off"]
+    },
+    {
+      "key": "ADMIN_ANALYTICS_SENSITIVE",
+      "description": "Enable admin analytics pages that expose sensitive student or family data.",
+      "defaultEnabled": false,
+      "owner": "compliance",
+      "reason": "Disabled until tenant-scoped admin access, aggregation thresholds, and audit gates are complete.",
+      "requiredGates": ["rbac_abac", "tenant_isolation", "audit_logging", "pii_redaction"],
+      "environmentOverrides": {},
+      "testMatrix": ["admin_analytics_sensitive_flagged_off"]
+    },
+    {
+      "key": "SAFESPACE_EMERGENCY_NOTIFIER",
+      "description": "Enable SafeSpace or emergency notifier workflows.",
+      "defaultEnabled": false,
+      "owner": "safety",
+      "reason": "Disabled until safety escalation, incident response, PPRA review, and human review gates are complete.",
+      "requiredGates": ["incident_workflow", "human_review", "ppra_review", "audit_logging"],
+      "environmentOverrides": {},
+      "testMatrix": ["safespace_emergency_notifier_flagged_off"]
+    },
+    {
+      "key": "LTI_DEEP_INTEGRATIONS",
+      "description": "Enable LTI 1.3 and deeper LMS integrations beyond basic launch.",
+      "defaultEnabled": false,
+      "owner": "integrations",
+      "reason": "Disabled until tenant isolation, assignment sync, subprocessor, and deletion/export gates are complete.",
+      "requiredGates": ["tenant_isolation", "assignment_sync_review", "subprocessor_review", "data_lifecycle"],
+      "environmentOverrides": {},
+      "testMatrix": ["lti_deep_integrations_flagged_off"]
     }
   ]
 }

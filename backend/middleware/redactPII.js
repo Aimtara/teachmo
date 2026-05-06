@@ -13,6 +13,8 @@
  * `app.use(redactPII())` before any routes that may emit logs.
  */
 
+import { redactPII as redactCompliancePII } from '../compliance/redaction.js';
+
 const SENSITIVE_KEY_RE =
   /(password|passcode|secret|token|jwt|authorization|cookie|session|api[_-]?key|bearer|refresh|access[_-]?token|id[_-]?token|ssn|social|dob|^email$|^email_.*|.*_email$|^address$|^address_.*|.*_address$|^phone$|^phone_.*|.*_phone$)/i;
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
@@ -25,11 +27,7 @@ const LONG_TOKEN_RE = /[A-Za-z0-9+/_=-]{32,}/;
 
 export function redactPII(input) {
   if (input == null) return input;
-
-  return String(input)
-    .replace(EMAIL_RE_GLOBAL, '[redacted-email]')
-    .replace(PHONE_RE_GLOBAL, '[redacted-phone]')
-    .replace(SSN_RE_GLOBAL, '[redacted-ssn]');
+  return redactCompliancePII(String(input)).replace(SSN_RE_GLOBAL, '[redacted-ssn]');
 }
 
 function redactValue(value, depth = 0, maxDepth = 4) {
