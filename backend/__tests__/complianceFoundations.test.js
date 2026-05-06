@@ -54,6 +54,10 @@ import {
   getCriticalRemediationPlan,
   getOpenGaps,
 } from '../compliance/remediationBacklog.js';
+import {
+  assertRoutePolicyCoverage,
+  getRoutePolicy,
+} from '../compliance/routePolicyManifest.js';
 
 const actor = {
   id: 'guardian-1',
@@ -402,5 +406,20 @@ describe('Remaining gap remediation backlog', () => {
       expect(gap.acceptanceCriteria.length).toBeGreaterThan(0);
     });
     expect(getOpenGaps({ priority: 'P1' }).some((gap) => gap.id === 'GAP-012')).toBe(true);
+  });
+});
+
+describe('Route policy manifest', () => {
+  test('sensitive routes declare classification, authorization, consent, and audit controls', () => {
+    expect(assertRoutePolicyCoverage()).toBe(true);
+    expect(getRoutePolicy('privacy.consents.create').requiredControls).toEqual(
+      expect.arrayContaining(['auth', 'tenant', 'consent_scope_validation', 'audit']),
+    );
+    expect(getRoutePolicy('privacy.exports.request').requiredControls).toEqual(
+      expect.arrayContaining(['auth', 'tenant', 'subject_or_admin', 'audit']),
+    );
+    expect(getRoutePolicy('ai.completion').requiredControls).toEqual(
+      expect.arrayContaining(['auth', 'tenant', 'feature_flag', 'ai_governance', 'audit']),
+    );
   });
 });

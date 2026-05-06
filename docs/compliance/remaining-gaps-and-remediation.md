@@ -39,3 +39,11 @@ The source of truth for open gaps is `backend/compliance/remediationBacklog.js`.
 - Every closed gap needs automated tests, a redacted artifact, or a documented manual evidence packet.
 - Every exception needs an owner, expiration, compensating control, and release approval.
 - No item in this plan is a legal compliance guarantee; legal/vendor/procurement review remains separate.
+
+## In-progress remediation delivered in this branch
+
+- `GAP-001`: `backend/compliance/routePolicyManifest.js` now records sensitive route classification and required controls for privacy, DSAR, deletion, and AI routes.
+- `GAP-003`: `backend/routes/privacy.js` now scaffolds tenant-scoped consent grant, revoke, and history APIs backed by `public.consent_ledger`.
+- `GAP-004`: `backend/routes/privacy.js` now scaffolds guardian relationship create, verify, revoke, and dispute APIs backed by `public.guardian_student_relationships`.
+- `GAP-005`: `backend/routes/privacy.js` now scaffolds tenant-scoped export and deletion request APIs backed by `public.data_lifecycle_requests`.
+- `backend/__tests__/privacyRoutes.test.js` verifies consent audit, revocation history, school-admin relationship verification, and fail-closed student lifecycle access.
