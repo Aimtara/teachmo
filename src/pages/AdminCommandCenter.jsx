@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuthenticationStatus, useUserData } from '@nhost/react';
 import { toast } from 'sonner';
@@ -126,21 +126,21 @@ export default function AdminCommandCenter() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditRows, setAuditRows] = useState([]);
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     setLoading(true);
     try {
       const data = await listOrchestratorActions();
       const rows = data?.orchestrator_actions ?? [];
       setActions(rows);
       setError(null);
-      if (!selectedId && rows.length > 0) setSelectedId(rows[0].id);
+      setSelectedId((current) => current || rows[0]?.id || null);
     } catch (err) {
       console.error(err);
       setError(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const loadAudit = async (entityId) => {
     if (!entityId) return;
@@ -159,7 +159,7 @@ export default function AdminCommandCenter() {
   useEffect(() => {
     if (!isAuthenticated) return;
     reload();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, reload]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -285,7 +285,7 @@ export default function AdminCommandCenter() {
         run: () => setPreference('theme', 'highContrast')
       }
     ],
-    [setPreference]
+    [reload, setPreference]
   );
 
   const handleCommand = (command) => {
@@ -392,9 +392,10 @@ export default function AdminCommandCenter() {
             </select>
             <button
               onClick={reload}
+              disabled={loading}
               className="enterprise-focus enterprise-motion rounded-xl bg-[var(--enterprise-primary)] px-4 py-2 text-sm font-semibold text-white hover:-translate-y-0.5"
             >
-              Refresh
+              {loading ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
 
