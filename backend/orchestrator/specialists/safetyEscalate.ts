@@ -7,8 +7,9 @@ const safetyEscalate: Specialist = {
     return ['schoolId'];
   },
   execute({ input }) {
+    const safety = input.safety && typeof input.safety === 'object' ? (input.safety as Record<string, unknown>) : {};
     return {
-      category: stringOrNull(input.safety?.level) || 'SENSITIVE',
+      category: stringOrNull(safety.level) || 'SENSITIVE',
       status: 'review'
     };
   },

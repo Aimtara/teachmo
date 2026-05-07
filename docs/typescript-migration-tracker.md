@@ -1,14 +1,14 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-05-07T08:43:01.473Z
+Generated: 2026-05-07T08:46:59.859Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 193 |
+| .js | 190 |
 | .jsx | 478 |
-| .ts | 400 |
+| .ts | 404 |
 | .tsx | 91 |
 
 ## JS/TS inventory by top-level directory
@@ -16,7 +16,7 @@ Generated: 2026-05-07T08:43:01.473Z
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
 | src | 7 | 477 | 244 | 91 |
-| backend | 146 | 0 | 46 | 0 |
+| backend | 143 | 0 | 50 | 0 |
 | nhost | 32 | 0 | 87 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
 | public | 1 | 0 | 0 | 0 |
@@ -41,7 +41,7 @@ Generated: 2026-05-07T08:43:01.473Z
 
 | Path | JS count | TS count | Priority | Owner placeholder | Current blocker | Next action | Exit criterion |
 | --- | ---: | ---: | --- | --- | --- | --- | --- |
-| backend/orchestrator | 5 | 33 | P0 | Backend Platform DRI | Schemas, state/store contracts, and engine coordination remain runtime JavaScript. | Convert schema and pure state helpers before stores and engine. | 0 runtime JS files outside reviewed shims; backend typecheck covers migrated modules. |
+| backend/orchestrator | 2 | 37 | P0 | Backend Platform DRI | Schemas, state/store contracts, and engine coordination remain runtime JavaScript. | Convert schema and pure state helpers before stores and engine. | 0 runtime JS files outside reviewed shims; backend typecheck covers migrated modules. |
 | backend/compliance | 0 | 10 | P0 | Security & Compliance DRI | Policy helpers and AI governance still rely on JavaScript-only contracts. | Convert data classification, redaction, audit, consent, and AI governance helpers. | 0 runtime JS files outside reviewed shims; compliance foundation tests pass. |
 | backend/routes/orchestrator.js | 1 | 0 | P0 | Backend Platform DRI | Depends on typed orchestrator helpers plus authenticated/tenant request contracts. | Convert after orchestrator engine/store modules compile cleanly. | Route is TypeScript with Zod-narrowed request bodies and unchanged mount behavior. |
 | backend/routes/compliance.js | 1 | 0 | P0 | Security & Compliance DRI | Depends on typed compliance helpers and shared Express request contracts. | Convert after compliance policy helpers compile cleanly. | Route is TypeScript with tenant/auth contracts and unchanged DSAR SQL semantics. |

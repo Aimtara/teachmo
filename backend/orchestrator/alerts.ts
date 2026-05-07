@@ -1,14 +1,69 @@
 /* eslint-env node */
-import { orchestratorAlertRoutes, orchestratorEscalationPolicies, orchestratorAlertDeliveries, nextId } from '../models.js';
+import * as models from '../models.js';
 import { incrementOrchestratorCounter } from '../metrics.js';
+
+interface AlertRoute {
+  id: number;
+  name: string;
+  channel: string;
+  target: string;
+  enabled: boolean;
+  metadata: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface EscalationPolicy {
+  id: number;
+  name: string;
+  enabled: boolean;
+  routes: unknown[];
+  rules: unknown[];
+  metadata: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface AlertDelivery extends Record<string, unknown> {
+  id: number;
+  routeId: number;
+  channel: string;
+  target: string;
+  status: string;
+  createdAt: string;
+}
+
+interface AlertPayload extends Record<string, unknown> {
+  id?: string | number | null;
+  name?: string | null;
+  channel?: string;
+  target?: string | null;
+  enabled?: boolean;
+  metadata?: Record<string, unknown>;
+  routes?: unknown[];
+  rules?: unknown[];
+  alert?: Record<string, unknown>;
+}
+
+const {
+  orchestratorAlertRoutes,
+  orchestratorEscalationPolicies,
+  orchestratorAlertDeliveries,
+  nextId
+} = models as unknown as {
+  orchestratorAlertRoutes: AlertRoute[];
+  orchestratorEscalationPolicies: EscalationPolicy[];
+  orchestratorAlertDeliveries: AlertDelivery[];
+  nextId: (name: string) => number;
+};
 
 const nowIso = () => new Date().toISOString();
 
-export function listAlertRoutes() {
+export function listAlertRoutes(): AlertRoute[] {
   return orchestratorAlertRoutes;
 }
 
-export function upsertAlertRoute(payload) {
+export function upsertAlertRoute(payload: AlertPayload) {
   const {
     id = null,
     name = null,
@@ -49,7 +104,7 @@ export function upsertAlertRoute(payload) {
   return { route };
 }
 
-export function testAlertRoute(routeId, payload = {}) {
+export function testAlertRoute(routeId: string | number, payload: Record<string, unknown> = {}) {
   const route = orchestratorAlertRoutes.find((r) => r.id === Number(routeId));
   if (!route) return { error: 'route_not_found' };
 
@@ -71,11 +126,11 @@ export function testAlertRoute(routeId, payload = {}) {
   return { route, delivery };
 }
 
-export function listEscalationPolicies() {
+export function listEscalationPolicies(): EscalationPolicy[] {
   return orchestratorEscalationPolicies;
 }
 
-export function upsertEscalationPolicy(payload) {
+export function upsertEscalationPolicy(payload: AlertPayload) {
   const { id = null, name = null, enabled = true, routes = [], rules = [], metadata = {} } = payload || {};
 
   const existing = id ? orchestratorEscalationPolicies.find((policy) => policy.id === Number(id)) : null;
@@ -105,9 +160,9 @@ export function upsertEscalationPolicy(payload) {
   return { policy };
 }
 
-export function checkEscalations({ alert = {} } = {}) {
+export function checkEscalations({ alert = {} }: { alert?: Record<string, unknown> } = {}) {
   const activePolicies = orchestratorEscalationPolicies.filter((policy) => policy.enabled);
-  const deliveries = [];
+  const deliveries: AlertDelivery[] = [];
 
   activePolicies.forEach((policy) => {
     const routeIds = policy.routes?.length ? policy.routes : orchestratorAlertRoutes.map((route) => route.id);

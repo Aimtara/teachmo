@@ -1,9 +1,58 @@
 /* eslint-env node */
 import crypto from 'crypto';
-import { orchestratorRunbookRuns, orchestratorApprovals, nextId } from '../models.js';
+import * as models from '../models.js';
 import { incrementOrchestratorCounter } from '../metrics.js';
 
-const RUNBOOKS = [
+interface RunbookStep {
+  id: string;
+  title: string;
+  action: string;
+  requiresApproval: boolean;
+  status?: string;
+}
+
+interface RunbookDefinition {
+  key: string;
+  name: string;
+  description: string;
+  steps: RunbookStep[];
+}
+
+interface RunbookRun {
+  id: string;
+  runbookKey: string;
+  runbookName: string;
+  status: string;
+  createdAt: string;
+  currentStepIndex: number;
+  steps: RunbookStep[];
+  requestedBy: string | null;
+  pausedAt?: string;
+  pendingApprovalId?: number | null;
+  completedAt?: string;
+  cancelledAt?: string;
+}
+
+interface Approval {
+  id: number;
+  runbookRunId: string | null;
+  planId: string | null;
+  status: string;
+  requestedAt: string;
+  requestedBy: string | null;
+  stepId?: string;
+  stepTitle?: string;
+  resolvedAt?: string;
+  resolvedBy?: string | null;
+}
+
+const { orchestratorRunbookRuns, orchestratorApprovals, nextId } = models as unknown as {
+  orchestratorRunbookRuns: RunbookRun[];
+  orchestratorApprovals: Approval[];
+  nextId: (name: string) => number;
+};
+
+const RUNBOOKS: RunbookDefinition[] = [
   {
     key: 'duplicate-storm',
     name: 'Duplicate Storm',
@@ -28,18 +77,18 @@ const RUNBOOKS = [
   }
 ];
 
-const cloneSteps = (steps) =>
+const cloneSteps = (steps: RunbookStep[]): RunbookStep[] =>
   steps.map((step) => ({
     ...step,
     status: 'pending'
   }));
 
-const findPendingApproval = (runId) =>
+const findPendingApproval = (runId: string): Approval | undefined =>
   orchestratorApprovals.find(
     (approval) => approval.runbookRunId === runId && approval.status === 'pending'
   );
 
-const requestApproval = ({ runId, step, actor }) => {
+const requestApproval = ({ runId, step, actor }: { runId: string; step: RunbookStep; actor: string | null }): Approval => {
   const approval = {
     id: nextId('orchestratorApproval'),
     runbookRunId: runId,
@@ -55,7 +104,7 @@ const requestApproval = ({ runId, step, actor }) => {
   return approval;
 };
 
-const advanceRun = (run, actor) => {
+const advanceRun = (run: RunbookRun, actor: string | null): RunbookRun => {
   while (run.currentStepIndex < run.steps.length) {
     const step = run.steps[run.currentStepIndex];
     if (step.requiresApproval) {
@@ -75,11 +124,11 @@ const advanceRun = (run, actor) => {
   return run;
 };
 
-export function listRunbooks() {
+export function listRunbooks(): RunbookDefinition[] {
   return RUNBOOKS;
 }
 
-export function startRunbook(runbookKey, actor = null) {
+export function startRunbook(runbookKey: string, actor: string | null = null): RunbookRun | null {
   const def = RUNBOOKS.find((r) => r.key === runbookKey);
   if (!def) return null;
 
@@ -99,7 +148,10 @@ export function startRunbook(runbookKey, actor = null) {
   return advanceRun(run, actor);
 }
 
-export function continueRunbook(runId, { approved = true, actor = null } = {}) {
+export function continueRunbook(
+  runId: string,
+  { approved = true, actor = null }: { approved?: boolean; actor?: string | null } = {}
+): RunbookRun | null {
   const run = orchestratorRunbookRuns.find((r) => r.id === runId);
   if (!run) return null;
 
@@ -130,6 +182,6 @@ export function continueRunbook(runId, { approved = true, actor = null } = {}) {
   return advanceRun(run, actor);
 }
 
-export function listRunbookRuns() {
+export function listRunbookRuns(): RunbookRun[] {
   return orchestratorRunbookRuns;
 }

@@ -17,11 +17,53 @@ const ROUTE_RULES = [
   { route: 'EXPLORE_DEEP_LINK', keywords: ['event', 'activity', 'activities', 'resources', 'discover', 'explore'] }
 ];
 
-function normalizeText(text) {
-  return (text || '').toLowerCase().trim();
+interface SafetyResult {
+  level: string;
+  reasons: string[];
 }
 
-function detectSafety(text) {
+interface IntentClassification {
+  route: string;
+  confidence: number;
+}
+
+interface OrchestratorRequest {
+  requestId?: string;
+  actor?: Record<string, unknown>;
+  channel?: string;
+  text?: string;
+  selected?: Record<string, unknown>;
+}
+
+interface RunOrchestratorParams {
+  request: OrchestratorRequest;
+  auth?: Record<string, unknown>;
+  tenant?: Record<string, unknown>;
+}
+
+interface LogRunParams {
+  requestId?: string;
+  auth?: Record<string, unknown>;
+  tenant?: Record<string, unknown>;
+  channel?: string | null;
+  route: string;
+  confidence: number;
+  inputText: string;
+  missing: string[];
+  safety: SafetyResult;
+  latencyMs: number;
+  success: boolean;
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function normalizeText(text: unknown): string {
+  return String(text || '').toLowerCase().trim();
+}
+
+function detectSafety(text: unknown): SafetyResult {
   const normalized = normalizeText(text);
   const urgentMatches = SAFETY_KEYWORDS.urgent.filter((word) => normalized.includes(word));
   if (urgentMatches.length) {
@@ -34,9 +76,9 @@ function detectSafety(text) {
   return { level: 'NONE', reasons: [] };
 }
 
-function extractEntities(text) {
+function extractEntities(text: unknown): Record<string, string> {
   const normalized = normalizeText(text);
-  const entities = {};
+  const entities: Record<string, string> = {};
 
   if (normalized.includes('math')) entities.topic = 'math';
   if (normalized.includes('reading')) entities.topic = 'reading';
@@ -49,7 +91,7 @@ function extractEntities(text) {
   return entities;
 }
 
-function classifyIntent({ text }) {
+function classifyIntent({ text }: { text: unknown }): IntentClassification {
   const normalized = normalizeText(text);
   for (const rule of ROUTE_RULES) {
     if (rule.keywords.some((keyword) => normalized.includes(keyword))) {
@@ -59,12 +101,12 @@ function classifyIntent({ text }) {
   return { route: 'UNKNOWN_CLARIFY', confidence: 0.35 };
 }
 
-function hashText(text) {
+function hashText(text: string): string | null {
   if (!text) return null;
   return crypto.createHash('sha256').update(text).digest('hex');
 }
 
-function buildMissingPrompt(missing) {
+function buildMissingPrompt(missing: string[]) {
   if (!missing.length) return null;
   if (missing.length === 1) {
     return {
@@ -80,19 +122,35 @@ function buildMissingPrompt(missing) {
   };
 }
 
-function resolveContext({ selected = {}, tenant = {}, auth = {} }) {
+function resolveContext({
+  selected = {},
+  tenant = {},
+  auth = {}
+}: {
+  selected?: Record<string, unknown>;
+  tenant?: Record<string, unknown>;
+  auth?: Record<string, unknown>;
+}): Record<string, unknown> {
   return {
-    childId: selected.childId || null,
-    schoolId: selected.schoolId || tenant.schoolId || auth.schoolId || null,
-    teacherId: selected.teacherId || null,
-    threadId: selected.threadId || null,
-    organizationId: tenant.organizationId || auth.organizationId || null
+    childId: stringOrNull(selected.childId),
+    schoolId: stringOrNull(selected.schoolId || tenant.schoolId || auth.schoolId),
+    teacherId: stringOrNull(selected.teacherId),
+    threadId: stringOrNull(selected.threadId),
+    organizationId: stringOrNull(tenant.organizationId || auth.organizationId)
   };
 }
 
-function validateRequirements({ routeConfig, ctx, actorRole }) {
+function validateRequirements({
+  routeConfig,
+  ctx,
+  actorRole
+}: {
+  routeConfig: ReturnType<typeof getRouteConfig>;
+  ctx: Record<string, unknown>;
+  actorRole?: unknown;
+}) {
   const missing = (routeConfig.requiredContext || []).filter((key) => !ctx[key]);
-  const allowed = (routeConfig.allowedRoles || []).includes(actorRole);
+  const allowed = (routeConfig.allowedRoles || []).includes(String(actorRole || ''));
   return {
     missing,
     allowed
@@ -111,7 +169,7 @@ async function logRun({
   safety,
   latencyMs,
   success
-}) {
+}: LogRunParams): Promise<void> {
   const { organizationId, schoolId } = tenant || {};
   const inputHash = hashText(inputText);
   await query(
@@ -138,7 +196,7 @@ async function logRun({
   );
 }
 
-export async function runOrchestrator({ request, auth, tenant }) {
+export async function runOrchestrator({ request, auth = {}, tenant = {} }: RunOrchestratorParams) {
   const start = Date.now();
   const safety = detectSafety(request.text || '');
   const baseClassification = classifyIntent({ text: request.text || '' });
@@ -155,7 +213,7 @@ export async function runOrchestrator({ request, auth, tenant }) {
     promptUser: needsPrompt
   };
 
-  let responsePayload = {
+  let responsePayload: Record<string, unknown> = {
     route,
     confidence,
     safety,

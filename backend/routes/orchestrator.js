@@ -5,7 +5,7 @@ import { requireAuth, requireAuthOrService } from '../middleware/auth.js';
 import { authorizeFamilyParam, authorizeFamilyBody } from '../middleware/authorizeFamily.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { query } from '../db.js';
-import { runOrchestrator } from '../orchestrator/orchestrator.js';
+import { runOrchestrator } from '../orchestrator/orchestrator.ts';
 import { orchestratorEngine } from '../orchestrator/engine.ts';
 import { getFamilyHealth, getOrchestratorHealthSnapshot } from '../orchestrator/health.ts';
 import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.ts';
@@ -19,7 +19,7 @@ import {
   nextId
 } from '../models.js';
 import { planActionCatalog, resolveRollbackAction } from '../orchestrator/catalog.ts';
-import { listRunbooks, startRunbook, continueRunbook, listRunbookRuns } from '../orchestrator/runbooks.js';
+import { listRunbooks, startRunbook, continueRunbook, listRunbookRuns } from '../orchestrator/runbooks.ts';
 import {
   listAlertRoutes,
   upsertAlertRoute,
@@ -27,7 +27,7 @@ import {
   listEscalationPolicies,
   upsertEscalationPolicy,
   checkEscalations
-} from '../orchestrator/alerts.js';
+} from '../orchestrator/alerts.ts';
 import { incrementOrchestratorCounter } from '../metrics.js';
 
 const router = Router();

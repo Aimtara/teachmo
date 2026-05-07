@@ -1,16 +1,18 @@
 export interface SpecialistInput {
   text?: string;
   entities?: Record<string, unknown>;
-  safety?: Record<string, unknown>;
+  safety?: unknown;
 }
 
 export interface SpecialistExecuteParams {
   ctx: Record<string, unknown>;
   input: SpecialistInput;
+  [key: string]: unknown;
 }
 
 export interface SpecialistFormatParams {
   result: Record<string, unknown> | null;
+  [key: string]: unknown;
 }
 
 export interface Specialist {
