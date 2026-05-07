@@ -250,7 +250,7 @@ export default function AdminIntegrationHealth() {
                     <button
                       type="button"
                       className="enterprise-focus rounded-full bg-[var(--enterprise-primary)] px-3 py-1 text-xs font-semibold text-white"
-                      onClick={() => setDeadLetters((rows) => rows.map((row) => row.id === item.id ? { ...row, status: 'retry queued' } : row))}
+                      onClick={() => setDeadLetters((rows) => rows.map((row) => row.id === item.id ? { ...row, status: 'retry queued now' } : row))}
                     >
                       Retry
                     </button>

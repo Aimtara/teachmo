@@ -8,6 +8,45 @@ import {
   EnterpriseWorkflowList
 } from '@/components/enterprise';
 
+const partnerTabSummaries = {
+  submit: {
+    title: 'Submission pipeline',
+    description: 'Draft, submit, review, and publish program inventory.',
+    items: [
+      { label: 'Draft programs', status: '4', tone: 'neutral' },
+      { label: 'In review', status: '12', tone: 'warning' },
+      { label: 'Published', status: '8', tone: 'success' }
+    ]
+  },
+  assets: {
+    title: 'Asset readiness',
+    description: 'Track media, PDFs, transcripts, and accessibility status.',
+    items: [
+      { label: 'Ready assets', status: '18', tone: 'success' },
+      { label: 'Needs replacement', status: '2', tone: 'warning' },
+      { label: 'Accessibility files', status: '6', tone: 'info' }
+    ]
+  },
+  analytics: {
+    title: 'Performance snapshot',
+    description: 'Reach, engagement, and incentive metrics update by workspace tab.',
+    items: [
+      { label: 'Engagement rate', status: '38%', tone: 'success' },
+      { label: 'Incentives earned', status: '$1.2k', tone: 'info' },
+      { label: 'Renewal risk', status: 'Low', tone: 'success' }
+    ]
+  },
+  compliance: {
+    title: 'Compliance queue',
+    description: 'Contracts, attestations, and renewal documents stay visible.',
+    items: [
+      { label: 'Insurance certificate', status: 'Action', tone: 'warning' },
+      { label: 'Background check', status: 'Approved', tone: 'success' },
+      { label: 'Data agreement', status: 'Upload', tone: 'danger' }
+    ]
+  }
+};
+
 export default function PartnerPortal() {
   const [submission, setSubmission] = useState({ title: '', type: 'activity', content: '' });
   const [status, setStatus] = useState('idle');
@@ -89,13 +128,9 @@ export default function PartnerPortal() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr]">
-        <EnterprisePanel title="Analytics and compliance" description="Operational widgets stay dense for B2B partner users.">
+        <EnterprisePanel title={partnerTabSummaries[activeTab].title} description={partnerTabSummaries[activeTab].description}>
           <EnterpriseWorkflowList
-            items={[
-              { label: 'Engagement rate', status: '38%', tone: 'success' },
-              { label: 'Incentives earned', status: '$1.2k', tone: 'info' },
-              { label: 'Contract renewal', status: 'Action', tone: 'warning' }
-            ]}
+            items={partnerTabSummaries[activeTab].items}
           />
         </EnterprisePanel>
 
