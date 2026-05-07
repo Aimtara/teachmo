@@ -9,7 +9,26 @@ const NAME_KEY_RE = /(^|_)(name|full_name|first_name|last_name|display_name|stud
 const SENSITIVE_KEY_RE =
   /(password|passcode|secret|token|jwt|authorization|cookie|session|api[_-]?key|email|phone|address|prompt|response|output|free[_-]?text|concern|note|disability|health|wellbeing|student[_-]?id|school[_-]?id|sis[_-]?id)/i;
 
-function redactString(value) {
+type RedactedValue = unknown;
+
+interface RedactionOptions {
+  maxDepth?: number;
+}
+
+type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
+type LoggerLike = Record<LogLevel, (...args: unknown[]) => void> & Partial<Record<string, (...args: unknown[]) => void>>;
+
+interface SafeLogOptions {
+  level?: LogLevel;
+  logger?: LoggerLike;
+}
+
+interface SafeAnalyticsOptions {
+  send?: (event: { eventName: string; payload: RedactedValue; piiMinimized: true }) => void;
+}
+
+function redactString(value: unknown): string {
   return String(value)
     .replace(EMAIL_RE, '[redacted-email]')
     .replace(PHONE_RE, '[redacted-phone]')
@@ -18,10 +37,10 @@ function redactString(value) {
     .replace(WELLBEING_RE, '[redacted-sensitive]');
 }
 
-export function redactPII(input, { maxDepth = 6 } = {}) {
-  const seen = new WeakSet();
+export function redactPII(input: unknown, { maxDepth = 6 }: RedactionOptions = {}): RedactedValue {
+  const seen = new WeakSet<object>();
 
-  function visit(value, depth = 0, key = '') {
+  function visit(value: unknown, depth = 0, key = ''): RedactedValue {
     if (value === null || value === undefined) return value;
     if (depth > maxDepth) return '[TRUNCATED]';
     if (typeof value === 'string') {
@@ -46,16 +65,19 @@ export function redactPII(input, { maxDepth = 6 } = {}) {
   return visit(input);
 }
 
-export function redactStudentPII(input) {
+export function redactStudentPII(input: unknown): RedactedValue {
   return redactPII(input);
 }
 
-export function redactPrompt(input) {
+export function redactPrompt(input: unknown): RedactedValue {
   if (typeof input === 'string') return redactString(input).replace(/.+/s, '[redacted-prompt]');
   return redactPII(input);
 }
 
-export function safeLog(eventName, payload = {}, options = {}) {
+export function safeLog(eventName: string, payload: unknown = {}, options: SafeLogOptions = {}): {
+  eventName: string;
+  payload: RedactedValue;
+} {
   const level = options.level || 'info';
   const logger = options.logger || console;
   const safePayload = redactPII(payload);
@@ -64,11 +86,15 @@ export function safeLog(eventName, payload = {}, options = {}) {
   return { eventName, payload: safePayload };
 }
 
-export function safeAnalytics(eventName, payload = {}, options = {}) {
+export function safeAnalytics(eventName: string, payload: unknown = {}, options: SafeAnalyticsOptions = {}): {
+  eventName: string;
+  payload: RedactedValue;
+  piiMinimized: true;
+} {
   const event = {
     eventName,
     payload: redactPII(payload),
-    piiMinimized: true,
+    piiMinimized: true as const,
   };
   if (typeof options.send === 'function') options.send(event);
   return event;

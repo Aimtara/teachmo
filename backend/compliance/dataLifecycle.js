@@ -2,9 +2,9 @@
 
 import { randomUUID } from 'crypto';
 import { canAccessStudentData, AccessDeniedError } from './accessControl.js';
-import { classifyEntity, DATA_CLASSIFICATION_REGISTRY } from './dataClassification.js';
-import { auditEvent } from './auditEvents.js';
-import { redactPII } from './redaction.js';
+import { classifyEntity, DATA_CLASSIFICATION_REGISTRY } from './dataClassification.ts';
+import { auditEvent } from './auditEvents.ts';
+import { redactPII } from './redaction.ts';
 
 const DEFAULT_LIFECYCLE = Object.freeze({
   retentionClass: 'unclassified',

@@ -10,7 +10,7 @@ import {
   requiresConsent,
   requiresDeletion,
   requiresExport,
-} from '../compliance/dataClassification.js';
+} from '../compliance/dataClassification.ts';
 import {
   AccessDeniedError,
   canAccessStudentData,
@@ -24,8 +24,8 @@ import {
   recordConsent,
   requireConsent,
   revokeConsent,
-} from '../compliance/consentLedger.js';
-import { auditEvent, buildAuditEvent } from '../compliance/auditEvents.js';
+} from '../compliance/consentLedger.ts';
+import { auditEvent, buildAuditEvent } from '../compliance/auditEvents.ts';
 import {
   anonymizeSubjectData,
   generateDataExport,
@@ -34,8 +34,8 @@ import {
   requestDataDeletion,
   requestDataExport,
 } from '../compliance/dataLifecycle.js';
-import { classifyAIUseCase, recordAITrace, requireHumanReview, blockFinalDecisionAI } from '../compliance/aiGovernance.js';
-import { redactPII, redactPrompt, safeAnalytics, safeLog } from '../compliance/redaction.js';
+import { classifyAIUseCase, recordAITrace, requireHumanReview, blockFinalDecisionAI } from '../compliance/aiGovernance.ts';
+import { redactPII, redactPrompt, safeAnalytics, safeLog } from '../compliance/redaction.ts';
 import {
   assertMessagingAllowed,
   buildRosterImportPreview,
@@ -53,7 +53,7 @@ import {
   assertGapBacklogComplete,
   getCriticalRemediationPlan,
   getOpenGaps,
-} from '../compliance/remediationBacklog.js';
+} from '../compliance/remediationBacklog.ts';
 import {
   assertRoutePolicyCoverage,
   getRoutePolicy,

@@ -1,5 +1,5 @@
 /* eslint-env node */
-import { redactPII } from '../compliance/redaction.js';
+import { redactPII } from '../compliance/redaction.ts';
 
 const LOG_LEVELS = ['error', 'warn', 'info', 'debug'];
 

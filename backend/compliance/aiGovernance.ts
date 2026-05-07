@@ -1,10 +1,11 @@
 /* eslint-env node */
 
 import { randomUUID } from 'crypto';
-import { requireConsent } from './consentLedger.js';
-import { auditEvent } from './auditEvents.js';
-import { isPPRASensitive } from './dataClassification.js';
-import { redactPrompt, redactPII } from './redaction.js';
+import { requireConsent } from './consentLedger.ts';
+import type { ConsentRecord } from './consentLedger.ts';
+import { auditEvent } from './auditEvents.ts';
+import { isPPRASensitive } from './dataClassification.ts';
+import { redactPrompt, redactPII } from './redaction.ts';
 
 export const AI_POLICY_CLASSES = Object.freeze([
   'low_risk',
@@ -27,6 +28,50 @@ export const HIGH_STAKES_AI_CATEGORIES = Object.freeze([
   'behavioral_profiling',
 ]);
 
+export type AIPolicyClass = (typeof AI_POLICY_CLASSES)[number];
+export type HighStakesAICategory = (typeof HIGH_STAKES_AI_CATEGORIES)[number];
+
+type AIRecord = Record<string, unknown>;
+
+interface AIContext extends AIRecord {
+  intent?: string;
+  ppraSensitive?: boolean;
+  studentId?: string | null;
+  childId?: string | null;
+  highStakes?: boolean;
+  finalDecision?: boolean;
+  modelTrainingAuthorized?: boolean;
+  consentLedger?: ConsentRecord[];
+  ledger?: ConsentRecord[];
+  organizationId?: string | null;
+  schoolId?: string | null;
+}
+
+interface AIActor extends AIRecord {
+  id?: string;
+  userId?: string;
+  organizationId?: string | null;
+  districtId?: string | null;
+  schoolId?: string | null;
+}
+
+interface AITraceInput {
+  actor?: AIActor;
+  input?: AIRecord;
+  output?: AIRecord;
+  context?: AIContext;
+}
+
+interface AIClassification {
+  policyClass: AIPolicyClass;
+  matchedHighStakesCategories: HighStakesAICategory[];
+  ppraSensitive: boolean;
+  hasStudentData: boolean;
+  requiresHumanReview: boolean;
+  advisoryOnly: true;
+  modelTrainingAllowed: boolean;
+}
+
 const CATEGORY_PATTERNS = Object.freeze({
   academic_placement: /\b(placement|track|advanced class|remediation group)\b/i,
   discipline: /\b(discipline|suspension|expulsion|detention)\b/i,
@@ -40,7 +85,11 @@ const CATEGORY_PATTERNS = Object.freeze({
 });
 
 export class AIGovernanceError extends Error {
-  constructor(reason, metadata = {}) {
+  reason: string;
+  metadata: Record<string, unknown>;
+  statusCode: number;
+
+  constructor(reason: string, metadata: Record<string, unknown> = {}) {
     super(reason);
     this.name = 'AIGovernanceError';
     this.reason = reason;
@@ -49,21 +98,27 @@ export class AIGovernanceError extends Error {
   }
 }
 
-function textFrom(input) {
+function textFrom(input: unknown): string {
   if (typeof input === 'string') return input;
-  if (!input) return '';
-  return [input.prompt, input.output, input.response, input.text, input.recommendation]
+  if (!input || typeof input !== 'object') return '';
+  const record = input as AIRecord;
+  return [record.prompt, record.output, record.response, record.text, record.recommendation]
     .filter(Boolean)
     .join('\n');
 }
 
-export function classifyAIUseCase(input, context = {}) {
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+export function classifyAIUseCase(input: AIRecord | string = {}, context: AIContext = {}): Readonly<AIClassification> {
   const text = textFrom(input);
+  const inputRecord = typeof input === 'object' && input !== null ? input : {};
   const matchedHighStakesCategories = Object.entries(CATEGORY_PATTERNS)
     .filter(([, pattern]) => pattern.test(text) || pattern.test(context.intent || ''))
-    .map(([category]) => category);
+    .map(([category]) => category as HighStakesAICategory);
   const ppraSensitive = isPPRASensitive(text) || context.ppraSensitive === true;
-  const hasStudentData = Boolean(context.studentId || context.childId || input?.studentId || input?.childId);
+  const hasStudentData = Boolean(context.studentId || context.childId || inputRecord.studentId || inputRecord.childId);
   const highStakes = matchedHighStakesCategories.length > 0 || context.highStakes === true;
 
   const policyClass = highStakes
@@ -87,7 +142,7 @@ export function classifyAIUseCase(input, context = {}) {
   });
 }
 
-export function requireHumanReview(aiOutput, context = {}) {
+export function requireHumanReview(aiOutput: AIRecord = {}, context: AIContext = {}) {
   const classification = classifyAIUseCase(aiOutput, context);
   if (!classification.requiresHumanReview) return { required: false, classification };
   return {
@@ -98,7 +153,7 @@ export function requireHumanReview(aiOutput, context = {}) {
   };
 }
 
-export function blockFinalDecisionAI(aiOutput, context = {}) {
+export function blockFinalDecisionAI(aiOutput: AIRecord = {}, context: AIContext = {}): true {
   const finalDecision =
     aiOutput?.finalDecision === true ||
     context.finalDecision === true ||
@@ -107,23 +162,26 @@ export function blockFinalDecisionAI(aiOutput, context = {}) {
   return true;
 }
 
-export function redactAITrace(trace) {
+export function redactAITrace(trace: AIRecord): unknown {
   return redactPII({
     ...trace,
-    prompt: trace?.prompt ? redactPrompt(trace.prompt) : undefined,
-    output: trace?.output ? redactPrompt(trace.output) : undefined,
-    response: trace?.response ? redactPrompt(trace.response) : undefined,
+    prompt: trace.prompt ? redactPrompt(trace.prompt) : undefined,
+    output: trace.output ? redactPrompt(trace.output) : undefined,
+    response: trace.response ? redactPrompt(trace.response) : undefined,
   });
 }
 
-export async function recordAITrace({ actor = {}, input = {}, output = {}, context = {} } = {}) {
+export async function recordAITrace({ actor = {}, input = {}, output = {}, context = {} }: AITraceInput = {}) {
   requireConsent(actor.id || actor.userId, 'ai_assistance', {
     ...context,
     ledger: context.consentLedger || context.ledger || [],
-    childId: context.childId || input.childId || input.studentId,
+    childId: context.childId || stringOrNull(input.childId) || stringOrNull(input.studentId),
   });
   blockFinalDecisionAI(output, context);
-  const review = requireHumanReview(output, { ...context, childId: context.childId || input.childId || input.studentId });
+  const review = requireHumanReview(output, {
+    ...context,
+    childId: context.childId || stringOrNull(input.childId) || stringOrNull(input.studentId),
+  });
   const trace = Object.freeze({
     trace_id: randomUUID(),
     actor_id: actor.id || actor.userId,
@@ -137,7 +195,13 @@ export async function recordAITrace({ actor = {}, input = {}, output = {}, conte
     output: output.text || output.response ? redactPrompt(output.text || output.response) : undefined,
     created_at: new Date().toISOString(),
   });
-  await auditEvent('ai.prompt_submitted', actor, { type: 'ai_interaction', id: trace.trace_id }, context, redactAITrace(trace));
+  await auditEvent(
+    'ai.prompt_submitted',
+    actor,
+    { type: 'ai_interaction', id: trace.trace_id },
+    context,
+    redactAITrace(trace) as Record<string, unknown>
+  );
   await auditEvent('ai.output_generated', actor, { type: 'ai_interaction', id: trace.trace_id }, context, {
     policyClass: trace.classification.policyClass,
     requiresHumanReview: review.required,

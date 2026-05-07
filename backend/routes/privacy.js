@@ -5,7 +5,7 @@ import { query } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { recordAuditLog } from '../utils/audit.js';
-import { CONSENT_SCOPES, recordConsent } from '../compliance/consentLedger.js';
+import { CONSENT_SCOPES, recordConsent } from '../compliance/consentLedger.ts';
 
 const router = Router();
 

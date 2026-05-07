@@ -318,11 +318,38 @@ export const GAP_BACKLOG = Object.freeze([
   },
 ]);
 
-export function getOpenGaps({ priority } = {}) {
-  return GAP_BACKLOG.filter((gap) => gap.status !== 'ready_for_validation' && (!priority || gap.priority === priority));
+export type GapStatus = (typeof GAP_STATUSES)[number];
+
+interface GapBacklogItem extends Record<string, unknown> {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  owner: string;
+  risk: string;
+  recommendation: string;
+  solution: string;
+  regulatoryImpact: string[];
+  affectedSystems: string[];
+  implementationSteps: string[];
+  acceptanceCriteria: string[];
+  evidence: string[];
 }
 
-export function getCriticalRemediationPlan() {
+interface OpenGapOptions {
+  priority?: string;
+}
+
+const gapBacklog = GAP_BACKLOG as readonly GapBacklogItem[];
+
+export function getOpenGaps({ priority }: OpenGapOptions = {}): GapBacklogItem[] {
+  return gapBacklog.filter((gap) => gap.status !== 'ready_for_validation' && (!priority || gap.priority === priority));
+}
+
+export function getCriticalRemediationPlan(): Pick<
+  GapBacklogItem,
+  'id' | 'title' | 'owner' | 'recommendation' | 'implementationSteps' | 'acceptanceCriteria'
+>[] {
   return getOpenGaps({ priority: 'P0' }).map(({ id, title, owner, recommendation, implementationSteps, acceptanceCriteria }) => ({
     id,
     title,
@@ -333,8 +360,8 @@ export function getCriticalRemediationPlan() {
   }));
 }
 
-export function assertGapBacklogComplete(gaps = GAP_BACKLOG) {
-  const missing = [];
+export function assertGapBacklogComplete(gaps: readonly GapBacklogItem[] = gapBacklog): boolean {
+  const missing: string[] = [];
   for (const gap of gaps) {
     for (const field of ['id', 'title', 'status', 'priority', 'owner', 'risk', 'recommendation', 'solution']) {
       if (!gap[field]) missing.push(`${gap.id || 'unknown'}:${field}`);

@@ -13,7 +13,7 @@
  * `app.use(redactPII())` before any routes that may emit logs.
  */
 
-import { redactPII as redactCompliancePII } from '../compliance/redaction.js';
+import { redactPII as redactCompliancePII } from '../compliance/redaction.ts';
 
 const SENSITIVE_KEY_RE =
   /(password|passcode|secret|token|jwt|authorization|cookie|session|api[_-]?key|bearer|refresh|access[_-]?token|id[_-]?token|ssn|social|dob|^email$|^email_.*|.*_email$|^address$|^address_.*|.*_address$|^phone$|^phone_.*|.*_phone$)/i;

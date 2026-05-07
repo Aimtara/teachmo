@@ -2,10 +2,10 @@
 
 import { randomUUID, createHash } from 'crypto';
 import { AccessDeniedError, canAccessStudentData } from './accessControl.js';
-import { requireConsent } from './consentLedger.js';
-import { auditEvent } from './auditEvents.js';
-import { redactPII } from './redaction.js';
-import { isPPRASensitive } from './dataClassification.js';
+import { requireConsent } from './consentLedger.ts';
+import { auditEvent } from './auditEvents.ts';
+import { redactPII } from './redaction.ts';
+import { isPPRASensitive } from './dataClassification.ts';
 
 function stableId(parts) {
   return createHash('sha256')

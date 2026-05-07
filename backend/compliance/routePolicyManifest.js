@@ -1,6 +1,6 @@
 /* eslint-env node */
 
-import { classifyEntity, requiresAudit, requiresConsent, requiresDeletion, requiresExport } from './dataClassification.js';
+import { classifyEntity, requiresAudit, requiresConsent, requiresDeletion, requiresExport } from './dataClassification.ts';
 
 export const ROUTE_POLICY_MANIFEST = Object.freeze([
   {
