@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import { format } from 'date-fns';
 import CalendarView from '@/components/calendar/CalendarView';
 import EventModal from '@/components/calendar/EventModal';
 import { listEvents } from '@/domains/events';
 import { EnterpriseFilterBar, EnterprisePanel, EnterpriseSurface, EnterpriseWorkflowList } from '@/components/enterprise';
+import { createEventFromSchedulingRequest, moveEventToDate } from '@/utils/calendarScheduling';
+
+const schedulingRequests = [
+  { id: 'office-hours-avery', title: 'Avery family office hours', description: 'Guardian requested a 30 minute math check-in.', color: '#2451FF' },
+  { id: 'conference-rivera', title: 'Rivera conference', description: 'Teacher request awaiting a Thursday slot.', color: '#2DBF6E' },
+  { id: 'digest-review', title: 'Weekly digest approval', description: 'Schedule review before Friday send.', color: '#FFC857' }
+];
 
 /**
  * Teachmo Calendar page.
@@ -24,6 +33,10 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [view, setView] = useState('month');
+  const [localEvents, setLocalEvents] = useState([]);
+  const [rescheduledEvents, setRescheduledEvents] = useState({});
+  const [pendingRequests, setPendingRequests] = useState(schedulingRequests);
 
   const { data: events = [], isLoading } = useQuery(['events', currentDate], async () => {
     // Fetch events scoped to the user's school or tenant.
@@ -34,7 +47,7 @@ export default function Calendar() {
   });
 
   // Normalize event fields for CalendarView
-  const calendarEvents = (events || []).map((e) => ({
+  const normalizedEvents = useMemo(() => (events || []).map((e) => ({
     id: e.id,
     title: e.title,
     description: e.description,
@@ -43,7 +56,12 @@ export default function Calendar() {
     all_day: false,
     child_id: e.child_id,
     color: e.color || undefined,
-  }));
+  })), [events]);
+
+  const calendarEvents = useMemo(() => [
+    ...normalizedEvents.map((event) => rescheduledEvents[event.id] || event),
+    ...localEvents
+  ], [localEvents, normalizedEvents, rescheduledEvents]);
 
   const handleDayClick = (date) => {
     // Set the current date to view week/day; in future this could
@@ -56,7 +74,40 @@ export default function Calendar() {
     setShowModal(true);
   };
 
+  const handleDragEnd = (result) => {
+    const { destination, draggableId } = result;
+    if (!destination?.droppableId?.startsWith('calendar-')) return;
+
+    const targetDate = new Date(`${destination.droppableId.replace('calendar-', '')}T12:00:00`);
+    if (draggableId.startsWith('request-')) {
+      const requestId = draggableId.replace('request-', '');
+      const request = pendingRequests.find((item) => item.id === requestId);
+      if (!request) return;
+      setLocalEvents((items) => [...items, createEventFromSchedulingRequest(request, targetDate)]);
+      setPendingRequests((items) => items.filter((item) => item.id !== requestId));
+      return;
+    }
+
+    if (draggableId.startsWith('event-')) {
+      const eventId = draggableId.replace('event-', '');
+      const event = calendarEvents.find((item) => String(item.id) === eventId);
+      if (!event) return;
+      const moved = moveEventToDate(event, targetDate);
+      if (String(event.id).startsWith('scheduled-')) {
+        setLocalEvents((items) => items.map((item) => String(item.id) === eventId ? moved : item));
+      } else {
+        setRescheduledEvents((items) => ({ ...items, [eventId]: moved }));
+      }
+    }
+  };
+
+  const agendaEvents = calendarEvents
+    .filter((event) => event.start_time)
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    .slice(0, 20);
+
   return (
+    <DragDropContext onDragEnd={handleDragEnd}>
     <EnterpriseSurface
       eyebrow="Calendar"
       title="Adaptive scheduling board"
@@ -70,27 +121,81 @@ export default function Calendar() {
       ]}
       aside={
         <EnterprisePanel title="Scheduling queues" description="Drag targets and approvals are described beside the calendar.">
-          <EnterpriseWorkflowList
-            items={[
-              { label: 'Office hours requests', status: '4 pending', tone: 'warning' },
-              { label: 'Family conference slots', status: 'Ready', tone: 'success' },
-              { label: 'Sync health', status: 'Live', tone: 'info' }
-            ]}
-          />
+          <Droppable droppableId="scheduling-requests" type="ITEM">
+            {(provided) => (
+              <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
+                {pendingRequests.map((request, index) => (
+                  <Draggable key={request.id} draggableId={`request-${request.id}`} index={index}>
+                    {(dragProvided, snapshot) => (
+                      <div
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        {...dragProvided.dragHandleProps}
+                        className={`rounded-2xl border border-[var(--enterprise-border)] bg-[color-mix(in_srgb,var(--enterprise-primary)_4%,transparent)] p-4 text-sm ${snapshot.isDragging ? 'shadow-[var(--enterprise-shadow)]' : ''}`}
+                        style={dragProvided.draggableProps.style}
+                      >
+                        <p className="font-semibold">{request.title}</p>
+                        <p className="mt-1 text-[var(--enterprise-muted)]">{request.description}</p>
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--enterprise-muted)]">Drag to a calendar day</p>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+                {pendingRequests.length === 0 ? <p className="text-sm text-[var(--enterprise-muted)]">All scheduling requests are placed.</p> : null}
+              </div>
+            )}
+          </Droppable>
         </EnterprisePanel>
       }
     >
       <EnterpriseFilterBar searchLabel="Search events, classes, families, or approvals" filters={['Month', 'Week', 'Day', 'Requests', 'Conflicts']} />
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Calendar view">
+        {['month', 'week', 'agenda'].map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setView(mode)}
+            className={`enterprise-focus enterprise-motion rounded-full px-4 py-2 text-sm font-semibold ${
+              view === mode
+                ? 'bg-[var(--enterprise-primary)] text-white shadow-[var(--enterprise-shadow)]'
+                : 'border border-[var(--enterprise-border)] text-[var(--enterprise-muted)]'
+            }`}
+          >
+            {mode[0].toUpperCase() + mode.slice(1)}
+          </button>
+        ))}
+      </div>
       <EnterprisePanel title="Calendar workspace" description="Select a day or event to open the existing event details modal.">
-        <CalendarView
-          currentDate={currentDate}
-          events={calendarEvents}
-          view="month"
-          onEventClick={handleEventClick}
-          onDayClick={handleDayClick}
-          childrenData={[]}
-          isLoading={isLoading}
-        />
+        {view === 'agenda' ? (
+          <div className="space-y-3" aria-label="Agenda list">
+            {agendaEvents.map((event) => (
+              <button
+                key={event.id}
+                type="button"
+                onClick={() => handleEventClick(event)}
+                className="enterprise-focus flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--enterprise-border)] p-4 text-left"
+              >
+                <span>
+                  <span className="block font-semibold">{event.title}</span>
+                  <span className="text-sm text-[var(--enterprise-muted)]">{event.description || 'Scheduled calendar item'}</span>
+                </span>
+                <span className="text-sm font-semibold text-[var(--enterprise-muted)]">{format(new Date(event.start_time), 'MMM d, p')}</span>
+              </button>
+            ))}
+            {agendaEvents.length === 0 ? <p className="text-sm text-[var(--enterprise-muted)]">No agenda items yet. Drag a request onto the month view to schedule it.</p> : null}
+          </div>
+        ) : (
+          <CalendarView
+            currentDate={currentDate}
+            events={calendarEvents}
+            view={view}
+            onEventClick={handleEventClick}
+            onDayClick={handleDayClick}
+            childrenData={[]}
+            isLoading={isLoading}
+          />
+        )}
         {showModal && selectedEvent && (
           <EventModal
             event={selectedEvent}
@@ -103,5 +208,6 @@ export default function Calendar() {
         )}
       </EnterprisePanel>
     </EnterpriseSurface>
+    </DragDropContext>
   );
 }

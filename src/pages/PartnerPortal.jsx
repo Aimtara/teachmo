@@ -11,6 +11,7 @@ import {
 export default function PartnerPortal() {
   const [submission, setSubmission] = useState({ title: '', type: 'activity', content: '' });
   const [status, setStatus] = useState('idle');
+  const [activeTab, setActiveTab] = useState('submit');
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -63,6 +64,30 @@ export default function PartnerPortal() {
         </>
       }
     >
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Partner workspace sections">
+        {[
+          ['submit', 'Program submission'],
+          ['assets', 'Asset library'],
+          ['analytics', 'Analytics'],
+          ['compliance', 'Compliance']
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === value}
+            onClick={() => setActiveTab(value)}
+            className={`enterprise-focus enterprise-motion rounded-full px-4 py-2 text-sm font-semibold ${
+              activeTab === value
+                ? 'bg-[var(--enterprise-primary)] text-white shadow-[var(--enterprise-shadow)]'
+                : 'border border-[var(--enterprise-border)] text-[var(--enterprise-muted)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr]">
         <EnterprisePanel title="Analytics and compliance" description="Operational widgets stay dense for B2B partner users.">
           <EnterpriseWorkflowList
@@ -74,6 +99,7 @@ export default function PartnerPortal() {
           />
         </EnterprisePanel>
 
+        {activeTab === 'submit' ? (
         <EnterprisePanel title="New content submission" description="Existing submission API remains wired into the redesigned CMS workspace.">
           <Card className="p-6 border-[var(--enterprise-border)]">
             <h2 className="text-xl font-semibold mb-4">New Content Submission</h2>
@@ -128,6 +154,62 @@ export default function PartnerPortal() {
             </form>
           </Card>
         </EnterprisePanel>
+        ) : null}
+
+        {activeTab === 'assets' ? (
+          <EnterprisePanel title="Asset library" description="Partners can stage approved media and PDFs before submitting programs.">
+            <div className="grid gap-3">
+              {[
+                ['Program hero image', 'Ready for review', 'Image'],
+                ['Family waiver PDF', 'Needs replacement', 'PDF'],
+                ['Accessibility transcript', 'Approved', 'Transcript']
+              ].map(([name, state, type]) => (
+                <div key={name} className="rounded-2xl border border-[var(--enterprise-border)] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{name}</p>
+                      <p className="text-sm text-[var(--enterprise-muted)]">{type}</p>
+                    </div>
+                    <span className="rounded-full border border-[var(--enterprise-border)] px-3 py-1 text-xs font-semibold">{state}</span>
+                  </div>
+                </div>
+              ))}
+              <label className="enterprise-focus rounded-2xl border border-dashed border-[var(--enterprise-border)] p-4 text-sm font-semibold text-[var(--enterprise-muted)]">
+                Upload asset
+                <input type="file" className="sr-only" aria-label="Upload partner asset" />
+              </label>
+            </div>
+          </EnterprisePanel>
+        ) : null}
+
+        {activeTab === 'analytics' ? (
+          <EnterprisePanel title="Partner analytics" description="Reach, engagement, and incentives are visible without admin assistance.">
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                ['Reach', '2.4k families'],
+                ['Engagement', '38% saved'],
+                ['Incentives', '$1.2k earned']
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-[var(--enterprise-border)] p-4">
+                  <p className="text-sm text-[var(--enterprise-muted)]">{label}</p>
+                  <p className="mt-2 font-heading text-2xl font-semibold">{value}</p>
+                </div>
+              ))}
+            </div>
+          </EnterprisePanel>
+        ) : null}
+
+        {activeTab === 'compliance' ? (
+          <EnterprisePanel title="Compliance tracker" description="Contracts, insurance, background checks, and renewal dates stay attached to partner content.">
+            <EnterpriseWorkflowList
+              items={[
+                { label: 'Insurance certificate', status: 'Expires soon', tone: 'warning' },
+                { label: 'Background check attestation', status: 'Approved', tone: 'success' },
+                { label: 'Data sharing agreement', status: 'Needs upload', tone: 'danger' }
+              ]}
+            />
+          </EnterprisePanel>
+        ) : null}
       </div>
     </EnterpriseSurface>
   );

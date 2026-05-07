@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth, endOfWeek, isSameMonth, isSameDay, getDay, startOfDay, endOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { Droppable } from '@hello-pangea/dnd';
+import { Draggable, Droppable } from '@hello-pangea/dnd';
 
 const DayCell = ({ day, monthStart, onDayClick, children: dayChildren }) => {
     const dateStr = day.toISOString().split('T')[0]; // Format as YYYY-MM-DD
@@ -215,19 +215,32 @@ const CalendarView = ({ currentDate, events, onEventClick, isLoading, view, onDa
             >
                 {days.map((day) => (
                     <DayCell key={day.toString()} day={day} monthStart={monthStart} onDayClick={onDayClick}>
-                        {getEventsForDay(day).slice(0, 3).map(event => {
+                        {getEventsForDay(day).slice(0, 3).map((event, index) => {
                              // Ensure childrenData is an array before calling find
                              const eventChild = Array.isArray(childrenData) ? childrenData.find(c => c.id === event.child_id) : undefined;
                              return (
-                                <div 
+                                <Draggable
                                     key={event.id}
-                                    onClick={() => onEventClick(event)}
-                                    className="p-1 rounded text-xs cursor-pointer text-white truncate flex items-center gap-1"
-                                    style={{ backgroundColor: event.color || 'var(--teachmo-blue)'}}
+                                    draggableId={`event-${event.id}`}
+                                    index={index}
                                 >
-                                    {eventChild && <div className="w-3 h-3 rounded-full bg-white/50 flex-shrink-0"></div>}
-                                    <span className="truncate">{event.all_day ? '' : (event.start_time && format(new Date(event.start_time), 'p'))} {event.title}</span>
-                                </div>
+                                    {(provided, snapshot) => (
+                                        <div
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
+                                            onClick={() => onEventClick(event)}
+                                            className={`p-1 rounded text-xs cursor-grab text-white truncate flex items-center gap-1 ${snapshot.isDragging ? 'shadow-lg' : ''}`}
+                                            style={{
+                                                backgroundColor: event.color || 'var(--teachmo-blue)',
+                                                ...provided.draggableProps.style
+                                            }}
+                                        >
+                                            {eventChild && <div className="w-3 h-3 rounded-full bg-white/50 flex-shrink-0"></div>}
+                                            <span className="truncate">{event.all_day ? '' : (event.start_time && format(new Date(event.start_time), 'p'))} {event.title}</span>
+                                        </div>
+                                    )}
+                                </Draggable>
                              )
                         })}
                          {getEventsForDay(day).length > 3 && (

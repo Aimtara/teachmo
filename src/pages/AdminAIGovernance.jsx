@@ -29,7 +29,7 @@ import AIGovernanceBlockedReasons from '@/components/admin/ai/AIGovernanceBlocke
 import AIGovernanceSkillUsage from '@/components/admin/ai/AIGovernanceSkillUsage';
 import AIGovernanceFilters from '@/components/admin/ai/AIGovernanceFilters';
 import AIPolicySimulationPanel from '@/components/admin/ai/AIPolicySimulationPanel';
-import { EnterpriseSurface } from '@/components/enterprise';
+import { EnterprisePanel, EnterpriseSurface, EnterpriseWorkflowList } from '@/components/enterprise';
 
 function formatMoney(value) {
   const n = Number(value || 0);
@@ -135,6 +135,7 @@ export default function AdminAIGovernance() {
     allowedModels: 'gpt-4o-mini, gpt-4o',
     featureFlags: '',
   });
+  const [incidentMode, setIncidentMode] = useState('shadow');
 
   useEffect(() => {
     if (budgetQuery.data?.budget) {
@@ -229,6 +230,40 @@ export default function AdminAIGovernance() {
           <div className="text-xs text-muted-foreground">
             Governance dashboard window: last {windowDays} days
           </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+          <EnterprisePanel title="Incident runbook" description="Flagged AI prompts and SafeSpace reports move through a SOC-style response path.">
+            <EnterpriseWorkflowList
+              items={[
+                { label: 'Blocked prompt review', status: 'Triage', tone: 'warning' },
+                { label: 'SafeSpace escalation', status: 'Runbook', tone: 'danger' },
+                { label: 'District notification', status: 'Draft', tone: 'info' },
+                { label: 'Post-incident audit', status: 'Required', tone: 'success' }
+              ]}
+            />
+          </EnterprisePanel>
+          <EnterprisePanel title="Policy rollout mode" description="Admins can stage prompt policy changes before enforcement.">
+            <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="Policy rollout mode">
+              {['shadow', 'verify', 'enforce'].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setIncidentMode(mode)}
+                  className={`enterprise-focus rounded-2xl border p-4 text-sm font-semibold capitalize ${
+                    incidentMode === mode
+                      ? 'border-[var(--enterprise-primary)] bg-[color-mix(in_srgb,var(--enterprise-primary)_12%,transparent)]'
+                      : 'border-[var(--enterprise-border)]'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-[var(--enterprise-muted)]">
+              Current mode: {incidentMode}. Simulation results stay review-only until enforcement is selected.
+            </p>
+          </EnterprisePanel>
         </div>
 
         <AIGovernanceOverviewCards summary={governanceSummary} />

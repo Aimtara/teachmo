@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getRosterRun, listRosterAlerts, retryRosterRun } from '@/domains/integrations/rosterHealth';
 import { EnterprisePanel, EnterpriseSurface, EnterpriseWorkflowList } from '@/components/enterprise';
 
+const sampleDeadLetters = [
+  { id: 'dlq-1', source: 'OneRoster', record: 'student: orphaned guardian', severity: 'high', status: 'retry ready' },
+  { id: 'dlq-2', source: 'ClassLink', record: 'class: duplicate section', severity: 'medium', status: 'needs map' },
+  { id: 'dlq-3', source: 'Notifications', record: 'weekly digest webhook', severity: 'low', status: 'retry ready' }
+];
+
 function formatDate(value) {
   if (!value) return '—';
   try {
@@ -19,6 +25,7 @@ export default function AdminIntegrationHealth() {
   const [runLoading, setRunLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [deadLetters, setDeadLetters] = useState(sampleDeadLetters);
 
   const selectedAlert = useMemo(
     () => alerts.find((alert) => alert.id === selectedAlertId),
@@ -208,6 +215,51 @@ export default function AdminIntegrationHealth() {
             </div>
           )}
         </section>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <EnterprisePanel title="Data reconciliation" description="Map conflicts without engineering support before publishing roster changes.">
+          <div className="space-y-3">
+            {[
+              ['Orphaned student', 'Map to guardian profile', 'Ready'],
+              ['Duplicate class section', 'Merge SIS and LMS records', 'Needs review'],
+              ['Stale enrollment', 'Deactivate after retention check', 'Policy gated']
+            ].map(([record, action, state]) => (
+              <div key={record} className="rounded-2xl border border-[var(--enterprise-border)] p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{record}</p>
+                    <p className="text-[var(--enterprise-muted)]">{action}</p>
+                  </div>
+                  <span className="rounded-full border border-[var(--enterprise-border)] px-3 py-1 text-xs font-semibold">{state}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </EnterprisePanel>
+        <EnterprisePanel title="Dead-letter queue" description="Dropped notifications and failed API calls can be retried or routed to reconciliation.">
+          <div className="space-y-3">
+            {deadLetters.map((item) => (
+              <div key={item.id} className="rounded-2xl border border-[var(--enterprise-border)] p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{item.source}</p>
+                    <p className="text-[var(--enterprise-muted)]">{item.record}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-[var(--enterprise-border)] px-3 py-1 text-xs font-semibold">{item.status}</span>
+                    <button
+                      type="button"
+                      className="enterprise-focus rounded-full bg-[var(--enterprise-primary)] px-3 py-1 text-xs font-semibold text-white"
+                      onClick={() => setDeadLetters((rows) => rows.map((row) => row.id === item.id ? { ...row, status: 'retry queued' } : row))}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </EnterprisePanel>
       </div>
     </EnterpriseSurface>
   );
