@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MessagingAPI } from '@/api/adapters';
+import * as MessagingAPI from '@/api/adapters/modules/messaging';
 import {
   EnterpriseFilterBar,
   EnterprisePanel,
