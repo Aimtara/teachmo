@@ -1,17 +1,18 @@
 /* eslint-env node */
 import { clamp01 } from './utils.js';
+import type { OrchestratorSignal, SignalFeatures } from './types.js';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 /**
  * Heuristic feature extraction.
  * In production, you can replace this with richer models (LLM classifier, rules, integrations).
- *
- * @param {import('./types.js').OrchestratorSignal} signal
- * @param {{ now?: Date }} [opts]
- * @returns {import('./types.js').SignalFeatures}
  */
-export function extractFeatures(signal, opts = {}) {
+export function extractFeatures(signal: OrchestratorSignal, opts: { now?: Date } = {}): SignalFeatures {
   const now = opts.now ?? new Date();
-  const payload = signal.payload ?? {};
+  const payload = isRecord(signal.payload) ? signal.payload : {};
   const base = {
     urgency: 0.2,
     impact: 0.3,
@@ -30,7 +31,7 @@ export function extractFeatures(signal, opts = {}) {
   // deadline -> urgency
   if (deadlineIso) {
     const d = new Date(deadlineIso);
-        if (!isNaN(d.getTime())) {
+    if (!Number.isNaN(d.getTime())) {
       const hours = Math.max(0, (d.getTime() - now.getTime()) / 36e5);
       // Within 0h => 1. Within 72h => ~0.3. Beyond => small.
       const u = hours <= 0 ? 1 : 1 / (1 + hours / 12);

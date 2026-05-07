@@ -1,6 +1,6 @@
 /* eslint-env node */
 
-export const CLASSIFICATION_TAGS = Object.freeze([
+export const CLASSIFICATION_TAGS = [
   'child_pi',
   'education_record',
   'guardian_pi',
@@ -16,9 +16,11 @@ export const CLASSIFICATION_TAGS = Object.freeze([
   'public_or_community_content',
   'ppra_sensitive',
   'accessibility_critical',
-]);
+] as const;
 
-const studentCore = [
+export type ClassificationTag = (typeof CLASSIFICATION_TAGS)[number];
+
+const studentCore: ClassificationTag[] = [
   'child_pi',
   'education_record',
   'audit_required',
@@ -27,13 +29,31 @@ const studentCore = [
   'export_required',
 ];
 
-const aiCore = [
+const aiCore: ClassificationTag[] = [
   'sensitive_ai',
   'audit_required',
   'retention_class',
   'deletion_required',
   'export_required',
 ];
+
+export interface ClassificationEntityEntry {
+  objectType?: string;
+  source?: string;
+  classifications?: ClassificationTag[];
+  retentionClass?: string;
+  consentScopes?: string[];
+  aliasOf?: string;
+}
+
+
+export interface EntityClassification extends ClassificationEntityEntry {
+  name: string;
+  classifications: ClassificationTag[];
+  retentionClass: string;
+  consentScopes: string[];
+  classified: boolean;
+}
 
 export const DATA_CLASSIFICATION_REGISTRY = Object.freeze({
   entities: {
@@ -217,18 +237,19 @@ export const DATA_CLASSIFICATION_REGISTRY = Object.freeze({
   },
 });
 
-function normalizeName(name) {
+function normalizeName(name: unknown): string {
   return String(name || '').trim().toLowerCase();
 }
 
-function resolveEntityEntry(entityName) {
+function resolveEntityEntry(entityName: unknown): ClassificationEntityEntry | null {
   const normalized = normalizeName(entityName);
-  const entry = DATA_CLASSIFICATION_REGISTRY.entities[normalized];
+  const entities = DATA_CLASSIFICATION_REGISTRY.entities as Record<string, ClassificationEntityEntry>;
+  const entry = entities[normalized];
   if (entry?.aliasOf) return resolveEntityEntry(entry.aliasOf);
   return entry || null;
 }
 
-export function classifyEntity(entityName) {
+export function classifyEntity(entityName: unknown): EntityClassification {
   const entry = resolveEntityEntry(entityName);
   if (!entry) {
     return {
@@ -242,45 +263,47 @@ export function classifyEntity(entityName) {
   return {
     name: normalizeName(entityName),
     ...entry,
+    retentionClass: entry.retentionClass || 'unclassified',
     classifications: [...new Set(entry.classifications || [])],
     consentScopes: [...new Set(entry.consentScopes || [])],
     classified: true,
   };
 }
 
-function actionTags(action) {
-  return DATA_CLASSIFICATION_REGISTRY.actions[normalizeName(action)] || [];
+function actionTags(action: unknown): ClassificationTag[] {
+  const actions = DATA_CLASSIFICATION_REGISTRY.actions as Record<string, ClassificationTag[]>;
+  return actions[normalizeName(action)] || [];
 }
 
-export function requiresAudit(entityNameOrAction) {
+export function requiresAudit(entityNameOrAction: unknown): boolean {
   const entity = classifyEntity(entityNameOrAction);
   return entity.classifications.includes('audit_required') || actionTags(entityNameOrAction).includes('audit_required');
 }
 
-export function requiresConsent(entityNameOrAction) {
+export function requiresConsent(entityNameOrAction: unknown): boolean {
   const entity = classifyEntity(entityNameOrAction);
   return entity.consentScopes.length > 0;
 }
 
-export function requiresExport(entityName) {
+export function requiresExport(entityName: unknown): boolean {
   return classifyEntity(entityName).classifications.includes('export_required');
 }
 
-export function requiresDeletion(entityName) {
+export function requiresDeletion(entityName: unknown): boolean {
   return classifyEntity(entityName).classifications.includes('deletion_required');
 }
 
-export function isStudentSensitive(entityName) {
+export function isStudentSensitive(entityName: unknown): boolean {
   const tags = classifyEntity(entityName).classifications;
   return tags.includes('child_pi') || tags.includes('education_record');
 }
 
-export function isAISensitive(entityName) {
+export function isAISensitive(entityName: unknown): boolean {
   const tags = classifyEntity(entityName).classifications;
   return tags.includes('sensitive_ai') || tags.includes('ai_prompt') || tags.includes('ai_output');
 }
 
-export function isPPRASensitive(entityNameOrPrompt) {
+export function isPPRASensitive(entityNameOrPrompt: unknown): boolean {
   const normalized = normalizeName(entityNameOrPrompt);
   if (classifyEntity(normalized).classifications.includes('ppra_sensitive')) return true;
   return /\b(mental|psychological|family relationships?|political|religious|sex behavior|sexual attitudes?|illegal|self[- ]?incriminating|income|privileged relationship|wellbeing|well-being)\b/i.test(
@@ -288,7 +311,7 @@ export function isPPRASensitive(entityNameOrPrompt) {
   );
 }
 
-export function assertClassifiedEntities(entityNames) {
+export function assertClassifiedEntities(entityNames: unknown[]): boolean {
   const missing = entityNames.filter((name) => !classifyEntity(name).classified);
   if (missing.length) {
     throw new Error(`Missing data classification for: ${missing.join(', ')}`);

@@ -1,5 +1,6 @@
 // backend/orchestrator/agents/insightParser.ts
-import { invokeLLMJson } from '../../ai/llmJson'; 
+import { generateJsonWithRetries } from '../../ai/llmJson.js';
+import { z } from 'zod';
 
 interface ParsedInsight {
   type: 'deadline' | 'event' | 'action_required';
@@ -29,10 +30,24 @@ export async function parseEmailToInsights(rawEmailBody: string, sourceId: strin
   `;
 
   try {
-    const response = await invokeLLMJson(systemPrompt, rawEmailBody);
-    
+    const response = await generateJsonWithRetries({
+      schema: z.object({
+        insights: z.array(
+          z.object({
+            type: z.enum(['deadline', 'event', 'action_required']),
+            date: z.string().nullable(),
+            summary: z.string(),
+            confidenceScore: z.number(),
+          }),
+        ),
+      }),
+      system: systemPrompt,
+      user: rawEmailBody,
+    });
+    if (!response.ok) return [];
+
     // 3. Enforce Confidence Thresholds (Safety backstop)
-    const validInsights = response.insights.filter(
+    const validInsights = response.data.insights.filter(
       (insight: ParsedInsight) => insight.confidenceScore >= 0.85
     );
 

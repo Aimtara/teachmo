@@ -1,13 +1,44 @@
 /* eslint-env node */
 import { clamp01 } from './utils.js';
+import type { OrchestratorAction, OrchestratorState } from './types.js';
 
-export function fairnessPenalty(parentBurden, teacherBurden) {
+export interface ScoringWeights {
+  kid: number;
+  relationship: number;
+  school: number;
+  cognitive: number;
+  emotional: number;
+  time: number;
+  fairness: number;
+}
+
+export interface ScoreTraceRow {
+  actionId: string;
+  type: OrchestratorAction['type'];
+  score: number;
+  timeCostMin: number;
+  cognitiveCost: number;
+  emotionalCost: number;
+  kidBenefit: number;
+  relationshipBenefit: number;
+  schoolResolutionBenefit: number;
+  parentBurden: number;
+  teacherBurden: number;
+}
+
+export interface OptimizeResult {
+  candidates: OrchestratorAction[];
+  nextAction: OrchestratorAction | null;
+  scored: ScoreTraceRow[];
+}
+
+export function fairnessPenalty(parentBurden: number, teacherBurden: number): number {
   const p = clamp01(parentBurden);
   const t = clamp01(teacherBurden);
   return Math.abs(p - t);
 }
 
-export function defaultWeights() {
+export function defaultWeights(): ScoringWeights {
   return {
     kid: 0.45,
     relationship: 0.25,
@@ -15,16 +46,11 @@ export function defaultWeights() {
     cognitive: 0.25,
     emotional: 0.25,
     time: 0.2,
-    fairness: 0.15
+    fairness: 0.15,
   };
 }
 
-/**
- * Compute a single scalar utility for an action.
- * @param {import('./types.js').OrchestratorAction} action
- * @param {{ weights?: Partial<ReturnType<typeof defaultWeights>> }} [opts]
- */
-export function actionUtility(action, opts = {}) {
+export function actionUtility(action: OrchestratorAction, opts: { weights?: Partial<ScoringWeights> } = {}): number {
   const w = { ...defaultWeights(), ...(opts.weights ?? {}) };
   const fair = fairnessPenalty(action.parentBurden, action.teacherBurden);
 
@@ -41,13 +67,11 @@ export function actionUtility(action, opts = {}) {
   return benefit - cost - w.fairness * fair;
 }
 
-/**
- * Greedy optimizer under attention budget + notification constraints.
- * @param {import('./types.js').OrchestratorAction[]} actions
- * @param {import('./types.js').OrchestratorState} state
- * @param {{ weights?: Partial<ReturnType<typeof defaultWeights>>, attentionBudgetMin?: number, allowNotifyNow?: boolean }} [opts]
- */
-export function optimize(actions, state, opts = {}) {
+export function optimize(
+  actions: OrchestratorAction[],
+  state: OrchestratorState,
+  opts: { weights?: Partial<ScoringWeights>; attentionBudgetMin?: number; allowNotifyNow?: boolean } = {},
+): OptimizeResult {
   const attentionBudget = opts.attentionBudgetMin ?? state.dailyAttentionBudgetMin;
   const allowNotifyNow = opts.allowNotifyNow ?? true;
   const weights = opts.weights ?? {};
@@ -56,14 +80,13 @@ export function optimize(actions, state, opts = {}) {
     .map((a) => ({ action: a, score: actionUtility(a, { weights }) }))
     .sort((a, b) => b.score - a.score);
 
-  let remaining = attentionBudget;
-  let nextAction = null;
+  let nextAction: OrchestratorAction | null = null;
 
   for (const s of scored) {
     const a = s.action;
     if (!allowNotifyNow && a.type === 'notify_now') continue;
-    if (a.timeCostMin > remaining) continue;
-    if (a.type === 'notify_now' && remaining < 2) continue;
+    if (a.timeCostMin > attentionBudget) continue;
+    if (a.type === 'notify_now' && attentionBudget < 2) continue;
     nextAction = a;
     break;
   }
@@ -82,7 +105,7 @@ export function optimize(actions, state, opts = {}) {
       relationshipBenefit: x.action.relationshipBenefit,
       schoolResolutionBenefit: x.action.schoolResolutionBenefit,
       parentBurden: x.action.parentBurden,
-      teacherBurden: x.action.teacherBurden
-    }))
+      teacherBurden: x.action.teacherBurden,
+    })),
   };
 }

@@ -1,32 +1,40 @@
 /* eslint-env node */
 import { makeId, toIso, clamp01 } from './utils.js';
+import type { OrchestratorAction, OrchestratorSignal, OrchestratorState, SignalFeatures } from './types.js';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 /**
  * Generate candidate actions given the current state + incoming signal.
  * This is intentionally heuristic and "small"; you can swap this for LLM-driven generation later.
- *
- * @param {{
- *   state: import('./types.js').OrchestratorState,
- *   signal: import('./types.js').OrchestratorSignal,
- *   features: import('./types.js').SignalFeatures,
- *   now: Date,
- * }} params
- * @returns {import('./types.js').OrchestratorAction[]}
  */
-export function generateCandidates({ state, signal, features, now }) {
-  const actions = [];
+export function generateCandidates({
+  state,
+  signal,
+  features,
+  now,
+}: {
+  state: OrchestratorState;
+  signal: OrchestratorSignal;
+  features: SignalFeatures;
+  now: Date;
+}): OrchestratorAction[] {
+  const actions: OrchestratorAction[] = [];
   const familyId = state.familyId;
   const createdAt = toIso(now);
-  const payload = signal.payload ?? {};
+  const payload = isRecord(signal.payload) ? signal.payload : {};
 
-  const add = (a) => actions.push(a);
+  const add = (a: OrchestratorAction): void => {
+    actions.push(a);
+  };
   const baseMeta = { signalType: signal.type, signalSource: signal.source, payload };
 
   const isPriority = Boolean(payload.isSafety || payload.isCompliance || payload.priority === 'high');
   const dueSoon = features.urgency >= 0.75;
   const hot = features.emotionHeat >= 0.65;
 
-  // Priority lane / due-soon
   if (isPriority || dueSoon) {
     add({
       id: makeId('act'),
@@ -45,11 +53,10 @@ export function generateCandidates({ state, signal, features, now }) {
       timeCostMin: 2,
       parentBurden: clamp01(features.parentBurden ?? 0.5),
       teacherBurden: clamp01(features.teacherBurden ?? 0.2),
-      meta: { ...baseMeta, lane: 'priority' }
+      meta: { ...baseMeta, lane: 'priority' },
     });
   }
 
-  // Brake behaviors when strained (baroreflex / GTO)
   if (state.zone === 'red' || state.zone === 'amber') {
     add({
       id: makeId('act'),
@@ -66,7 +73,7 @@ export function generateCandidates({ state, signal, features, now }) {
       timeCostMin: 0,
       parentBurden: 0.05,
       teacherBurden: 0.05,
-      meta: { ...baseMeta, lane: 'brake' }
+      meta: { ...baseMeta, lane: 'brake' },
     });
 
     if (hot && signal.source === 'school') {
@@ -86,12 +93,11 @@ export function generateCandidates({ state, signal, features, now }) {
         timeCostMin: 3,
         parentBurden: clamp01((features.parentBurden ?? 0.5) * 0.6),
         teacherBurden: clamp01((features.teacherBurden ?? 0.2) * 0.4),
-        meta: { ...baseMeta, lane: 'deescalate' }
+        meta: { ...baseMeta, lane: 'deescalate' },
       });
     }
   }
 
-  // Default micro-actions
   if (signal.type === 'form_request' || signal.type === 'assignment_deadline') {
     add({
       id: makeId('act'),
@@ -108,11 +114,10 @@ export function generateCandidates({ state, signal, features, now }) {
       timeCostMin: 5,
       parentBurden: clamp01(features.parentBurden ?? 0.6),
       teacherBurden: clamp01(features.teacherBurden ?? 0.1),
-      meta: { ...baseMeta, lane: 'execute' }
+      meta: { ...baseMeta, lane: 'execute' },
     });
   }
 
-  // Slack controller (gentle activation)
   const slacky = state.slack >= 0.65;
   if (slacky && state.zone === 'green') {
     add({
@@ -130,7 +135,7 @@ export function generateCandidates({ state, signal, features, now }) {
       timeCostMin: 2,
       parentBurden: 0.25,
       teacherBurden: 0.25,
-      meta: { ...baseMeta, lane: 'slack' }
+      meta: { ...baseMeta, lane: 'slack' },
     });
 
     add({
@@ -148,11 +153,10 @@ export function generateCandidates({ state, signal, features, now }) {
       timeCostMin: 2,
       parentBurden: 0.1,
       teacherBurden: 0.0,
-      meta: { ...baseMeta, lane: 'connection' }
+      meta: { ...baseMeta, lane: 'connection' },
     });
   }
 
-  // Always include restraint
   add({
     id: makeId('act'),
     familyId,
@@ -168,7 +172,7 @@ export function generateCandidates({ state, signal, features, now }) {
     timeCostMin: 0,
     parentBurden: 0.0,
     teacherBurden: 0.0,
-    meta: { ...baseMeta, lane: 'restraint' }
+    meta: { ...baseMeta, lane: 'restraint' },
   });
 
   return actions;

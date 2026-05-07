@@ -15,3 +15,5 @@ export const OrchestratorStatePatchSchema = z
       .optional()
   })
   .strict();
+
+export type OrchestratorStatePatch = z.infer<typeof OrchestratorStatePatchSchema>;

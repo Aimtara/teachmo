@@ -1,8 +1,38 @@
 /* eslint-env node */
 
-export const GAP_STATUSES = Object.freeze(['open', 'scaffolded', 'blocked', 'ready_for_validation']);
+export const GAP_STATUSES = ['open', 'scaffolded', 'blocked', 'ready_for_validation'] as const;
 
-export const GAP_BACKLOG = Object.freeze([
+export type GapStatus = (typeof GAP_STATUSES)[number];
+export type GapPriority = 'P0' | 'P1' | 'P2';
+
+export interface RemediationGap {
+  id: string;
+  title: string;
+  status: GapStatus;
+  priority: GapPriority;
+  owner: string;
+  regulatoryImpact: string[];
+  affectedSystems: string[];
+  currentState: string;
+  risk: string;
+  recommendation: string;
+  solution: string;
+  implementationSteps: string[];
+  acceptanceCriteria: string[];
+  evidence: string[];
+  dependencies: string[];
+}
+
+export interface CriticalRemediationPlanItem {
+  id: string;
+  title: string;
+  owner: string;
+  recommendation: string;
+  implementationSteps: string[];
+  acceptanceCriteria: string[];
+}
+
+export const GAP_BACKLOG: readonly RemediationGap[] = Object.freeze([
   {
     id: 'GAP-001',
     title: 'Route-by-route server-side enforcement',
@@ -318,11 +348,11 @@ export const GAP_BACKLOG = Object.freeze([
   },
 ]);
 
-export function getOpenGaps({ priority } = {}) {
+export function getOpenGaps({ priority }: { priority?: GapPriority } = {}): RemediationGap[] {
   return GAP_BACKLOG.filter((gap) => gap.status !== 'ready_for_validation' && (!priority || gap.priority === priority));
 }
 
-export function getCriticalRemediationPlan() {
+export function getCriticalRemediationPlan(): CriticalRemediationPlanItem[] {
   return getOpenGaps({ priority: 'P0' }).map(({ id, title, owner, recommendation, implementationSteps, acceptanceCriteria }) => ({
     id,
     title,
@@ -333,16 +363,20 @@ export function getCriticalRemediationPlan() {
   }));
 }
 
-export function assertGapBacklogComplete(gaps = GAP_BACKLOG) {
-  const missing = [];
+export function assertGapBacklogComplete(gaps: readonly RemediationGap[] = GAP_BACKLOG): true {
+  const missing: string[] = [];
   for (const gap of gaps) {
-    for (const field of ['id', 'title', 'status', 'priority', 'owner', 'risk', 'recommendation', 'solution']) {
+    const scalarFields: Array<keyof Pick<RemediationGap, 'id' | 'title' | 'status' | 'priority' | 'owner' | 'risk' | 'recommendation' | 'solution'>> =
+      ['id', 'title', 'status', 'priority', 'owner', 'risk', 'recommendation', 'solution'];
+    for (const field of scalarFields) {
       if (!gap[field]) missing.push(`${gap.id || 'unknown'}:${field}`);
     }
-    for (const field of ['regulatoryImpact', 'affectedSystems', 'implementationSteps', 'acceptanceCriteria', 'evidence']) {
+    const listFields: Array<keyof Pick<RemediationGap, 'regulatoryImpact' | 'affectedSystems' | 'implementationSteps' | 'acceptanceCriteria' | 'evidence'>> =
+      ['regulatoryImpact', 'affectedSystems', 'implementationSteps', 'acceptanceCriteria', 'evidence'];
+    for (const field of listFields) {
       if (!Array.isArray(gap[field]) || gap[field].length === 0) missing.push(`${gap.id || 'unknown'}:${field}`);
     }
-    if (!GAP_STATUSES.includes(gap.status)) missing.push(`${gap.id}:status`);
+    if (!(GAP_STATUSES as readonly string[]).includes(gap.status)) missing.push(`${gap.id}:status`);
   }
   if (missing.length) throw new Error(`Incomplete remediation backlog: ${missing.join(', ')}`);
   return true;

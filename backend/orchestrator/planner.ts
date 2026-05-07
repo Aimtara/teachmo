@@ -3,33 +3,48 @@ import { generateCandidates } from './candidates.js';
 import { optimizePlan } from './scoring_plan.js';
 import { extractFeatures } from './features.js';
 import { makeId, toIso } from './utils.js';
+import type { DailyPlan, OrchestratorSignal, OrchestratorState } from './types.js';
 
-/**
- * Build a daily plan (top K actions under attention budget).
- * We use a "system_daily_tick" pseudo signal to reuse candidate generation logic.
- *
- * @param {{
- *   state: import('./types.js').OrchestratorState,
- *   recentSignals: import('./types.js').OrchestratorSignal[],
- *   now: Date,
- *   k?: number,
- *   horizonHours?: number
- * }} params
- * @returns {import('./types.js').DailyPlan}
- */
-export function runDailyPlanner({ state, recentSignals, now, k = 3, horizonHours = 24 }) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function deadlineFromSignal(signal: OrchestratorSignal): string | null {
+  const payload = isRecord(signal.payload) ? signal.payload : {};
+  return typeof payload.deadline === 'string' ? payload.deadline : null;
+}
+
+function titleFromSignal(signal: OrchestratorSignal): string {
+  const payload = isRecord(signal.payload) ? signal.payload : {};
+  return typeof payload.title === 'string' ? payload.title : signal.type;
+}
+
+/** Build a daily plan (top K actions under attention budget). */
+export function runDailyPlanner({
+  state,
+  recentSignals,
+  now,
+  k = 3,
+  horizonHours = 24,
+}: {
+  state: OrchestratorState;
+  recentSignals: OrchestratorSignal[];
+  now: Date;
+  k?: number;
+  horizonHours?: number;
+}): DailyPlan {
   const windowStart = now;
   const windowEnd = new Date(now.getTime() + horizonHours * 3600 * 1000);
 
   const upcoming = recentSignals
-    .map((s) => ({ s, deadline: s?.payload?.deadline }))
-    .filter((x) => typeof x.deadline === 'string')
+    .map((s) => ({ s, deadline: deadlineFromSignal(s) }))
+    .filter((x): x is { s: OrchestratorSignal; deadline: string } => typeof x.deadline === 'string')
     .map((x) => ({ ...x, d: new Date(x.deadline) }))
-        .filter((x) => !isNaN(x.d.getTime()))
+    .filter((x) => !Number.isNaN(x.d.getTime()))
     .filter((x) => x.d.getTime() >= now.getTime() && x.d.getTime() <= windowEnd.getTime())
     .slice(0, 10);
 
-  const tickSignal = {
+  const tickSignal: OrchestratorSignal = {
     familyId: state.familyId,
     source: 'system',
     type: 'system_daily_tick',
@@ -37,10 +52,10 @@ export function runDailyPlanner({ state, recentSignals, now, k = 3, horizonHours
     payload: {
       upcomingDeadlines: upcoming.map((x) => ({
         type: x.s.type,
-        deadline: x.s.payload.deadline,
-        title: x.s.payload?.title ?? x.s.type
-      }))
-    }
+        deadline: x.deadline,
+        title: titleFromSignal(x.s),
+      })),
+    },
   };
 
   const tickFeatures = extractFeatures(tickSignal, { now });
@@ -48,12 +63,13 @@ export function runDailyPlanner({ state, recentSignals, now, k = 3, horizonHours
   let candidates = generateCandidates({ state, signal: tickSignal, features: tickFeatures, now });
 
   for (const item of upcoming) {
-    const synthetic = {
+    const payload = isRecord(item.s.payload) ? item.s.payload : {};
+    const synthetic: OrchestratorSignal = {
       familyId: state.familyId,
       source: item.s.source,
       type: item.s.type,
       timestamp: toIso(now),
-      payload: { ...item.s.payload, deadline: item.s.payload.deadline, synthetic: true }
+      payload: { ...payload, deadline: item.deadline, synthetic: true },
     };
     const f = extractFeatures(synthetic, { now });
     candidates = candidates.concat(generateCandidates({ state, signal: synthetic, features: f, now }));
@@ -65,7 +81,7 @@ export function runDailyPlanner({ state, recentSignals, now, k = 3, horizonHours
   const { chosen, rationale } = optimizePlan(candidates, state, {
     k,
     attentionBudgetMin,
-    allowNotifyNow: state.zone !== 'red'
+    allowNotifyNow: state.zone !== 'red',
   });
 
   return {
@@ -77,6 +93,6 @@ export function runDailyPlanner({ state, recentSignals, now, k = 3, horizonHours
     zoneAtPlanTime: state.zone,
     attentionBudgetMin,
     actions: chosen,
-    rationale
+    rationale,
   };
 }
