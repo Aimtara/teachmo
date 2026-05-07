@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MessagingModerationAPI } from '@/api/adapters';
+import { EnterpriseFilterBar, EnterpriseSurface } from '@/components/enterprise';
 
 export default function AdminModerationQueue() {
   const [reports, setReports] = useState([]);
@@ -41,7 +42,13 @@ export default function AdminModerationQueue() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <EnterpriseSurface
+      eyebrow="Moderation"
+      title="Trust and safety queue"
+      description="Moderators get batch-ready reports, AI moderation context, propagation targets, and clear audit-safe decisions."
+      badges={['Batch actions', 'AI moderation', 'Propagates <1m', 'Audit trail']}
+    >
+      <EnterpriseFilterBar searchLabel="Search reports, reporters, reasons, or actions" filters={['Open', 'Triaged', 'Resolved', 'Dismissed', 'High severity']} />
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-sm text-gray-500">Messaging moderation</p>
@@ -139,6 +146,6 @@ export default function AdminModerationQueue() {
           </table>
         </div>
       )}
-    </div>
+    </EnterpriseSurface>
   );
 }

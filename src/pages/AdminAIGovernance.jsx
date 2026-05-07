@@ -29,6 +29,7 @@ import AIGovernanceBlockedReasons from '@/components/admin/ai/AIGovernanceBlocke
 import AIGovernanceSkillUsage from '@/components/admin/ai/AIGovernanceSkillUsage';
 import AIGovernanceFilters from '@/components/admin/ai/AIGovernanceFilters';
 import AIPolicySimulationPanel from '@/components/admin/ai/AIPolicySimulationPanel';
+import { EnterprisePanel, EnterpriseSurface, EnterpriseWorkflowList } from '@/components/enterprise';
 
 function formatMoney(value) {
   const n = Number(value || 0);
@@ -134,6 +135,7 @@ export default function AdminAIGovernance() {
     allowedModels: 'gpt-4o-mini, gpt-4o',
     featureFlags: '',
   });
+  const [incidentMode, setIncidentMode] = useState('shadow');
 
   useEffect(() => {
     if (budgetQuery.data?.budget) {
@@ -210,19 +212,58 @@ export default function AdminAIGovernance() {
 
   return (
     <ProtectedRoute allowedRoles={['system_admin', 'district_admin', 'school_admin', 'admin']}>
-      <div className="p-6 space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold">AI Governance &amp; Transparency</h1>
-          <p className="text-sm text-muted-foreground">
-            Track AI model usage, review queue activity, and published transparency briefs for your tenant.
-          </p>
-        </header>
+      <EnterpriseSurface
+        eyebrow="AI governance and trust"
+        title="Trust console"
+        description="Incident review, policy simulation, audit exports, prompt governance, usage controls, and public transparency all operate from one command-center surface."
+        badges={['Incident runbooks', 'Policy simulation', 'Audit logs', 'Privacy controls']}
+        metrics={[
+          { label: 'Pending reviews', value: String(pendingCount), badge: 'Queue', trend: 'flat' },
+          { label: 'Logged requests', value: String(usageTotals?.calls ?? 0), badge: 'Traceable', trend: 'up' },
+          { label: 'Active prompts', value: String(promptCount), badge: 'Versioned', trend: 'flat' },
+          { label: 'Simulation', value: 'Live', badge: 'Guardrail', trend: 'up' }
+        ]}
+      >
 
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <AIGovernanceFilters value={windowDays} onChange={setWindowDays} />
           <div className="text-xs text-muted-foreground">
             Governance dashboard window: last {windowDays} days
           </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+          <EnterprisePanel title="Incident runbook" description="Flagged AI prompts and SafeSpace reports move through a SOC-style response path.">
+            <EnterpriseWorkflowList
+              items={[
+                { label: 'Blocked prompt review', status: 'Triage', tone: 'warning' },
+                { label: 'SafeSpace escalation', status: 'Runbook', tone: 'danger' },
+                { label: 'District notification', status: 'Draft', tone: 'info' },
+                { label: 'Post-incident audit', status: 'Required', tone: 'success' }
+              ]}
+            />
+          </EnterprisePanel>
+          <EnterprisePanel title="Policy rollout mode" description="Admins can stage prompt policy changes before enforcement.">
+            <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="Policy rollout mode">
+              {['shadow', 'verify', 'enforce'].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setIncidentMode(mode)}
+                  className={`enterprise-focus rounded-2xl border p-4 text-sm font-semibold capitalize ${
+                    incidentMode === mode
+                      ? 'border-[var(--enterprise-primary)] bg-[color-mix(in_srgb,var(--enterprise-primary)_12%,transparent)]'
+                      : 'border-[var(--enterprise-border)]'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-[var(--enterprise-muted)]">
+              Current mode: {incidentMode}. Simulation results stay review-only until enforcement is selected.
+            </p>
+          </EnterprisePanel>
         </div>
 
         <AIGovernanceOverviewCards summary={governanceSummary} />
@@ -411,7 +452,7 @@ export default function AdminAIGovernance() {
             </Link>
           </CardContent>
         </Card>
-      </div>
+      </EnterpriseSurface>
     </ProtectedRoute>
   );
 }
