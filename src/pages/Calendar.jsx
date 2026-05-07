@@ -75,15 +75,19 @@ export default function Calendar() {
     setShowModal(true);
   };
 
+  const scheduleRequest = (request, targetDate) => {
+    setLocalEvents((items) => [...items, createEventFromSchedulingRequest(request, targetDate)]);
+    setPendingRequests((items) => items.filter((item) => item.id !== request.id));
+    setView('agenda');
+  };
+
   const handleDateDrop = (draggableId, targetDate) => {
     if (!draggableId) return;
     if (draggableId.startsWith('request-')) {
       const requestId = draggableId.replace('request-', '');
       const request = pendingRequests.find((item) => item.id === requestId);
       if (!request) return;
-      setLocalEvents((items) => [...items, createEventFromSchedulingRequest(request, targetDate)]);
-      setPendingRequests((items) => items.filter((item) => item.id !== requestId));
-      setView('agenda');
+      scheduleRequest(request, targetDate);
       return;
     }
 
@@ -120,7 +124,7 @@ export default function Calendar() {
       aside={
         <EnterprisePanel title="Scheduling queues" description="Drag targets and approvals are described beside the calendar.">
               <div className="space-y-3">
-                {pendingRequests.map((request, index) => (
+                {pendingRequests.map((request) => (
                       <div
                         key={request.id}
                         draggable
@@ -129,7 +133,16 @@ export default function Calendar() {
                       >
                         <p className="font-semibold">{request.title}</p>
                         <p className="mt-1 text-[var(--enterprise-muted)]">{request.description}</p>
-                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--enterprise-muted)]">Drag to a calendar day</p>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--enterprise-muted)]">Drag to a calendar day</p>
+                          <button
+                            type="button"
+                            className="enterprise-focus rounded-full bg-[var(--enterprise-primary)] px-3 py-1 text-xs font-semibold text-white"
+                            onClick={() => scheduleRequest(request, currentDate)}
+                          >
+                            Schedule selected day
+                          </button>
+                        </div>
                       </div>
                 ))}
                 {pendingRequests.length === 0 ? <p className="text-sm text-[var(--enterprise-muted)]">All scheduling requests are placed.</p> : null}
