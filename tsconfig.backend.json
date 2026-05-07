@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "checkJs": false,
+    "allowJs": false,
+    "strict": true,
+    "moduleResolution": "bundler",
+    "types": ["node"]
+  },
+  "include": [
+    "backend/**/*.ts",
+    "backend/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

@@ -34,6 +34,80 @@ const planningMetadata = {
   '(repo root)': { owner: 'Developer Experience', risk: 'Medium', targetSprint: 'Sprint 6-10', blockedBy: 'Config-level JS exception decisions' },
 };
 
+
+function countTrackedByPath(path) {
+  const tsPath = path.endsWith('.js') ? `${path.slice(0, -3)}.ts` : path;
+  const matching = files.filter((file) => {
+    if (path.endsWith('.js')) return file === path || file === tsPath;
+    return file === path || file.startsWith(`${path}/`);
+  });
+  return matching.reduce(
+    (acc, file) => {
+      const ext = file.split('.').pop();
+      if (ext === 'js') acc.js += 1;
+      if (ext === 'ts') acc.ts += 1;
+      return acc;
+    },
+    { js: 0, ts: 0 },
+  );
+}
+
+const criticalBackendTargets = [
+  {
+    path: 'backend/orchestrator',
+    priority: 'P0',
+    owner: 'Backend Platform (TBD DRI)',
+    currentBlocker: 'Root helpers, stores, engine, agents, and specialists remain mixed JS/TS.',
+    nextAction: 'Continue bottom-up conversion after schemas and pure state helpers compile.',
+    exitCriterion: 'Directory has no runtime JS helpers except documented route/app boundary exceptions.',
+  },
+  {
+    path: 'backend/compliance',
+    priority: 'P0',
+    owner: 'Backend Platform (TBD DRI)',
+    currentBlocker: 'Policy foundation helpers remain JS and gate route conversion.',
+    nextAction: 'Convert classification, redaction, audit, consent, and AI governance helpers.',
+    exitCriterion: 'Compliance policy helpers compile under backend typecheck with tests passing.',
+  },
+  {
+    path: 'backend/routes/orchestrator.js',
+    priority: 'P1',
+    owner: 'Backend Platform (TBD DRI)',
+    currentBlocker: 'Depends on typed orchestrator engine/store contracts.',
+    nextAction: 'Defer until orchestrator helpers and stores compile.',
+    exitCriterion: 'Route is TypeScript with preserved paths, middleware order, and idempotency handling.',
+  },
+  {
+    path: 'backend/routes/compliance.js',
+    priority: 'P1',
+    owner: 'Backend Platform (TBD DRI)',
+    currentBlocker: 'Depends on typed compliance helpers and shared Express request contracts.',
+    nextAction: 'Defer until compliance foundation compiles.',
+    exitCriterion: 'Route is TypeScript with DSAR/export/delete semantics preserved.',
+  },
+  {
+    path: 'backend/routes/privacy.js',
+    priority: 'P1',
+    owner: 'Backend Platform (TBD DRI)',
+    currentBlocker: 'Depends on typed privacy actor/tenant helpers and compliance contracts.',
+    nextAction: 'Defer until compliance foundation and shared Express types are ready.',
+    exitCriterion: 'Route is TypeScript with subject-access and relationship transitions preserved.',
+  },
+  {
+    path: 'backend/app.js',
+    priority: 'P2',
+    owner: 'Backend Platform (TBD DRI)',
+    currentBlocker: 'Must wait for mounted routers and middleware surfaces to be typed.',
+    nextAction: 'Convert only after orchestrator/compliance/privacy route boundaries compile.',
+    exitCriterion: 'App is TypeScript with route mount paths and middleware order unchanged.',
+  },
+];
+
+const criticalBackendRows = criticalBackendTargets.map((target) => ({
+  ...target,
+  ...countTrackedByPath(target.path),
+}));
+
 const rows = [...byTop.entries()]
   .map(([dir, counts]) => {
     const metadata = planningMetadata[dir] ?? {
@@ -78,6 +152,13 @@ const markdown = [
   '| `backend/**/*.js` | Backend Platform | Service and route conversion depends on typed boundary contracts. | High | 2026-09-30 | TS-MIG-102 |',
   '| `*.js`, `*.cjs`, and `*.mjs` build/tooling config in repo root | Developer Experience | Ecosystem compatibility exceptions pending TS-first config decisions. | Medium | 2026-10-15 | TS-MIG-103 |',
   '| `public/**/*.js` | Frontend Platform | Static/runtime browser artifacts reviewed as explicit JS exceptions. | Low | 2026-10-15 | TS-MIG-104 |',
+  '',
+
+  '## Critical backend migration campaign',
+  '',
+  '| Target | JS count | TS count | Priority | Owner | Current blocker | Next action | Exit criterion |',
+  '| --- | ---: | ---: | --- | --- | --- | --- | --- |',
+  ...criticalBackendRows.map((row) => `| ${row.path} | ${row.js} | ${row.ts} | ${row.priority} | ${row.owner} | ${row.currentBlocker} | ${row.nextAction} | ${row.exitCriterion} |`),
   '',
 
   '## Phase 1 foundation hardening progress',

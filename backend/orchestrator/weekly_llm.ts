@@ -1,14 +1,19 @@
 /* eslint-env node */
 import { WeeklyBriefSchema } from './types.js';
+import type { OrchestratorSignal, OrchestratorState, WeeklyBrief } from './types.js';
 import { extractFeatures } from './features.js';
 import { makeId, toIso, clamp01 } from './utils.js';
 import { generateJsonWithRetries } from '../ai/llmJson.js';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 /**
  * Generate a locked-structure weekly brief using an LLM.
  * Returns null on failure (caller should use deterministic fallback).
  */
-export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) {
+export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }: { state: OrchestratorState; recentSignals: OrchestratorSignal[]; now: Date }): Promise<WeeklyBrief | null> {
   const familyId = state.familyId;
   const createdAt = toIso(now);
   const weekEnd = toIso(now);
@@ -16,7 +21,7 @@ export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) 
   const weekStart = toIso(weekStartDate);
   const id = makeId('wbrief');
 
-  const counts = {};
+  const counts: Record<string, number> = {};
   for (const s of recentSignals) {
     counts[s.type] = (counts[s.type] ?? 0) + 1;
   }
@@ -27,8 +32,9 @@ export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) 
     .map((s) => {
       const f = extractFeatures(s, { now });
       const score = 0.45 * f.impact + 0.35 * f.urgency + 0.2 * f.emotionHeat;
-      const title = typeof s.payload?.title === 'string' ? s.payload.title : s.type;
-      const deadline = typeof s.payload?.deadline === 'string' ? s.payload.deadline : null;
+      const payload = isRecord(s.payload) ? s.payload : {};
+      const title = typeof payload.title === 'string' ? payload.title : s.type;
+      const deadline = typeof payload.deadline === 'string' ? payload.deadline : null;
       return {
         type: s.type,
         source: s.source,
@@ -103,7 +109,7 @@ export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) 
   if (!result.ok) return null;
 
   // Enforce required fields + cap list sizes, then re-validate.
-  const b = { ...result.data };
+  const b: WeeklyBrief = { ...result.data };
   b.id = id;
   b.familyId = familyId;
   b.createdAt = createdAt;

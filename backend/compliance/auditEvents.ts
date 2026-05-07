@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import { requiresAudit } from './dataClassification.js';
 import { redactPII } from './redaction.js';
 
-export const AUDIT_EVENT_CATEGORIES = Object.freeze([
+export const AUDIT_EVENT_CATEGORIES = [
   'auth.security_sensitive',
   'relationship.created',
   'relationship.verified',
@@ -35,14 +35,59 @@ export const AUDIT_EVENT_CATEGORIES = Object.freeze([
   'incident.created',
   'incident.updated',
   'feature_flag.updated',
-]);
+] as const;
 
-function idOf(value) {
+export type AuditEventCategory = (typeof AUDIT_EVENT_CATEGORIES)[number];
+
+interface AuditSubject {
+  id?: string | null;
+  userId?: string | null;
+  actorId?: string | null;
+  entityId?: string | null;
+  studentId?: string | null;
+  childId?: string | null;
+  organizationId?: string | null;
+  districtId?: string | null;
+  schoolId?: string | null;
+  role?: string | null;
+  type?: string | null;
+  entityType?: string | null;
+}
+
+interface AuditContext extends Record<string, unknown> {
+  tenantId?: string | null;
+  organizationId?: string | null;
+  schoolId?: string | null;
+  requireTenant?: boolean;
+  queryFn?: (_sql: string, _params: readonly unknown[]) => Promise<unknown>;
+}
+
+export interface BuiltAuditEvent {
+  audit_id: string;
+  action: string;
+  actor_id: string | null;
+  actor_role: string | null;
+  target_type: string | null;
+  target_id: string | null;
+  organization_id: string | null;
+  school_id: string | null;
+  required: boolean;
+  metadata: ReturnType<typeof redactPII>;
+  created_at: string;
+}
+
+function idOf(value: AuditSubject | null | undefined): string | null {
   if (!value) return null;
   return value.id || value.userId || value.actorId || value.entityId || value.studentId || value.childId || null;
 }
 
-export function buildAuditEvent(action, actor = {}, target = {}, context = {}, metadata = {}) {
+export function buildAuditEvent(
+  action: string,
+  actor: AuditSubject = {},
+  target: AuditSubject = {},
+  context: AuditContext = {},
+  metadata: unknown = {},
+): Readonly<BuiltAuditEvent> {
   if (!action) throw new Error('audit action is required');
   const tenantId = context.tenantId || context.organizationId || actor.organizationId || actor.districtId || target.organizationId || null;
   const event = {
@@ -65,7 +110,13 @@ export function buildAuditEvent(action, actor = {}, target = {}, context = {}, m
   return Object.freeze(event);
 }
 
-export async function auditEvent(action, actor, target, context = {}, metadata = {}) {
+export async function auditEvent(
+  action: string,
+  actor: AuditSubject,
+  target: AuditSubject,
+  context: AuditContext = {},
+  metadata: unknown = {},
+): Promise<Readonly<BuiltAuditEvent>> {
   const event = buildAuditEvent(action, actor, target, context, metadata);
   if (typeof context.queryFn === 'function') {
     await context.queryFn(

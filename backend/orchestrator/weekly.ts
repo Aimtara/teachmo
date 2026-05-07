@@ -1,38 +1,47 @@
 /* eslint-env node */
 import { makeId, toIso, clamp01 } from './utils.js';
+import type { OrchestratorSignal, OrchestratorState, WeeklyBrief } from './types.js';
 
-/**
- * Generate a deterministic weekly brief.
- * (Later: replace highlights/risks with LLM, but keep the structure locked.)
- *
- * @param {{
- *  state: import('./types.js').OrchestratorState,
- *  recentSignals: import('./types.js').OrchestratorSignal[],
- *  now: Date,
- * }} params
- * @returns {{ brief: import('./types.js').WeeklyBrief, setpoints: { dailyAttentionBudgetMin?: number, maxNotificationsPerHour?: number } }}
- */
-export function runWeeklyRegulator({ state, recentSignals, now }) {
+export interface WeeklyRegulatorResult {
+  brief: WeeklyBrief;
+  setpoints: WeeklyBrief['setpointAdjustments'];
+}
+
+function emptySetpointAdjustments(): NonNullable<WeeklyBrief['setpointAdjustments']> {
+  return {};
+}
+
+/** Generate a deterministic weekly brief. */
+export function runWeeklyRegulator({
+  state,
+  recentSignals,
+  now,
+}: {
+  state: OrchestratorState;
+  recentSignals: OrchestratorSignal[];
+  now: Date;
+}): WeeklyRegulatorResult {
   const weekEnd = now;
   const weekStart = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
 
-  const counts = {};
+  const counts: Record<string, number> = {};
   for (const s of recentSignals) {
     counts[s.type] = (counts[s.type] ?? 0) + 1;
   }
 
-  const highlights = [];
-  const risks = [];
+  const highlights: string[] = [];
+  const risks: string[] = [];
 
   if ((counts.assignment_deadline ?? 0) > 3) highlights.push('Multiple deadlines landed this week — structure helps more than reminders.');
   if ((counts.form_request ?? 0) > 1) highlights.push('Paperwork week: batching forms into one sitting reduces context switching.');
   if (state.relationshipStrain > 0.55) risks.push('Tone/heat risk: keep messages factual + short to avoid escalation loops.');
   if (state.childRisk > 0.6) risks.push('Child risk signals are elevated: prioritize one supportive action over many small nudges.');
   if (state.tension > 0.7) risks.push('High load week: reduce notifications, lean on digest, focus on minimum viable follow-through.');
-  if (state.slack > 0.65 && state.zone === 'green')
+  if (state.slack > 0.65 && state.zone === 'green') {
     risks.push('Low-touch drift risk: a brief check-in can prevent surprises later.');
+  }
 
-  const recommendedNextSteps = [];
+  const recommendedNextSteps: string[] = [];
   if (state.zone === 'red') {
     recommendedNextSteps.push('Batch non-urgent school messages into a digest.');
     recommendedNextSteps.push('Pick one “must do” action and explicitly defer the rest.');
@@ -46,7 +55,7 @@ export function runWeeklyRegulator({ state, recentSignals, now }) {
   const setpoints = tuneSetpoints(state);
   const whyNow = buildWhyNow(state);
 
-  const brief = {
+  const brief: WeeklyBrief = {
     id: makeId('wbrief'),
     familyId: state.familyId,
     createdAt: toIso(now),
@@ -56,25 +65,21 @@ export function runWeeklyRegulator({ state, recentSignals, now }) {
       currentZone: state.zone,
       tension: clamp01(state.tension),
       slack: clamp01(state.slack),
-      cooldownActive: Boolean(state.cooldownUntil)
+      cooldownActive: Boolean(state.cooldownUntil),
     },
     signalCounts: counts,
     highlights: highlights.length ? highlights : ['Steady week: keep systems simple and predictable.'],
     risks: risks.length ? risks : ['No major risks detected — stay consistent and avoid over-optimizing.'],
     recommendedNextSteps,
     whyNow,
-    setpointAdjustments: setpoints
+    setpointAdjustments: setpoints,
   };
 
   return { brief, setpoints };
 }
 
-/**
- * Conservative tuning only.
- * (Never do big swings without strong evidence.)
- */
-function tuneSetpoints(state) {
-  const adj = {};
+function tuneSetpoints(state: OrchestratorState): NonNullable<WeeklyBrief['setpointAdjustments']> {
+  const adj = emptySetpointAdjustments();
 
   if (state.zone === 'red' || state.tension > 0.75) {
     adj.dailyAttentionBudgetMin = Math.max(5, Math.floor(state.dailyAttentionBudgetMin * 0.8));
@@ -86,7 +91,7 @@ function tuneSetpoints(state) {
   return adj;
 }
 
-function buildWhyNow(state) {
+function buildWhyNow(state: OrchestratorState): string {
   if (state.zone === 'red' || state.tension > 0.75) {
     return 'Because this week is high-load, one focused step plus batching will reduce stress without dropping the ball.';
   }

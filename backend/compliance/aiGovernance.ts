@@ -6,16 +6,16 @@ import { auditEvent } from './auditEvents.js';
 import { isPPRASensitive } from './dataClassification.js';
 import { redactPrompt, redactPII } from './redaction.js';
 
-export const AI_POLICY_CLASSES = Object.freeze([
+export const AI_POLICY_CLASSES = [
   'low_risk',
   'educational_support',
   'student_sensitive',
   'ppra_sensitive',
   'high_stakes',
   'prohibited_without_human_review',
-]);
+] as const;
 
-export const HIGH_STAKES_AI_CATEGORIES = Object.freeze([
+export const HIGH_STAKES_AI_CATEGORIES = [
   'academic_placement',
   'discipline',
   'disability_accommodation',
@@ -25,9 +25,12 @@ export const HIGH_STAKES_AI_CATEGORIES = Object.freeze([
   'intervention_recommendation',
   'student_ranking',
   'behavioral_profiling',
-]);
+] as const;
 
-const CATEGORY_PATTERNS = Object.freeze({
+export type AIPolicyClass = (typeof AI_POLICY_CLASSES)[number];
+export type HighStakesAICategory = (typeof HIGH_STAKES_AI_CATEGORIES)[number];
+
+const CATEGORY_PATTERNS: Readonly<Record<HighStakesAICategory, RegExp>> = Object.freeze({
   academic_placement: /\b(placement|track|advanced class|remediation group)\b/i,
   discipline: /\b(discipline|suspension|expulsion|detention)\b/i,
   disability_accommodation: /\b(disability|accommodation|iep|504 plan)\b/i,
@@ -40,7 +43,11 @@ const CATEGORY_PATTERNS = Object.freeze({
 });
 
 export class AIGovernanceError extends Error {
-  constructor(reason, metadata = {}) {
+  reason: string;
+  metadata: Record<string, unknown>;
+  statusCode: number;
+
+  constructor(reason: string, metadata: Record<string, unknown> = {}) {
     super(reason);
     this.name = 'AIGovernanceError';
     this.reason = reason;
@@ -49,21 +56,68 @@ export class AIGovernanceError extends Error {
   }
 }
 
-function textFrom(input) {
+interface AITracePayload extends Record<string, unknown> {
+  prompt?: string;
+  output?: string;
+  response?: string;
+  text?: string;
+  recommendation?: string;
+  studentId?: string;
+  childId?: string;
+  finalDecision?: boolean;
+}
+
+interface AIContext extends Record<string, unknown> {
+  intent?: string;
+  ppraSensitive?: boolean;
+  studentId?: string;
+  childId?: string;
+  highStakes?: boolean;
+  finalDecision?: boolean;
+  modelTrainingAuthorized?: boolean;
+  consentLedger?: Record<string, unknown>[];
+  ledger?: Record<string, unknown>[];
+  organizationId?: string;
+  schoolId?: string;
+}
+
+interface AIActor extends Record<string, unknown> {
+  id?: string;
+  userId?: string;
+  organizationId?: string;
+  districtId?: string;
+  schoolId?: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function asPayload(input: unknown): AITracePayload {
+  return isRecord(input) ? input : {};
+}
+
+function stringField(input: Record<string, unknown>, key: string): string {
+  const value = input[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function textFrom(input: unknown): string {
   if (typeof input === 'string') return input;
-  if (!input) return '';
-  return [input.prompt, input.output, input.response, input.text, input.recommendation]
+  const payload = asPayload(input);
+  return [payload.prompt, payload.output, payload.response, payload.text, payload.recommendation]
     .filter(Boolean)
     .join('\n');
 }
 
-export function classifyAIUseCase(input, context = {}) {
+export function classifyAIUseCase(input: unknown, context: AIContext = {}) {
   const text = textFrom(input);
   const matchedHighStakesCategories = Object.entries(CATEGORY_PATTERNS)
     .filter(([, pattern]) => pattern.test(text) || pattern.test(context.intent || ''))
-    .map(([category]) => category);
+    .map(([category]) => category as HighStakesAICategory);
   const ppraSensitive = isPPRASensitive(text) || context.ppraSensitive === true;
-  const hasStudentData = Boolean(context.studentId || context.childId || input?.studentId || input?.childId);
+  const payload = asPayload(input);
+  const hasStudentData = Boolean(context.studentId || context.childId || payload.studentId || payload.childId);
   const highStakes = matchedHighStakesCategories.length > 0 || context.highStakes === true;
 
   const policyClass = highStakes
@@ -87,7 +141,7 @@ export function classifyAIUseCase(input, context = {}) {
   });
 }
 
-export function requireHumanReview(aiOutput, context = {}) {
+export function requireHumanReview(aiOutput: unknown, context: AIContext = {}) {
   const classification = classifyAIUseCase(aiOutput, context);
   if (!classification.requiresHumanReview) return { required: false, classification };
   return {
@@ -98,25 +152,25 @@ export function requireHumanReview(aiOutput, context = {}) {
   };
 }
 
-export function blockFinalDecisionAI(aiOutput, context = {}) {
+export function blockFinalDecisionAI(aiOutput: unknown, context: AIContext = {}): true {
   const finalDecision =
-    aiOutput?.finalDecision === true ||
+    asPayload(aiOutput).finalDecision === true ||
     context.finalDecision === true ||
     /\b(final decision|automatically decide|must assign|must discipline|must place)\b/i.test(textFrom(aiOutput));
   if (finalDecision) throw new AIGovernanceError('ai_final_decision_blocked', { advisoryOnly: true });
   return true;
 }
 
-export function redactAITrace(trace) {
+export function redactAITrace(trace: unknown) {
   return redactPII({
-    ...trace,
-    prompt: trace?.prompt ? redactPrompt(trace.prompt) : undefined,
-    output: trace?.output ? redactPrompt(trace.output) : undefined,
-    response: trace?.response ? redactPrompt(trace.response) : undefined,
+    ...asPayload(trace),
+    prompt: stringField(asPayload(trace), 'prompt') ? redactPrompt(stringField(asPayload(trace), 'prompt')) : undefined,
+    output: stringField(asPayload(trace), 'output') ? redactPrompt(stringField(asPayload(trace), 'output')) : undefined,
+    response: stringField(asPayload(trace), 'response') ? redactPrompt(stringField(asPayload(trace), 'response')) : undefined,
   });
 }
 
-export async function recordAITrace({ actor = {}, input = {}, output = {}, context = {} } = {}) {
+export async function recordAITrace({ actor = {}, input = {}, output = {}, context = {} }: { actor?: AIActor; input?: AITracePayload; output?: AITracePayload; context?: AIContext } = {}) {
   requireConsent(actor.id || actor.userId, 'ai_assistance', {
     ...context,
     ledger: context.consentLedger || context.ledger || [],

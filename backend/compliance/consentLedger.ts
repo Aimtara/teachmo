@@ -2,7 +2,7 @@
 
 import { randomUUID } from 'crypto';
 
-export const CONSENT_SCOPES = Object.freeze([
+export const CONSENT_SCOPES = [
   'account_creation',
   'child_data_collection',
   'school_authorized_use',
@@ -14,34 +14,86 @@ export const CONSENT_SCOPES = Object.freeze([
   'third_party_integrations',
   'media_or_community_display',
   'surveys_or_reflections',
-]);
+] as const;
 
-export const CONSENT_STATUSES = Object.freeze(['granted', 'revoked', 'expired', 'denied']);
+export const CONSENT_STATUSES = ['granted', 'revoked', 'expired', 'denied'] as const;
+
+export type ConsentScope = (typeof CONSENT_SCOPES)[number];
+export type ConsentStatus = (typeof CONSENT_STATUSES)[number];
+
+export interface ConsentLedgerRecord extends Record<string, unknown> {
+  consent_id?: string;
+  consentId?: string;
+  actor_id?: string;
+  actorId?: string;
+  actor_role?: string;
+  child_id?: string | null;
+  childId?: string | null;
+  student_id?: string | null;
+  studentId?: string | null;
+  school_id?: string | null;
+  schoolId?: string | null;
+  tenant_id?: string | null;
+  tenantId?: string | null;
+  organization_id?: string | null;
+  organizationId?: string | null;
+  consent_scope?: string;
+  consentScope?: string;
+  consent_status?: ConsentStatus | string;
+  consentStatus?: ConsentStatus | string;
+  source?: string;
+  evidence_ref?: string | null;
+  granted_at?: string | null;
+  grantedAt?: string | null;
+  revoked_at?: string | null;
+  revokedAt?: string | null;
+  expires_at?: string | null;
+  expiresAt?: string | null;
+  created_at?: string;
+  createdAt?: string;
+}
+
+interface ConsentContext extends Record<string, unknown> {
+  actorId?: string;
+  childId?: string;
+  studentId?: string;
+  schoolId?: string;
+  tenantId?: string;
+  organizationId?: string;
+  ledger?: ConsentLedgerRecord[];
+  consentLedger?: ConsentLedgerRecord[];
+  records?: ConsentLedgerRecord[];
+  at?: string | Date;
+}
 
 export class ConsentRequiredError extends Error {
-  constructor(scope, metadata = {}) {
+  scope: string;
+  metadata: Record<string, unknown>;
+  statusCode: number;
+
+  constructor(scope: unknown, metadata: Record<string, unknown> = {}) {
     super(`valid consent required for ${scope}`);
     this.name = 'ConsentRequiredError';
-    this.scope = scope;
+    this.scope = String(scope);
     this.metadata = metadata;
     this.statusCode = 403;
   }
 }
 
-function normalizeScope(scope) {
+function normalizeScope(scope: unknown): string {
   return String(scope || '').trim().toLowerCase();
 }
 
-function nowIso() {
+function nowIso(): string {
   return new Date().toISOString();
 }
 
-function same(left, right) {
+function same(left: unknown, right: unknown): boolean {
   if (left === undefined || left === null || right === undefined || right === null) return true;
   return String(left) === String(right);
 }
 
-function isCurrentGrant(record, scope, context = {}, at = new Date()) {
+function isCurrentGrant(record: ConsentLedgerRecord | undefined, scope: unknown, context: ConsentContext = {}, at = new Date()): boolean {
   if (!record) return false;
   if (normalizeScope(record.consent_scope || record.consentScope) !== normalizeScope(scope)) return false;
   if ((record.consent_status || record.consentStatus) !== 'granted') return false;
@@ -56,7 +108,7 @@ function isCurrentGrant(record, scope, context = {}, at = new Date()) {
   return true;
 }
 
-export function hasValidConsent(actorId, scope, context = {}) {
+export function hasValidConsent(actorId: unknown, scope: unknown, context: ConsentContext = {}): boolean {
   const records = context.ledger || context.consentLedger || context.records || [];
   const at = context.at ? new Date(context.at) : new Date();
   const matches = records
@@ -75,11 +127,11 @@ export function hasValidConsent(actorId, scope, context = {}) {
       );
       return byDate || b.index - a.index;
     });
-  return isCurrentGrant(matches[0]?.record, scope, { ...context, actorId: actorId || context.actorId }, at);
+  return isCurrentGrant(matches[0]?.record, scope, { ...context, actorId: actorId === undefined || actorId === null ? context.actorId : String(actorId) }, at);
 }
 
-export function requireConsent(actorId, scope, context = {}) {
-  if (!CONSENT_SCOPES.includes(normalizeScope(scope))) {
+export function requireConsent(actorId: unknown, scope: unknown, context: ConsentContext = {}): true {
+  if (!(CONSENT_SCOPES as readonly string[]).includes(normalizeScope(scope))) {
     throw new ConsentRequiredError(scope, { reason: 'unknown_consent_scope' });
   }
   if (!hasValidConsent(actorId, scope, context)) {
@@ -106,10 +158,28 @@ export function recordConsent({
   expiresAt = null,
   grantedAt = nowIso(),
   ledger,
-} = {}) {
+}: {
+  consentId?: string;
+  actorId?: string;
+  actorRole?: string;
+  childId?: string | null;
+  studentId?: string | null;
+  schoolId?: string | null;
+  tenantId?: string | null;
+  organizationId?: string | null;
+  consentScope?: string;
+  consentStatus?: ConsentStatus;
+  consentVersion?: string;
+  noticeVersion?: string;
+  source?: string;
+  evidenceRef?: string | null;
+  expiresAt?: string | null;
+  grantedAt?: string;
+  ledger?: ConsentLedgerRecord[];
+} = {}): Readonly<ConsentLedgerRecord> {
   const normalizedScope = normalizeScope(consentScope);
-  if (!CONSENT_SCOPES.includes(normalizedScope)) throw new Error(`Unknown consent scope: ${consentScope}`);
-  if (!CONSENT_STATUSES.includes(consentStatus)) throw new Error(`Unknown consent status: ${consentStatus}`);
+  if (!(CONSENT_SCOPES as readonly string[]).includes(normalizedScope)) throw new Error(`Unknown consent scope: ${consentScope}`);
+  if (!(CONSENT_STATUSES as readonly string[]).includes(String(consentStatus))) throw new Error(`Unknown consent status: ${consentStatus}`);
   if (!actorId || !actorRole || !consentVersion || !noticeVersion || !source) {
     throw new Error('actorId, actorRole, consentVersion, noticeVersion, and source are required');
   }
@@ -141,8 +211,8 @@ export function recordConsent({
   return record;
 }
 
-export function revokeConsent({ consentId, actorId, consentScope, childId = null, studentId = childId, ledger, source, evidenceRef } = {}) {
-  const existing = (ledger || []).find((record) => {
+export function revokeConsent({ consentId, actorId, consentScope, childId = null, studentId = childId, ledger, source, evidenceRef }: { consentId?: string; actorId?: string; consentScope?: string; childId?: string | null; studentId?: string | null; ledger?: ConsentLedgerRecord[]; source?: string; evidenceRef?: string | null } = {}): Readonly<ConsentLedgerRecord> {
+  const existing = (ledger || []).find((record: ConsentLedgerRecord) => {
     if (consentId && record.consent_id !== consentId) return false;
     if (actorId && record.actor_id !== actorId) return false;
     if (consentScope && normalizeScope(record.consent_scope) !== normalizeScope(consentScope)) return false;
@@ -166,7 +236,7 @@ export function revokeConsent({ consentId, actorId, consentScope, childId = null
   return revoked;
 }
 
-export function getConsentHistory(actorId, childId = null, ledger = []) {
+export function getConsentHistory(actorId: string, childId: string | null = null, ledger: ConsentLedgerRecord[] = []): ConsentLedgerRecord[] {
   return ledger
     .filter((record) => record.actor_id === actorId && (childId ? record.child_id === childId || record.student_id === childId : true))
     .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));

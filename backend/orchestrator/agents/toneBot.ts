@@ -1,5 +1,5 @@
 // backend/orchestrator/agents/toneBot.ts
-import { invokeLLM } from '../../ai/invoke-llm';
+import { invokeLLM } from '../../functions/invoke-llm.js';
 
 export async function generateWordsToTry(parentDraft: string, contextScenario: string): Promise<string> {
   // Strict System Prompt acting as the "Warmth without deception" constraint
@@ -18,6 +18,6 @@ export async function generateWordsToTry(parentDraft: string, contextScenario: s
     Return ONLY the suggested rewritten text.
   `;
 
-  const suggestion = await invokeLLM(toneConstraintPrompt, parentDraft);
-  return suggestion.trim();
+  const suggestion = await invokeLLM({ prompt: parentDraft, context: toneConstraintPrompt });
+  return (suggestion.content ?? '').trim();
 }
