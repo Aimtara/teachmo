@@ -11,8 +11,8 @@ This tracker converts the enterprise UI redesign plan into updateable workstream
 | Status | Count | Notes |
 | --- | ---: | --- |
 | Done | 4 | Foundation, settings themes, parent Today, teacher triage. |
-| Partial | 14 | Most redesigned surfaces have shells/interactions but need backend, realtime, or measurement work. |
-| Not started | 7 | Research, full visual/perf/e2e suites, staged rollout, training, and production feedback loops. |
+| Partial | 15 | Most redesigned surfaces have shells/interactions but need backend, realtime, or measurement work. |
+| Not started | 6 | Research, visual/perf expansion, staged rollout, training, and production feedback loops. |
 
 ## Burndown by workstream
 
@@ -23,7 +23,7 @@ This tracker converts the enterprise UI redesign plan into updateable workstream
 | UI-003 | Role-aware onboarding with autosave and AI guidance | Partial | `src/pages/OnboardingPage.tsx` uses saved intent and enterprise shell | Add complete parent/teacher/partner/admin step sets, localization, analytics, completion-rate measurement. |
 | UI-004 | Discover personalization, filters, saved search, community result blending | Partial | `src/pages/UnifiedDiscover.jsx` shell and filters | Add real personalized ranking, saved searches, infinite scroll, community result integration, load-time proof. |
 | UI-005 | Community feed, pods, leaderboards, post creation, reporting | Partial | `src/pages/UnifiedCommunity.jsx` shell and workflow states | Implement create/edit/delete posts, pods, rich content, leaderboards, block/report propagation. |
-| UI-006 | Calendar scheduling with multiple views and agenda | Partial | `src/pages/Calendar.jsx`, `src/utils/calendarScheduling.ts`, verified walkthrough | Persist drag/drop and schedule changes, add event creation wizard, external calendar sync, reminders. |
+| UI-006 | Calendar scheduling with multiple views and agenda | Partial | `src/pages/Calendar.jsx`, `src/utils/calendarScheduling.ts`, verified walkthrough, optimistic `createEvent` persistence path | Add update/delete persistence, event creation wizard, external calendar sync, reminders, and live retry queue. |
 | UI-007 | Messaging rich chat and approvals | Partial | `src/pages/Messages.jsx` supports threads, optimistic send, approval badge | Add realtime updates, attachments, voice notes, notification preferences, approval persistence proof. |
 | UI-008 | Unified AI hub with chat, quick actions, explainability, privacy controls | Partial | `src/pages/AIAssistant.jsx` enterprise hub wrapper | Merge explainability route behavior, add history view/delete, voice commands, measured <3s response evidence. |
 | UI-009 | Settings tabs, instant themes, privacy controls | Done | `src/pages/Settings.jsx`, high-contrast walkthrough | Connect all controls to persisted user preferences APIs. |
@@ -40,7 +40,7 @@ This tracker converts the enterprise UI redesign plan into updateable workstream
 | UI-020 | Accessibility verification across redesigned surfaces | Partial | Existing a11y suite passes | Add axe coverage for newly redesigned calendar, messaging, partner, admin data, and governance pages. |
 | UI-021 | Performance budgets and bundle monitoring | Partial | `npm run build && npm run check:size` passes | Add route-level Lighthouse/perf budgets and motion performance checks. |
 | UI-022 | Visual regression coverage | Not started | None in this branch | Add Storybook/Chromatic or equivalent snapshots for redesigned surfaces. |
-| UI-023 | E2E coverage for role workflows | Not started | Manual walkthrough video only | Add Playwright tests for calendar scheduling, messaging approval, partner tabs, data retry, governance mode. |
+| UI-023 | E2E coverage for role workflows | Partial | `tests/e2e/enterprise-workflows.spec.ts` covers calendar scheduling, messaging approval, partner tabs, data retry, governance mode | Extend Playwright coverage to onboarding, discover/community, role dashboards, moderation, transparency, directories, and error states. |
 | UI-024 | Security/compliance backend proof | Not started | UI copy and no new dependencies | Add RBAC/SSO/audit-log verification for all admin/internal workflow actions. |
 | UI-025 | User research and measurable acceptance outcomes | Not started | None in this branch | Run role research, usability tests, onboarding + triage + Today analytics comparisons. |
 | UI-026 | Training materials, in-app tours, staged rollout | Not started | Rollout notes in `docs/enterprise-ui-redesign.md` | Create user guides, tour assets, pilot plan, feedback report, production rollout checklist. |
@@ -48,8 +48,8 @@ This tracker converts the enterprise UI redesign plan into updateable workstream
 
 ## Next recommended burn order
 
-1. Add Playwright coverage for the five currently verified UI workflows.
-2. Persist calendar scheduling and messaging approval state through existing APIs.
-3. Add partner asset/compliance upload flows with storage and audit events.
-4. Back integration retry/reconciliation and AI governance rollout controls with backend actions and audit logs.
+1. Persist messaging approval state and calendar reschedules through existing APIs.
+2. Add partner asset/compliance upload flows with storage and audit events.
+3. Back integration retry/reconciliation and AI governance rollout controls with backend actions and audit logs.
+4. Extend Playwright coverage to the remaining redesigned routes and error states.
 5. Expand axe/visual/performance checks to all newly redesigned route surfaces.

@@ -1,4 +1,4 @@
-import { createEventFromSchedulingRequest, moveEventToDate } from '../calendarScheduling';
+import { buildEventPersistencePayload, createEventFromSchedulingRequest, moveEventToDate } from '../calendarScheduling';
 
 describe('calendarScheduling', () => {
   it('moves an event to a new day while preserving time and duration', () => {
@@ -33,5 +33,19 @@ describe('calendarScheduling', () => {
     });
     expect(event.start_time).toBe('2026-05-10T15:00:00.000Z');
     expect(event.end_time).toBe('2026-05-10T15:30:00.000Z');
+  });
+
+  it('builds a minimal events insert payload from a scheduled request', () => {
+    const event = createEventFromSchedulingRequest(
+      { id: 'conference', title: 'Conference', description: 'Family conference' },
+      new Date('2026-05-11T12:00:00.000Z')
+    );
+
+    expect(buildEventPersistencePayload(event)).toEqual({
+      title: 'Conference',
+      description: 'Family conference',
+      starts_at: '2026-05-11T15:00:00.000Z',
+      ends_at: '2026-05-11T15:30:00.000Z'
+    });
   });
 });
