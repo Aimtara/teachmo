@@ -1,20 +1,56 @@
 /* eslint-env node */
 
 import { randomUUID, createHash } from 'crypto';
-import { AccessDeniedError, canAccessStudentData } from './accessControl.js';
+import { AccessDeniedError, canAccessStudentData } from './accessControl.ts';
 import { requireConsent } from './consentLedger.ts';
+import type { ConsentRecord } from './consentLedger.ts';
 import { auditEvent } from './auditEvents.ts';
 import { redactPII } from './redaction.ts';
 import { isPPRASensitive } from './dataClassification.ts';
 
-function stableId(parts) {
+type GenericRecord = Record<string, unknown>;
+
+interface RosterPreviewOptions {
+  organizationId?: string;
+  schoolId?: string;
+  actor?: GenericRecord;
+}
+
+interface DirectoryContext extends GenericRecord {
+  organizationId?: string;
+}
+
+interface MessagingAllowedParams {
+  actor: GenericRecord;
+  student: GenericRecord;
+  relationship?: GenericRecord;
+  consentLedger?: ConsentRecord[];
+  preferences?: GenericRecord;
+  context?: GenericRecord;
+}
+
+interface IncidentInput {
+  severity?: string;
+  category?: string;
+  affectedTenantIds?: unknown[];
+  affectedSubjectCount?: number;
+  affectedDataClasses?: unknown[];
+  owner?: string;
+  notes?: unknown;
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : value == null ? null : String(value);
+}
+
+function stableId(parts: readonly unknown[]): string {
   return createHash('sha256')
     .update(parts.filter(Boolean).map((part) => String(part).trim().toLowerCase()).join('|'))
     .digest('hex')
     .slice(0, 24);
 }
 
-export function parseRosterCsv(csvText) {
+export function parseRosterCsv(csvText: unknown): GenericRecord[] {
   const [headerLine, ...rows] = String(csvText || '').trim().split(/\r?\n/);
   if (!headerLine) return [];
   const headers = headerLine.split(',').map((header) => header.trim());
@@ -26,7 +62,7 @@ export function parseRosterCsv(csvText) {
     });
 }
 
-export function buildRosterImportPreview(records, { organizationId, schoolId, actor } = {}) {
+export function buildRosterImportPreview(records: GenericRecord[], { organizationId, schoolId, actor }: RosterPreviewOptions = {}) {
   if (!organizationId || !schoolId) throw new Error('organizationId and schoolId are required');
   if (!['school_admin', 'district_admin', 'system_admin'].includes(String(actor?.role || '').toLowerCase())) {
     throw new AccessDeniedError('roster_import_admin_required');
@@ -51,7 +87,7 @@ export function buildRosterImportPreview(records, { organizationId, schoolId, ac
   });
 }
 
-export function createDirectoryRequest(actor, school, context = {}) {
+export function createDirectoryRequest(actor: GenericRecord, school: GenericRecord | null | undefined, context: DirectoryContext = {}) {
   if (!actor?.id) throw new AccessDeniedError('missing_actor');
   const request = Object.freeze({
     request_id: randomUUID(),
@@ -66,28 +102,35 @@ export function createDirectoryRequest(actor, school, context = {}) {
   return request;
 }
 
-export function transitionDirectoryRequest(request, nextState, actor) {
+export function transitionDirectoryRequest(request: GenericRecord, nextState: string, actor: GenericRecord) {
   const allowed = ['requested', 'pending_school_review', 'approved', 'denied', 'expired', 'revoked'];
   if (!allowed.includes(nextState)) throw new Error(`unknown directory request state: ${nextState}`);
-  if (['approved', 'denied', 'revoked'].includes(nextState) && !['school_admin', 'district_admin', 'system_admin'].includes(actor?.role)) {
+  if (['approved', 'denied', 'revoked'].includes(nextState) && !['school_admin', 'district_admin', 'system_admin'].includes(String(actor?.role))) {
     throw new AccessDeniedError('directory_request_admin_required');
   }
   return Object.freeze({ ...request, state: nextState, updated_at: new Date().toISOString() });
 }
 
-export function assertMessagingAllowed({ actor, student, relationship, consentLedger = [], preferences = {}, context = {} }) {
+export function assertMessagingAllowed({
+  actor,
+  student,
+  relationship,
+  consentLedger = [],
+  preferences = {},
+  context = {}
+}: MessagingAllowedParams): true {
   const decision = canAccessStudentData(actor, student, { ...context, relationship });
   if (!decision.allowed) throw new AccessDeniedError(decision.reason);
-  requireConsent(actor.id || actor.userId, 'messaging', {
+  requireConsent(stringOrNull(actor.id || actor.userId), 'messaging', {
     ...context,
     ledger: consentLedger,
-    childId: student.id || student.studentId || student.childId,
+    childId: stringOrNull(student.id || student.studentId || student.childId),
   });
   if (preferences.messagingOptOut === true) throw new AccessDeniedError('messaging_opt_out');
   return true;
 }
 
-export function queueMessageDelivery(message, { deliveryId = randomUUID(), attempts = 0 } = {}) {
+export function queueMessageDelivery(message: GenericRecord, { deliveryId = randomUUID(), attempts = 0 } = {}) {
   return Object.freeze({
     delivery_id: deliveryId,
     message_id: message.id || randomUUID(),
@@ -98,7 +141,7 @@ export function queueMessageDelivery(message, { deliveryId = randomUUID(), attem
   });
 }
 
-export function retryMessageDelivery(delivery) {
+export function retryMessageDelivery(delivery: GenericRecord & { attempts: number }) {
   return Object.freeze({
     ...delivery,
     status: delivery.attempts >= 3 ? 'failed' : 'queued',
@@ -107,7 +150,10 @@ export function retryMessageDelivery(delivery) {
   });
 }
 
-export function classifyPPRAPrompt(prompt, { approved = false, noticeProvided = false, consentValid = false } = {}) {
+export function classifyPPRAPrompt(
+  prompt: unknown,
+  { approved = false, noticeProvided = false, consentValid = false } = {}
+) {
   const sensitive = isPPRASensitive(prompt);
   return Object.freeze({
     sensitive,
@@ -117,7 +163,15 @@ export function classifyPPRAPrompt(prompt, { approved = false, noticeProvided = 
   });
 }
 
-export function createIncident({ severity, category, affectedTenantIds = [], affectedSubjectCount = 0, affectedDataClasses = [], owner, notes } = {}) {
+export function createIncident({
+  severity,
+  category,
+  affectedTenantIds = [],
+  affectedSubjectCount = 0,
+  affectedDataClasses = [],
+  owner,
+  notes
+}: IncidentInput = {}) {
   if (!severity || !category || !owner) throw new Error('severity, category, and owner are required');
   return Object.freeze({
     incident_id: randomUUID(),
@@ -135,7 +189,7 @@ export function createIncident({ severity, category, affectedTenantIds = [], aff
   });
 }
 
-export async function updateIncident(incident, status, actor, context = {}) {
+export async function updateIncident(incident: GenericRecord, status: string, actor: GenericRecord, context: GenericRecord = {}) {
   const allowed = ['triage', 'contain', 'investigate', 'notify_required', 'resolved'];
   if (!allowed.includes(status)) throw new Error(`unknown incident status: ${status}`);
   const updated = Object.freeze({

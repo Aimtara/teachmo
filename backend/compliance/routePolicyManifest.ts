@@ -101,12 +101,14 @@ export const ROUTE_POLICY_MANIFEST = Object.freeze([
   },
 ]);
 
-export function getRoutePolicy(id) {
+type RoutePolicy = (typeof ROUTE_POLICY_MANIFEST)[number];
+
+export function getRoutePolicy(id: string): RoutePolicy | null {
   return ROUTE_POLICY_MANIFEST.find((entry) => entry.id === id) || null;
 }
 
-export function assertRoutePolicyCoverage(routes = ROUTE_POLICY_MANIFEST) {
-  const missing = [];
+export function assertRoutePolicyCoverage(routes: readonly RoutePolicy[] = ROUTE_POLICY_MANIFEST): boolean {
+  const missing: string[] = [];
   for (const route of routes) {
     if (!route.id || !route.method || !route.path || !route.entity || !route.action) {
       missing.push(`${route.id || route.path || 'unknown'}:metadata`);

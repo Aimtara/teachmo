@@ -4,7 +4,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { parseCommonArgs, redact, writeReports } from './reporting.mjs';
 import { DATA_CLASSIFICATION_REGISTRY } from '../../backend/compliance/dataClassification.js';
 import { AUDIT_EVENT_CATEGORIES } from '../../backend/compliance/auditEvents.js';
-import { lifecycleCoverage } from '../../backend/compliance/dataLifecycle.js';
+import { lifecycleCoverage } from '../../backend/compliance/dataLifecycle.ts';
 import { getOpenGaps } from '../../backend/compliance/remediationBacklog.js';
 
 function argValue(argv, name, fallback = null) {

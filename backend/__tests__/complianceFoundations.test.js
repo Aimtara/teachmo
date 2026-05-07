@@ -16,7 +16,7 @@ import {
   canAccessStudentData,
   requireStudentScope,
   requireVerifiedGuardianRelationship,
-} from '../compliance/accessControl.js';
+} from '../compliance/accessControl.ts';
 import {
   ConsentRequiredError,
   getConsentHistory,
@@ -33,7 +33,7 @@ import {
   processDataDeletion,
   requestDataDeletion,
   requestDataExport,
-} from '../compliance/dataLifecycle.js';
+} from '../compliance/dataLifecycle.ts';
 import { classifyAIUseCase, recordAITrace, requireHumanReview, blockFinalDecisionAI } from '../compliance/aiGovernance.ts';
 import { redactPII, redactPrompt, safeAnalytics, safeLog } from '../compliance/redaction.ts';
 import {
@@ -47,7 +47,7 @@ import {
   retryMessageDelivery,
   transitionDirectoryRequest,
   updateIncident,
-} from '../compliance/pilotScaffolds.js';
+} from '../compliance/pilotScaffolds.ts';
 import {
   GAP_BACKLOG,
   assertGapBacklogComplete,
@@ -57,7 +57,7 @@ import {
 import {
   assertRoutePolicyCoverage,
   getRoutePolicy,
-} from '../compliance/routePolicyManifest.js';
+} from '../compliance/routePolicyManifest.ts';
 
 const actor = {
   id: 'guardian-1',

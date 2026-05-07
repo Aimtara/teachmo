@@ -1,10 +1,38 @@
 /* eslint-env node */
 
 import { randomUUID } from 'crypto';
-import { canAccessStudentData, AccessDeniedError } from './accessControl.js';
+import { canAccessStudentData, AccessDeniedError } from './accessControl.ts';
 import { classifyEntity, DATA_CLASSIFICATION_REGISTRY } from './dataClassification.ts';
 import { auditEvent } from './auditEvents.ts';
 import { redactPII } from './redaction.ts';
+
+type ActorRecord = Record<string, unknown>;
+type SubjectRecord = Record<string, unknown>;
+
+interface LifecycleContext extends Record<string, unknown> {
+  organizationId?: string | null;
+  schoolId?: string | null;
+  legalHold?: boolean;
+  contractRetention?: boolean;
+  data?: Record<string, unknown>;
+  actor?: ActorRecord;
+}
+
+interface DataLifecycleRequest extends Record<string, unknown> {
+  request_id?: string;
+  id?: string;
+  subject_id?: unknown;
+  legal_hold?: boolean;
+  contract_retention?: boolean;
+}
+
+interface LifecyclePolicy {
+  retentionClass: string;
+  exportBehavior: string;
+  deletionBehavior: string;
+  anonymizationBehavior: string;
+  backupHandlingNote: string;
+}
 
 const DEFAULT_LIFECYCLE = Object.freeze({
   retentionClass: 'unclassified',
@@ -108,11 +136,14 @@ export const DATA_LIFECYCLE_POLICIES = Object.freeze({
   },
 });
 
-function isAdmin(actor = {}) {
+const lifecyclePolicies = DATA_LIFECYCLE_POLICIES as Record<string, LifecyclePolicy>;
+const registryEntities = DATA_CLASSIFICATION_REGISTRY.entities as Record<string, { aliasOf?: string }>;
+
+function isAdmin(actor: ActorRecord = {}): boolean {
   return ['system_admin', 'district_admin', 'school_admin', 'admin'].includes(String(actor.role || '').toLowerCase());
 }
 
-function authorizedForSubject(actor, subject, context = {}) {
+function authorizedForSubject(actor: ActorRecord, subject: SubjectRecord, context: LifecycleContext = {}): boolean {
   if (actor?.id && (actor.id === subject?.id || actor.id === subject?.userId)) return true;
   if (isAdmin(actor) && (actor.organizationId || actor.districtId) === (subject.organizationId || subject.districtId || context.organizationId)) return true;
   if (subject.studentId || subject.childId || subject.type === 'student') {
@@ -121,15 +152,15 @@ function authorizedForSubject(actor, subject, context = {}) {
   return false;
 }
 
-export function getRetentionPolicy(entityName) {
+export function getRetentionPolicy(entityName: unknown): LifecyclePolicy {
   const classification = classifyEntity(entityName);
-  return DATA_LIFECYCLE_POLICIES[classification.retentionClass] || {
+  return lifecyclePolicies[classification.retentionClass] || {
     ...DEFAULT_LIFECYCLE,
     retentionClass: classification.retentionClass || DEFAULT_LIFECYCLE.retentionClass,
   };
 }
 
-export function requestDataExport(actor, subject, scope = 'subject', context = {}) {
+export function requestDataExport(actor: ActorRecord, subject: SubjectRecord, scope = 'subject', context: LifecycleContext = {}) {
   if (!authorizedForSubject(actor, subject, context)) throw new AccessDeniedError('data_export_not_authorized', { scope });
   const request = Object.freeze({
     request_id: randomUUID(),
@@ -145,7 +176,7 @@ export function requestDataExport(actor, subject, scope = 'subject', context = {
   return request;
 }
 
-export function generateDataExport(requestId, context = {}) {
+export function generateDataExport(requestId: unknown, context: LifecycleContext = {}) {
   const source = context.data || {};
   return Object.freeze({
     request_id: requestId,
@@ -162,7 +193,7 @@ export function generateDataExport(requestId, context = {}) {
   });
 }
 
-export function requestDataDeletion(actor, subject, scope = 'subject', context = {}) {
+export function requestDataDeletion(actor: ActorRecord, subject: SubjectRecord, scope = 'subject', context: LifecycleContext = {}) {
   if (!authorizedForSubject(actor, subject, context)) throw new AccessDeniedError('data_deletion_not_authorized', { scope });
   return Object.freeze({
     request_id: randomUUID(),
@@ -177,7 +208,7 @@ export function requestDataDeletion(actor, subject, scope = 'subject', context =
   });
 }
 
-export async function processDataDeletion(request, context = {}) {
+export async function processDataDeletion(request: DataLifecycleRequest, context: LifecycleContext = {}) {
   const blocked = request.legal_hold || request.contract_retention;
   const result = Object.freeze({
     request_id: request.request_id || request.id,
@@ -193,7 +224,7 @@ export async function processDataDeletion(request, context = {}) {
   return result;
 }
 
-export function anonymizeSubjectData(subjectId, data = {}) {
+export function anonymizeSubjectData(subjectId: unknown, data: Record<string, unknown> = {}) {
   return {
     subject_id: subjectId,
     anonymized_at: new Date().toISOString(),
@@ -207,7 +238,7 @@ export function anonymizeSubjectData(subjectId, data = {}) {
 }
 
 export function lifecycleCoverage() {
-  return Object.entries(DATA_CLASSIFICATION_REGISTRY.entities)
+  return Object.entries(registryEntities)
     .filter(([, entry]) => !entry.aliasOf)
     .map(([name]) => ({ name, policy: getRetentionPolicy(name) }));
 }
