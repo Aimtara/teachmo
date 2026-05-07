@@ -6,9 +6,35 @@ interface ParentLoadContext {
   messageSeverity: 'routine' | 'important' | 'urgent';
 }
 
+interface QueryableParentLoadDb {
+  query: (sql: string, params: readonly unknown[]) => Promise<unknown>;
+}
+
+function firstRow(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  const rows = (value as { rows?: unknown }).rows;
+  if (Array.isArray(rows) && rows[0] && typeof rows[0] === 'object') {
+    return rows[0] as Record<string, unknown>;
+  }
+  return null;
+}
+
+function numericValue(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function queryNumber(value: unknown, key: string, fallback = 0): number {
+  if (typeof value === 'number' || typeof value === 'string') return numericValue(value, fallback);
+  if (value && typeof value === 'object' && key in value) {
+    return numericValue((value as Record<string, unknown>)[key], fallback);
+  }
+  return numericValue(firstRow(value)?.[key], fallback);
+}
+
 export async function arbitrateParentLoad(
   context: ParentLoadContext, 
-  db: any
+  db: QueryableParentLoadDb
 ): Promise<'dispatch_now' | 'route_to_digest'> {
   
   // 1. Safety Override: Urgent messages bypass load checks
@@ -29,10 +55,11 @@ export async function arbitrateParentLoad(
     [context.parentId]
   );
 
-  const limit = loadBudget.daily_message_limit || 3; // Default limit
+  const recentMessages = queryNumber(recentMessagesCount, 'count', 0);
+  const limit = queryNumber(loadBudget, 'daily_message_limit', 3); // Default limit
 
   // 4. Inhibit Early: If over budget, suppress immediate delivery
-  if (recentMessagesCount >= limit) {
+  if (recentMessages >= limit) {
     console.log(`[Load Guardian] Parent ${context.parentId} exceeded load budget. Routing to digest.`);
     return 'route_to_digest';
   }

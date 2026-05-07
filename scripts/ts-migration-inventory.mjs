@@ -46,6 +46,83 @@ const rows = [...byTop.entries()]
   })
   .sort((a, b) => (b.js + b.jsx) - (a.js + a.jsx) || a.dir.localeCompare(b.dir));
 
+function countFilesForPath(pathOrPattern) {
+  const tsPath = pathOrPattern.replace(/\.js$/, '.ts');
+  if (pathOrPattern.endsWith('.js')) {
+    return files.reduce(
+      (acc, file) => {
+        if (file === pathOrPattern) acc.js += 1;
+        if (file === tsPath) acc.ts += 1;
+        return acc;
+      },
+      { js: 0, ts: 0 }
+    );
+  }
+
+  const prefix = `${pathOrPattern.replace(/\/$/, '')}/`;
+  return files.reduce(
+    (acc, file) => {
+      if (!file.startsWith(prefix)) return acc;
+      const ext = file.split('.').pop();
+      if (ext === 'js') acc.js += 1;
+      if (ext === 'ts') acc.ts += 1;
+      return acc;
+    },
+    { js: 0, ts: 0 }
+  );
+}
+
+const criticalBackendCampaign = [
+  {
+    path: 'backend/orchestrator',
+    priority: 'P0',
+    owner: 'Backend Platform DRI',
+    blocker: 'Schemas, state/store contracts, and engine coordination remain runtime JavaScript.',
+    nextAction: 'Convert schema and pure state helpers before stores and engine.',
+    exitCriterion: '0 runtime JS files outside reviewed shims; backend typecheck covers migrated modules.'
+  },
+  {
+    path: 'backend/compliance',
+    priority: 'P0',
+    owner: 'Security & Compliance DRI',
+    blocker: 'Policy helpers and AI governance still rely on JavaScript-only contracts.',
+    nextAction: 'Convert data classification, redaction, audit, consent, and AI governance helpers.',
+    exitCriterion: '0 runtime JS files outside reviewed shims; compliance foundation tests pass.'
+  },
+  {
+    path: 'backend/routes/orchestrator.js',
+    priority: 'P0',
+    owner: 'Backend Platform DRI',
+    blocker: 'Depends on typed orchestrator helpers plus authenticated/tenant request contracts.',
+    nextAction: 'Convert after orchestrator engine/store modules compile cleanly.',
+    exitCriterion: 'Route is TypeScript with Zod-narrowed request bodies and unchanged mount behavior.'
+  },
+  {
+    path: 'backend/routes/compliance.js',
+    priority: 'P0',
+    owner: 'Security & Compliance DRI',
+    blocker: 'Depends on typed compliance helpers and shared Express request contracts.',
+    nextAction: 'Convert after compliance policy helpers compile cleanly.',
+    exitCriterion: 'Route is TypeScript with tenant/auth contracts and unchanged DSAR SQL semantics.'
+  },
+  {
+    path: 'backend/routes/privacy.js',
+    priority: 'P0',
+    owner: 'Privacy Product DRI',
+    blocker: 'Depends on typed consent ledger and shared Express request contracts.',
+    nextAction: 'Convert after consent and audit helpers compile cleanly.',
+    exitCriterion: 'Route is TypeScript with narrowed privacy bodies and preserved subject-access behavior.'
+  },
+  {
+    path: 'backend/app.js',
+    priority: 'P1',
+    owner: 'Backend Platform DRI',
+    blocker: 'Mounted routers and middleware need typed contracts first.',
+    nextAction: 'Convert only after imported routers/middleware have typed surfaces or no-debt shims.',
+    exitCriterion: 'Application entry is TypeScript with route mounts and middleware order preserved.'
+  }
+].map((row) => ({ ...row, ...countFilesForPath(row.path) }));
+
 const generatedAt = new Date().toISOString();
 const markdown = [
   '# TypeScript Migration Tracker',
@@ -69,6 +146,15 @@ const markdown = [
   '| Directory | Owner | Risk level | Target sprint | Blocked by |',
   '| --- | --- | --- | --- | --- |',
   ...rows.map((row) => `| ${row.dir} | ${row.owner} | ${row.risk} | ${row.targetSprint} | ${row.blockedBy} |`),
+  '',
+  '## Critical backend migration campaign',
+  '',
+  '| Path | JS count | TS count | Priority | Owner placeholder | Current blocker | Next action | Exit criterion |',
+  '| --- | ---: | ---: | --- | --- | --- | --- | --- |',
+  ...criticalBackendCampaign.map(
+    (row) =>
+      `| ${row.path} | ${row.js} | ${row.ts} | ${row.priority} | ${row.owner} | ${row.blocker} | ${row.nextAction} | ${row.exitCriterion} |`
+  ),
   '',
   '## Temporary JavaScript exception register (initial)',
   '',

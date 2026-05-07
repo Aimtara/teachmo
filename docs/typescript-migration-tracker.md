@@ -1,8 +1,6 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-05-01T22:30:00.000Z
-
-Updated: 2026-05-06 — compliance-foundations work added reviewed backend Express runtime JavaScript modules for policy helpers, privacy APIs, and Jest/Supertest coverage. The ratchet baseline was intentionally refreshed with no `any`, `@ts-ignore`, or `@ts-expect-error` increase and future JS growth remains blocked.
+Generated: 2026-05-07T08:07:37.981Z
 
 ## Baseline totals (tracked files)
 
@@ -10,51 +8,21 @@ Updated: 2026-05-06 — compliance-foundations work added reviewed backend Expre
 | --- | ---: |
 | .js | 232 |
 | .jsx | 478 |
-| .ts | 354 |
-| .tsx | 79 |
-
-## Production ratchet baseline
-
-The production hardening pass adds a failing ratchet gate. Current committed baseline:
-
-| Metric | Baseline | Budgeted increase |
-| --- | ---: | ---: |
-| `.js` files | 232 | 0 |
-| `.jsx` files | 478 | 0 |
-| `any` tokens in `.ts/.tsx` | 507 | 0 |
-| `@ts-ignore` | 0 | 0 |
-| `@ts-expect-error` | 0 | 0 |
-
-Commands:
-
-```bash
-npm run check:ts-ratchet
-npm run migration:ts:inventory
-```
-
-Baseline file: `docs/readiness/ts-ratchet-baseline.json`. Refreshing it must be intentional, reviewed, and paired with this tracker.
-
-## Next recommended slices
-
-| Slice | Owner placeholder | Target date placeholder | Notes |
-| --- | --- | --- | --- |
-| Admin GraphQL pages | Frontend Platform DRI | YYYY-MM-DD | Move raw `graphqlRequest` calls behind admin domain modules. |
-| Partner portal REST pages | Partner Platform DRI | YYYY-MM-DD | Complete service-layer wrappers for direct `fetch` usage. |
-| Backend route contracts | Backend Platform DRI | YYYY-MM-DD | Introduce typed request/response schemas before JS-to-TS conversion. |
-| Nhost function shared utilities | Data Platform DRI | YYYY-MM-DD | Convert shared function helpers and reduce `any` budgets. |
+| .ts | 361 |
+| .tsx | 91 |
 
 ## JS/TS inventory by top-level directory
 
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
-| src | 7 | 475 | 187 | 60 |
-| backend | 147 | 0 | 6 | 0 |
-| nhost | 30 | 0 | 86 | 0 |
+| src | 7 | 477 | 244 | 91 |
+| backend | 185 | 0 | 7 | 0 |
+| nhost | 32 | 0 | 87 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
 | public | 1 | 0 | 0 | 0 |
 | .storybook | 0 | 0 | 2 | 0 |
 | scripts | 0 | 0 | 1 | 0 |
-| tests | 0 | 0 | 10 | 0 |
+| tests | 0 | 0 | 17 | 0 |
 
 ## Phase 0 ownership and sprint plan
 
@@ -68,6 +36,17 @@ Baseline file: `docs/readiness/ts-ratchet-baseline.json`. Refreshing it must be 
 | .storybook | Design System | Low | Sprint 6-9 | Storybook TS config parity checks |
 | scripts | Developer Experience | Low | Sprint 6-9 | Tooling compatibility review |
 | tests | QA & Reliability | Medium | Sprint 6-9 | Typed fixtures + helper migration sequencing |
+
+## Critical backend migration campaign
+
+| Path | JS count | TS count | Priority | Owner placeholder | Current blocker | Next action | Exit criterion |
+| --- | ---: | ---: | --- | --- | --- | --- | --- |
+| backend/orchestrator | 34 | 4 | P0 | Backend Platform DRI | Schemas, state/store contracts, and engine coordination remain runtime JavaScript. | Convert schema and pure state helpers before stores and engine. | 0 runtime JS files outside reviewed shims; backend typecheck covers migrated modules. |
+| backend/compliance | 10 | 0 | P0 | Security & Compliance DRI | Policy helpers and AI governance still rely on JavaScript-only contracts. | Convert data classification, redaction, audit, consent, and AI governance helpers. | 0 runtime JS files outside reviewed shims; compliance foundation tests pass. |
+| backend/routes/orchestrator.js | 1 | 0 | P0 | Backend Platform DRI | Depends on typed orchestrator helpers plus authenticated/tenant request contracts. | Convert after orchestrator engine/store modules compile cleanly. | Route is TypeScript with Zod-narrowed request bodies and unchanged mount behavior. |
+| backend/routes/compliance.js | 1 | 0 | P0 | Security & Compliance DRI | Depends on typed compliance helpers and shared Express request contracts. | Convert after compliance policy helpers compile cleanly. | Route is TypeScript with tenant/auth contracts and unchanged DSAR SQL semantics. |
+| backend/routes/privacy.js | 1 | 0 | P0 | Privacy Product DRI | Depends on typed consent ledger and shared Express request contracts. | Convert after consent and audit helpers compile cleanly. | Route is TypeScript with narrowed privacy bodies and preserved subject-access behavior. |
+| backend/app.js | 1 | 0 | P1 | Backend Platform DRI | Mounted routers and middleware need typed contracts first. | Convert only after imported routers/middleware have typed surfaces or no-debt shims. | Application entry is TypeScript with route mounts and middleware order preserved. |
 
 ## Temporary JavaScript exception register (initial)
 
@@ -116,36 +95,6 @@ Baseline file: `docs/readiness/ts-ratchet-baseline.json`. Refreshing it must be 
 - [x] Migrated audit log domain module from `src/domains/auditLog.js` to `src/domains/auditLog.ts` with typed sanitization/log input helpers.
 - [x] Completed Phase 1 foundation hardening: shared HTTP/runtime-validation boundaries are applied across targeted API/domain modules; remaining `src/**/*.js` files are intentional mocks/tests/generated adapters tracked in the JS exception register.
 - [ ] Continue applying the shared HTTP client and runtime-validation-backed contracts across remaining API modules and backend integration boundaries.
-
-## Compliance-foundations exception review
-
-- [x] Reviewed intentional backend runtime JavaScript additions for compliance policy helpers and privacy APIs on `2026-05-06`.
-- [x] Preserved zero future JS-growth, `any`, `@ts-ignore`, and `@ts-expect-error` budgets in `docs/readiness/ts-ratchet-baseline.json`.
-- [ ] Migrate backend compliance helpers and privacy APIs once typed Express request/response contracts are established.
-
-## Phase 2 frontend vertical-slice kickoff progress
-
-- [x] Continued Phase 2 shared UI conversion work across hooks/shared utilities and provider components.
-- [x] Migrated shared premium UI components `src/components/shared/{PremiumBadge,PremiumGate}.jsx` to TypeScript (`.tsx`) with typed props and children contracts.
-- [x] Migrated shared route guard utilities `src/components/shared/{FeatureGate,RoleGuard}.jsx` to TypeScript (`.tsx`) with typed props and redirect/authorization handling.
-- [x] Migrated shared accessibility utility `src/components/shared/SkipLink.jsx` to `src/components/shared/SkipLink.tsx` with typed props and focus/blur handlers.
-- [x] Migrated shared navigation utilities `src/components/shared/{Breadcrumbs,BreadcrumbNavigation}.jsx` to TypeScript (`.tsx`) with typed breadcrumb item contracts and route helpers.
-- [x] Migrated async safety utilities `src/components/shared/{AsyncBoundary,GlobalErrorBoundary,ErrorBoundary}.jsx` to TypeScript (`.tsx`) with typed error-boundary/HOC contracts.
-- [x] Migrated shared media/loading utilities `src/components/shared/{LazyImage,LazyPageWrapper,LazyRoute}.jsx` to TypeScript (`.tsx`) with typed props and safer lazy-loading/observer handling.
-- [x] Migrated shared empty-state primitives `src/components/shared/{EmptyStates,UniversalEmptyState}.jsx` to TypeScript (`.tsx`) with typed action/item contracts and typed props across exported variants.
-- [x] Migrated legal modal primitive `src/components/shared/TermsModal.jsx` to `src/components/shared/TermsModal.tsx` with typed open-state and close-handler contracts.
-- [x] Migrated action confirmation modal `src/components/shared/ConfirmationModal.jsx` to `src/components/shared/ConfirmationModal.tsx` with typed preset/modal props and confirmation-state handlers.
-- [x] Migrated quick action launcher `src/components/shared/QuickActionsMenu.jsx` to `src/components/shared/QuickActionsMenu.tsx` with typed action definitions and button contracts.
-- [x] Migrated focus-style provider `src/components/shared/FocusStyles.jsx` to `src/components/shared/FocusStyles.tsx` with typed children contract and DOM style lifecycle cleanup.
-- [x] Migrated shared API context provider `src/components/shared/ApiProvider.jsx` to `src/components/shared/ApiProvider.tsx` with typed context value, cache/rate-limit contracts, and provider/hook signatures.
-- [x] Migrated shared tone utility `src/components/shared/TeachmoTone.jsx` to `src/components/shared/TeachmoTone.ts` with typed tone-state contracts and deterministic helper typing.
-- [x] Migrated UX rules utility `src/components/shared/UXReviewRule.jsx` to `src/components/shared/UXReviewRule.tsx` with typed rule/checkpoint contracts and violation props.
-- [x] Migrated standard loading-state helpers `src/components/shared/StandardLoadingStates.jsx` to `src/components/shared/StandardLoadingStates.tsx` with typed prop contracts for skeleton/page loaders.
-- [x] Migrated accessibility helper toolkit `src/components/shared/AccessibilityHelpers.jsx` to `src/components/shared/AccessibilityHelpers.tsx` with typed hooks/components for keyboard navigation, live regions, and form/button accessibility props.
-- [x] Migrated async safety utility `src/components/shared/AsyncBoundary.jsx` to `src/components/shared/AsyncBoundary.tsx` with typed HOC fallback/error contracts and generic `safeAsync` return typing.
-- [x] Migrated shared media utility `src/components/shared/LazyImage.jsx` to `src/components/shared/LazyImage.tsx` with typed props, intersection observer ref typing, and safe cleanup.
-- [x] Migrated shared empty-state primitives `src/components/shared/EmptyStates.jsx` to `src/components/shared/EmptyStates.tsx` with typed action/item contracts and typed props across exported empty-state variants.
-- [ ] Continue remaining hook-slice consumers and then proceed to shared UI primitive slices.
 
 ## Phase 0 kickoff checklist
 

@@ -1,5 +1,6 @@
 // backend/orchestrator/agents/insightParser.ts
-import { invokeLLMJson } from '../../ai/llmJson'; 
+import { z } from 'zod';
+import { generateJsonWithRetries } from '../../ai/llmJson.js';
 
 interface ParsedInsight {
   type: 'deadline' | 'event' | 'action_required';
@@ -7,6 +8,17 @@ interface ParsedInsight {
   summary: string;
   confidenceScore: number;
 }
+
+const ParsedInsightSchema = z.object({
+  type: z.enum(['deadline', 'event', 'action_required']),
+  date: z.string().nullable(),
+  summary: z.string(),
+  confidenceScore: z.number().min(0).max(1),
+});
+
+const InsightResponseSchema = z.object({
+  insights: z.array(ParsedInsightSchema),
+});
 
 async function checkDuplicateDedupeKey(): Promise<boolean> {
   // Persistent dedupe is provided by the orchestrator store in deployed flows.
@@ -29,10 +41,19 @@ export async function parseEmailToInsights(rawEmailBody: string, sourceId: strin
   `;
 
   try {
-    const response = await invokeLLMJson(systemPrompt, rawEmailBody);
+    const response = await generateJsonWithRetries({
+      schema: InsightResponseSchema,
+      system: systemPrompt,
+      user: rawEmailBody,
+      model: process.env.OPENAI_MODEL_INSIGHT_PARSER ?? process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
+      temperature: 0.1,
+      maxRetries: 2,
+    });
+
+    if (!response.ok) return [];
     
     // 3. Enforce Confidence Thresholds (Safety backstop)
-    const validInsights = response.insights.filter(
+    const validInsights = response.data.insights.filter(
       (insight: ParsedInsight) => insight.confidenceScore >= 0.85
     );
 
