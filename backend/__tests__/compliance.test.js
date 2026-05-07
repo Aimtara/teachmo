@@ -25,7 +25,7 @@ jest.mock('../middleware/permissions.js', () => ({
 }));
 
 import { query as mockQuery } from '../db.js';
-import complianceRouter from '../routes/compliance.js';
+import complianceRouter from '../routes/compliance.ts';
 import { runRetentionPurge } from '../jobs/retentionPurge.js';
 
 const app = express();

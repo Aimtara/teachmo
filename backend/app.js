@@ -26,7 +26,7 @@ import aiAdminRouter from './routes/aiAdmin.js';
 import workflowsRouter from './routes/workflows.js';
 import scimRouter from './routes/scim.js';
 import impersonationRouter from './routes/impersonation.js';
-import complianceRouter from './routes/compliance.js';
+import complianceRouter from './routes/compliance.ts';
 import privacyRouter from './routes/privacy.ts';
 import notificationsRouter from './routes/notifications.js';
 import { featureFlagsAdminRouter, featureFlagsRouter } from './routes/featureFlags.js';

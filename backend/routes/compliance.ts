@@ -1,5 +1,6 @@
 /* eslint-env node */
 import { Router } from 'express';
+import type { Response } from 'express';
 import { query } from '../db.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
@@ -7,21 +8,56 @@ import { requireAnyScope } from '../middleware/permissions.js';
 import { recordAuditLog } from '../utils/audit.js';
 import { getRetentionPolicy } from '../utils/tenantSettings.js';
 import { createLogger } from '../utils/logger.js';
+import type { TenantScopedRequest } from '../types/http.ts';
 
 const router = Router();
 const logger = createLogger('routes.compliance');
 
-async function safeQuery(res, sql, params = []) {
+type QueryParam = unknown;
+type RowRecord = Record<string, unknown>;
+interface QueryResult<Row extends RowRecord = RowRecord> {
+  rows: Row[];
+  rowCount?: number | null;
+}
+
+function bodyOf(req: TenantScopedRequest): RowRecord {
+  return req.body && typeof req.body === 'object' ? (req.body as RowRecord) : {};
+}
+
+function tenantOf(req: TenantScopedRequest): { organizationId: string; schoolId: string | null } {
+  return {
+    organizationId: req.tenant?.organizationId ?? '',
+    schoolId: req.tenant?.schoolId ?? null,
+  };
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : value == null ? null : String(value);
+}
+
+async function safeQuery<Row extends RowRecord = RowRecord>(
+  res: Response,
+  sql: string,
+  params: QueryParam[] = []
+): Promise<QueryResult<Row> | null> {
   try {
-    return await query(sql, params);
+    return (await query(sql, params)) as QueryResult<Row>;
   } catch (error) {
     logger.error('Database error', error);
-    res.status(500).json({ error: 'db_error', detail: error.message });
+    const detail = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'db_error', detail });
     return null;
   }
 }
 
-async function deleteUserRecords(res, { userId, organizationId, profileIds = [] }) {
+async function deleteUserRecords(
+  res: Response,
+  {
+    userId,
+    organizationId,
+    profileIds = [],
+  }: { userId: string; organizationId: string; schoolId?: string | null; profileIds?: string[] }
+): Promise<Record<string, number> | null> {
   const steps = [
     {
       key: 'notification_queue',
@@ -57,7 +93,7 @@ async function deleteUserRecords(res, { userId, organizationId, profileIds = [] 
       key: 'messages',
       sql: `delete from public.messages
             where sender_user_id = $1
-               or (array_length($2::uuid[], 1) is not null and sender_id = any($2::uuid[]))`,
+               or (array_length($2::uuid[], 1) is not null and sender_id = ANY($2::uuid[]))`,
       params: [userId, profileIds],
     },
     {
@@ -102,7 +138,7 @@ async function deleteUserRecords(res, { userId, organizationId, profileIds = [] 
     },
   ];
 
-  const summary = {};
+  const summary: Record<string, number> = {};
 
   for (const step of steps) {
     const result = await safeQuery(res, step.sql, step.params);
@@ -119,13 +155,13 @@ router.use(requireAdmin);
 router.use(requireAnyScope(['users:manage', 'tenant:manage', 'safety:review']));
 
 router.get('/retention-policy', async (req, res) => {
-  const { organizationId, schoolId } = req.tenant;
+  const { organizationId, schoolId } = tenantOf(req);
   const policy = await getRetentionPolicy({ organizationId, schoolId });
   res.json(policy);
 });
 
 router.get('/dsar-exports', async (req, res) => {
-  const { organizationId, schoolId } = req.tenant;
+  const { organizationId, schoolId } = tenantOf(req);
   const result = await safeQuery(
     res,
     `select id, subject_user_id, status, created_at, expires_at
@@ -141,9 +177,10 @@ router.get('/dsar-exports', async (req, res) => {
 });
 
 router.post('/dsar-exports', async (req, res) => {
-  const { organizationId, schoolId } = req.tenant;
+  const { organizationId, schoolId } = tenantOf(req);
   const actorId = req.auth?.userId;
-  const { userId, reason } = req.body || {};
+  const { userId: rawUserId, reason } = bodyOf(req);
+  const userId = stringOrNull(rawUserId);
   if (!userId) return res.status(400).json({ error: 'userId required' });
 
   const userResult = await safeQuery(
@@ -231,6 +268,7 @@ router.post('/dsar-exports', async (req, res) => {
     metadata: { reason, exportId: createdResult.rows?.[0]?.id },
     before: exportPayload.subject,
     after: exportPayload.subject,
+    changes: null,
     containsPii: true,
     organizationId,
     schoolId,
@@ -247,7 +285,7 @@ router.post('/dsar-exports', async (req, res) => {
 });
 
 router.get('/dsar-exports/:id/download', async (req, res) => {
-  const { organizationId, schoolId } = req.tenant;
+  const { organizationId, schoolId } = tenantOf(req);
   const exportId = req.params.id;
 
   const result = await safeQuery(
@@ -273,10 +311,10 @@ router.get('/dsar-exports/:id/download', async (req, res) => {
 });
 
 router.post('/users/:id/hard-delete', async (req, res) => {
-  const { organizationId, schoolId } = req.tenant;
+  const { organizationId, schoolId } = tenantOf(req);
   const actorId = req.auth?.userId;
   const userId = req.params.id;
-  const { reason } = req.body || {};
+  const { reason } = bodyOf(req);
 
   const userResult = await safeQuery(
     res,
@@ -300,7 +338,7 @@ router.post('/users/:id/hard-delete', async (req, res) => {
     [userId]
   );
   if (!profileIdsResult) return;
-  const profileIds = (profileIdsResult.rows || []).map((row) => row.id).filter(Boolean);
+  const profileIds = (profileIdsResult.rows || []).map((row) => stringOrNull(row.id)).filter((id): id is string => Boolean(id));
 
   const deletionSummary = await deleteUserRecords(res, { userId, organizationId, schoolId, profileIds });
   if (!deletionSummary) return;
@@ -346,6 +384,7 @@ router.post('/users/:id/hard-delete', async (req, res) => {
     metadata: { reason, deletionSummary },
     before: user,
     after: null,
+    changes: null,
     containsPii: true,
     organizationId,
     schoolId,
