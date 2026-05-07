@@ -76,8 +76,8 @@ export const OrchestratorSignalSchema = z
     timestamp: z.string().datetime().optional(),
     // Optional precomputed features. If absent, orchestrator will infer heuristically.
     features: SignalFeaturesSchema.partial().optional(),
-    // Any raw payload for downstream UI or integrations.
-    payload: z.record(z.any()).optional()
+    // Raw payload for downstream UI or integrations.
+    payload: z.record(z.unknown()).optional()
   })
   .strict();
 
@@ -120,7 +120,7 @@ export const OrchestratorStateSchema = z
         appliedAt: z.string().datetime(),
         expiresAt: z.string().datetime(),
         reason: z.string(),
-        prev: z.record(z.any()).optional()
+        prev: z.record(z.unknown()).optional()
       })
       .nullable()
       .optional()
@@ -146,8 +146,8 @@ export const OrchestratorActionSchema = z
     parentBurden: z.number().min(0).max(1),
     teacherBurden: z.number().min(0).max(1),
 
-    // Any extra details for UI/LLM templates
-    meta: z.record(z.any()).optional()
+    // Extra details for UI/LLM templates
+    meta: z.record(z.unknown()).optional()
   })
   .strict();
 
@@ -180,7 +180,7 @@ export const DigestItemSchema = z
     summary: z.string(),
     urgency: z.number().min(0).max(1),
     impact: z.number().min(0).max(1),
-    meta: z.record(z.any()).optional(),
+    meta: z.record(z.unknown()).optional(),
     status: z.enum(['queued', 'delivered', 'dismissed']).default('queued')
   })
   .strict();
@@ -226,13 +226,17 @@ export const WeeklyBriefSchema = z
   })
   .strict();
 
-// --- Convenience types (JSDoc for JS consumers) ---
-
-/** @typedef {z.infer<typeof OrchestratorSignalSchema>} OrchestratorSignal */
-/** @typedef {z.infer<typeof SignalFeaturesSchema>} SignalFeatures */
-/** @typedef {z.infer<typeof OrchestratorStateSchema>} OrchestratorState */
-/** @typedef {z.infer<typeof OrchestratorActionSchema>} OrchestratorAction */
-/** @typedef {z.infer<typeof OrchestratorDecisionSchema>} OrchestratorDecision */
-/** @typedef {z.infer<typeof DigestItemSchema>} DigestItem */
-/** @typedef {z.infer<typeof DailyPlanSchema>} DailyPlan */
-/** @typedef {z.infer<typeof WeeklyBriefSchema>} WeeklyBrief */
+export type SignalSource = z.infer<typeof SignalSourceEnum>;
+export type SignalType = z.infer<typeof SignalTypeEnum>;
+export type OrchestratorZone = z.infer<typeof OrchestratorZoneEnum>;
+export type ActionType = z.infer<typeof ActionTypeEnum>;
+export type SignalFeatures = z.infer<typeof SignalFeaturesSchema>;
+export type OrchestratorSignal = z.infer<typeof OrchestratorSignalSchema>;
+export type OrchestratorState = z.infer<typeof OrchestratorStateSchema>;
+export type OrchestratorAction = z.infer<typeof OrchestratorActionSchema>;
+export type ActionStatus = z.infer<typeof ActionStatusEnum>;
+export type ActionQueueItem = z.infer<typeof ActionQueueItemSchema>;
+export type OrchestratorDecision = z.infer<typeof OrchestratorDecisionSchema>;
+export type DigestItem = z.infer<typeof DigestItemSchema>;
+export type DailyPlan = z.infer<typeof DailyPlanSchema>;
+export type WeeklyBrief = z.infer<typeof WeeklyBriefSchema>;

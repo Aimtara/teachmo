@@ -1,13 +1,29 @@
 /* eslint-env node */
 import { TokenBucket } from './utils.js';
+import type { OrchestratorSignal, OrchestratorState, SignalFeatures } from './types.js';
+
+interface SuppressionResult {
+  suppress: boolean;
+  reason: string | null;
+}
+
+interface SuppressionParams {
+  state: OrchestratorState;
+  signal: OrchestratorSignal;
+  features: SignalFeatures;
+  bucket: TokenBucket;
+  now: Date;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
 
 /**
  * Create a notification token bucket from state constraints.
  * maxNotificationsPerHour => capacity and refill.
- * @param {import('./types.js').OrchestratorState} state
- * @param {Date} now
  */
-export function createNotificationBucket(state, now = new Date()) {
+export function createNotificationBucket(state: OrchestratorState, now = new Date()): TokenBucket {
   const cap = Math.max(0, state.maxNotificationsPerHour);
   const refillPerSec = cap / 3600;
   return new TokenBucket({ capacity: cap, refillPerSec, now });
@@ -16,10 +32,8 @@ export function createNotificationBucket(state, now = new Date()) {
 /**
  * Basic quiet hours check.
  * Assumes server and user share timezone for this demo; in production use user tz.
- * @param {import('./types.js').OrchestratorState} state
- * @param {Date} now
  */
-export function isWithinQuietHours(state, now = new Date()) {
+export function isWithinQuietHours(state: OrchestratorState, now = new Date()): boolean {
   const q = state.quietHoursLocal;
   if (!q) return false;
   const [sh, sm] = q.start.split(':').map((n) => parseInt(n, 10));
@@ -43,16 +57,9 @@ export function isWithinQuietHours(state, now = new Date()) {
  * Decide whether we should suppress an immediate notification.
  * This is the “baroreflex brake”: throttle, batch, cool down.
  *
- * @param {{
- *   state: import('./types.js').OrchestratorState,
- *   signal: import('./types.js').OrchestratorSignal,
- *   features: import('./types.js').SignalFeatures,
- *   bucket: TokenBucket,
- *   now: Date,
- * }} params
  */
-export function shouldSuppressNotifyNow({ state, signal, features, bucket, now }) {
-  const payload = signal.payload ?? {};
+export function shouldSuppressNotifyNow({ state, signal, features, bucket, now }: SuppressionParams): SuppressionResult {
+  const payload = asRecord(signal.payload);
   const isPriority = Boolean(payload.isSafety || payload.isCompliance || payload.priority === 'high');
 
   // Priority lane bypasses suppression.
@@ -60,7 +67,7 @@ export function shouldSuppressNotifyNow({ state, signal, features, bucket, now }
 
   if (state.cooldownUntil) {
     const c = new Date(state.cooldownUntil);
-        if (!isNaN(c.getTime()) && now.getTime() < c.getTime()) {
+    if (!Number.isNaN(c.getTime()) && now.getTime() < c.getTime()) {
       return { suppress: true, reason: 'cooldown_active' };
     }
   }

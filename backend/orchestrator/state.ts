@@ -1,11 +1,41 @@
 /* eslint-env node */
 import { clamp01, ewma, toIso } from './utils.js';
+import type { OrchestratorSignal, OrchestratorState, OrchestratorZone, SignalFeatures } from './types.js';
+
+interface Thresholds {
+  tensionLow: number;
+  tensionHigh: number;
+  slackHigh: number;
+  dwellMs: number;
+  cooldownMs: number;
+}
+
+interface Indices {
+  tension: number;
+  slack: number;
+}
+
+interface UpdateZoneOptions {
+  thresholds?: Thresholds;
+  now?: Date;
+}
+
+interface ReduceStateOptions extends UpdateZoneOptions {}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function asQuietHours(value: unknown): OrchestratorState['quietHoursLocal'] | null {
+  const q = asRecord(value);
+  return typeof q.start === 'string' && typeof q.end === 'string' ? { start: q.start, end: q.end } : null;
+}
 
 /**
  * Default knobs.
  * Start with constants; later you can learn per-family adjustments.
  */
-export const DEFAULT_THRESHOLDS = {
+export const DEFAULT_THRESHOLDS: Thresholds = {
   tensionLow: 0.45,
   tensionHigh: 0.7,
   slackHigh: 0.65,
@@ -16,12 +46,8 @@ export const DEFAULT_THRESHOLDS = {
 };
 
 /**
- * Create a new orchestrator state with sane defaults.
- * @param {string} familyId
- * @param {Date} now
- * @returns {import('./types.js').OrchestratorState}
  */
-export function createInitialState(familyId, now = new Date()) {
+export function createInitialState(familyId: string, now = new Date()): OrchestratorState {
   const iso = toIso(now);
   return {
     familyId,
@@ -48,10 +74,8 @@ export function createInitialState(familyId, now = new Date()) {
 }
 
 /**
- * Compute indices from state.
- * @param {import('./types.js').OrchestratorState} s
  */
-export function computeIndices(s) {
+export function computeIndices(s: OrchestratorState): Indices {
   // Tension: overload / strain across home-school boundary (GTO-like).
   const tension = clamp01(
     0.22 * s.schoolPressure +
@@ -74,12 +98,11 @@ export function computeIndices(s) {
 }
 
 /**
- * Update zone with hysteresis.
- * @param {import('./types.js').OrchestratorState} prev
- * @param {{ tension: number }} indices
- * @param {{ thresholds?: typeof DEFAULT_THRESHOLDS, now?: Date }} [opts]
  */
-export function updateZone(prev, indices, opts = {}) {
+export function updateZone(prev: OrchestratorState, indices: Pick<Indices, 'tension'>, opts: UpdateZoneOptions = {}): {
+  zone: OrchestratorZone;
+  zoneSince: string;
+} {
   const t = opts.thresholds ?? DEFAULT_THRESHOLDS;
   const now = opts.now ?? new Date();
   const prevZone = prev.zone;
@@ -106,18 +129,19 @@ export function updateZone(prev, indices, opts = {}) {
  * Update the state from a new signal.
  * This is the “homeostasis layer”: fast smoothing + simple causality.
  *
- * @param {import('./types.js').OrchestratorState} prev
- * @param {import('./types.js').OrchestratorSignal} signal
- * @param {import('./types.js').SignalFeatures} features
- * @param {{ now?: Date, thresholds?: typeof DEFAULT_THRESHOLDS }} [opts]
  */
-export function reduceState(prev, signal, features, opts = {}) {
+export function reduceState(
+  prev: OrchestratorState,
+  signal: OrchestratorSignal,
+  features: SignalFeatures,
+  opts: ReduceStateOptions = {}
+): OrchestratorState {
   const now = opts.now ?? new Date();
   const alphaFast = 0.35;
   const alphaSlow = 0.12;
 
-  const next = { ...prev };
-  const payload = signal.payload ?? {};
+  const next: OrchestratorState = { ...prev };
+  const payload = asRecord(signal.payload);
 
   // --- explicit home updates ---
   if (signal.type === 'parent_capacity_update' && typeof payload.bandwidth === 'number') {
@@ -127,10 +151,8 @@ export function reduceState(prev, signal, features, opts = {}) {
     next.scheduleDensity = clamp01(payload.density);
   }
   if (signal.type === 'parent_preference_update' && payload.quietHours) {
-    const q = payload.quietHours;
-    if (typeof q.start === 'string' && typeof q.end === 'string') {
-      next.quietHoursLocal = { start: q.start, end: q.end };
-    }
+    const quietHours = asQuietHours(payload.quietHours);
+    if (quietHours) next.quietHoursLocal = quietHours;
   }
 
   // --- general causal nudges ---
@@ -183,7 +205,7 @@ export function reduceState(prev, signal, features, opts = {}) {
   }
   if (next.cooldownUntil) {
     const c = new Date(next.cooldownUntil);
-        if (!isNaN(c.getTime()) && c.getTime() <= now.getTime()) {
+    if (!Number.isNaN(c.getTime()) && c.getTime() <= now.getTime()) {
       next.cooldownUntil = null;
     }
   }

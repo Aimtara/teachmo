@@ -1,51 +1,35 @@
 /* eslint-env node */
 import crypto from 'crypto';
 
-/**
- * Clamp a number into [0,1].
- * @param {number} n
- */
-export function clamp01(n) {
+export function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0;
   if (n < 0) return 0;
   if (n > 1) return 1;
   return n;
 }
 
-/**
- * Exponential weighted moving average update.
- * new = alpha*x + (1-alpha)*prev
- * @param {number} prev
- * @param {number} x
- * @param {number} alpha 0..1
- */
-export function ewma(prev, x, alpha) {
+export function ewma(prev: number, x: number, alpha: number): number {
   return clamp01(alpha * x + (1 - alpha) * prev);
 }
 
-/**
- * Create a stable-ish id for actions/signals.
- * @param {string} prefix
- */
-export function makeId(prefix = 'id') {
+export function makeId(prefix = 'id'): string {
   return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
-/**
- * Parse ISO timestamp or default to now.
- * @param {string | undefined} iso
- */
-export function parseTimestamp(iso) {
+export function parseTimestamp(iso?: string): Date {
   const d = iso ? new Date(iso) : new Date();
-    if (isNaN(d.getTime())) return new Date();
+  if (Number.isNaN(d.getTime())) return new Date();
   return d;
 }
 
-/**
- * @param {Date} d
- */
-export function toIso(d) {
+export function toIso(d: Date): string {
   return d.toISOString();
+}
+
+interface TokenBucketParams {
+  capacity: number;
+  refillPerSec: number;
+  now?: Date;
 }
 
 /**
@@ -53,29 +37,26 @@ export function toIso(d) {
  * tokens refill at `refillPerSec` up to capacity.
  */
 export class TokenBucket {
-  /**
-   * @param {{ capacity: number; refillPerSec: number; now?: Date }} params
-   */
-  constructor({ capacity, refillPerSec, now = new Date() }) {
+  readonly capacity: number;
+  readonly refillPerSec: number;
+  private tokens: number;
+  private updatedAt: Date;
+
+  constructor({ capacity, refillPerSec, now = new Date() }: TokenBucketParams) {
     this.capacity = Math.max(0, capacity);
     this.refillPerSec = Math.max(0, refillPerSec);
     this.tokens = this.capacity;
     this.updatedAt = now;
   }
 
-  /** @param {Date} now */
-  _refill(now) {
+  private refill(now: Date): void {
     const dtSec = Math.max(0, (now.getTime() - this.updatedAt.getTime()) / 1000);
     this.tokens = Math.min(this.capacity, this.tokens + dtSec * this.refillPerSec);
     this.updatedAt = now;
   }
 
-  /**
-   * @param {number} cost
-   * @param {Date} now
-   */
-  tryConsume(cost, now = new Date()) {
-    this._refill(now);
+  tryConsume(cost: number, now = new Date()): boolean {
+    this.refill(now);
     const c = Math.max(0, cost);
     if (this.tokens >= c) {
       this.tokens -= c;
