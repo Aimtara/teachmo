@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import CalendarView from '@/components/calendar/CalendarView';
 import EventModal from '@/components/calendar/EventModal';
 import { listEvents } from '@/domains/events';
-import { EnterpriseFilterBar, EnterprisePanel, EnterpriseSurface, EnterpriseWorkflowList } from '@/components/enterprise';
+import { EnterpriseFilterBar, EnterprisePanel, EnterpriseSurface } from '@/components/enterprise';
 import { createEventFromSchedulingRequest, moveEventToDate } from '@/utils/calendarScheduling';
 
 const schedulingRequests = [

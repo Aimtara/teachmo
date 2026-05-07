@@ -5,8 +5,6 @@ import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
 const DayCell = ({ day, monthStart, onDayClick, onDateDrop, children: dayChildren }) => {
-    const dateStr = day.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-    
     return (
                 <motion.div
                     variants={{
@@ -210,7 +208,7 @@ const CalendarView = ({ currentDate, events, onEventClick, onDateDrop, isLoading
             >
                 {days.map((day) => (
                     <DayCell key={day.toString()} day={day} monthStart={monthStart} onDayClick={onDayClick} onDateDrop={onDateDrop}>
-                        {getEventsForDay(day).slice(0, 3).map((event, index) => {
+                        {getEventsForDay(day).slice(0, 3).map((event) => {
                              // Ensure childrenData is an array before calling find
                              const eventChild = Array.isArray(childrenData) ? childrenData.find(c => c.id === event.child_id) : undefined;
                              return (
