@@ -6,6 +6,15 @@ import {
   DigestItemSchema,
   DailyPlanSchema
 } from './types.js';
+import type {
+  DailyPlan,
+  DigestItem,
+  OrchestratorDecision,
+  OrchestratorSignal,
+  OrchestratorState,
+  SignalFeatures,
+  WeeklyBrief,
+} from './types.js';
 import { parseTimestamp, makeId, toIso } from './utils.js';
 import { extractFeatures } from './features.js';
 import { createInitialState, reduceState } from './state.js';
@@ -20,15 +29,48 @@ import { orchestratorPgStore } from './pgStore.js';
 import { auditEventBare } from '../security/audit.js';
 import { maybeFlagAnomalyFromAudit } from '../security/anomaly.js';
 
+interface OrchestratorEngineOptions {
+  store?: OrchestratorStore;
+}
+
+interface ListOptions {
+  limit?: number;
+  offset?: number;
+}
+
+interface DigestListOptions extends ListOptions {
+  status?: 'queued' | 'delivered' | 'dismissed' | 'all';
+}
+
+interface ActionListOptions extends ListOptions {
+  status?: 'queued' | 'completed' | 'dismissed' | 'all';
+}
+
+interface WeeklySetpoints {
+  dailyAttentionBudgetMin?: number;
+  maxNotificationsPerHour?: number;
+}
+
+type InMemoryActionQueueItem = ReturnType<OrchestratorStore['listActions']>[number];
+
+type AuditEventBareFn = (event: Record<string, unknown>) => Promise<unknown>;
+type MaybeFlagAnomalyFn = (event: Record<string, unknown>) => Promise<unknown>;
+
+const auditEventBareTyped = auditEventBare as unknown as AuditEventBareFn;
+const maybeFlagAnomalyFromAuditTyped = maybeFlagAnomalyFromAudit as unknown as MaybeFlagAnomalyFn;
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
 export class OrchestratorEngine {
-  /**
-   * @param {{ store?: OrchestratorStore }} [opts]
-   */
-  constructor(opts = {}) {
+  readonly store: OrchestratorStore;
+
+  constructor(opts: OrchestratorEngineOptions = {}) {
     this.store = opts.store ?? orchestratorStore;
   }
 
-  async _getOrInitState(familyId, now = new Date()) {
+  async _getOrInitState(familyId: string, now = new Date()): Promise<OrchestratorState> {
     const inMem = this.store.states.get(familyId);
     if (inMem) return OrchestratorStateSchema.parse(inMem);
 
@@ -44,18 +86,14 @@ export class OrchestratorEngine {
     return init;
   }
 
-  /**
-   * Ingest a single signal and return a decision.
-   * @param {import('./types.js').OrchestratorSignal} rawSignal
-   */
-  async ingest(rawSignal) {
+  async ingest(rawSignal: OrchestratorSignal): Promise<OrchestratorDecision> {
     const parsed = OrchestratorSignalSchema.parse(rawSignal);
     const now = parseTimestamp(parsed.timestamp);
 
     const { inserted } = await orchestratorPgStore.insertSignalIdempotent(parsed);
 
     if (!inserted) {
-      await auditEventBare({
+      await auditEventBareTyped({
         eventType: 'duplicate_signal',
         severity: 'info',
         userId: null,
@@ -63,7 +101,7 @@ export class OrchestratorEngine {
         statusCode: 200,
         meta: { idempotencyKey: parsed.idempotencyKey ?? null, signalType: parsed.type }
       });
-      await maybeFlagAnomalyFromAudit({ familyId: parsed.familyId, eventType: 'duplicate_signal', windowMinutes: 10 });
+      await maybeFlagAnomalyFromAuditTyped({ familyId: parsed.familyId, eventType: 'duplicate_signal', windowMinutes: 10 });
 
       const state = await this._getOrInitState(parsed.familyId, now);
       return OrchestratorDecisionSchema.parse({
@@ -149,7 +187,7 @@ export class OrchestratorEngine {
     return OrchestratorDecisionSchema.parse(decision);
   }
 
-  async runDaily(familyId) {
+  async runDaily(familyId: string): Promise<DailyPlan> {
     const now = new Date();
     const state = await this._getOrInitState(familyId, now);
     const since = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
@@ -189,7 +227,7 @@ export class OrchestratorEngine {
     return plan;
   }
 
-  async runWeekly(familyId) {
+  async runWeekly(familyId: string): Promise<WeeklyBrief> {
     const now = new Date();
     const state = await this._getOrInitState(familyId, now);
     const since = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
@@ -197,13 +235,13 @@ export class OrchestratorEngine {
 
     const useLlm = String(process.env.ORCH_WEEKLY_USE_LLM ?? 'true').toLowerCase() !== 'false';
 
-    let brief = null;
+    let brief: WeeklyBrief | null = null;
 
     if (useLlm && process.env.OPENAI_API_KEY) {
       brief = await generateWeeklyBriefWithLLM({ state, recentSignals: signals, now });
     }
 
-    let setpoints = {};
+    let setpoints: WeeklySetpoints = {};
 
     if (!brief) {
       const fallback = runWeeklyRegulator({ state, recentSignals: signals, now });
@@ -244,49 +282,49 @@ export class OrchestratorEngine {
     return saved;
   }
 
-  async getState(familyId) {
+  async getState(familyId: string): Promise<OrchestratorState> {
     const now = new Date();
     return this._getOrInitState(familyId, now);
   }
 
-  getRecentSignals(familyId) {
+  getRecentSignals(familyId: string): OrchestratorSignal[] {
     return this.store.getRecentSignals(familyId);
   }
 
-  async getDigest(familyId, opts) {
+  async getDigest(familyId: string, opts?: DigestListOptions): Promise<DigestItem[]> {
     return orchestratorPgStore.listDigestItems(familyId, opts);
   }
 
-  async markDigestDelivered(familyId) {
+  async markDigestDelivered(familyId: string): Promise<DigestItem[]> {
     return orchestratorPgStore.markDigestDelivered(familyId);
   }
 
-  async dismissDigestItem(familyId, itemId) {
+  async dismissDigestItem(familyId: string, itemId: string): Promise<DigestItem | null> {
     return orchestratorPgStore.dismissDigestItem(familyId, itemId);
   }
 
-  async getDailyPlans(familyId, opts) {
+  async getDailyPlans(familyId: string, opts?: ListOptions): Promise<DailyPlan[]> {
     return orchestratorPgStore.listDailyPlans(familyId, opts);
   }
 
-  async getLatestDailyPlan(familyId) {
+  async getLatestDailyPlan(familyId: string): Promise<DailyPlan | null> {
     return orchestratorPgStore.getLatestDailyPlan(familyId);
   }
 
-  async getWeeklyBriefs(familyId, opts) {
+  async getWeeklyBriefs(familyId: string, opts?: ListOptions): Promise<WeeklyBrief[]> {
     return orchestratorPgStore.listWeeklyBriefs(familyId, opts);
   }
 
-  async getLatestWeeklyBrief(familyId) {
+  async getLatestWeeklyBrief(familyId: string): Promise<WeeklyBrief | null> {
     return orchestratorPgStore.getLatestWeeklyBrief(familyId);
   }
 
-  listActions(familyId) {
+  listActions(familyId: string): InMemoryActionQueueItem[] {
     this.store.getOrCreateState(familyId, new Date());
     return this.store.listActions(familyId);
   }
 
-  completeAction(familyId, actionId) {
+  completeAction(familyId: string, actionId: string): InMemoryActionQueueItem | null {
     this.store.getOrCreateState(familyId, new Date());
     return this.store.completeAction(familyId, actionId);
   }
@@ -294,14 +332,14 @@ export class OrchestratorEngine {
 
 export const orchestratorEngine = new OrchestratorEngine();
 
-function digestTitle(signal) {
+function digestTitle(signal: OrchestratorSignal): string {
   const t = signal.type.replaceAll('_', ' ');
-  const p = signal.payload ?? {};
+  const p = asRecord(signal.payload);
   return p.title ? String(p.title) : t[0].toUpperCase() + t.slice(1);
 }
 
-function digestSummary(signal, features) {
-  const p = signal.payload ?? {};
+function digestSummary(signal: OrchestratorSignal, features: SignalFeatures): string {
+  const p = asRecord(signal.payload);
   const deadline = typeof p.deadline === 'string' ? ` Deadline: ${p.deadline}.` : '';
   const u = Math.round(features.urgency * 100);
   const i = Math.round(features.impact * 100);

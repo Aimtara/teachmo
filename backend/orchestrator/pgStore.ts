@@ -94,6 +94,10 @@ interface StatusListOptions extends ListOptions {
   status?: ActionStatus | 'all';
 }
 
+interface DigestStatusListOptions extends ListOptions {
+  status?: DigestItem['status'] | 'all';
+}
+
 interface TraceListOptions extends ListOptions {
   triggerType?: string | null;
 }
@@ -450,7 +454,7 @@ export class OrchestratorPgStore {
 
   async listDigestItems(
     familyId: string,
-    { status = 'queued', limit = 50, offset = 0 }: StatusListOptions = {}
+    { status = 'queued', limit = 50, offset = 0 }: DigestStatusListOptions = {}
   ): Promise<DigestItem[]> {
     const whereStatus = status === 'all' ? '' : 'AND status = $2';
     const params: QueryParam[] = status === 'all' ? [familyId, limit, offset] : [familyId, status, limit, offset];

@@ -3,12 +3,51 @@ import { WeeklyBriefSchema } from './types.js';
 import { extractFeatures } from './features.js';
 import { makeId, toIso, clamp01 } from './utils.js';
 import { generateJsonWithRetries } from '../ai/llmJson.js';
+import type { OrchestratorSignal, OrchestratorState, WeeklyBrief } from './types.js';
+
+interface WeeklyBriefLlmParams {
+  state: OrchestratorState;
+  recentSignals: OrchestratorSignal[];
+  now: Date;
+}
+
+interface SalientSignal {
+  type: OrchestratorSignal['type'];
+  source: OrchestratorSignal['source'];
+  title: string;
+  deadline: string | null;
+  urgency: number;
+  impact: number;
+  emotionHeat: number;
+  score: number;
+}
+
+interface GenerateJsonSuccess {
+  ok: true;
+  data: unknown;
+}
+
+interface GenerateJsonFailure {
+  ok: false;
+  error?: string;
+}
+
+type GenerateJsonResult = GenerateJsonSuccess | GenerateJsonFailure;
+
+function payloadString(signal: OrchestratorSignal, key: string): string | undefined {
+  const value = signal.payload?.[key];
+  return typeof value === 'string' ? value : undefined;
+}
 
 /**
  * Generate a locked-structure weekly brief using an LLM.
  * Returns null on failure (caller should use deterministic fallback).
  */
-export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) {
+export async function generateWeeklyBriefWithLLM({
+  state,
+  recentSignals,
+  now
+}: WeeklyBriefLlmParams): Promise<WeeklyBrief | null> {
   const familyId = state.familyId;
   const createdAt = toIso(now);
   const weekEnd = toIso(now);
@@ -16,19 +55,19 @@ export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) 
   const weekStart = toIso(weekStartDate);
   const id = makeId('wbrief');
 
-  const counts = {};
+  const counts: Record<string, number> = {};
   for (const s of recentSignals) {
     counts[s.type] = (counts[s.type] ?? 0) + 1;
   }
 
   // Rank signals by a simple "salience" score and provide a small window to the model.
-  const scored = recentSignals
+  const scored: SalientSignal[] = recentSignals
     .slice(-120)
     .map((s) => {
       const f = extractFeatures(s, { now });
       const score = 0.45 * f.impact + 0.35 * f.urgency + 0.2 * f.emotionHeat;
-      const title = typeof s.payload?.title === 'string' ? s.payload.title : s.type;
-      const deadline = typeof s.payload?.deadline === 'string' ? s.payload.deadline : null;
+      const title = payloadString(s, 'title') ?? s.type;
+      const deadline = payloadString(s, 'deadline') ?? null;
       return {
         type: s.type,
         source: s.source,
@@ -91,19 +130,22 @@ export async function generateWeeklyBriefWithLLM({ state, recentSignals, now }) 
 
   const model = process.env.OPENAI_MODEL_WEEKLY_BRIEF ?? process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
 
-  const result = await generateJsonWithRetries({
+  const result = (await generateJsonWithRetries({
     schema: WeeklyBriefSchema,
     system,
     user,
     model,
     temperature: 0.2,
     maxRetries: 2,
-  });
+  })) as GenerateJsonResult;
 
   if (!result.ok) return null;
 
   // Enforce required fields + cap list sizes, then re-validate.
-  const b = { ...result.data };
+  const parsed = WeeklyBriefSchema.safeParse(result.data);
+  if (!parsed.success) return null;
+
+  const b: WeeklyBrief = { ...parsed.data };
   b.id = id;
   b.familyId = familyId;
   b.createdAt = createdAt;

@@ -1,25 +1,28 @@
 /* eslint-env node */
 import { makeId, toIso, clamp01 } from './utils.js';
+import type { OrchestratorAction, OrchestratorSignal, OrchestratorState, SignalFeatures } from './types.js';
+
+interface GenerateCandidatesParams {
+  state: OrchestratorState;
+  signal: OrchestratorSignal;
+  features: SignalFeatures;
+  now: Date;
+}
 
 /**
  * Generate candidate actions given the current state + incoming signal.
  * This is intentionally heuristic and "small"; you can swap this for LLM-driven generation later.
  *
- * @param {{
- *   state: import('./types.js').OrchestratorState,
- *   signal: import('./types.js').OrchestratorSignal,
- *   features: import('./types.js').SignalFeatures,
- *   now: Date,
- * }} params
- * @returns {import('./types.js').OrchestratorAction[]}
  */
-export function generateCandidates({ state, signal, features, now }) {
-  const actions = [];
+export function generateCandidates({ state, signal, features, now }: GenerateCandidatesParams): OrchestratorAction[] {
+  const actions: OrchestratorAction[] = [];
   const familyId = state.familyId;
   const createdAt = toIso(now);
   const payload = signal.payload ?? {};
 
-  const add = (a) => actions.push(a);
+  const add = (a: OrchestratorAction): void => {
+    actions.push(a);
+  };
   const baseMeta = { signalType: signal.type, signalSource: signal.source, payload };
 
   const isPriority = Boolean(payload.isSafety || payload.isCompliance || payload.priority === 'high');

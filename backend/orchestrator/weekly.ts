@@ -1,28 +1,39 @@
 /* eslint-env node */
 import { makeId, toIso, clamp01 } from './utils.js';
+import type { OrchestratorSignal, OrchestratorState, WeeklyBrief } from './types.js';
+
+interface WeeklyRegulatorParams {
+  state: OrchestratorState;
+  recentSignals: OrchestratorSignal[];
+  now: Date;
+}
+
+export interface WeeklySetpoints {
+  dailyAttentionBudgetMin?: number;
+  maxNotificationsPerHour?: number;
+}
+
+interface WeeklyRegulatorResult {
+  brief: WeeklyBrief;
+  setpoints: WeeklySetpoints;
+}
 
 /**
  * Generate a deterministic weekly brief.
  * (Later: replace highlights/risks with LLM, but keep the structure locked.)
  *
- * @param {{
- *  state: import('./types.js').OrchestratorState,
- *  recentSignals: import('./types.js').OrchestratorSignal[],
- *  now: Date,
- * }} params
- * @returns {{ brief: import('./types.js').WeeklyBrief, setpoints: { dailyAttentionBudgetMin?: number, maxNotificationsPerHour?: number } }}
  */
-export function runWeeklyRegulator({ state, recentSignals, now }) {
+export function runWeeklyRegulator({ state, recentSignals, now }: WeeklyRegulatorParams): WeeklyRegulatorResult {
   const weekEnd = now;
   const weekStart = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
 
-  const counts = {};
+  const counts: Record<string, number> = {};
   for (const s of recentSignals) {
     counts[s.type] = (counts[s.type] ?? 0) + 1;
   }
 
-  const highlights = [];
-  const risks = [];
+  const highlights: string[] = [];
+  const risks: string[] = [];
 
   if ((counts.assignment_deadline ?? 0) > 3) highlights.push('Multiple deadlines landed this week — structure helps more than reminders.');
   if ((counts.form_request ?? 0) > 1) highlights.push('Paperwork week: batching forms into one sitting reduces context switching.');
@@ -32,7 +43,7 @@ export function runWeeklyRegulator({ state, recentSignals, now }) {
   if (state.slack > 0.65 && state.zone === 'green')
     risks.push('Low-touch drift risk: a brief check-in can prevent surprises later.');
 
-  const recommendedNextSteps = [];
+  const recommendedNextSteps: string[] = [];
   if (state.zone === 'red') {
     recommendedNextSteps.push('Batch non-urgent school messages into a digest.');
     recommendedNextSteps.push('Pick one “must do” action and explicitly defer the rest.');
@@ -73,8 +84,8 @@ export function runWeeklyRegulator({ state, recentSignals, now }) {
  * Conservative tuning only.
  * (Never do big swings without strong evidence.)
  */
-function tuneSetpoints(state) {
-  const adj = {};
+function tuneSetpoints(state: OrchestratorState): WeeklySetpoints {
+  const adj: WeeklySetpoints = {};
 
   if (state.zone === 'red' || state.tension > 0.75) {
     adj.dailyAttentionBudgetMin = Math.max(5, Math.floor(state.dailyAttentionBudgetMin * 0.8));
@@ -86,7 +97,7 @@ function tuneSetpoints(state) {
   return adj;
 }
 
-function buildWhyNow(state) {
+function buildWhyNow(state: OrchestratorState): string {
   if (state.zone === 'red' || state.tension > 0.75) {
     return 'Because this week is high-load, one focused step plus batching will reduce stress without dropping the ball.';
   }

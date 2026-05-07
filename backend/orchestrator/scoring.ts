@@ -1,13 +1,53 @@
 /* eslint-env node */
 import { clamp01 } from './utils.js';
+import type { ActionType, OrchestratorAction, OrchestratorState } from './types.js';
 
-export function fairnessPenalty(parentBurden, teacherBurden) {
+export interface ScoreWeights {
+  kid: number;
+  relationship: number;
+  school: number;
+  cognitive: number;
+  emotional: number;
+  time: number;
+  fairness: number;
+}
+
+export interface ScoredActionTrace {
+  actionId: string;
+  type: ActionType;
+  score: number;
+  timeCostMin: number;
+  cognitiveCost: number;
+  emotionalCost: number;
+  kidBenefit: number;
+  relationshipBenefit: number;
+  schoolResolutionBenefit: number;
+  parentBurden: number;
+  teacherBurden: number;
+}
+
+interface ActionUtilityOptions {
+  weights?: Partial<ScoreWeights>;
+}
+
+interface OptimizeOptions extends ActionUtilityOptions {
+  attentionBudgetMin?: number;
+  allowNotifyNow?: boolean;
+}
+
+interface OptimizeResult {
+  candidates: OrchestratorAction[];
+  nextAction: OrchestratorAction | null;
+  scored: ScoredActionTrace[];
+}
+
+export function fairnessPenalty(parentBurden: number, teacherBurden: number): number {
   const p = clamp01(parentBurden);
   const t = clamp01(teacherBurden);
   return Math.abs(p - t);
 }
 
-export function defaultWeights() {
+export function defaultWeights(): ScoreWeights {
   return {
     kid: 0.45,
     relationship: 0.25,
@@ -20,11 +60,8 @@ export function defaultWeights() {
 }
 
 /**
- * Compute a single scalar utility for an action.
- * @param {import('./types.js').OrchestratorAction} action
- * @param {{ weights?: Partial<ReturnType<typeof defaultWeights>> }} [opts]
  */
-export function actionUtility(action, opts = {}) {
+export function actionUtility(action: OrchestratorAction, opts: ActionUtilityOptions = {}): number {
   const w = { ...defaultWeights(), ...(opts.weights ?? {}) };
   const fair = fairnessPenalty(action.parentBurden, action.teacherBurden);
 
@@ -42,12 +79,8 @@ export function actionUtility(action, opts = {}) {
 }
 
 /**
- * Greedy optimizer under attention budget + notification constraints.
- * @param {import('./types.js').OrchestratorAction[]} actions
- * @param {import('./types.js').OrchestratorState} state
- * @param {{ weights?: Partial<ReturnType<typeof defaultWeights>>, attentionBudgetMin?: number, allowNotifyNow?: boolean }} [opts]
  */
-export function optimize(actions, state, opts = {}) {
+export function optimize(actions: OrchestratorAction[], state: OrchestratorState, opts: OptimizeOptions = {}): OptimizeResult {
   const attentionBudget = opts.attentionBudgetMin ?? state.dailyAttentionBudgetMin;
   const allowNotifyNow = opts.allowNotifyNow ?? true;
   const weights = opts.weights ?? {};
@@ -57,7 +90,7 @@ export function optimize(actions, state, opts = {}) {
     .sort((a, b) => b.score - a.score);
 
   let remaining = attentionBudget;
-  let nextAction = null;
+  let nextAction: OrchestratorAction | null = null;
 
   for (const s of scored) {
     const a = s.action;
