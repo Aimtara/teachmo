@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { format } from 'date-fns';
 import CalendarView from '@/components/calendar/CalendarView';
 import EventModal from '@/components/calendar/EventModal';
@@ -74,11 +73,8 @@ export default function Calendar() {
     setShowModal(true);
   };
 
-  const handleDragEnd = (result) => {
-    const { destination, draggableId } = result;
-    if (!destination?.droppableId?.startsWith('calendar-')) return;
-
-    const targetDate = new Date(`${destination.droppableId.replace('calendar-', '')}T12:00:00`);
+  const handleDateDrop = (draggableId, targetDate) => {
+    if (!draggableId) return;
     if (draggableId.startsWith('request-')) {
       const requestId = draggableId.replace('request-', '');
       const request = pendingRequests.find((item) => item.id === requestId);
@@ -107,7 +103,6 @@ export default function Calendar() {
     .slice(0, 20);
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
     <EnterpriseSurface
       eyebrow="Calendar"
       title="Adaptive scheduling board"
@@ -121,31 +116,21 @@ export default function Calendar() {
       ]}
       aside={
         <EnterprisePanel title="Scheduling queues" description="Drag targets and approvals are described beside the calendar.">
-          <Droppable droppableId="scheduling-requests" type="ITEM">
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
+              <div className="space-y-3">
                 {pendingRequests.map((request, index) => (
-                  <Draggable key={request.id} draggableId={`request-${request.id}`} index={index}>
-                    {(dragProvided, snapshot) => (
                       <div
-                        ref={dragProvided.innerRef}
-                        {...dragProvided.draggableProps}
-                        {...dragProvided.dragHandleProps}
-                        className={`rounded-2xl border border-[var(--enterprise-border)] bg-[color-mix(in_srgb,var(--enterprise-primary)_4%,transparent)] p-4 text-sm ${snapshot.isDragging ? 'shadow-[var(--enterprise-shadow)]' : ''}`}
-                        style={dragProvided.draggableProps.style}
+                        key={request.id}
+                        draggable
+                        onDragStart={(event) => event.dataTransfer.setData('text/plain', `request-${request.id}`)}
+                        className="rounded-2xl border border-[var(--enterprise-border)] bg-[color-mix(in_srgb,var(--enterprise-primary)_4%,transparent)] p-4 text-sm"
                       >
                         <p className="font-semibold">{request.title}</p>
                         <p className="mt-1 text-[var(--enterprise-muted)]">{request.description}</p>
                         <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--enterprise-muted)]">Drag to a calendar day</p>
                       </div>
-                    )}
-                  </Draggable>
                 ))}
-                {provided.placeholder}
                 {pendingRequests.length === 0 ? <p className="text-sm text-[var(--enterprise-muted)]">All scheduling requests are placed.</p> : null}
               </div>
-            )}
-          </Droppable>
         </EnterprisePanel>
       }
     >
@@ -191,6 +176,7 @@ export default function Calendar() {
             events={calendarEvents}
             view={view}
             onEventClick={handleEventClick}
+            onDateDrop={handleDateDrop}
             onDayClick={handleDayClick}
             childrenData={[]}
             isLoading={isLoading}
@@ -208,6 +194,5 @@ export default function Calendar() {
         )}
       </EnterprisePanel>
     </EnterpriseSurface>
-    </DragDropContext>
   );
 }

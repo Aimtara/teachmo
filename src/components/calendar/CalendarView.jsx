@@ -3,26 +3,24 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth, endOfWeek, isSameMonth, isSameDay, getDay, startOfDay, endOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { Draggable, Droppable } from '@hello-pangea/dnd';
 
-const DayCell = ({ day, monthStart, onDayClick, children: dayChildren }) => {
+const DayCell = ({ day, monthStart, onDayClick, onDateDrop, children: dayChildren }) => {
     const dateStr = day.toISOString().split('T')[0]; // Format as YYYY-MM-DD
     
     return (
-        <Droppable droppableId={`calendar-${dateStr}`} type="ITEM">
-            {(provided, snapshot) => (
                 <motion.div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
                     variants={{
                         hidden: { opacity: 0, y: 10 },
                         visible: { opacity: 1, y: 0 }
                     }}
                     className={`border-r border-b p-2 min-h-[120px] relative ${
                         !isSameMonth(day, monthStart) ? 'bg-gray-50 text-gray-400' : 'bg-white'
-                    } ${isSameDay(day, new Date()) ? 'bg-blue-50' : ''} ${
-                        snapshot.isDraggedOver ? 'bg-green-100 border-green-300' : ''
-                    }`}
+                    } ${isSameDay(day, new Date()) ? 'bg-blue-50' : ''}`}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                        event.preventDefault();
+                        onDateDrop?.(event.dataTransfer.getData('text/plain'), day);
+                    }}
                 >
                     <div 
                         className={`font-semibold ${isSameDay(day, new Date()) ? 'text-blue-600' : ''} ${onDayClick ? 'cursor-pointer hover:text-blue-700' : ''}`}
@@ -33,14 +31,11 @@ const DayCell = ({ day, monthStart, onDayClick, children: dayChildren }) => {
                     <div className="mt-1 space-y-1">
                         {dayChildren}
                     </div>
-                    {provided.placeholder}
                 </motion.div>
-            )}
-        </Droppable>
     );
 };
 
-const CalendarView = ({ currentDate, events, onEventClick, isLoading, view, onDayClick, childrenData }) => {
+const CalendarView = ({ currentDate, events, onEventClick, onDateDrop, isLoading, view, onDayClick, childrenData }) => {
     const [now, setNow] = useState(new Date());
     // Cache events by day to avoid recomputing filters on every render
     const eventsCache = useRef({});
@@ -214,33 +209,24 @@ const CalendarView = ({ currentDate, events, onEventClick, isLoading, view, onDa
                 animate="visible"
             >
                 {days.map((day) => (
-                    <DayCell key={day.toString()} day={day} monthStart={monthStart} onDayClick={onDayClick}>
+                    <DayCell key={day.toString()} day={day} monthStart={monthStart} onDayClick={onDayClick} onDateDrop={onDateDrop}>
                         {getEventsForDay(day).slice(0, 3).map((event, index) => {
                              // Ensure childrenData is an array before calling find
                              const eventChild = Array.isArray(childrenData) ? childrenData.find(c => c.id === event.child_id) : undefined;
                              return (
-                                <Draggable
-                                    key={event.id}
-                                    draggableId={`event-${event.id}`}
-                                    index={index}
-                                >
-                                    {(provided, snapshot) => (
                                         <div
-                                            ref={provided.innerRef}
-                                            {...provided.draggableProps}
-                                            {...provided.dragHandleProps}
+                                            key={event.id}
+                                            draggable
+                                            onDragStart={(dragEvent) => dragEvent.dataTransfer.setData('text/plain', `event-${event.id}`)}
                                             onClick={() => onEventClick(event)}
-                                            className={`p-1 rounded text-xs cursor-grab text-white truncate flex items-center gap-1 ${snapshot.isDragging ? 'shadow-lg' : ''}`}
+                                            className="p-1 rounded text-xs cursor-grab text-white truncate flex items-center gap-1"
                                             style={{
-                                                backgroundColor: event.color || 'var(--teachmo-blue)',
-                                                ...provided.draggableProps.style
+                                                backgroundColor: event.color || 'var(--teachmo-blue)'
                                             }}
                                         >
                                             {eventChild && <div className="w-3 h-3 rounded-full bg-white/50 flex-shrink-0"></div>}
                                             <span className="truncate">{event.all_day ? '' : (event.start_time && format(new Date(event.start_time), 'p'))} {event.title}</span>
                                         </div>
-                                    )}
-                                </Draggable>
                              )
                         })}
                          {getEventsForDay(day).length > 3 && (
