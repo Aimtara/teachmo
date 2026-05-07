@@ -1,4 +1,16 @@
-export const ROUTES = {
+interface RouteConfig {
+  key: string;
+  label: string;
+  requiredContext: string[];
+  allowedRoles: string[];
+  tools: string[];
+  uiHandoff: {
+    type: string;
+    deepLink: string;
+  };
+}
+
+export const ROUTES: Record<string, RouteConfig> = {
   HUB_MESSAGE_SEND: {
     key: 'HUB_MESSAGE_SEND',
     label: 'Hub message send',
@@ -91,6 +103,6 @@ export const ROUTES = {
 
 export const ROUTE_KEYS = Object.keys(ROUTES);
 
-export function getRouteConfig(route) {
+export function getRouteConfig(route: string): RouteConfig {
   return ROUTES[route] || ROUTES.UNKNOWN_CLARIFY;
 }

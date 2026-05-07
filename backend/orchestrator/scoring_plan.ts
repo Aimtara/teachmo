@@ -1,15 +1,28 @@
 /* eslint-env node */
 import { actionUtility } from './scoring.ts';
+import type { OrchestratorAction, OrchestratorState } from './types.ts';
+
+interface OptimizePlanOptions {
+  k?: number;
+  attentionBudgetMin?: number;
+  allowNotifyNow?: boolean;
+}
+
+interface OptimizePlanResult {
+  chosen: OrchestratorAction[];
+  rationale: string;
+}
 
 /**
  * Greedy selection of up to K actions under attention budget.
  * Avoids selecting multiple “do_nothing” actions.
  *
- * @param {import('./types.js').OrchestratorAction[]} actions
- * @param {import('./types.js').OrchestratorState} state
- * @param {{ k?: number, attentionBudgetMin?: number, allowNotifyNow?: boolean }} opts
  */
-export function optimizePlan(actions, state, opts = {}) {
+export function optimizePlan(
+  actions: OrchestratorAction[],
+  state: OrchestratorState,
+  opts: OptimizePlanOptions = {}
+): OptimizePlanResult {
   const k = opts.k ?? 3;
   const attentionBudget = opts.attentionBudgetMin ?? state.dailyAttentionBudgetMin;
   const allowNotifyNow = opts.allowNotifyNow ?? true;
@@ -18,7 +31,7 @@ export function optimizePlan(actions, state, opts = {}) {
     .map((a) => ({ a, score: actionUtility(a) }))
     .sort((x, y) => y.score - x.score);
 
-  const chosen = [];
+  const chosen: OrchestratorAction[] = [];
   let remaining = attentionBudget;
 
   for (const { a } of scored) {
@@ -41,6 +54,6 @@ export function optimizePlan(actions, state, opts = {}) {
   return { chosen, rationale };
 }
 
-function attentionBudgetMinLabel(n) {
+function attentionBudgetMinLabel(n: number): string {
   return `${n} minute${n === 1 ? '' : 's'}`;
 }

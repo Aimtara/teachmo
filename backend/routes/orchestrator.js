@@ -18,7 +18,7 @@ import {
   orchestratorRuns,
   nextId
 } from '../models.js';
-import { planActionCatalog, resolveRollbackAction } from '../orchestrator/catalog.js';
+import { planActionCatalog, resolveRollbackAction } from '../orchestrator/catalog.ts';
 import { listRunbooks, startRunbook, continueRunbook, listRunbookRuns } from '../orchestrator/runbooks.js';
 import {
   listAlertRoutes,

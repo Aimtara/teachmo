@@ -1,4 +1,4 @@
-import { buildContractResponse } from '../contract.js';
+import { buildContractResponse } from '../contract.ts';
 
 const officeHoursBook = {
   requiredContext() {

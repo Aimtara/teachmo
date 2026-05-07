@@ -1,5 +1,11 @@
 /* eslint-env node */
-export const planActionCatalog = [
+interface PlanActionCatalogItem {
+  type: string;
+  description: string;
+  requiresApproval: boolean;
+}
+
+export const planActionCatalog: PlanActionCatalogItem[] = [
   {
     type: 'mitigation.set',
     description: 'Apply a mitigation rule to suppress repetitive alerts.',
@@ -17,11 +23,11 @@ export const planActionCatalog = [
   }
 ];
 
-const rollbackActionMap = {
+const rollbackActionMap: Record<string, string> = {
   'mitigation.set': 'mitigation.clear',
   'throttle.raise': 'mitigation.clear'
 };
 
-export function resolveRollbackAction(actionType) {
+export function resolveRollbackAction(actionType: string): string | null {
   return rollbackActionMap[actionType] ?? null;
 }

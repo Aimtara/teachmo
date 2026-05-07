@@ -1,6 +1,6 @@
 /* eslint-env node */
 import { generateCandidates } from './candidates.ts';
-import { optimizePlan } from './scoring_plan.js';
+import { optimizePlan } from './scoring_plan.ts';
 import { extractFeatures } from './features.ts';
 import { makeId, toIso } from './utils.ts';
 import type { DailyPlan, OrchestratorAction, OrchestratorSignal, OrchestratorState } from './types.ts';

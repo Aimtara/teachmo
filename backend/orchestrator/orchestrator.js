@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { query } from '../db.js';
-import { getRouteConfig } from './routeMap.js';
+import { getRouteConfig } from './routeMap.ts';
 import { getSpecialist } from './specialists/index.js';
 
 const SAFETY_KEYWORDS = {
