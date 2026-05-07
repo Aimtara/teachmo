@@ -31,18 +31,16 @@ export type TenantScopedRequest = AuthenticatedRequest & {
 export type JsonResponse<T extends Record<string, unknown> = Record<string, unknown>> = Response<T>;
 
 export function asyncHandler(
-  handler: (req: TenantScopedRequest, res: Response, next: NextFunction) => Promise<unknown>
+  handler: (_req: TenantScopedRequest, _res: Response, _next: NextFunction) => Promise<unknown>
 ): RequestHandler {
   return (req, res, next) => {
     void handler(req as TenantScopedRequest, res, next).catch(next);
   };
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      auth?: AuthContext;
-      tenant?: TenantContext;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    auth?: AuthContext;
+    tenant?: TenantContext;
   }
 }

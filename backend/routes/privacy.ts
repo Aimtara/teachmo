@@ -1,11 +1,13 @@
 /* eslint-env node */
 import crypto from 'crypto';
 import { Router } from 'express';
+import type { Response } from 'express';
 import { query } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { recordAuditLog } from '../utils/audit.js';
 import { CONSENT_SCOPES, recordConsent } from '../compliance/consentLedger.ts';
+import type { ApiError, TenantScopedRequest } from '../types/http.ts';
 
 const router = Router();
 
@@ -15,32 +17,53 @@ router.use(requireTenant);
 const ADMIN_ROLES = new Set(['system_admin', 'district_admin', 'school_admin', 'admin']);
 const VERIFIED_RELATIONSHIP_STATES = ['school_verified', 'guardian_confirmed'];
 
-function isAdmin(req) {
+type PrivacyRequest = TenantScopedRequest;
+
+interface AuditPrivacyParams {
+  action: string;
+  entityType: string;
+  entityId?: unknown;
+  metadata?: Record<string, unknown>;
+  before?: unknown;
+  after?: unknown;
+}
+
+function isAdmin(req: PrivacyRequest): boolean {
   return ADMIN_ROLES.has(String(req.auth?.role || '').toLowerCase());
 }
 
-function actorId(req) {
+function actorId(req: PrivacyRequest): string | undefined {
   return req.auth?.userId;
 }
 
-function actorRole(req) {
+function actorRole(req: PrivacyRequest): string {
   return req.auth?.role || 'unknown';
 }
 
-function tenant(req) {
+function tenant(req: PrivacyRequest) {
   return {
     organizationId: req.tenant?.organizationId,
     schoolId: req.tenant?.schoolId ?? null,
   };
 }
 
-function handleError(res, error) {
-  if (error?.statusCode) return res.status(error.statusCode).json({ error: error.reason || error.message });
-  if (/Unknown consent scope/.test(error?.message || '')) return res.status(400).json({ error: 'invalid_consent_scope' });
-  return res.status(500).json({ error: 'privacy_api_error' });
+function handleError(res: Response, error: unknown): void {
+  const apiError = error as ApiError;
+  if (apiError?.statusCode) {
+    res.status(apiError.statusCode).json({ error: apiError.reason || apiError.message });
+    return;
+  }
+  if (/Unknown consent scope/.test(apiError?.message || '')) {
+    res.status(400).json({ error: 'invalid_consent_scope' });
+    return;
+  }
+  res.status(500).json({ error: 'privacy_api_error' });
 }
 
-async function auditPrivacyAction(req, { action, entityType, entityId, metadata = {}, before = null, after = null }) {
+async function auditPrivacyAction(
+  req: PrivacyRequest,
+  { action, entityType, entityId, metadata = {}, before = null, after = null }: AuditPrivacyParams
+): Promise<void> {
   const { organizationId, schoolId } = tenant(req);
   await recordAuditLog({
     actorId: actorId(req),
@@ -50,15 +73,19 @@ async function auditPrivacyAction(req, { action, entityType, entityId, metadata 
     metadata,
     before,
     after,
+    changes: null,
     containsPii: false,
     organizationId,
     schoolId,
   });
 }
 
-async function requireSubjectAccess(req, { subjectId, subjectType }) {
+async function requireSubjectAccess(
+  req: PrivacyRequest,
+  { subjectId, subjectType }: { subjectId: unknown; subjectType: unknown }
+): Promise<true> {
   if (!subjectId) {
-    const error = new Error('subjectId required');
+    const error = new Error('subjectId required') as ApiError;
     error.statusCode = 400;
     error.reason = 'subjectId_required';
     throw error;
@@ -74,14 +101,14 @@ async function requireSubjectAccess(req, { subjectId, subjectType }) {
          and school_id is not distinct from $2
          and guardian_id = $3
          and student_id = $4
-         and state = any($5::text[])
+         and state = ANY($5::text[])
        limit 1`,
       [organizationId, schoolId, actorId(req), subjectId, VERIFIED_RELATIONSHIP_STATES],
     );
     if (result.rows?.[0]) return true;
   }
 
-  const error = new Error('subject access denied');
+  const error = new Error('subject access denied') as ApiError;
   error.statusCode = 403;
   error.reason = 'subject_access_denied';
   throw error;
@@ -299,10 +326,13 @@ router.post('/relationships', async (req, res) => {
   }
 });
 
-async function transitionRelationship(req, res, state, action) {
+async function transitionRelationship(req: PrivacyRequest, res: Response, state: string, action: string): Promise<void> {
   try {
     const { organizationId, schoolId } = tenant(req);
-    if (state === 'school_verified' && !isAdmin(req)) return res.status(403).json({ error: 'school_admin_role_required' });
+    if (state === 'school_verified' && !isAdmin(req)) {
+      res.status(403).json({ error: 'school_admin_role_required' });
+      return;
+    }
     const ownerFilter = isAdmin(req) ? '' : 'and guardian_id = $6';
     const params = [state, actorId(req), req.params.id, organizationId, schoolId];
     if (!isAdmin(req)) params.push(actorId(req));
@@ -317,7 +347,10 @@ async function transitionRelationship(req, res, state, action) {
       params,
     );
     const relationship = result.rows?.[0];
-    if (!relationship) return res.status(404).json({ error: 'relationship_not_found' });
+    if (!relationship) {
+      res.status(404).json({ error: 'relationship_not_found' });
+      return;
+    }
     await auditPrivacyAction(req, {
       action,
       entityType: 'guardian_relationship',

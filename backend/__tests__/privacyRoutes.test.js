@@ -27,7 +27,7 @@ jest.mock('../middleware/tenant.js', () => ({
 }));
 
 import { query as mockQuery } from '../db.js';
-import privacyRouter from '../routes/privacy.js';
+import privacyRouter from '../routes/privacy.ts';
 
 const app = express();
 app.use(express.json());
