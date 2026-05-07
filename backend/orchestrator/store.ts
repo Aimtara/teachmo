@@ -1,27 +1,32 @@
 /* eslint-env node */
 import { createInitialState } from './state.js';
 import { createNotificationBucket } from './policy.js';
-import { parseTimestamp } from './utils.js';
+import { parseTimestamp, TokenBucket } from './utils.js';
+import type {
+  ActionQueueItem,
+  DigestItem,
+  DailyPlan,
+  OrchestratorAction,
+  OrchestratorSignal,
+  OrchestratorState,
+  WeeklyBrief,
+} from './types.js';
+
+type InMemoryActionStatus = Extract<ActionQueueItem['status'], 'queued' | 'completed'>;
+type InMemoryActionQueueItem = Omit<ActionQueueItem, 'status' | 'updatedAt'> & {
+  status: InMemoryActionStatus;
+};
 
 export class OrchestratorStore {
-  constructor() {
-    /** @type {Map<string, import('./types.js').OrchestratorState>} */
-    this.states = new Map();
-    /** @type {Map<string, import('./utils.js').TokenBucket>} */
-    this.buckets = new Map();
-    /** @type {Map<string, import('./types.js').OrchestratorSignal[]>} */
-    this.signals = new Map();
-    /** @type {Map<string, import('./types.js').DigestItem[]>} */
-    this.digest = new Map();
-    /** @type {Map<string, import('./types.js').DailyPlan[]>} */
-    this.dailyPlans = new Map();
-    /** @type {Map<string, import('./types.js').WeeklyBrief[]>} */
-    this.weeklyBriefs = new Map();
-    /** @type {Map<string, Array<{ action: import('./types.js').OrchestratorAction, status: 'queued'|'completed' }>>} */
-    this.actions = new Map();
-  }
+  readonly states = new Map<string, OrchestratorState>();
+  readonly buckets = new Map<string, TokenBucket>();
+  private readonly signals = new Map<string, OrchestratorSignal[]>();
+  private readonly digest = new Map<string, DigestItem[]>();
+  private readonly dailyPlans = new Map<string, DailyPlan[]>();
+  private readonly weeklyBriefs = new Map<string, WeeklyBrief[]>();
+  private readonly actions = new Map<string, InMemoryActionQueueItem[]>();
 
-  getOrCreateState(familyId, now = new Date()) {
+  getOrCreateState(familyId: string, now = new Date()): OrchestratorState {
     const existing = this.states.get(familyId);
     if (existing) return existing;
     const init = createInitialState(familyId, now);
@@ -35,18 +40,18 @@ export class OrchestratorStore {
     return init;
   }
 
-  getBucket(familyId) {
+  getBucket(familyId: string): TokenBucket | null {
     return this.buckets.get(familyId) ?? null;
   }
 
-  setState(familyId, next, now = new Date()) {
+  setState(familyId: string, next: OrchestratorState, now = new Date()): void {
     this.states.set(familyId, next);
     if (!this.buckets.has(familyId)) {
       this.buckets.set(familyId, createNotificationBucket(next, now));
     }
   }
 
-  appendSignal(signal, max = 200) {
+  appendSignal(signal: OrchestratorSignal, max = 200): void {
     const familyId = signal.familyId;
     const list = this.signals.get(familyId) ?? [];
     list.push({ ...signal, timestamp: signal.timestamp ?? parseTimestamp(undefined).toISOString() });
@@ -54,63 +59,65 @@ export class OrchestratorStore {
     this.signals.set(familyId, list);
   }
 
-  getRecentSignals(familyId) {
+  getRecentSignals(familyId: string): OrchestratorSignal[] {
     return this.signals.get(familyId) ?? [];
   }
 
-  appendDigestItem(familyId, item, max = 200) {
+  appendDigestItem(familyId: string, item: DigestItem, max = 200): void {
     const list = this.digest.get(familyId) ?? [];
     list.push(item);
     while (list.length > max) list.shift();
     this.digest.set(familyId, list);
   }
 
-  getDigest(familyId) {
+  getDigest(familyId: string): DigestItem[] {
     return this.digest.get(familyId) ?? [];
   }
 
-  markDigestDelivered(familyId) {
+  markDigestDelivered(familyId: string): DigestItem[] {
     const list = this.digest.get(familyId) ?? [];
-    const next = list.map((x) => (x.status === 'queued' ? { ...x, status: 'delivered' } : x));
+    const next: DigestItem[] = list.map((x) => (x.status === 'queued' ? { ...x, status: 'delivered' as const } : x));
     this.digest.set(familyId, next);
     return next;
   }
 
-  appendDailyPlan(familyId, plan, max = 30) {
+  appendDailyPlan(familyId: string, plan: DailyPlan, max = 30): void {
     const list = this.dailyPlans.get(familyId) ?? [];
     list.push(plan);
     while (list.length > max) list.shift();
     this.dailyPlans.set(familyId, list);
   }
 
-  getDailyPlans(familyId) {
+  getDailyPlans(familyId: string): DailyPlan[] {
     return this.dailyPlans.get(familyId) ?? [];
   }
 
-  appendWeeklyBrief(familyId, brief, max = 12) {
+  appendWeeklyBrief(familyId: string, brief: WeeklyBrief, max = 12): void {
     const list = this.weeklyBriefs.get(familyId) ?? [];
     list.push(brief);
     while (list.length > max) list.shift();
     this.weeklyBriefs.set(familyId, list);
   }
 
-  getWeeklyBriefs(familyId) {
+  getWeeklyBriefs(familyId: string): WeeklyBrief[] {
     return this.weeklyBriefs.get(familyId) ?? [];
   }
 
-  enqueueAction(familyId, action) {
+  enqueueAction(familyId: string, action: OrchestratorAction): void {
     const list = this.actions.get(familyId) ?? [];
     list.push({ action, status: 'queued' });
     this.actions.set(familyId, list);
   }
 
-  listActions(familyId) {
+  listActions(familyId: string): InMemoryActionQueueItem[] {
     return this.actions.get(familyId) ?? [];
   }
 
-  completeAction(familyId, actionId) {
+  completeAction(familyId: string, actionId: string): InMemoryActionQueueItem | null {
     const list = this.actions.get(familyId) ?? [];
-    const next = list.map((x) => (x.action.id === actionId ? { ...x, status: 'completed' } : x));
+    const next: InMemoryActionQueueItem[] = list.map((x) =>
+      x.action.id === actionId ? { ...x, status: 'completed' as const } : x
+    );
     this.actions.set(familyId, next);
     return next.find((x) => x.action.id === actionId) ?? null;
   }

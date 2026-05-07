@@ -1,5 +1,5 @@
 /* eslint-env node */
-import { query } from '../db.js';
+import { query as rawQuery } from '../db.js';
 import {
   WeeklyBriefSchema,
   DailyPlanSchema,
@@ -8,13 +8,137 @@ import {
   OrchestratorSignalSchema,
   OrchestratorActionSchema
 } from './types.js';
+import type {
+  ActionQueueItem,
+  ActionStatus,
+  DailyPlan,
+  DigestItem,
+  OrchestratorAction,
+  OrchestratorSignal,
+  OrchestratorState,
+  OrchestratorZone,
+  WeeklyBrief,
+} from './types.js';
 import { makeId } from './utils.js';
 
+interface DbResult<Row extends Record<string, unknown> = Record<string, unknown>> {
+  rowCount: number | null;
+  rows: Row[];
+}
+
+type QueryParam = string | number | boolean | null;
+
+function dbQuery<Row extends Record<string, unknown> = Record<string, unknown>>(
+  sql: string,
+  params: readonly QueryParam[] = []
+): Promise<DbResult<Row>> {
+  return rawQuery(sql, params) as Promise<DbResult<Row>>;
+}
+
+interface SignalJsonRow extends Record<string, unknown> {
+  signal_json: unknown;
+}
+
+interface BriefJsonRow extends Record<string, unknown> {
+  brief_json: unknown;
+}
+
+interface PlanJsonRow extends Record<string, unknown> {
+  plan_json: unknown;
+}
+
+interface DigestItemRow extends Record<string, unknown> {
+  id: string;
+  family_id: string;
+  created_at: string | Date;
+  signal_type: unknown;
+  title: string;
+  summary: string;
+  urgency: string | number;
+  impact: string | number;
+  status: unknown;
+  meta: unknown;
+}
+
+interface DecisionTraceRow extends Record<string, unknown> {
+  id: string | number;
+  created_at: string | Date;
+  trigger_type: string;
+  trigger_id: string | null;
+  suppressed_reason: string | null;
+  chosen_action_id: string | null;
+  zone: OrchestratorZone | null;
+  tension: string | number | null;
+  slack: string | number | null;
+  trace_json: unknown;
+}
+
+interface ActionRow extends Record<string, unknown> {
+  action_json: unknown;
+  status: ActionStatus;
+  updated_at: string | Date;
+}
+
+interface ListSignalsOptions {
+  sinceIso?: string | null;
+  limit?: number;
+  offset?: number;
+}
+
+interface ListOptions {
+  limit?: number;
+  offset?: number;
+}
+
+interface StatusListOptions extends ListOptions {
+  status?: ActionStatus | 'all';
+}
+
+interface TraceListOptions extends ListOptions {
+  triggerType?: string | null;
+}
+
+interface DecisionTraceInput {
+  familyId: string;
+  triggerType: string;
+  triggerId?: string | null;
+  suppressedReason?: string | null;
+  chosenActionId?: string | null;
+  zone?: OrchestratorZone | null;
+  tension?: number | null;
+  slack?: number | null;
+  trace: Record<string, unknown>;
+}
+
+interface InsertSignalResult {
+  inserted: boolean;
+  signal: OrchestratorSignal;
+}
+
+interface DecisionTrace {
+  id: string | number;
+  createdAt: string;
+  triggerType: string;
+  triggerId: string | null;
+  suppressedReason: string | null;
+  chosenActionId: string | null;
+  zone: OrchestratorZone | null;
+  tension: number | null;
+  slack: number | null;
+  trace: unknown;
+}
+
+function metaString(value: unknown, key: string): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  return typeof record[key] === 'string' ? record[key] : null;
+}
+
 export class OrchestratorPgStore {
-  async insertWeeklyBrief(brief) {
+  async insertWeeklyBrief(brief: WeeklyBrief): Promise<WeeklyBrief> {
     const b = WeeklyBriefSchema.parse(brief);
 
-    await query(
+    await dbQuery(
       `
       INSERT INTO orchestrator_weekly_briefs
         (id, family_id, created_at, week_start, week_end, current_zone, tension, slack, cooldown_active, brief_json)
@@ -52,7 +176,7 @@ export class OrchestratorPgStore {
    * Insert a signal with idempotency protection.
    * Returns { inserted: boolean, signal }.
    */
-  async insertSignalIdempotent(signal) {
+  async insertSignalIdempotent(signal: OrchestratorSignal): Promise<InsertSignalResult> {
     const s = OrchestratorSignalSchema.parse(signal);
 
     const occurredAt = s.timestamp ? s.timestamp : new Date().toISOString();
@@ -63,7 +187,7 @@ export class OrchestratorPgStore {
       (typeof s.payload?.idempotencyKey === 'string' ? s.payload.idempotencyKey : null) ??
       null;
 
-    const res = await query(
+    const res = await dbQuery<SignalJsonRow>(
       `
       INSERT INTO orchestrator_signals
         (id, family_id, child_id, source, type, occurred_at, idempotency_key, features_json, payload_json, signal_json)
@@ -91,7 +215,7 @@ export class OrchestratorPgStore {
     }
 
     if (idem) {
-      const existing = await query(
+      const existing = await dbQuery<SignalJsonRow>(
         `
         SELECT signal_json
         FROM orchestrator_signals
@@ -107,11 +231,22 @@ export class OrchestratorPgStore {
       }
     }
 
-    return { inserted: false, signal: { ...s, id, idempotencyKey: idem, timestamp: occurredAt } };
+    return {
+      inserted: false,
+      signal: OrchestratorSignalSchema.parse({
+        ...s,
+        id,
+        ...(idem ? { idempotencyKey: idem } : {}),
+        timestamp: occurredAt
+      })
+    };
   }
 
-  async listSignals(familyId, { sinceIso = null, limit = 200, offset = 0 } = {}) {
-    const params = [familyId];
+  async listSignals(
+    familyId: string,
+    { sinceIso = null, limit = 200, offset = 0 }: ListSignalsOptions = {}
+  ): Promise<OrchestratorSignal[]> {
+    const params: QueryParam[] = [familyId];
     let where = `WHERE family_id = $1`;
 
     if (sinceIso) {
@@ -122,7 +257,7 @@ export class OrchestratorPgStore {
     params.push(limit);
     params.push(offset);
 
-    const res = await query(
+    const res = await dbQuery<SignalJsonRow>(
       `
       SELECT signal_json
       FROM orchestrator_signals
@@ -136,8 +271,8 @@ export class OrchestratorPgStore {
     return res.rows.map((r) => OrchestratorSignalSchema.parse(r.signal_json));
   }
 
-  async listWeeklyBriefs(familyId, { limit = 10, offset = 0 } = {}) {
-    const res = await query(
+  async listWeeklyBriefs(familyId: string, { limit = 10, offset = 0 }: ListOptions = {}): Promise<WeeklyBrief[]> {
+    const res = await dbQuery<BriefJsonRow>(
       `
       SELECT brief_json
       FROM orchestrator_weekly_briefs
@@ -150,8 +285,8 @@ export class OrchestratorPgStore {
     return res.rows.map((r) => WeeklyBriefSchema.parse(r.brief_json));
   }
 
-  async getLatestWeeklyBrief(familyId) {
-    const res = await query(
+  async getLatestWeeklyBrief(familyId: string): Promise<WeeklyBrief | null> {
+    const res = await dbQuery<BriefJsonRow>(
       `
       SELECT brief_json
       FROM orchestrator_weekly_briefs
@@ -165,10 +300,10 @@ export class OrchestratorPgStore {
     return WeeklyBriefSchema.parse(res.rows[0].brief_json);
   }
 
-  async insertDailyPlan(plan) {
+  async insertDailyPlan(plan: DailyPlan): Promise<DailyPlan> {
     const p = DailyPlanSchema.parse(plan);
 
-    await query(
+    await dbQuery(
       `
       INSERT INTO orchestrator_daily_plans
         (id, family_id, created_at, window_start, window_end, zone_at_plan_time, attention_budget_min, plan_json)
@@ -198,8 +333,8 @@ export class OrchestratorPgStore {
     return p;
   }
 
-  async listDailyPlans(familyId, { limit = 10, offset = 0 } = {}) {
-    const res = await query(
+  async listDailyPlans(familyId: string, { limit = 10, offset = 0 }: ListOptions = {}): Promise<DailyPlan[]> {
+    const res = await dbQuery<PlanJsonRow>(
       `
       SELECT plan_json
       FROM orchestrator_daily_plans
@@ -212,8 +347,8 @@ export class OrchestratorPgStore {
     return res.rows.map((r) => DailyPlanSchema.parse(r.plan_json));
   }
 
-  async getLatestDailyPlan(familyId) {
-    const res = await query(
+  async getLatestDailyPlan(familyId: string): Promise<DailyPlan | null> {
+    const res = await dbQuery<PlanJsonRow>(
       `
       SELECT plan_json
       FROM orchestrator_daily_plans
@@ -227,10 +362,10 @@ export class OrchestratorPgStore {
     return DailyPlanSchema.parse(res.rows[0].plan_json);
   }
 
-  async insertDigestItem(item) {
+  async insertDigestItem(item: DigestItem): Promise<DigestItem> {
     const d = DigestItemSchema.parse(item);
 
-    await query(
+    await dbQuery(
       `
       INSERT INTO orchestrator_digest_items
         (id, family_id, created_at, signal_type, title, summary, urgency, impact, status, meta, delivered_at, dismissed_at)
@@ -260,18 +395,18 @@ export class OrchestratorPgStore {
         d.impact,
         d.status ?? 'queued',
         JSON.stringify(d.meta ?? {}),
-        d.status === 'delivered' ? d.meta?.deliveredAt ?? null : null,
-        d.status === 'dismissed' ? d.meta?.dismissedAt ?? null : null
+        d.status === 'delivered' ? metaString(d.meta, 'deliveredAt') : null,
+        d.status === 'dismissed' ? metaString(d.meta, 'dismissedAt') : null
       ]
     );
 
     return d;
   }
 
-  async upsertState(state) {
+  async upsertState(state: OrchestratorState): Promise<OrchestratorState> {
     const s = OrchestratorStateSchema.parse(state);
 
-    await query(
+    await dbQuery(
       `
       INSERT INTO orchestrator_states
         (family_id, updated_at, zone, tension, slack, cooldown_until, state_json)
@@ -299,8 +434,8 @@ export class OrchestratorPgStore {
     return s;
   }
 
-  async getState(familyId) {
-    const res = await query(
+  async getState(familyId: string): Promise<OrchestratorState | null> {
+    const res = await dbQuery<Record<string, unknown>>(
       `
       SELECT state_json
       FROM orchestrator_states
@@ -313,9 +448,12 @@ export class OrchestratorPgStore {
     return OrchestratorStateSchema.parse(res.rows[0].state_json);
   }
 
-  async listDigestItems(familyId, { status = 'queued', limit = 50, offset = 0 } = {}) {
+  async listDigestItems(
+    familyId: string,
+    { status = 'queued', limit = 50, offset = 0 }: StatusListOptions = {}
+  ): Promise<DigestItem[]> {
     const whereStatus = status === 'all' ? '' : 'AND status = $2';
-    const params = status === 'all' ? [familyId, limit, offset] : [familyId, status, limit, offset];
+    const params: QueryParam[] = status === 'all' ? [familyId, limit, offset] : [familyId, status, limit, offset];
 
     const sql =
       status === 'all'
@@ -334,7 +472,7 @@ export class OrchestratorPgStore {
           LIMIT $3 OFFSET $4
         `;
 
-    const res = await query(sql, params);
+    const res = await dbQuery<DigestItemRow>(sql, params);
     return res.rows.map((r) =>
       DigestItemSchema.parse({
         id: r.id,
@@ -351,8 +489,8 @@ export class OrchestratorPgStore {
     );
   }
 
-  async markDigestDelivered(familyId) {
-    const res = await query(
+  async markDigestDelivered(familyId: string): Promise<DigestItem[]> {
+    const res = await dbQuery<DigestItemRow>(
       `
       UPDATE orchestrator_digest_items
       SET status = 'delivered', delivered_at = now()
@@ -378,8 +516,8 @@ export class OrchestratorPgStore {
     );
   }
 
-  async dismissDigestItem(familyId, itemId) {
-    const res = await query(
+  async dismissDigestItem(familyId: string, itemId: string): Promise<DigestItem | null> {
+    const res = await dbQuery<DigestItemRow>(
       `
       UPDATE orchestrator_digest_items
       SET status = 'dismissed', dismissed_at = now()
@@ -415,8 +553,8 @@ export class OrchestratorPgStore {
     tension = null,
     slack = null,
     trace
-  }) {
-    await query(
+  }: DecisionTraceInput): Promise<void> {
+    await dbQuery(
       `
       INSERT INTO orchestrator_decision_traces
         (family_id, trigger_type, trigger_id, suppressed_reason, chosen_action_id, zone, tension, slack, trace_json)
@@ -437,8 +575,11 @@ export class OrchestratorPgStore {
     );
   }
 
-  async listDecisionTraces(familyId, { limit = 50, offset = 0, triggerType = null } = {}) {
-    const params = [familyId];
+  async listDecisionTraces(
+    familyId: string,
+    { limit = 50, offset = 0, triggerType = null }: TraceListOptions = {}
+  ): Promise<DecisionTrace[]> {
+    const params: QueryParam[] = [familyId];
     let where = `WHERE family_id = $1`;
     if (triggerType) {
       params.push(triggerType);
@@ -447,7 +588,7 @@ export class OrchestratorPgStore {
     params.push(limit);
     params.push(offset);
 
-    const res = await query(
+    const res = await dbQuery<DecisionTraceRow>(
       `
       SELECT id, created_at, trigger_type, trigger_id, suppressed_reason, chosen_action_id, zone, tension, slack, trace_json
       FROM orchestrator_decision_traces
@@ -472,8 +613,8 @@ export class OrchestratorPgStore {
     }));
   }
 
-  async getDecisionTrace(familyId, traceId) {
-    const res = await query(
+  async getDecisionTrace(familyId: string, traceId: number): Promise<DecisionTrace | null> {
+    const res = await dbQuery<DecisionTraceRow>(
       `
       SELECT id, created_at, trigger_type, trigger_id, suppressed_reason, chosen_action_id, zone, tension, slack, trace_json
       FROM orchestrator_decision_traces
@@ -499,10 +640,14 @@ export class OrchestratorPgStore {
     };
   }
 
-  async upsertAction(familyId, action, status = 'queued') {
+  async upsertAction(
+    familyId: string,
+    action: OrchestratorAction,
+    status: ActionStatus = 'queued'
+  ): Promise<ActionQueueItem> {
     const a = OrchestratorActionSchema.parse(action);
 
-    await query(
+    await dbQuery(
       `
       INSERT INTO orchestrator_actions
         (id, family_id, created_at, updated_at, status, type, action_json)
@@ -521,8 +666,11 @@ export class OrchestratorPgStore {
     return { action: a, status, updatedAt: new Date().toISOString() };
   }
 
-  async listActions(familyId, { status = 'queued', limit = 50, offset = 0 } = {}) {
-    const params = [familyId];
+  async listActions(
+    familyId: string,
+    { status = 'queued', limit = 50, offset = 0 }: StatusListOptions = {}
+  ): Promise<ActionQueueItem[]> {
+    const params: QueryParam[] = [familyId];
     let where = `WHERE family_id = $1`;
 
     if (status !== 'all') {
@@ -533,7 +681,7 @@ export class OrchestratorPgStore {
     params.push(limit);
     params.push(offset);
 
-    const res = await query(
+    const res = await dbQuery<ActionRow>(
       `
       SELECT action_json, status, updated_at
       FROM orchestrator_actions
@@ -551,8 +699,12 @@ export class OrchestratorPgStore {
     }));
   }
 
-  async completeAction(familyId, actionId, meta = {}) {
-    const res = await query(
+  async completeAction(
+    familyId: string,
+    actionId: string,
+    meta: Record<string, unknown> = {}
+  ): Promise<ActionQueueItem | null> {
+    const res = await dbQuery<ActionRow>(
       `
       UPDATE orchestrator_actions
       SET status = 'completed', completed_at = now(), updated_at = now()
@@ -563,7 +715,7 @@ export class OrchestratorPgStore {
     );
 
     if (res.rowCount === 0) {
-      const existing = await query(
+      const existing = await dbQuery<ActionRow>(
         `
         SELECT action_json, status, updated_at
         FROM orchestrator_actions
@@ -581,7 +733,7 @@ export class OrchestratorPgStore {
       };
     }
 
-    await query(
+    await dbQuery(
       `
       INSERT INTO orchestrator_action_events (action_id, family_id, event_type, meta)
       VALUES ($1, $2, $3, $4::jsonb)
@@ -596,8 +748,12 @@ export class OrchestratorPgStore {
     };
   }
 
-  async dismissAction(familyId, actionId, meta = {}) {
-    const res = await query(
+  async dismissAction(
+    familyId: string,
+    actionId: string,
+    meta: Record<string, unknown> = {}
+  ): Promise<ActionQueueItem | null> {
+    const res = await dbQuery<ActionRow>(
       `
       UPDATE orchestrator_actions
       SET status = 'dismissed', dismissed_at = now(), updated_at = now()
@@ -609,7 +765,7 @@ export class OrchestratorPgStore {
 
     if (res.rowCount === 0) return null;
 
-    await query(
+    await dbQuery(
       `
       INSERT INTO orchestrator_action_events (action_id, family_id, event_type, meta)
       VALUES ($1, $2, $3, $4::jsonb)
