@@ -147,7 +147,7 @@ export default function Calendar() {
                               scheduleRequest(request, currentDate);
                             }}
                           >
-                            Schedule selected day
+                            Schedule {request.title}
                           </button>
                         </div>
                       </div>
