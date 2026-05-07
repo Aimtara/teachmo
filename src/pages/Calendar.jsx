@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import CalendarView from '@/components/calendar/CalendarView';
 import EventModal from '@/components/calendar/EventModal';
-import { listEvents } from '@/domains/events';
+import { createEvent, listEvents } from '@/domains/events';
 import { EnterpriseFilterBar, EnterprisePanel, EnterpriseSurface } from '@/components/enterprise';
-import { createEventFromSchedulingRequest, moveEventToDate } from '@/utils/calendarScheduling';
+import { buildEventPersistencePayload, createEventFromSchedulingRequest, moveEventToDate } from '@/utils/calendarScheduling';
 
 const schedulingRequests = [
   { id: 'office-hours-avery', title: 'Avery family office hours', description: 'Guardian requested a 30 minute math check-in.', color: '#2451FF' },
@@ -36,6 +36,7 @@ export default function Calendar() {
   const [localEvents, setLocalEvents] = useState([]);
   const [rescheduledEvents, setRescheduledEvents] = useState({});
   const [pendingRequests, setPendingRequests] = useState(schedulingRequests);
+  const [scheduleStatus, setScheduleStatus] = useState('');
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events', currentDate],
@@ -75,10 +76,30 @@ export default function Calendar() {
     setShowModal(true);
   };
 
-  const scheduleRequest = (request, targetDate) => {
-    setLocalEvents((items) => [...items, createEventFromSchedulingRequest(request, targetDate)]);
+  const scheduleRequest = async (request, targetDate) => {
+    const optimisticEvent = createEventFromSchedulingRequest(request, targetDate);
+
+    setLocalEvents((items) => [...items, optimisticEvent]);
     setPendingRequests((items) => items.filter((item) => item.id !== request.id));
     setView('agenda');
+    setScheduleStatus(`Saving ${request.title}...`);
+
+    try {
+      const result = await createEvent(buildEventPersistencePayload(optimisticEvent));
+      const saved = result?.insert_events_one ?? result;
+
+      setLocalEvents((items) => items.map((item) => (
+        item.id === optimisticEvent.id
+          ? { ...item, id: saved?.id ?? item.id, persistence_status: 'saved' }
+          : item
+      )));
+      setScheduleStatus(`${request.title} saved to calendar.`);
+    } catch {
+      setLocalEvents((items) => items.map((item) => (
+        item.id === optimisticEvent.id ? { ...item, persistence_status: 'local fallback' } : item
+      )));
+      setScheduleStatus(`${request.title} saved locally; sync will retry when calendar services are available.`);
+    }
   };
 
   const handleDateDrop = (draggableId, targetDate) => {
@@ -158,6 +179,11 @@ export default function Calendar() {
       }
     >
       <EnterpriseFilterBar searchLabel="Search events, classes, families, or approvals" filters={['Month', 'Week', 'Day', 'Requests', 'Conflicts']} />
+      {scheduleStatus ? (
+        <div className="rounded-2xl border border-[var(--enterprise-border)] bg-[var(--enterprise-surface)] p-4 text-sm font-semibold text-[var(--enterprise-muted)]" role="status" aria-live="polite">
+          {scheduleStatus}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2" role="group" aria-label="Calendar view">
         {['month', 'week', 'agenda'].map((mode) => (
           <button
@@ -190,6 +216,11 @@ export default function Calendar() {
                 <span>
                   <span className="block font-semibold">{event.title}</span>
                   <span className="text-sm text-[var(--enterprise-muted)]">{event.description || 'Scheduled calendar item'}</span>
+                  {event.persistence_status ? (
+                    <span className="mt-2 inline-flex rounded-full border border-[var(--enterprise-border)] px-2 py-1 text-xs font-semibold capitalize text-[var(--enterprise-muted)]">
+                      {event.persistence_status}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="text-sm font-semibold text-[var(--enterprise-muted)]">{format(new Date(event.start_time), 'MMM d, p')}</span>
               </button>

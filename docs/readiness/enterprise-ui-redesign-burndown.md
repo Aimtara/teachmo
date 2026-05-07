@@ -23,7 +23,7 @@ This tracker converts the enterprise UI redesign plan into updateable workstream
 | UI-003 | Role-aware onboarding with autosave and AI guidance | Partial | `src/pages/OnboardingPage.tsx` uses saved intent and enterprise shell | Add complete parent/teacher/partner/admin step sets, localization, analytics, completion-rate measurement. |
 | UI-004 | Discover personalization, filters, saved search, community result blending | Partial | `src/pages/UnifiedDiscover.jsx` shell and filters | Add real personalized ranking, saved searches, infinite scroll, community result integration, load-time proof. |
 | UI-005 | Community feed, pods, leaderboards, post creation, reporting | Partial | `src/pages/UnifiedCommunity.jsx` shell and workflow states | Implement create/edit/delete posts, pods, rich content, leaderboards, block/report propagation. |
-| UI-006 | Calendar scheduling with multiple views and agenda | Partial | `src/pages/Calendar.jsx`, `src/utils/calendarScheduling.ts`, verified walkthrough | Persist drag/drop and schedule changes, add event creation wizard, external calendar sync, reminders. |
+| UI-006 | Calendar scheduling with multiple views and agenda | Partial | `src/pages/Calendar.jsx`, `src/utils/calendarScheduling.ts`, verified walkthrough, optimistic `createEvent` persistence path | Add update/delete persistence, event creation wizard, external calendar sync, reminders, and live retry queue. |
 | UI-007 | Messaging rich chat and approvals | Partial | `src/pages/Messages.jsx` supports threads, optimistic send, approval badge | Add realtime updates, attachments, voice notes, notification preferences, approval persistence proof. |
 | UI-008 | Unified AI hub with chat, quick actions, explainability, privacy controls | Partial | `src/pages/AIAssistant.jsx` enterprise hub wrapper | Merge explainability route behavior, add history view/delete, voice commands, measured <3s response evidence. |
 | UI-009 | Settings tabs, instant themes, privacy controls | Done | `src/pages/Settings.jsx`, high-contrast walkthrough | Connect all controls to persisted user preferences APIs. |
@@ -48,7 +48,7 @@ This tracker converts the enterprise UI redesign plan into updateable workstream
 
 ## Next recommended burn order
 
-1. Persist calendar scheduling and messaging approval state through existing APIs.
+1. Persist messaging approval state and calendar reschedules through existing APIs.
 2. Add partner asset/compliance upload flows with storage and audit events.
 3. Back integration retry/reconciliation and AI governance rollout controls with backend actions and audit logs.
 4. Extend Playwright coverage to the remaining redesigned routes and error states.
