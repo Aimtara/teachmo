@@ -83,7 +83,7 @@ export default function Calendar() {
       if (!request) return;
       setLocalEvents((items) => [...items, createEventFromSchedulingRequest(request, targetDate)]);
       setPendingRequests((items) => items.filter((item) => item.id !== requestId));
-      window.setTimeout(() => setView('agenda'), 1500);
+      setView('agenda');
       return;
     }
 
