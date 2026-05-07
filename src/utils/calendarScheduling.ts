@@ -10,6 +10,13 @@ type CalendarLikeEvent = {
   [key: string]: unknown;
 };
 
+type EventPersistencePayload = {
+  title: string;
+  description?: string | null;
+  starts_at: string;
+  ends_at: string;
+};
+
 export function moveEventToDate(event: CalendarLikeEvent, targetDate: Date): CalendarLikeEvent {
   const start = new Date(String(event.start_time ?? event.starts_at ?? new Date().toISOString()));
   const end = new Date(String(event.end_time ?? event.ends_at ?? start.getTime() + 60 * 60 * 1000));
@@ -53,6 +60,19 @@ export function createEventFromSchedulingRequest(
     ends_at: end.toISOString(),
     all_day: false,
     color: request.color ?? '#2451FF',
+    persistence_status: 'saving',
     source_request_id: request.id
+  };
+}
+
+export function buildEventPersistencePayload(event: CalendarLikeEvent): EventPersistencePayload {
+  const startsAt = String(event.starts_at ?? event.start_time ?? new Date().toISOString());
+  const endsAt = String(event.ends_at ?? event.end_time ?? new Date(new Date(startsAt).getTime() + 30 * 60 * 1000).toISOString());
+
+  return {
+    title: String(event.title ?? 'Scheduled event'),
+    description: typeof event.description === 'string' ? event.description : null,
+    starts_at: startsAt,
+    ends_at: endsAt
   };
 }
