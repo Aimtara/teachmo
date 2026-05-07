@@ -31,10 +31,11 @@ Migration `20260124_ops_consolidate_and_timeline.sql` has a pre-existing duplica
 ### Lint & test commands
 
 - **Lint**: `npx eslint src backend --ext .js,.jsx,.ts,.tsx` (pre-existing lint errors in repo; ESLint 9 flat config)
-- **Vitest (frontend)**: `npx vitest run` (163 suites pass; some pre-existing failures)
-- **Jest (backend)**: `npx jest --config jest.backend.config.cjs` (30 suites, 186 tests all pass)
+- **Vitest (frontend)**: `npx vitest run` (40 suites, 159 tests pass)
+- **Jest (backend)**: `npx jest --config jest.backend.config.cjs` (33 suites, 219 tests all pass)
 - **Backend-specific tests**: `cd backend && npm test`
-- **E2E**: `npx playwright test` (Playwright browsers installed by the update script; 22 pass, 5 skipped; uses a dedicated Vite server on port 5174 with feature flags enabled)
+- **E2E**: `npx playwright test` (Playwright Chromium installed by the update script; 23 pass, 6 skipped; uses a dedicated Vite server on port 5174 with feature flags enabled)
+- **Production checks**: `npm run check:production:fast` runs a bundle of lint-ratchet, audit, secret-hygiene, API-boundary, auth-safety, Hasura-readiness, TS-ratchet, PII-logging, and compliance checks
 
 ### Environment variables
 
