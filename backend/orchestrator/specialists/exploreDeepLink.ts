@@ -1,19 +1,21 @@
 import { buildContractResponse } from '../contract.ts';
+import type { Specialist } from './types.ts';
+import { stringOrNull } from './types.ts';
 
-const exploreDeepLink = {
+const exploreDeepLink: Specialist = {
   requiredContext() {
     return ['schoolId'];
   },
   execute({ input }) {
     return {
-      category: input.entities?.category || 'events',
-      location: input.entities?.location || null
+      category: stringOrNull(input.entities?.category) || 'events',
+      location: stringOrNull(input.entities?.location)
     };
   },
   formatResponse({ result }) {
     const params = new URLSearchParams();
-    if (result?.category) params.set('tab', result.category);
-    if (result?.location) params.set('near', result.location);
+    if (typeof result?.category === 'string') params.set('tab', result.category);
+    if (typeof result?.location === 'string') params.set('near', result.location);
     const deepLink = `/discover?${params.toString()}`;
 
     return {

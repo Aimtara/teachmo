@@ -1,6 +1,7 @@
 import { buildContractResponse } from '../contract.ts';
+import type { Specialist } from './types.ts';
 
-const officeHoursBook = {
+const officeHoursBook: Specialist = {
   requiredContext() {
     return ['childId', 'teacherId', 'schoolId'];
   },

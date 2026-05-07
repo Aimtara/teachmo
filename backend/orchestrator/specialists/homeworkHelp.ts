@@ -1,13 +1,15 @@
 import { buildContractResponse } from '../contract.ts';
+import type { Specialist } from './types.ts';
+import { stringOrNull } from './types.ts';
 
-const homeworkHelp = {
+const homeworkHelp: Specialist = {
   requiredContext() {
     return ['childId', 'schoolId'];
   },
   execute({ ctx, input }) {
     return {
       childId: ctx.childId,
-      topic: input.entities?.topic || null,
+      topic: stringOrNull(input.entities?.topic),
       status: 'ready'
     };
   },

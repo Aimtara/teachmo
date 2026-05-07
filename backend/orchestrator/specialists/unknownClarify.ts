@@ -1,6 +1,7 @@
 import { buildContractResponse } from '../contract.ts';
+import type { Specialist } from './types.ts';
 
-const unknownClarify = {
+const unknownClarify: Specialist = {
   requiredContext() {
     return ['schoolId'];
   },

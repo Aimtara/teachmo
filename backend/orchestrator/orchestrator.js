@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { query } from '../db.js';
 import { getRouteConfig } from './routeMap.ts';
-import { getSpecialist } from './specialists/index.js';
+import { getSpecialist } from './specialists/index.ts';
 
 const SAFETY_KEYWORDS = {
   urgent: ['suicide', 'self-harm', 'kill myself', 'hurt myself', 'abuse', 'assault'],

@@ -1,13 +1,15 @@
 import { buildContractResponse } from '../contract.ts';
+import type { Specialist } from './types.ts';
+import { stringOrNull } from './types.ts';
 
-const hubMessageSend = {
+const hubMessageSend: Specialist = {
   requiredContext() {
     return ['childId', 'schoolId'];
   },
   execute({ ctx, input }) {
     return {
       draft: {
-        to: input.entities?.teacherId || null,
+        to: stringOrNull(input.entities?.teacherId),
         childId: ctx.childId,
         tone: 'warm-brief',
         body: input.text || ''

@@ -1,6 +1,7 @@
 import { buildContractResponse } from '../contract.ts';
+import type { Specialist } from './types.ts';
 
-const weeklyBriefGenerate = {
+const weeklyBriefGenerate: Specialist = {
   requiredContext() {
     return ['childId', 'schoolId'];
   },

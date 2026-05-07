@@ -1,6 +1,7 @@
 import { buildContractResponse } from '../contract.ts';
+import type { Specialist } from './types.ts';
 
-const hubThreadSummarize = {
+const hubThreadSummarize: Specialist = {
   requiredContext() {
     return ['threadId', 'schoolId'];
   },

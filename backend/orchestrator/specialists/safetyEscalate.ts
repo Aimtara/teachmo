@@ -1,12 +1,14 @@
 import { buildContractResponse } from '../contract.ts';
+import type { Specialist } from './types.ts';
+import { stringOrNull } from './types.ts';
 
-const safetyEscalate = {
+const safetyEscalate: Specialist = {
   requiredContext() {
     return ['schoolId'];
   },
   execute({ input }) {
     return {
-      category: input.safety?.level || 'SENSITIVE',
+      category: stringOrNull(input.safety?.level) || 'SENSITIVE',
       status: 'review'
     };
   },
