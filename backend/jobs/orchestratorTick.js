@@ -6,8 +6,8 @@
 //
 // In production, wire this file to cron / cloud scheduler.
 
-import { orchestratorEngine } from '../orchestrator/engine.js';
-import { orchestratorStore } from '../orchestrator/store.js';
+import { orchestratorEngine } from '../orchestrator/engine.ts';
+import { orchestratorStore } from '../orchestrator/store.ts';
 
 function getFamilyIds() {
   const env = process.env.ORCH_FAMILY_IDS;

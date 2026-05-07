@@ -6,10 +6,10 @@ import { authorizeFamilyParam, authorizeFamilyBody } from '../middleware/authori
 import { requireTenant } from '../middleware/tenant.js';
 import { query } from '../db.js';
 import { runOrchestrator } from '../orchestrator/orchestrator.js';
-import { orchestratorEngine } from '../orchestrator/engine.js';
+import { orchestratorEngine } from '../orchestrator/engine.ts';
 import { getFamilyHealth, getOrchestratorHealthSnapshot } from '../orchestrator/health.js';
-import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.js';
-import { orchestratorPgStore } from '../orchestrator/pgStore.js';
+import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.ts';
+import { orchestratorPgStore } from '../orchestrator/pgStore.ts';
 import { listAnomalies } from '../security/anomaly.js';
 import redactPII from '../middleware/redactPII.js';
 import {

@@ -1,6 +1,6 @@
 /* eslint-env node */
-import { makeId, toIso, clamp01 } from './utils.js';
-import type { OrchestratorAction, OrchestratorSignal, OrchestratorState, SignalFeatures } from './types.js';
+import { makeId, toIso, clamp01 } from './utils.ts';
+import type { OrchestratorAction, OrchestratorSignal, OrchestratorState, SignalFeatures } from './types.ts';
 
 interface GenerateCandidatesParams {
   state: OrchestratorState;

@@ -14,7 +14,7 @@ interface RosterRunResult {
   stats?: Record<string, unknown>;
 }
 
-type RosterSyncFn = (params: {
+type RosterSyncFn = (_params: {
   sourceId: string;
   records: readonly unknown[];
   options: Record<string, unknown>;

@@ -1,6 +1,6 @@
 /* eslint-env node */
-import { makeId, toIso, clamp01 } from './utils.js';
-import type { OrchestratorSignal, OrchestratorState, WeeklyBrief } from './types.js';
+import { makeId, toIso, clamp01 } from './utils.ts';
+import type { OrchestratorSignal, OrchestratorState, WeeklyBrief } from './types.ts';
 
 interface WeeklyRegulatorParams {
   state: OrchestratorState;

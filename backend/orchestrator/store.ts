@@ -1,7 +1,7 @@
 /* eslint-env node */
-import { createInitialState } from './state.js';
-import { createNotificationBucket } from './policy.js';
-import { parseTimestamp, TokenBucket } from './utils.js';
+import { createInitialState } from './state.ts';
+import { createNotificationBucket } from './policy.ts';
+import { parseTimestamp, TokenBucket } from './utils.ts';
 import type {
   ActionQueueItem,
   DigestItem,
@@ -10,7 +10,7 @@ import type {
   OrchestratorSignal,
   OrchestratorState,
   WeeklyBrief,
-} from './types.js';
+} from './types.ts';
 
 type InMemoryActionStatus = Extract<ActionQueueItem['status'], 'queued' | 'completed'>;
 type InMemoryActionQueueItem = Omit<ActionQueueItem, 'status' | 'updatedAt'> & {

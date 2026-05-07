@@ -39,7 +39,7 @@ export const AUDIT_EVENT_CATEGORIES = Object.freeze([
 
 type AuditActor = Record<string, unknown>;
 type AuditTarget = Record<string, unknown>;
-type QueryFn = (sql: string, params: readonly unknown[]) => Promise<unknown>;
+type QueryFn = (_sql: string, _params: readonly unknown[]) => Promise<unknown>;
 
 interface AuditContext extends Record<string, unknown> {
   tenantId?: string | null;

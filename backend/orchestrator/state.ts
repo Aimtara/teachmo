@@ -1,6 +1,6 @@
 /* eslint-env node */
-import { clamp01, ewma, toIso } from './utils.js';
-import type { OrchestratorSignal, OrchestratorState, OrchestratorZone, SignalFeatures } from './types.js';
+import { clamp01, ewma, toIso } from './utils.ts';
+import type { OrchestratorSignal, OrchestratorState, OrchestratorZone, SignalFeatures } from './types.ts';
 
 interface Thresholds {
   tensionLow: number;
@@ -20,7 +20,7 @@ interface UpdateZoneOptions {
   now?: Date;
 }
 
-interface ReduceStateOptions extends UpdateZoneOptions {}
+type ReduceStateOptions = UpdateZoneOptions;
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};

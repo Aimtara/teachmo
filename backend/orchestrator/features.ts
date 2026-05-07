@@ -1,6 +1,6 @@
 /* eslint-env node */
-import { clamp01 } from './utils.js';
-import type { OrchestratorSignal, SignalFeatures } from './types.js';
+import { clamp01 } from './utils.ts';
+import type { OrchestratorSignal, SignalFeatures } from './types.ts';
 
 interface ExtractFeatureOptions {
   now?: Date;

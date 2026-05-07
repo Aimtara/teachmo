@@ -1,9 +1,9 @@
 /* eslint-env node */
-import { generateCandidates } from './candidates.js';
+import { generateCandidates } from './candidates.ts';
 import { optimizePlan } from './scoring_plan.js';
-import { extractFeatures } from './features.js';
-import { makeId, toIso } from './utils.js';
-import type { DailyPlan, OrchestratorAction, OrchestratorSignal, OrchestratorState } from './types.js';
+import { extractFeatures } from './features.ts';
+import { makeId, toIso } from './utils.ts';
+import type { DailyPlan, OrchestratorAction, OrchestratorSignal, OrchestratorState } from './types.ts';
 
 interface DailyPlannerParams {
   state: OrchestratorState;

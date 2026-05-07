@@ -17,7 +17,7 @@ interface RedactionOptions {
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
-type LoggerLike = Record<LogLevel, (...args: unknown[]) => void> & Partial<Record<string, (...args: unknown[]) => void>>;
+type LoggerLike = Record<LogLevel, (..._args: unknown[]) => void> & Partial<Record<string, (..._args: unknown[]) => void>>;
 
 interface SafeLogOptions {
   level?: LogLevel;
@@ -25,7 +25,7 @@ interface SafeLogOptions {
 }
 
 interface SafeAnalyticsOptions {
-  send?: (event: { eventName: string; payload: RedactedValue; piiMinimized: true }) => void;
+  send?: (_event: { eventName: string; payload: RedactedValue; piiMinimized: true }) => void;
 }
 
 function redactString(value: unknown): string {

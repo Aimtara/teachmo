@@ -8,7 +8,7 @@ import { query } from '../db.js';
 import { getFamilyHealth } from '../orchestrator/health.js';
 import { listAnomalies } from '../security/anomaly.js';
 import { getActiveMitigation } from '../orchestrator/mitigation.js';
-import { orchestratorPgStore } from '../orchestrator/pgStore.js';
+import { orchestratorPgStore } from '../orchestrator/pgStore.ts';
 import { auditEventBare } from '../security/audit.js';
 import { createLogger } from '../utils/logger.js';
 

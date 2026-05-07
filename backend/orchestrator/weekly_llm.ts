@@ -1,9 +1,9 @@
 /* eslint-env node */
-import { WeeklyBriefSchema } from './types.js';
-import { extractFeatures } from './features.js';
-import { makeId, toIso, clamp01 } from './utils.js';
+import { WeeklyBriefSchema } from './types.ts';
+import { extractFeatures } from './features.ts';
+import { makeId, toIso, clamp01 } from './utils.ts';
 import { generateJsonWithRetries } from '../ai/llmJson.js';
-import type { OrchestratorSignal, OrchestratorState, WeeklyBrief } from './types.js';
+import type { OrchestratorSignal, OrchestratorState, WeeklyBrief } from './types.ts';
 
 interface WeeklyBriefLlmParams {
   state: OrchestratorState;

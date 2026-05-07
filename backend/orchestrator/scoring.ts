@@ -1,6 +1,6 @@
 /* eslint-env node */
-import { clamp01 } from './utils.js';
-import type { ActionType, OrchestratorAction, OrchestratorState } from './types.js';
+import { clamp01 } from './utils.ts';
+import type { ActionType, OrchestratorAction, OrchestratorState } from './types.ts';
 
 export interface ScoreWeights {
   kid: number;

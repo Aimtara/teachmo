@@ -5,7 +5,7 @@ import {
   OrchestratorStateSchema,
   DigestItemSchema,
   DailyPlanSchema
-} from './types.js';
+} from './types.ts';
 import type {
   DailyPlan,
   DigestItem,
@@ -14,18 +14,18 @@ import type {
   OrchestratorState,
   SignalFeatures,
   WeeklyBrief,
-} from './types.js';
-import { parseTimestamp, makeId, toIso } from './utils.js';
-import { extractFeatures } from './features.js';
-import { createInitialState, reduceState } from './state.js';
-import { generateCandidates } from './candidates.js';
-import { shouldSuppressNotifyNow, createNotificationBucket } from './policy.js';
-import { optimize } from './scoring.js';
-import { OrchestratorStore, orchestratorStore } from './store.js';
-import { runDailyPlanner } from './planner.js';
-import { runWeeklyRegulator } from './weekly.js';
-import { generateWeeklyBriefWithLLM } from './weekly_llm.js';
-import { orchestratorPgStore } from './pgStore.js';
+} from './types.ts';
+import { parseTimestamp, makeId, toIso } from './utils.ts';
+import { extractFeatures } from './features.ts';
+import { createInitialState, reduceState } from './state.ts';
+import { generateCandidates } from './candidates.ts';
+import { shouldSuppressNotifyNow, createNotificationBucket } from './policy.ts';
+import { optimize } from './scoring.ts';
+import { OrchestratorStore, orchestratorStore } from './store.ts';
+import { runDailyPlanner } from './planner.ts';
+import { runWeeklyRegulator } from './weekly.ts';
+import { generateWeeklyBriefWithLLM } from './weekly_llm.ts';
+import { orchestratorPgStore } from './pgStore.ts';
 import { auditEventBare } from '../security/audit.js';
 import { maybeFlagAnomalyFromAudit } from '../security/anomaly.js';
 
@@ -42,10 +42,6 @@ interface DigestListOptions extends ListOptions {
   status?: 'queued' | 'delivered' | 'dismissed' | 'all';
 }
 
-interface ActionListOptions extends ListOptions {
-  status?: 'queued' | 'completed' | 'dismissed' | 'all';
-}
-
 interface WeeklySetpoints {
   dailyAttentionBudgetMin?: number;
   maxNotificationsPerHour?: number;
@@ -53,8 +49,8 @@ interface WeeklySetpoints {
 
 type InMemoryActionQueueItem = ReturnType<OrchestratorStore['listActions']>[number];
 
-type AuditEventBareFn = (event: Record<string, unknown>) => Promise<unknown>;
-type MaybeFlagAnomalyFn = (event: Record<string, unknown>) => Promise<unknown>;
+type AuditEventBareFn = (_event: Record<string, unknown>) => Promise<unknown>;
+type MaybeFlagAnomalyFn = (_event: Record<string, unknown>) => Promise<unknown>;
 
 const auditEventBareTyped = auditEventBare as unknown as AuditEventBareFn;
 const maybeFlagAnomalyFromAuditTyped = maybeFlagAnomalyFromAudit as unknown as MaybeFlagAnomalyFn;

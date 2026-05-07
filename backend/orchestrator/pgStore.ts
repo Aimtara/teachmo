@@ -7,7 +7,7 @@ import {
   OrchestratorStateSchema,
   OrchestratorSignalSchema,
   OrchestratorActionSchema
-} from './types.js';
+} from './types.ts';
 import type {
   ActionQueueItem,
   ActionStatus,
@@ -18,8 +18,8 @@ import type {
   OrchestratorState,
   OrchestratorZone,
   WeeklyBrief,
-} from './types.js';
-import { makeId } from './utils.js';
+} from './types.ts';
+import { makeId } from './utils.ts';
 
 interface DbResult<Row extends Record<string, unknown> = Record<string, unknown>> {
   rowCount: number | null;

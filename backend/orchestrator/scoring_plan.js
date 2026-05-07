@@ -1,5 +1,5 @@
 /* eslint-env node */
-import { actionUtility } from './scoring.js';
+import { actionUtility } from './scoring.ts';
 
 /**
  * Greedy selection of up to K actions under attention budget.

@@ -1,6 +1,6 @@
 /* eslint-env node */
-import { TokenBucket } from './utils.js';
-import type { OrchestratorSignal, OrchestratorState, SignalFeatures } from './types.js';
+import { TokenBucket } from './utils.ts';
+import type { OrchestratorSignal, OrchestratorState, SignalFeatures } from './types.ts';
 
 interface SuppressionResult {
   suppress: boolean;

@@ -1,6 +1,6 @@
 /* eslint-env node */
 import { query } from '../db.js';
-import { orchestratorPgStore } from './pgStore.js';
+import { orchestratorPgStore } from './pgStore.ts';
 import { auditEventBare } from '../security/audit.js';
 
 function envBool(name, def = 'false') {

@@ -1,11 +1,11 @@
 // backend/orchestrator/agents/teacherBoundaryAgent.ts
 
 type TeacherBoundaryDb = {
-  getTeacherSettings: (teacherId: string) => Promise<{ auto_scheduling_enabled?: boolean }>;
-  routeMessageToTeacherInbox?: (messageBody: string, teacherId: string, parentId: string) => Promise<unknown>;
-  generateUniqueBookingLink?: (teacherId: string, parentId: string) => Promise<string>;
-  sendAutomatedReply?: (parentId: string, payload: Record<string, unknown>) => Promise<unknown>;
-  logTeacherBurdenSaved?: (teacherId: string, reason: string) => Promise<unknown>;
+  getTeacherSettings: (_teacherId: string) => Promise<{ auto_scheduling_enabled?: boolean }>;
+  routeMessageToTeacherInbox?: (_messageBody: string, _teacherId: string, _parentId: string) => Promise<unknown>;
+  generateUniqueBookingLink?: (_teacherId: string, _parentId: string) => Promise<string>;
+  sendAutomatedReply?: (_parentId: string, _payload: Record<string, unknown>) => Promise<unknown>;
+  logTeacherBurdenSaved?: (_teacherId: string, _reason: string) => Promise<unknown>;
 };
 
 async function routeMessageToTeacherInbox(messageBody: string, teacherId: string, parentId: string, db: TeacherBoundaryDb) {

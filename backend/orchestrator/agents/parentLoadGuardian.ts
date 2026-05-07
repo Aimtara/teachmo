@@ -7,7 +7,7 @@ interface ParentLoadContext {
 }
 
 interface QueryableParentLoadDb {
-  query: (sql: string, params: readonly unknown[]) => Promise<unknown>;
+  query: (_sql: string, _params: readonly unknown[]) => Promise<unknown>;
 }
 
 function firstRow(value: unknown): Record<string, unknown> | null {

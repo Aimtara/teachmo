@@ -26,7 +26,7 @@ async function checkDuplicateDedupeKey(): Promise<boolean> {
   return false;
 }
 
-export async function parseEmailToInsights(rawEmailBody: string, sourceId: string): Promise<ParsedInsight[]> {
+export async function parseEmailToInsights(rawEmailBody: string, _sourceId: string): Promise<ParsedInsight[]> {
   // 1. Deduplication Reflex (run before expensive LLM call)
   const isDuplicate = await checkDuplicateDedupeKey();
   if (isDuplicate) return [];
