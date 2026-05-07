@@ -12,12 +12,7 @@ import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.ts';
 import { orchestratorPgStore } from '../orchestrator/pgStore.ts';
 import { listAnomalies } from '../security/anomaly.js';
 import redactPII from '../middleware/redactPII.js';
-import {
-  orchestratorPlans,
-  orchestratorApprovals,
-  orchestratorRuns,
-  nextId
-} from '../models.js';
+import * as models from '../models.js';
 import { planActionCatalog, resolveRollbackAction } from '../orchestrator/catalog.ts';
 import { listRunbooks, startRunbook, continueRunbook, listRunbookRuns } from '../orchestrator/runbooks.ts';
 import {
@@ -32,8 +27,49 @@ import { incrementOrchestratorCounter } from '../metrics.js';
 
 const router = Router();
 
+interface OrchestratorPlan extends Record<string, unknown> {
+  id: string;
+  status: string;
+  steps: Array<Record<string, unknown>>;
+}
+
+interface OrchestratorApproval extends Record<string, unknown> {
+  id: number;
+  planId: string;
+  runbookRunId: string | null;
+  status: string;
+}
+
+interface OrchestratorRun extends Record<string, unknown> {
+  id: string;
+  steps: Array<Record<string, unknown>>;
+}
+
+const { orchestratorPlans, orchestratorApprovals, orchestratorRuns, nextId } = models as unknown as {
+  orchestratorPlans: OrchestratorPlan[];
+  orchestratorApprovals: OrchestratorApproval[];
+  orchestratorRuns: OrchestratorRun[];
+  nextId: (name: string) => number;
+};
+
+function queryString(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function queryInt(value: unknown, fallback: string): number {
+  return parseInt(queryString(value, fallback), 10);
+}
+
+function digestStatus(value: unknown): 'queued' | 'delivered' | 'dismissed' | 'all' {
+  return value === 'delivered' || value === 'dismissed' || value === 'all' ? value : 'queued';
+}
+
+function actionStatus(value: unknown): 'queued' | 'completed' | 'dismissed' | 'all' {
+  return value === 'completed' || value === 'dismissed' || value === 'all' ? value : 'queued';
+}
+
 // Apply PII redaction middleware to all routes managed by this router.
-// This ensures that any sensitive information contained in request bodies
+// This ensures that sensitive information contained in request bodies
 // or error objects is redacted before reaching the logs.
 router.use(redactPII());
 
@@ -101,7 +137,7 @@ router.get('/admin/audit', requireAuthOrService, async (req, res) => {
   try {
     if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
 
-    const limit = parseInt(req.query.limit ?? '100', 10);
+    const limit = queryInt(req.query.limit, '100');
     const eventType = req.query.eventType ? String(req.query.eventType) : null;
 
     const params = [];
@@ -207,7 +243,7 @@ router.get('/admin/alerts/deliveries', requireAuthOrService, async (req, res) =>
     if (!req.auth?.isService) return res.status(403).json({ error: 'service_key_required' });
 
     const familyId = req.query.familyId ? String(req.query.familyId) : null;
-    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit ?? '100', 10)));
+    const limit = Math.min(200, Math.max(1, queryInt(req.query.limit, '100')));
 
     const params = [];
     let where = 'WHERE 1=1';
@@ -265,7 +301,7 @@ router.get('/admin/mitigations', requireAuthOrService, async (req, res) => {
   }
 });
 
-const coerceSteps = (steps) => {
+const coerceSteps = (steps: unknown): Array<Record<string, unknown>> => {
   if (Array.isArray(steps) && steps.length > 0) return steps;
   return planActionCatalog.map((action) => ({
     id: crypto.randomUUID(),
@@ -378,7 +414,7 @@ router.post('/runs/:id/rollback', requireAuthOrService, async (req, res) => {
 
   const rollbackActions = run.steps
     .map((step) => {
-      const rollbackType = resolveRollbackAction(step.type);
+      const rollbackType = resolveRollbackAction(String(step.type || ''));
       if (!rollbackType) return null;
       return {
         id: crypto.randomUUID(),
@@ -457,9 +493,9 @@ router.use('/:familyId', requireAuthOrService, authorizeFamilyParam('familyId'))
 
 router.get('/:familyId/health', async (req, res) => {
   try {
-    const days = parseInt(req.query.days ?? '14', 10);
+    const days = queryInt(req.query.days, '14');
     const hourly = req.query.hourly === '1' || req.query.hourly === 'true';
-    const hourlyHours = parseInt(req.query.hourlyHours ?? '24', 10);
+    const hourlyHours = queryInt(req.query.hourlyHours, '24');
 
     const health = await getFamilyHealth(req.params.familyId, { days, hourly, hourlyHours });
     res.json(health);
@@ -471,8 +507,8 @@ router.get('/:familyId/health', async (req, res) => {
 
 router.get('/:familyId/anomalies', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit ?? '50', 10);
-    const offset = parseInt(req.query.offset ?? '0', 10);
+    const limit = queryInt(req.query.limit, '50');
+    const offset = queryInt(req.query.offset, '0');
     const anomalies = await listAnomalies(req.params.familyId, { limit, offset });
     res.json({ anomalies });
   } catch (err) {
@@ -493,8 +529,8 @@ router.post('/:familyId/run-daily', async (req, res) => {
 
 router.get('/:familyId/traces', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit ?? '50', 10);
-    const offset = parseInt(req.query.offset ?? '0', 10);
+    const limit = queryInt(req.query.limit, '50');
+    const offset = queryInt(req.query.offset, '0');
     const triggerType = req.query.triggerType ? String(req.query.triggerType) : null;
 
     const traces = await orchestratorPgStore.listDecisionTraces(req.params.familyId, {
@@ -532,9 +568,9 @@ router.post('/:familyId/run-weekly', async (req, res) => {
 
 router.get('/:familyId/digest', async (req, res) => {
   try {
-    const status = req.query.status ?? 'queued';
-    const limit = parseInt(req.query.limit ?? '50', 10);
-    const offset = parseInt(req.query.offset ?? '0', 10);
+    const status = digestStatus(req.query.status);
+    const limit = queryInt(req.query.limit, '50');
+    const offset = queryInt(req.query.offset, '0');
     const digest = await orchestratorEngine.getDigest(req.params.familyId, { status, limit, offset });
     res.json({ digest });
   } catch (err) {
@@ -565,8 +601,8 @@ router.post('/:familyId/digest/:itemId/dismiss', async (req, res) => {
 
 router.get('/:familyId/plans/daily', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit ?? '10', 10);
-    const offset = parseInt(req.query.offset ?? '0', 10);
+    const limit = queryInt(req.query.limit, '10');
+    const offset = queryInt(req.query.offset, '0');
     const plans = await orchestratorEngine.getDailyPlans(req.params.familyId, { limit, offset });
     res.json({ plans });
   } catch (err) {
@@ -588,8 +624,8 @@ router.get('/:familyId/plans/daily/latest', async (req, res) => {
 
 router.get('/:familyId/briefs/weekly', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit ?? '10', 10);
-    const offset = parseInt(req.query.offset ?? '0', 10);
+    const limit = queryInt(req.query.limit, '10');
+    const offset = queryInt(req.query.offset, '0');
     const briefs = await orchestratorEngine.getWeeklyBriefs(req.params.familyId, { limit, offset });
     res.json({ briefs });
   } catch (err) {
@@ -611,9 +647,9 @@ router.get('/:familyId/briefs/weekly/latest', async (req, res) => {
 
 router.get('/:familyId/actions', async (req, res) => {
   try {
-    const status = req.query.status ?? 'queued';
-    const limit = parseInt(req.query.limit ?? '50', 10);
-    const offset = parseInt(req.query.offset ?? '0', 10);
+    const status = actionStatus(req.query.status);
+    const limit = queryInt(req.query.limit, '50');
+    const offset = queryInt(req.query.offset, '0');
 
     const actions = await orchestratorPgStore.listActions(req.params.familyId, { status, limit, offset });
     res.json({ actions });
@@ -697,9 +733,9 @@ router.patch('/:familyId/state', async (req, res) => {
 // GET /api/orchestrator/:familyId/signals
 router.get('/:familyId/signals', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit ?? '200', 10);
-    const offset = parseInt(req.query.offset ?? '0', 10);
-    const sinceDays = req.query.sinceDays ? parseInt(req.query.sinceDays, 10) : null;
+    const limit = queryInt(req.query.limit, '200');
+    const offset = queryInt(req.query.offset, '0');
+    const sinceDays = req.query.sinceDays ? queryInt(req.query.sinceDays, '0') : null;
 
     const sinceIso =
       sinceDays && Number.isFinite(sinceDays)

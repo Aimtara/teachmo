@@ -36,7 +36,7 @@ import observabilityRouter from './routes/observability.js';
 import { captureApiMetrics } from './middleware/metrics.js';
 import integrationsRouter from './routes/integrations.js';
 import ltiRouter from './routes/lti.js';
-import orchestratorRouter from './routes/orchestrator.js';
+import orchestratorRouter from './routes/orchestrator.ts';
 import opsRouter from './routes/ops.js';
 import { metricsMiddleware, getMetricsSnapshot } from './metrics.js';
 import { executionBoardRouter } from './routes/executionBoard.js';
