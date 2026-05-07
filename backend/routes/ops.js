@@ -5,9 +5,9 @@
 
 import express from 'express';
 import { query } from '../db.js';
-import { getFamilyHealth } from '../orchestrator/health.js';
+import { getFamilyHealth } from '../orchestrator/health.ts';
 import { listAnomalies } from '../security/anomaly.js';
-import { getActiveMitigation } from '../orchestrator/mitigation.js';
+import { getActiveMitigation } from '../orchestrator/mitigation.ts';
 import { orchestratorPgStore } from '../orchestrator/pgStore.ts';
 import { auditEventBare } from '../security/audit.js';
 import { createLogger } from '../utils/logger.js';

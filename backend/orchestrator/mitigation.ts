@@ -2,17 +2,49 @@
 import { query } from '../db.js';
 import { orchestratorPgStore } from './pgStore.ts';
 import { auditEventBare } from '../security/audit.js';
+import type { OrchestratorState } from './types.ts';
 
-function envBool(name, def = 'false') {
+interface MitigationRow {
+  active: boolean;
+  activated_at?: string | Date | null;
+  expires_at?: string | Date | null;
+  previous_state_json?: Record<string, unknown> | null;
+  applied_patch_json?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | null;
+  count?: number | null;
+  family_id?: string;
+  mitigation_type?: string;
+}
+
+interface ActiveMitigation {
+  active: boolean;
+  activatedAt: string | null;
+  expiresAt: string | null;
+  previous: Record<string, unknown> | null;
+  patch: Record<string, unknown> | null;
+  meta: Record<string, unknown>;
+  count: number;
+}
+
+interface DuplicateStormParams {
+  familyId: string;
+  duplicateCount: number;
+  windowMinutes?: number;
+}
+
+type AuditEventBareFn = (_event: Record<string, unknown>) => Promise<unknown>;
+const auditEventBareTyped = auditEventBare as unknown as AuditEventBareFn;
+
+function envBool(name: string, def = 'false'): boolean {
   return String(process.env[name] ?? def).toLowerCase() === 'true';
 }
 
-function envInt(name, def) {
+function envInt(name: string, def: number): number {
   const n = parseInt(process.env[name] ?? String(def), 10);
   return Number.isFinite(n) ? n : def;
 }
 
-export async function getActiveMitigation(familyId, mitigationType) {
+export async function getActiveMitigation(familyId: string, mitigationType: string): Promise<ActiveMitigation | null> {
   const res = await query(
     `
     SELECT active, activated_at, expires_at, previous_state_json, applied_patch_json, meta, count
@@ -23,7 +55,7 @@ export async function getActiveMitigation(familyId, mitigationType) {
     [familyId, mitigationType]
   );
   if (res.rowCount === 0) return null;
-  const r = res.rows[0];
+  const r = res.rows[0] as MitigationRow;
   return {
     active: r.active,
     activatedAt: r.activated_at ? new Date(r.activated_at).toISOString() : null,
@@ -35,7 +67,11 @@ export async function getActiveMitigation(familyId, mitigationType) {
   };
 }
 
-export async function applyDuplicateStormMitigation({ familyId, duplicateCount, windowMinutes = 10 }) {
+export async function applyDuplicateStormMitigation({
+  familyId,
+  duplicateCount,
+  windowMinutes = 10
+}: DuplicateStormParams) {
   if (!envBool('ORCH_AUTOMITIGATE_DUPLICATES', 'true')) {
     return { applied: false, reason: 'disabled' };
   }
@@ -88,7 +124,7 @@ export async function applyDuplicateStormMitigation({ familyId, duplicateCount, 
     }
   };
 
-  const next = {
+  const next: OrchestratorState = {
     ...state,
     ...patch,
     updatedAt: now.toISOString()
@@ -122,7 +158,7 @@ export async function applyDuplicateStormMitigation({ familyId, duplicateCount, 
     ]
   );
 
-  await auditEventBare({
+  await auditEventBareTyped({
     eventType: 'automitigation_applied',
     severity: 'warn',
     familyId,
@@ -144,19 +180,23 @@ export async function clearExpiredMitigations() {
 
   let cleared = 0;
 
-  for (const r of res.rows) {
+  for (const r of res.rows as MitigationRow[]) {
     const familyId = r.family_id;
     const mitigationType = r.mitigation_type;
     const previous = r.previous_state_json;
+    if (!familyId || !mitigationType) continue;
 
     const state = await orchestratorPgStore.getState(familyId);
     if (!state) continue;
 
     // Revert only the fields we touched; do not stomp other state.
-    const next = {
+    const next: OrchestratorState = {
       ...state,
-      cooldownUntil: previous?.cooldownUntil ?? null,
-      maxNotificationsPerHour: previous?.maxNotificationsPerHour ?? state.maxNotificationsPerHour,
+      cooldownUntil: typeof previous?.cooldownUntil === 'string' ? previous.cooldownUntil : null,
+      maxNotificationsPerHour:
+        typeof previous?.maxNotificationsPerHour === 'number'
+          ? previous.maxNotificationsPerHour
+          : state.maxNotificationsPerHour,
       mitigation: null,
       updatedAt: new Date().toISOString()
     };
@@ -172,7 +212,7 @@ export async function clearExpiredMitigations() {
       [familyId, mitigationType]
     );
 
-    await auditEventBare({
+    await auditEventBareTyped({
       eventType: 'automitigation_cleared',
       severity: 'info',
       familyId,

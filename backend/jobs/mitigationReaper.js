@@ -1,5 +1,5 @@
 /* eslint-env node */
-import { clearExpiredMitigations } from '../orchestrator/mitigation.js';
+import { clearExpiredMitigations } from '../orchestrator/mitigation.ts';
 
 async function main() {
   const out = await clearExpiredMitigations();

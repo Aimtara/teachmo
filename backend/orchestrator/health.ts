@@ -1,7 +1,43 @@
 /* eslint-env node */
 import { query } from '../db.js';
 
-async function getHourlySeries(familyId, hours = 24) {
+interface HourlySnapshotRow {
+  hour: string | Date;
+  signals: number;
+  ingests: number;
+  suppressed: number;
+  duplicates: number;
+  actions_created: number;
+  actions_completed: number;
+}
+
+interface DailyCountRow {
+  day: string | Date;
+  signals?: number;
+  actions_created?: number;
+  actions_completed?: number;
+  ingests?: number;
+  suppressed?: number;
+  duplicates?: number;
+  forbidden_family?: number;
+  auth_invalid_token?: number;
+  auth_missing_token?: number;
+  updated_at?: string | Date;
+}
+
+interface TotalsAccumulator {
+  ingests: number;
+  suppressed: number;
+  duplicates: number;
+}
+
+interface FamilyHealthOptions {
+  days?: number | string;
+  hourly?: boolean | string;
+  hourlyHours?: number | string;
+}
+
+async function getHourlySeries(familyId: string, hours = 24) {
   const h = Math.max(1, Math.min(72, Number(hours) || 24));
   const res = await query(
     `
@@ -13,7 +49,7 @@ async function getHourlySeries(familyId, hours = 24) {
     [familyId, String(h)]
   );
 
-  return res.rows.map((r) => ({
+  return (res.rows as HourlySnapshotRow[]).map((r) => ({
     hour: new Date(r.hour).toISOString(),
     signals: r.signals,
     ingests: r.ingests,
@@ -25,7 +61,7 @@ async function getHourlySeries(familyId, hours = 24) {
 }
 
 // fallback: live computation if snapshots missing
-async function getFamilyHealthLive(familyId, daysInt, includeHourly = false) {
+async function getFamilyHealthLive(familyId: string, daysInt: number, includeHourly = false) {
   const since = `now() - (${daysInt} || ' days')::interval`;
 
   const signalsRes = await query(
@@ -72,8 +108,8 @@ async function getFamilyHealthLive(familyId, daysInt, includeHourly = false) {
     [familyId]
   );
 
-  const totals = ingestRes.rows.reduce(
-    (acc, r) => {
+  const totals = (ingestRes.rows as DailyCountRow[]).reduce(
+    (acc: TotalsAccumulator, r) => {
       acc.ingests += Number(r.ingests || 0);
       acc.suppressed += Number(r.suppressed || 0);
       acc.duplicates += Number(r.duplicates || 0);
@@ -95,18 +131,18 @@ async function getFamilyHealthLive(familyId, daysInt, includeHourly = false) {
       duplicateRate: totals.ingests ? totals.duplicates / totals.ingests : 0
     },
     series: {
-      signalsPerDay: signalsRes.rows.map((r) => ({ day: new Date(r.day).toISOString(), count: r.signals })),
-      ingestsPerDay: ingestRes.rows.map((r) => ({
+      signalsPerDay: (signalsRes.rows as DailyCountRow[]).map((r) => ({ day: new Date(r.day).toISOString(), count: r.signals })),
+      ingestsPerDay: (ingestRes.rows as DailyCountRow[]).map((r) => ({
         day: new Date(r.day).toISOString(),
         ingests: r.ingests,
         suppressed: r.suppressed,
         duplicates: r.duplicates
       })),
-      actionsCreatedPerDay: actionsCreatedRes.rows.map((r) => ({
+      actionsCreatedPerDay: (actionsCreatedRes.rows as DailyCountRow[]).map((r) => ({
         day: new Date(r.day).toISOString(),
         count: r.actions_created
       })),
-      actionsCompletedPerDay: actionsCompletedRes.rows.map((r) => ({
+      actionsCompletedPerDay: (actionsCompletedRes.rows as DailyCountRow[]).map((r) => ({
         day: new Date(r.day).toISOString(),
         count: r.actions_completed
       }))
@@ -115,7 +151,10 @@ async function getFamilyHealthLive(familyId, daysInt, includeHourly = false) {
   };
 }
 
-export async function getFamilyHealth(familyId, { days = 14, hourly = false, hourlyHours = 24 } = {}) {
+export async function getFamilyHealth(
+  familyId: string,
+  { days = 14, hourly = false, hourlyHours = 24 }: FamilyHealthOptions = {}
+) {
   const daysInt = Math.max(1, Math.min(90, Number(days) || 14));
   const includeHourly = String(hourly ?? 'false').toLowerCase() === 'true';
   const hourlyWindow = Number(hourlyHours ?? 24);
@@ -137,13 +176,13 @@ export async function getFamilyHealth(familyId, { days = 14, hourly = false, hou
     return getFamilyHealthLive(familyId, daysInt, includeHourly);
   }
 
-  const rows = snapRes.rows;
+  const rows = snapRes.rows as DailyCountRow[];
 
   const totals = rows.reduce(
-    (acc, r) => {
-      acc.ingests += r.ingests;
-      acc.suppressed += r.suppressed;
-      acc.duplicates += r.duplicates;
+    (acc: TotalsAccumulator, r) => {
+      acc.ingests += Number(r.ingests || 0);
+      acc.suppressed += Number(r.suppressed || 0);
+      acc.duplicates += Number(r.duplicates || 0);
       return acc;
     },
     { ingests: 0, suppressed: 0, duplicates: 0 }
@@ -159,7 +198,7 @@ export async function getFamilyHealth(familyId, { days = 14, hourly = false, hou
     windowDays: daysInt,
     generatedAt: new Date().toISOString(),
     source: 'snapshot',
-    snapshotUpdatedAt: new Date(rows[rows.length - 1].updated_at).toISOString(),
+    snapshotUpdatedAt: new Date(rows[rows.length - 1]?.updated_at ?? new Date()).toISOString(),
     totals: {
       ingests: totals.ingests,
       suppressed: totals.suppressed,

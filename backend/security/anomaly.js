@@ -1,7 +1,7 @@
 /* eslint-env node */
 import { query } from '../db.js';
 import { sendAnomalyAlerts } from '../alerts/dispatcher.js';
-import { applyDuplicateStormMitigation } from '../orchestrator/mitigation.js';
+import { applyDuplicateStormMitigation } from '../orchestrator/mitigation.ts';
 
 /**
  * Upsert anomaly and bump counters.

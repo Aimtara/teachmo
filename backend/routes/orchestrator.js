@@ -7,7 +7,7 @@ import { requireTenant } from '../middleware/tenant.js';
 import { query } from '../db.js';
 import { runOrchestrator } from '../orchestrator/orchestrator.js';
 import { orchestratorEngine } from '../orchestrator/engine.ts';
-import { getFamilyHealth, getOrchestratorHealthSnapshot } from '../orchestrator/health.js';
+import { getFamilyHealth, getOrchestratorHealthSnapshot } from '../orchestrator/health.ts';
 import { OrchestratorStatePatchSchema } from '../orchestrator/state_patch.ts';
 import { orchestratorPgStore } from '../orchestrator/pgStore.ts';
 import { listAnomalies } from '../security/anomaly.js';
