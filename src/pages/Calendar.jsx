@@ -127,18 +127,25 @@ export default function Calendar() {
                 {pendingRequests.map((request) => (
                       <div
                         key={request.id}
-                        draggable
-                        onDragStart={(event) => event.dataTransfer.setData('text/plain', `request-${request.id}`)}
                         className="rounded-2xl border border-[var(--enterprise-border)] bg-[color-mix(in_srgb,var(--enterprise-primary)_4%,transparent)] p-4 text-sm"
                       >
                         <p className="font-semibold">{request.title}</p>
                         <p className="mt-1 text-[var(--enterprise-muted)]">{request.description}</p>
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--enterprise-muted)]">Drag to a calendar day</p>
+                          <span
+                            draggable
+                            onDragStart={(event) => event.dataTransfer.setData('text/plain', `request-${request.id}`)}
+                            className="cursor-grab rounded-full border border-[var(--enterprise-border)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--enterprise-muted)]"
+                          >
+                            Drag handle
+                          </span>
                           <button
                             type="button"
                             className="enterprise-focus rounded-full bg-[var(--enterprise-primary)] px-3 py-1 text-xs font-semibold text-white"
-                            onClick={() => scheduleRequest(request, currentDate)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              scheduleRequest(request, currentDate);
+                            }}
                           >
                             Schedule selected day
                           </button>
