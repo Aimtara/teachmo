@@ -3,6 +3,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import type { CorsOptions } from 'cors';
 import passport from 'passport';
 import assignmentsRouter from './routes/assignments.js';
 import submissionsRouter from './routes/submissions.js';
@@ -69,8 +70,8 @@ const devFallbackOrigins = [
 ];
 
 
-const corsOptions = {
-  origin(origin, cb) {
+const corsOptions: CorsOptions = {
+  origin(origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) {
     // Allow same-origin / server-to-server (no origin header).
     if (!origin) return cb(null, true);
 

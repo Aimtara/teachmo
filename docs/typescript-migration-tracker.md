@@ -1,14 +1,14 @@
 # TypeScript Migration Tracker
 
-Generated: 2026-05-07T08:57:14.179Z
+Generated: 2026-05-07T08:59:29.850Z
 
 ## Baseline totals (tracked files)
 
 | Extension | Count |
 | --- | ---: |
-| .js | 185 |
+| .js | 184 |
 | .jsx | 478 |
-| .ts | 408 |
+| .ts | 409 |
 | .tsx | 91 |
 
 ## JS/TS inventory by top-level directory
@@ -16,7 +16,7 @@ Generated: 2026-05-07T08:57:14.179Z
 | Directory | .js | .jsx | .ts | .tsx |
 | --- | ---: | ---: | ---: | ---: |
 | src | 7 | 477 | 244 | 91 |
-| backend | 138 | 0 | 54 | 0 |
+| backend | 137 | 0 | 55 | 0 |
 | nhost | 32 | 0 | 87 | 0 |
 | (repo root) | 7 | 1 | 3 | 0 |
 | public | 1 | 0 | 0 | 0 |
@@ -46,7 +46,7 @@ Generated: 2026-05-07T08:57:14.179Z
 | backend/routes/orchestrator.js | 0 | 1 | P0 | Backend Platform DRI | Depends on typed orchestrator helpers plus authenticated/tenant request contracts. | Convert after orchestrator engine/store modules compile cleanly. | Route is TypeScript with Zod-narrowed request bodies and unchanged mount behavior. |
 | backend/routes/compliance.js | 0 | 1 | P0 | Security & Compliance DRI | Depends on typed compliance helpers and shared Express request contracts. | Convert after compliance policy helpers compile cleanly. | Route is TypeScript with tenant/auth contracts and unchanged DSAR SQL semantics. |
 | backend/routes/privacy.js | 0 | 1 | P0 | Privacy Product DRI | Depends on typed consent ledger and shared Express request contracts. | Convert after consent and audit helpers compile cleanly. | Route is TypeScript with narrowed privacy bodies and preserved subject-access behavior. |
-| backend/app.js | 1 | 0 | P1 | Backend Platform DRI | Mounted routers and middleware need typed contracts first. | Convert only after imported routers/middleware have typed surfaces or no-debt shims. | Application entry is TypeScript with route mounts and middleware order preserved. |
+| backend/app.js | 0 | 1 | P1 | Backend Platform DRI | Mounted routers and middleware need typed contracts first. | Convert only after imported routers/middleware have typed surfaces or no-debt shims. | Application entry is TypeScript with route mounts and middleware order preserved. |
 
 ## Temporary JavaScript exception register (initial)
 

@@ -21,7 +21,7 @@ describe('Backend module import compatibility', () => {
   });
 
   test('can import backend app module under Jest', async () => {
-    const appModule = await import('../app.js');
+    const appModule = await import('../app.ts');
 
     expect(appModule).toHaveProperty('default');
     expect(appModule.default).toBeDefined();

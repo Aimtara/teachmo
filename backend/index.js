@@ -2,7 +2,7 @@
 // Teachmo backend API entry point
 import dotenv from 'dotenv';
 import { WebSocketServer } from 'ws';
-import app from './app.js';
+import app from './app.ts';
 import { seedDemoData, seedExecutionBoardData, seedOpsDemoData } from './seed.js';
 import { startRetentionPurgeScheduler } from './jobs/retentionPurge.js';
 import { startNotificationQueueScheduler } from './jobs/notificationQueue.js';
