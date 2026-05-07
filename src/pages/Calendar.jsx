@@ -142,6 +142,8 @@ export default function Calendar() {
           <button
             key={mode}
             type="button"
+            aria-pressed={view === mode}
+            onPointerDown={() => setView(mode)}
             onClick={() => setView(mode)}
             className={`enterprise-focus enterprise-motion rounded-full px-4 py-2 text-sm font-semibold ${
               view === mode
@@ -154,6 +156,7 @@ export default function Calendar() {
         ))}
       </div>
       <EnterprisePanel title="Calendar workspace" description="Select a day or event to open the existing event details modal.">
+        <p className="mb-3 text-sm font-semibold capitalize text-[var(--enterprise-muted)]">Current view: {view}</p>
         {view === 'agenda' ? (
           <div className="space-y-3" aria-label="Agenda list">
             {agendaEvents.map((event) => (
