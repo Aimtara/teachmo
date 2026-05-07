@@ -37,12 +37,14 @@ export default function Calendar() {
   const [rescheduledEvents, setRescheduledEvents] = useState({});
   const [pendingRequests, setPendingRequests] = useState(schedulingRequests);
 
-  const { data: events = [], isLoading } = useQuery(['events', currentDate], async () => {
-    // Fetch events scoped to the user's school or tenant.
-    const data = await listEvents({ limit: 100 });
-    return data || [];
-  }, {
-    keepPreviousData: true
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['events', currentDate],
+    queryFn: async () => {
+      // Fetch events scoped to the user's school or tenant.
+      const data = await listEvents({ limit: 100 }).catch(() => []);
+      return data || [];
+    },
+    placeholderData: (previousData) => previousData
   });
 
   // Normalize event fields for CalendarView
