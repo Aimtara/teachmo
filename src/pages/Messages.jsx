@@ -81,7 +81,7 @@ export default function Messages() {
   }, [selectedThread?.id]);
 
   const decideRequest = async (requestId, approve) => {
-    setRequests((items) => items.filter((item) => item.id !== requestId));
+    setRequests((items) => items.map((item) => item.id === requestId ? { ...item, decision: approve ? 'Approved' : 'Denied' } : item));
     try {
       await MessagingAPI.approveMessagingRequest({ requestId, approve });
     } catch {
@@ -161,10 +161,16 @@ export default function Messages() {
                   <div key={request.id} className="rounded-xl border border-[var(--enterprise-border)] p-3 text-sm">
                     <p className="font-semibold">{request.requester_user_id}</p>
                     <p className="text-[var(--enterprise-muted)]">{request.metadata?.note || 'Messaging request'}</p>
-                    <div className="mt-3 flex gap-2">
-                      <button type="button" onClick={() => decideRequest(request.id, false)} className="enterprise-focus rounded-full border border-[var(--enterprise-border)] px-3 py-1 text-xs font-semibold">Deny</button>
-                      <button type="button" onClick={() => decideRequest(request.id, true)} className="enterprise-focus rounded-full bg-[var(--enterprise-primary)] px-3 py-1 text-xs font-semibold text-white">Approve</button>
-                    </div>
+                    {request.decision ? (
+                      <p className="mt-3 inline-flex rounded-full bg-[var(--enterprise-success)] px-3 py-1 text-xs font-semibold text-white">
+                        {request.decision}
+                      </p>
+                    ) : (
+                      <div className="mt-3 flex gap-2">
+                        <button type="button" onClick={() => decideRequest(request.id, false)} className="enterprise-focus rounded-full border border-[var(--enterprise-border)] px-3 py-1 text-xs font-semibold">Deny</button>
+                        <button type="button" onClick={() => decideRequest(request.id, true)} className="enterprise-focus rounded-full bg-[var(--enterprise-primary)] px-3 py-1 text-xs font-semibold text-white">Approve</button>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {requests.length === 0 ? <p className="text-sm text-[var(--enterprise-muted)]">No pending message requests.</p> : null}
